@@ -38,6 +38,8 @@ function imp_country(string ...$cands): ?array {
 /** Find a state/region under a country; create it only when it comes from the official structure. */
 function imp_state(array $country, string $name, bool $official, array &$sum): ?int {
   static $made = [];
+  // the current WDOS keeps retired duplicate units, e.g. "Lagos State (retired duplicate of Lagos)": fold them into the real one
+  if (preg_match('/\(\s*retired duplicate of\s+([^)]+)\)/iu', $name, $m)) $name = trim($m[1]);
   $key = imp_norm($name); if ($key === '') return null;
   $g = imp_geo(); $cid = (int) $country['id'];
   if (isset($g['states'][$cid][$key])) return $g['states'][$cid][$key];
@@ -51,7 +53,7 @@ function imp_state(array $country, string $name, bool $official, array &$sum): ?
 function imp_time(?string $s): ?string { $t = $s ? strtotime($s) : false; return $t ? gmdate('Y-m-d H:i:s', $t) : null; }
 
 function import_rows(array $list, bool $commit): array {
-  $sum = ['rows' => 0, 'created' => 0, 'already' => 0, 'invalid' => 0, 'with_password' => 0, 'google_only' => 0, 'no_login' => 0, 'wgmn' => 0, 'wnnn' => 0, 'no_network' => 0,
+  $sum = ['rows' => 0, 'created' => 0, 'already' => 0, 'invalid' => 0, 'demo' => 0, 'with_password' => 0, 'google_only' => 0, 'no_login' => 0, 'wgmn' => 0, 'wnnn' => 0, 'no_network' => 0,
     'no_country' => 0, 'suspended' => 0, 'seats' => 0, 'seat_notes' => [], 'hq_holders' => [], 'new_units' => [], 'no_country_list' => []];
   $pdo = db(); $pdo->beginTransaction();
   try {
@@ -64,6 +66,7 @@ function import_rows(array $list, bool $commit): array {
       $sum['rows']++;
       $email = strtolower($v('email'));
       if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 190) { $sum['invalid']++; continue; }
+      if (preg_match('/\.(invalid|test|example)$/', $email)) { $sum['demo']++; continue; }   // demo seats from the old system are not people
       if (val('SELECT id FROM users WHERE email=?', [$email])) { $sum['already']++; continue; }
       $hash = preg_match('/^\$2[aby]\$\d\d\$.{53}$/', $v('password_hash')) ? $v('password_hash') : null;
       $gsub = $v('google_sub') !== '' ? mb_substr($v('google_sub'), 0, 64) : null;

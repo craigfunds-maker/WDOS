@@ -170,12 +170,14 @@ async function runImport(commit){
   const li=(n,t)=>'<li>'+n+' '+t+'</li>';const ul=(t,a)=>a.length?'<p><b>'+t+' ('+a.length+')</b></p><ul>'+a.slice(0,80).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'';
   box.innerHTML='<h2 style="margin-top:16px">'+(commit?'Imported':'Check result. Nothing has been saved yet.')+'</h2>'
    +(expected&&expected!==rows.length?'<p class="no">The file has '+rows.length+' rows but the current WDOS has '+expected+' accounts. The row limit was not set to No limit. Run the export again.</p>':'')
-   +'<ul>'+li(T.rows||0,'rows read')+li(T.created||0,commit?'accounts created':'accounts would be created')+li(T.already||0,'already here, left untouched')+li(T.invalid||0,'skipped, no valid email')
+   +'<ul>'+li(T.rows||0,'rows read')+li(T.created||0,commit?'accounts created':'accounts would be created')+li(T.already||0,'already here, left untouched')+li(T.invalid||0,'skipped, no valid email')+li(T.demo||0,'demo accounts skipped (addresses ending in .invalid)')
    +li(T.with_password||0,'keep their current password')+li(T.google_only||0,'sign in with Google only')+li(T.no_login||0,'have no password or Google link, HQ resets from Members')
    +li(T.wgmn||0,'WGMN')+li(T.wnnn||0,'WNNN')+li(T.no_network||0,'with no network on the profile')+li(T.suspended||0,'suspended or exited, brought across as suspended')
    +li(T.seats||0,'leadership seats')+li(T.no_country||0,'with no recognisable country')+'</ul>'
    +ul('Leadership seats that need a decision',lists.seat_notes)+ul('New state or region units added from the official structure',lists.new_units)
    +ul('Held an HQ role or function in the current WDOS. Imported as ordinary accounts; give HQ access from Members',lists.hq_holders)+ul('No recognisable country',lists.no_country_list);
+  const full=['WDOS import '+(commit?'result':'check')+' '+new Date().toISOString(),'',...[...box.querySelectorAll('ul:first-of-type li')].map(x=>x.textContent),'','SEATS THAT NEED A DECISION ('+lists.seat_notes.length+')',...lists.seat_notes,'','NEW STATE OR REGION UNITS ('+lists.new_units.length+')',...lists.new_units,'','HELD AN HQ ROLE ('+lists.hq_holders.length+')',...lists.hq_holders,'','NO RECOGNISABLE COUNTRY ('+lists.no_country_list.length+', first 25 per batch)',...lists.no_country_list].join('\r\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([full],{type:'text/plain'}));a.download='wdos-import-'+(commit?'result':'check')+'.txt';a.textContent='Download this report as a text file';a.style.cssText='display:inline-block;margin:10px 0;color:#9bd63a;font-weight:600';box.prepend(a);
   $('dry').disabled=false;$('go').disabled=commit||!(T.created>0)||(expected&&expected!==rows.length);
 }
 $('dry').onclick=()=>runImport(false);$('go').onclick=()=>{if(confirm('Import these accounts into this WDOS now?'))runImport(true);};
