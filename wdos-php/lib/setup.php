@@ -5,20 +5,7 @@ declare(strict_types=1);
  * push keys, so nobody needs a terminal. */
 
 function setup_key_ok(string $k): bool { $a = (string) cfg('ADMIN_KEY', ''); return $a !== '' && hash_equals($a, $k); }
-function run_migrations(): array {
-  db()->exec('CREATE TABLE IF NOT EXISTS migrations (name VARCHAR(120) NOT NULL PRIMARY KEY, ran_at DATETIME NOT NULL) DEFAULT CHARSET=utf8mb4');
-  $done = array_column(rows('SELECT name FROM migrations'), 'name'); $ran = [];
-  $files = glob(__DIR__ . '/../migrations/*.sql'); sort($files);
-  foreach ($files as $f) {
-    $name = basename($f);
-    if (in_array($name, $done, true)) continue;
-    $sql = preg_replace('/^\s*--.*$/m', '', (string) file_get_contents($f));
-    foreach (array_filter(array_map('trim', preg_split('/;\s*(\r?\n|$)/', $sql))) as $stmt) db()->exec($stmt);   // one statement at a time (TiDB rule)
-    q('INSERT INTO migrations (name,ran_at) VALUES (?,?)', [$name, now()]);
-    $ran[] = $name;
-  }
-  return $ran;
-}
+require_once __DIR__ . '/migrate.php';
 
 if ($METHOD === 'POST') {
   $b = body();

@@ -28,41 +28,53 @@ function insp_weekly_for(?string $network, int $week): ?array {
   if (!$network || $week < 1) return null;
   return row("SELECT * FROM hq_messages WHERE kind='weekly' AND seq=? AND network=?", [$week, $network]);
 }
-/** The one card a person sees on her dashboard today, or null. Birthday first, then Monday's message, then the month's. */
+/** The one card a person sees on the dashboard today, or null.
+ *  The birthday card is for everyone. Weekly and monthly inspiration is written for volunteer leaders only. */
 function insp_today(array $u): ?array {
   $d = hq_today();
   if ($u['dob'] && substr($u['dob'], 5) === $d->format('m-d')) {
     return ['id' => 0, 'kind' => 'birthday', 'seq' => 0, 'network' => (string) $u['network'], 'label' => 'Happy birthday', 'theme' => '', 'headline' => 'A day to celebrate you',
       'key_thought' => 'Everyone at WODDI HQ is celebrating you today.', 'body' => '', 'image' => '/assets/inspiration/messages/celebration.webp', 'first_name' => $u['first_name']];
   }
-  if ((int) $d->format('N') === 1 && ($m = insp_weekly_for($u['network'], insp_week($d)))) return insp_shape($m, $u, 'Weekly inspiration, week ' . $m['seq']);
-  if (current_seat((int) $u['id']) && ($n = insp_month($d)) && ($m = row("SELECT * FROM hq_messages WHERE kind='monthly' AND seq=?", [$n]))) {
-    return insp_shape($m, $u, 'Monthly leadership inspiration, ' . $d->format('F Y'));
-  }
+  $seat = is_hq($u) ? null : current_seat((int) $u['id']);
+  if (!$seat) return null;
+  if ((int) $d->format('N') === 1 && ($m = insp_weekly_for($seat['network'], insp_week($d)))) return insp_shape($m, $u, 'Weekly inspiration, week ' . $m['seq']);
+  if (($n = insp_month($d)) && ($m = row("SELECT * FROM hq_messages WHERE kind='monthly' AND seq=?", [$n]))) return insp_shape($m, $u, 'Monthly leadership inspiration, ' . $d->format('F Y'));
   return null;
 }
+function set_setting(string $k, string $v): void { q('DELETE FROM app_settings WHERE k=?', [$k]); q('INSERT INTO app_settings (k,v) VALUES (?,?)', [$k, $v]); }
+/** Claim a send so two requests can never both do it. True for the one that got it. */
+function claim_send(string $key): bool {
+  try { q('INSERT INTO app_settings (k,v) VALUES (?,?)', [$key, now()]); return true; } catch (PDOException $e) { return false; }
+}
 
-/* Scheduled sends. Called from run_automations(); each runs at most once a day. */
+/* Scheduled sends, to volunteer leaders only, in the app and by push. Each message goes out exactly once:
+ * the weekly one on its Monday from 07:00 Lagos time, the monthly one from 07:00 on the first Wednesday
+ * (and as a catch-up if nothing was running that day). */
 function run_inspiration_automations(array &$done): void {
   $d = hq_today();
-  if ((int) $d->format('G') < 7) return;                       // released at 07:00 Lagos time
-  if ((int) $d->format('N') === 1) {
-    $r = cron_once('weekly_inspiration', function () use ($d) {
-      $week = insp_week($d); $n = 0;
-      foreach (['WGMN', 'WNNN'] as $net) {
-        if ($m = insp_weekly_for($net, $week)) $n += notify_many('u.network=?', [$net], 'inspiration', $m['headline'], $m['key_thought'], '#/inspiration');
-      }
-      return $n ? "week $week to $n" : "no message loaded for week $week";
-    });
-    if ($r !== null) $done['weekly_inspiration'] = $r;
+  if ((int) $d->format('G') < 7) return;
+  $leaders = 'EXISTS (SELECT 1 FROM seats s WHERE s.user_id=u.id AND s.ends_at IS NULL AND s.network=?)';
+  $week = insp_week($d);
+  if ((int) $d->format('N') === 1 && $week >= 1 && insp_weekly_for('WGMN', $week) && claim_send('sent_weekly_' . $week)) {
+    $n = 0;
+    foreach (['WGMN', 'WNNN'] as $net) if ($m = insp_weekly_for($net, $week)) $n += notify_many($leaders, [$net], 'inspiration', $m['headline'], $m['key_thought'], '#/inspiration');
+    $done['weekly_inspiration'] = "week $week to $n leaders";
   }
-  if ($d->format('Y-m-d') === first_wednesday($d)->format('Y-m-d')) {
-    $r = cron_once('monthly_inspiration', function () use ($d) {
-      $m = row("SELECT * FROM hq_messages WHERE kind='monthly' AND seq=?", [insp_month($d)]);
-      if (!$m) return 'no message loaded for this month';
-      $n = notify_many('EXISTS (SELECT 1 FROM seats s WHERE s.user_id=u.id AND s.ends_at IS NULL)', [], 'inspiration', 'This month: ' . $m['headline'], 'Monthly leadership inspiration for ' . $d->format('F') . '. Theme: ' . $m['theme'] . '.', '#/inspiration');
-      return "month {$m['seq']} to $n leaders";
-    });
-    if ($r !== null) $done['monthly_inspiration'] = $r;
+  $month = insp_month($d);
+  if ($month >= 1 && ($m = row("SELECT * FROM hq_messages WHERE kind='monthly' AND seq=?", [$month])) && claim_send('sent_monthly_' . $month)) {
+    $n = notify_many('EXISTS (SELECT 1 FROM seats s WHERE s.user_id=u.id AND s.ends_at IS NULL)', [], 'inspiration', 'This month: ' . $m['headline'], 'Monthly leadership inspiration for ' . $d->format('F') . '. Theme: ' . $m['theme'] . '.', '#/inspiration');
+    $done['monthly_inspiration'] = "month $month to $n leaders";
   }
+}
+/** Runs the automations from ordinary traffic, at most every five minutes, so nothing depends on an outside timer. */
+function automations_tick(): void {
+  $last = (int) (val("SELECT v FROM app_settings WHERE k='auto_tick'") ?? 0);
+  if (time() - $last < 300) return;
+  if (q("UPDATE app_settings SET v=? WHERE k='auto_tick' AND v=?", [(string) time(), (string) $last])->rowCount() === 0) {
+    if ($last !== 0 || !claim_send('auto_tick')) return;                      // someone else took this tick
+    set_setting('auto_tick', (string) time());
+  }
+  $done = run_automations(); run_inspiration_automations($done);
+  push_drain(60);
 }

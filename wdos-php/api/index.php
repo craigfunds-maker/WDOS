@@ -5,6 +5,7 @@ require __DIR__ . '/../lib/core.php';
 require __DIR__ . '/../lib/push.php';
 require __DIR__ . '/../lib/notify.php';
 require __DIR__ . '/../lib/webauthn.php';
+require __DIR__ . '/../lib/inspire_fns.php';
 
 set_exception_handler(function (Throwable $e) {
   error_log('[wdos] ' . $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine());
@@ -34,12 +35,12 @@ if (str_starts_with($PATH, '/setup')) { require __DIR__ . '/../lib/setup.php'; e
 /* ----------------------------------------------------------------- misc -- */
 route('GET', '/health', fn() => ['ok' => true, 'build' => WDOS_BUILD, 'db' => (bool) val('SELECT 1'), 'time' => now()]);
 
-route('GET', '/config', fn() => [
+route('GET', '/config', function () { require_once __DIR__ . '/../lib/migrate.php'; ensure_migrated(); return [
   'build' => WDOS_BUILD,
   'google' => (bool) cfg('GOOGLE_CLIENT_ID') && (bool) cfg('GOOGLE_CLIENT_SECRET'),
   'push' => push_configured(), 'vapid' => cfg('VAPID_PUBLIC', ''),
   'mail' => mail_configured(),
-]);
+]; });
 
 route('GET', '/geo/countries', fn() => ['countries' => rows("SELECT id, name, country_code AS code,
   (SELECT COUNT(*) FROM org_units c WHERE c.parent_id=ou.id) AS children FROM org_units ou WHERE level='country' ORDER BY name")]);
@@ -269,6 +270,7 @@ route('GET', '/notifications', function () {
 /* The bell polls this: one cheap indexed read. */
 route('GET', '/notifications/pulse', function () {
   $u = require_user(); $after = (int) ($_GET['after'] ?? 0);
+  after_response('automations_tick');
   return ['unread' => (int) val('SELECT COUNT(*) FROM notifications WHERE user_id=? AND read_at IS NULL', [(int) $u['id']]),
     'fresh' => $after ? rows('SELECT id, kind, title, body, url, created_at FROM notifications WHERE user_id=? AND id>? ORDER BY id DESC LIMIT 5', [(int) $u['id'], $after]) : [],
     'latest' => (int) (val('SELECT MAX(id) FROM notifications WHERE user_id=?', [(int) $u['id']]) ?? 0)];
@@ -328,7 +330,7 @@ route('GET', '/push/latest', function () {
 if ($METHOD === 'GET' && $PATH === '/cron') {
   $key = (string) ($_GET['key'] ?? '');
   if (!cfg('ADMIN_KEY') || !hash_equals((string) cfg('ADMIN_KEY'), $key)) { http_response_code(403); echo 'forbidden'; exit; }
-  require_once __DIR__ . '/../lib/inspire_fns.php';
+  q("DELETE FROM app_settings WHERE k='auto_tick'"); q("INSERT INTO app_settings (k,v) VALUES ('auto_tick',?)", [(string) time()]);
   $auto = run_automations(); run_inspiration_automations($auto);
   out(['ok' => true, 'automations' => $auto, 'push' => push_drain(150), 'time' => now()]);
 }

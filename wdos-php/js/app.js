@@ -29,7 +29,7 @@ function resolve(path) {
   switch (seg[0]) {
     case 'members': return u.is_hq ? sh('members', 'Members', { id: seg[1] }) : u.is_leader ? sh('members', 'My members', { scope: 'leader' }) : sh('home', 'Home');
     case 'announcements': return sh('announcements', 'Announcements', { id: seg[1] });
-    case 'inspiration': return sh('inspiration', 'Inspiration');
+    case 'inspiration': if (u.is_leader && !u.is_hq) return sh('inspiration', 'Inspiration'); location.hash = '#/'; return u.is_hq ? sh('hq', 'HQ dashboard') : sh('home', 'Home');
     case 'notifications': return sh('notifications', 'Notifications');
     case 'settings': return sh('settings', 'Settings');
     case 'login': case 'join': location.hash = '#/'; // signed in already
@@ -65,9 +65,9 @@ export function signedIn(user) { app.user = user; shellEls = null; startPulse();
 /* ----------------------------------------------------------------- shell -- */
 function navItems() {
   const u = app.user;
-  if (u.is_hq) return [['Overview'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['Communication'], ['#/announcements', 'megaphone', 'Announcements'], ['#/inspiration', 'spark', 'Inspiration'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
+  if (u.is_hq) return [['Overview'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['Communication'], ['#/announcements', 'megaphone', 'Announcements'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
   if (u.is_leader) return [['My leadership'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'My members'], ['Communication'], ['#/announcements', 'megaphone', 'Announcements'], ['#/inspiration', 'spark', 'Inspiration'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
-  return [['My network'], ['#/', 'grid', 'Home'], ['#/announcements', 'megaphone', 'Announcements'], ['#/inspiration', 'spark', 'Inspiration'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
+  return [['My network'], ['#/', 'grid', 'Home'], ['#/announcements', 'megaphone', 'Announcements'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
 }
 function markNav(path) {
   const first = '#/' + (path.split('/').filter(Boolean)[0] || '');

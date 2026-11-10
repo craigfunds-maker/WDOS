@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS hq_messages (
   UNIQUE KEY uq_hq_messages (kind, seq, network)
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO hq_messages (kind,seq,network,theme,headline,key_thought,image) VALUES
+INSERT IGNORE INTO hq_messages (kind,seq,network,theme,headline,key_thought,image) VALUES
 ('weekly',1,'WGMN','','You are part of something bigger than yourself','Rooted women lead with purpose and strengthen others through their example.','hq-messages/wi001-wgmn.webp'),
 ('weekly',1,'WNNN','','You are the next generation of women leaders','You are not waiting to become a leader; you are learning to lead responsibly now.','hq-messages/wi001-wnnn.webp'),
 ('weekly',2,'WGMN','','Leadership begins with the heart','Care and accountability together create leadership people can trust.','hq-messages/wi002-wgmn.webp'),
@@ -105,6 +105,6 @@ INSERT INTO hq_messages (kind,seq,network,theme,headline,key_thought,image) VALU
 
 ALTER TABLE announcements ADD COLUMN tone VARCHAR(16) NOT NULL DEFAULT '';
 
-INSERT INTO app_settings (k,v) VALUES ('weekly_start','2026-09-14');
+INSERT IGNORE INTO app_settings (k,v) VALUES ('weekly_start','2026-09-14');
 
-INSERT INTO app_settings (k,v) VALUES ('monthly_start','2026-09');
+INSERT IGNORE INTO app_settings (k,v) VALUES ('monthly_start','2026-09');
