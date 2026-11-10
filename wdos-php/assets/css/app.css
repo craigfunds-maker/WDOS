@@ -234,3 +234,26 @@ a.list__link{color:inherit;text-decoration:none;border-radius:10px} a.list__link
   .toasts{right:10px;left:10px;bottom:10px;width:auto} .hero__disc{width:56px;height:56px}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+
+/* ---------- inspiration cards ---------- */
+.insp{position:relative;overflow:hidden;border-radius:var(--r-xl);border:1px solid var(--line);background:#2A1422;min-height:250px;display:grid;align-items:center;isolation:isolate}
+.insp>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:right 28%;z-index:-2}
+.insp::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(28,12,24,.94) 0%,rgba(28,12,24,.82) 34%,rgba(28,12,24,.35) 58%,rgba(28,12,24,0) 76%)}
+.insp__text{max-width:min(54%,600px);padding:clamp(20px,3vw,34px);color:#fff;display:grid;gap:10px}
+.insp__label{font-size:13px;font-weight:650;color:#FFC2DF} .insp__dear{font-size:15px;color:rgba(255,255,255,.82)}
+.insp__head{font-family:var(--display);font-weight:560;font-size:clamp(24px,3vw,36px);line-height:1.08;letter-spacing:-.015em;text-wrap:balance}
+.insp__thought{font-size:16px;line-height:1.5;color:rgba(255,255,255,.9);max-width:46ch} .insp__sign{font-size:13.5px;font-weight:650;color:#CDE98F;margin-top:4px}
+.insp__body{font-size:15px;line-height:1.6;color:rgba(255,255,255,.86);white-space:pre-wrap;max-width:52ch}
+.inspgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:18px}
+.inspmini{border-radius:var(--r-l);overflow:hidden;border:1px solid var(--line);background:var(--surface);display:grid;cursor:pointer;text-align:left;padding:0;color:inherit;transition:transform .2s var(--ease),border-color .2s}
+.inspmini:hover{transform:translateY(-2px);border-color:var(--accent)} .inspmini img{width:100%;aspect-ratio:2.3;object-fit:cover;object-position:right 28%;background:var(--raised)}
+.inspmini div{padding:14px 16px 16px;display:grid;gap:6px} .inspmini small{color:var(--ink-3);font-size:12.5px;font-weight:600;display:flex;gap:8px;align-items:center;flex-wrap:wrap} .inspmini b{font-family:var(--display);font-weight:560;font-size:18px;line-height:1.2}
+.inspmini p{color:var(--ink-2);font-size:13.5px} .inspmini.is-later{opacity:.62}
+.annpic{width:100%;aspect-ratio:3.4;object-fit:cover;object-position:right 28%;border-radius:10px}
+.tones{display:flex;gap:8px;flex-wrap:wrap} .tone{border:2px solid transparent;border-radius:10px;padding:0;background:none;cursor:pointer;overflow:hidden;width:92px;position:relative} .tone img{width:100%;aspect-ratio:1.9;object-fit:cover;object-position:right 28%;display:block}
+.tone span{position:absolute;left:0;right:0;bottom:0;font-size:11px;font-weight:650;color:#fff;background:rgba(28,12,24,.72);padding:2px 0;text-align:center} .tone[aria-pressed="true"]{border-color:var(--brand)}
+.tone--none{display:grid;place-items:center;height:auto;border:2px dashed var(--line);color:var(--ink-3);font-size:12px;font-weight:650;aspect-ratio:1.9} .tone--none[aria-pressed="true"]{border-style:solid;border-color:var(--brand);color:var(--ink)}
+@media (max-width:640px){
+  .insp{display:block;min-height:0;background:var(--surface)} .insp>img{position:static;aspect-ratio:2.3;height:auto;z-index:0} .insp::before{display:none}
+  .insp__text{max-width:none;color:var(--ink);padding:18px} .insp__label{color:var(--accent)} .insp__dear,.insp__thought,.insp__body{color:var(--ink-2)} .insp__sign{color:var(--lime-ink)}
+}

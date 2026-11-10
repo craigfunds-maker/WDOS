@@ -328,10 +328,13 @@ route('GET', '/push/latest', function () {
 if ($METHOD === 'GET' && $PATH === '/cron') {
   $key = (string) ($_GET['key'] ?? '');
   if (!cfg('ADMIN_KEY') || !hash_equals((string) cfg('ADMIN_KEY'), $key)) { http_response_code(403); echo 'forbidden'; exit; }
-  out(['ok' => true, 'automations' => run_automations(), 'push' => push_drain(150), 'time' => now()]);
+  require_once __DIR__ . '/../lib/inspire_fns.php';
+  $auto = run_automations(); run_inspiration_automations($auto);
+  out(['ok' => true, 'automations' => $auto, 'push' => push_drain(150), 'time' => now()]);
 }
 
 /* ------------------------------------------------------------ dashboards -- */
+require __DIR__ . '/../lib/inspire.php';
 require __DIR__ . '/../lib/dashboards.php';
 
 fail(404, 'No such WDOS endpoint.', 'not_found');

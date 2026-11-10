@@ -147,6 +147,20 @@ route('POST', '/hq/members/(\d+)/seat', function ($id) {
   return ['ok' => true, 'title' => $title];
 });
 
+route('POST', '/hq/members/(\\d+)/details', function ($id) {
+  $me = require_hq(); $id = (int) $id; $b = body();
+  $u = row('SELECT * FROM users WHERE id=?', [$id]);
+  if (!$u) fail(404, 'That member was not found.', 'not_found');
+  $net = in_array($b['network'] ?? '', ['WGMN', 'WNNN'], true) ? $b['network'] : $u['network'];
+  $country = row("SELECT id, name, country_code FROM org_units WHERE level='country' AND id=?", [(int) ($b['country_id'] ?? 0)]);
+  if (!$country) fail(422, 'Choose the country.', 'country');
+  $unit = (int) $country['id']; $state = str_in('state_region', 120);
+  if ($sid = (int) ($b['state_id'] ?? 0)) { $s = row('SELECT id, name FROM org_units WHERE id=? AND parent_id=?', [$sid, (int) $country['id']]); if ($s) { $unit = (int) $s['id']; $state = $s['name']; } }
+  q('UPDATE users SET network=?, country_code=?, org_unit_id=?, state_region=?, lga=?, community=? WHERE id=?', [$net, $country['country_code'], $unit, $state, str_in('lga', 120), str_in('community', 120), $id]);
+  log_activity((int) $me['id'], $id, 'details_corrected', trim(($net ?? '') . ' · ' . $state . ', ' . $country['name'], ' ·,'));
+  return ['ok' => true];
+});
+
 route('GET', '/hq/announcements', function () {
   require_hq();
   return ['items' => rows("SELECT a.*, CONCAT(u.first_name,' ',u.last_name) author FROM announcements a JOIN users u ON u.id=a.author_id ORDER BY a.id DESC LIMIT 30")];
@@ -162,7 +176,8 @@ route('POST', '/hq/announcements', function () {
   if ($net !== 'ALL') { $w[] = 'u.network=?'; $p[] = $net; }
   if ($role === 'leaders') $w[] = 'EXISTS (SELECT 1 FROM seats s WHERE s.user_id=u.id AND s.ends_at IS NULL)';
   if ($country) { $w[] = 'u.country_code=?'; $p[] = $country; }
-  $id = ins('INSERT INTO announcements (author_id,title,body,audience_network,audience_role,audience_country,created_at) VALUES (?,?,?,?,?,?,?)', [(int) $me['id'], $title, $text, $net, $role, $country, now()]);
+  $tone = in_array(body()['tone'] ?? '', ['celebration', 'gratitude', 'courage', 'calm', 'growth', 'purpose'], true) ? body()['tone'] : '';
+  $id = ins('INSERT INTO announcements (author_id,title,body,audience_network,audience_role,audience_country,tone,created_at) VALUES (?,?,?,?,?,?,?,?)', [(int) $me['id'], $title, $text, $net, $role, $country, $tone, now()]);
   $n = notify_many(implode(' AND ', $w), $p, 'announcement', $title, mb_substr($text, 0, 240), '#/announcements/' . $id);
   q('UPDATE announcements SET recipients=? WHERE id=?', [$n, $id]);
   log_activity((int) $me['id'], null, 'announcement', $title);
@@ -172,7 +187,7 @@ route('POST', '/hq/announcements', function () {
 route('GET', '/announcements', function () {
   $u = require_user(); $leader = current_seat((int) $u['id']) ? 1 : 0;
   $w = is_hq($u) ? '1=1' : "(a.audience_network='ALL' OR a.audience_network=?) AND (a.audience_role='all' OR ?=1) AND (a.audience_country IS NULL OR a.audience_country=?)";
-  return ['items' => rows("SELECT a.id, a.title, a.body, a.audience_network, a.audience_role, a.created_at FROM announcements a WHERE $w ORDER BY a.id DESC LIMIT 20",
+  return ['items' => rows("SELECT a.id, a.title, a.body, a.audience_network, a.audience_role, a.tone, a.created_at FROM announcements a WHERE $w ORDER BY a.id DESC LIMIT 20",
     is_hq($u) ? [] : [(string) $u['network'], $leader, (string) $u['country_code']])];
 });
 

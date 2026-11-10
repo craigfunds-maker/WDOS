@@ -19,6 +19,7 @@ const I = {
   grid: ['r:3,3,7,7,1.5', 'r:14,3,7,7,1.5', 'r:14,14,7,7,1.5', 'r:3,14,7,7,1.5'],
   users: ['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2', 'c:9,7,4', 'M22 21v-2a4 4 0 0 0-3-3.87', 'M16 3.13a4 4 0 0 1 0 7.75'],
   megaphone: ['M3 11l18-5v12L3 14v-3z', 'M11.6 16.8a3 3 0 1 1-5.8-1.6'],
+  spark: ['M12 3l1.9 5.6L19.5 10.5 13.9 12.4 12 18l-1.9-5.6L4.5 10.5l5.6-1.9z', 'M19 3v4', 'M21 5h-4', 'M5 17v3', 'M6.5 18.5h-3'],
   bell: ['M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9', 'M10.3 21a1.94 1.94 0 0 0 3.4 0'],
   sliders: ['M4 21v-7', 'M4 10V3', 'M12 21v-9', 'M12 8V3', 'M20 21v-5', 'M20 12V3', 'M1 14h6', 'M9 8h6', 'M17 16h6'],
   collapse: ['M11 17l-5-5 5-5', 'M18 17l-5-5 5-5'],
@@ -121,3 +122,14 @@ export const theme = {
   set(t) { document.documentElement.dataset.theme = t; try { localStorage.setItem('wdos.theme', t); } catch { /* private mode */ } document.querySelector('meta[name=theme-color]')?.setAttribute('content', t === 'light' ? '#FAF4F7' : '#130912'); window.dispatchEvent(new Event('wdos:theme')); },
   toggle() { this.set(this.get() === 'light' ? 'dark' : 'light'); },
 };
+
+/* An HQ inspiration message: picture on the right, words on the calm left side. The words are live text, never part of the picture. */
+export function inspCard(c, full = false) {
+  const birthday = c.kind === 'birthday';
+  return h('section', { class: 'insp reveal', 'aria-label': c.label }, h('img', { src: c.image, alt: '', loading: 'lazy' }),
+    h('div', { class: 'insp__text' }, h('div', { class: 'insp__label', text: c.label + (c.theme ? '. ' + c.theme : '') }),
+      c.first_name ? h('div', { class: 'insp__dear', text: (birthday ? 'Happy birthday, ' : 'Dear ') + c.first_name + (birthday ? '.' : ',') }) : null,
+      h('h2', { class: 'insp__head', text: c.headline }), c.key_thought ? h('p', { class: 'insp__thought', text: c.key_thought }) : null,
+      full && c.body ? h('p', { class: 'insp__body', text: c.body }) : null, h('div', { class: 'insp__sign', text: 'WODDI HQ' })));
+}
+export const TONES = [['celebration', 'Celebration'], ['gratitude', 'Gratitude'], ['courage', 'Courage'], ['calm', 'Calm'], ['growth', 'Growth'], ['purpose', 'Purpose']];

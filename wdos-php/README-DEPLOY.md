@@ -1,4 +1,4 @@
-# WDOS on PHP: deployment guide (build v90.1)
+# WDOS on PHP: deployment guide (build v91.0)
 
 Everything here is done in a browser. No terminal is needed.
 
@@ -89,6 +89,15 @@ then checks the file without saving, then imports. Members keep their current
 passwords. Existing emails are never overwritten, so it is safe to run again
 later to pick up people who joined in between. HQ access is never granted by
 the import. The same query is saved in `migrations/EXPORT-FROM-CURRENT-WDOS.pgsql.txt`.
+
+## Inspiration messages (v91.0)
+
+Weekly inspiration goes to every WGMN and WNNN member on Mondays at 7:00 Lagos
+time, the monthly leadership inspiration goes to leaders on the first
+Wednesday, and the birthday card shows on the day. All three need the 5-minute
+timer from section A step 7, because the timer is what sends them. Pictures
+live in `assets/inspiration`. After uploading this build, open `/api/setup` and
+press Create or update tables once.
 
 ## Not in this phase
 

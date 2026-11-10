@@ -7,6 +7,7 @@ const NOTIFY_KINDS = [
   'welcome'      => 'Welcome and account messages',
   'registration' => 'New registrations (HQ)',
   'announcement' => 'Announcements from HQ',
+  'inspiration'  => 'Weekly and monthly inspiration',
   'appointment'  => 'Leadership appointments',
   'account'      => 'Security and password changes',
   'birthday'     => 'Birthday greetings',
@@ -81,8 +82,8 @@ function run_automations(): array {
   // 1. Birthday greeting, on the day, to the member herself.
   $r = cron_once('birthdays', function () {
     $n = 0;
-    foreach (rows("SELECT id, first_name FROM users WHERE status='active' AND dob IS NOT NULL AND DATE_FORMAT(dob,'%m-%d')=?", [gmdate('m-d')]) as $u) {
-      notify((int) $u['id'], 'birthday', 'Happy birthday, ' . $u['first_name'], 'Everyone at WODDI HQ is celebrating you today. Thank you for all you give to your network.', '#/notifications'); $n++;
+    foreach (rows("SELECT id, first_name FROM users WHERE status='active' AND dob IS NOT NULL AND DATE_FORMAT(dob,'%m-%d')=?", [(new DateTimeImmutable('now', new DateTimeZone('Africa/Lagos')))->format('m-d')]) as $u) {
+      notify((int) $u['id'], 'birthday', 'Happy birthday, ' . $u['first_name'], 'Everyone at WODDI HQ is celebrating you today. Thank you for all you give to your network.', '#/'); $n++;
     }
     return "$n greeted";
   });

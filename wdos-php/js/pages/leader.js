@@ -1,5 +1,5 @@
 /* Volunteer leadership dashboard: everything is scoped to the leader's own seat and network. */
-import { h, clear, icon, avatar, flag, netTag, card, sk, empty, ago, agoIn, fmt, greeting, fmtDate, NETS } from '../ui.js';
+import { h, clear, icon, avatar, flag, netTag, card, sk, empty, ago, agoIn, fmt, greeting, fmtDate, NETS, inspCard } from '../ui.js';
 import { api } from '../api.js';
 import { app } from '../app.js';
 import { lineChart, bars, sparkline, seriesColor } from '../charts.js';
@@ -12,7 +12,9 @@ export async function render(root) {
   const hero = h('section', { class: 'hero' }, avatar(u, 76), h('div', { class: 'grow' }, h('h1', { class: 'display', text: `${greeting()}, ${u.first_name}` }), h('p', { text: u.seat?.title || '' }), meta), h('img', { class: 'hero__disc', src: net.disc, alt: net.name }), seg);
   const kpis = h('div', { class: 'row row--4' }); const trend = h('div'), breakdown = h('div'), team = h('div'), recent = h('div');
   const breakCard = card('Where your members are', null, breakdown);
-  root.append(hero, kpis, h('div', { class: 'row row--2-1' }, card('New members in your area', 'Registrations per day', trend), breakCard),
+  const today = h('div', { hidden: true });
+  api('/inspiration/today').then((r) => { if (r.card) { today.hidden = false; today.append(inspCard(r.card)); } }).catch(() => {});
+  root.append(hero, today, kpis, h('div', { class: 'row row--2-1' }, card('New members in your area', 'Registrations per day', trend), breakCard),
     h('div', { class: 'row row--2' }, card('Your leadership team', 'Leaders serving under your seat', team), card('Newest members', null, recent, h('a', { class: 'btn btn--ghost btn--s', href: '#/members', text: 'All my members' }))));
 
   async function load() {

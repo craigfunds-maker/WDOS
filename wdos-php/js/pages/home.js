@@ -1,5 +1,5 @@
 /* A member's home: her membership, what is left to set up, and the latest from HQ. */
-import { h, icon, avatar, flag, netTag, card, sk, empty, ago, greeting, fmtDate, NETS } from '../ui.js';
+import { h, icon, avatar, flag, netTag, card, sk, empty, ago, greeting, fmtDate, NETS, inspCard } from '../ui.js';
 import { api, pushState } from '../api.js';
 import { app } from '../app.js';
 
@@ -8,6 +8,8 @@ export async function render(root) {
   root.append(h('section', { class: 'hero' }, avatar(u, 76), h('div', { class: 'grow' }, h('h1', { class: 'display', text: `${greeting()}, ${u.first_name}` }), h('p', { text: net.name }),
     h('div', { class: 'hero__meta' }, flag(u.country_code), netTag(u.network), u.member_no ? h('span', { class: 'tag num', text: u.member_no }) : null, h('span', { class: 'tag', text: [u.state_region, u.country].filter(Boolean).join(', ') }), h('span', { class: 'tag', text: 'Member since ' + fmtDate(u.created_at, { month: 'short', year: 'numeric' }) }))),
     h('img', { class: 'hero__disc', src: net.disc, alt: '' })));
+  const today = h('div', { hidden: true }); root.append(today);
+  api('/inspiration/today').then((r) => { if (r.card) { today.hidden = false; today.append(inspCard(r.card)); } }).catch(() => {});
   const steps = h('div', { class: 'steps' }, sk.rows(3)); const news = h('div', {}, sk.rows(3));
   root.append(h('div', { class: 'row row--2' }, card('Finish setting up', 'Three things that help your leaders reach you', steps), card('From WODDI HQ', 'Announcements for your network', news, h('a', { class: 'btn btn--ghost btn--s', href: '#/announcements', text: 'All announcements' }))));
   const [push, creds, ann] = await Promise.all([pushState().catch(() => 'off'), api('/webauthn/credentials').catch(() => ({ credentials: [] })), api('/announcements').catch(() => ({ items: [] }))]);
