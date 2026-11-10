@@ -14,6 +14,9 @@ export async function render(root) {
   const breakCard = card('Where your members are', null, breakdown);
   const today = h('div', { hidden: true });
   api('/inspiration/today').then((r) => { if (r.card) { today.hidden = false; today.append(inspCard(r.card)); } }).catch(() => {});
+  const todo = u.todo || {}; const nudge = (title, text, href, label) => h('section', { class: 'card nudge' }, h('div', { class: 'card__body', style: 'display:flex;gap:16px;align-items:center;flex-wrap:wrap' }, h('div', { class: 'grow' }, h('b', { text: title }), h('p', { class: 'muted', style: 'margin:4px 0 0', text })), h('a', { class: 'btn', href, text: label })));
+  if (todo.appointment) root.append(hero, nudge('Accept your appointment', 'Read the Volunteer Leadership Agreement to the end and accept it to take up your seat.', '#/appointment', 'Read the Agreement'));
+  else if (todo.onboarding > 0) root.append(hero, nudge('Your onboarding', `${todo.onboarding} required ${todo.onboarding === 1 ? 'step is' : 'steps are'} still to finish. Work through each step in order.`, '#/onboarding', 'Continue my onboarding'));
   root.append(hero, today, kpis, h('div', { class: 'row row--2-1' }, card('New members in your area', 'Registrations per day', trend), breakCard),
     h('div', { class: 'row row--2' }, card('Your leadership team', 'Leaders serving under your seat', team), card('Newest members', null, recent, h('a', { class: 'btn btn--ghost btn--s', href: '#/members', text: 'All my members' }))));
 

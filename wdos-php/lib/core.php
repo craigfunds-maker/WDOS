@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Configuration comes from environment variables (Render) or from
  * config.local.php beside index.html (shared hosting / cPanel). */
 
-const WDOS_BUILD = 'v92.1';
+const WDOS_BUILD = 'v93.0';
 
 function cfg(string $key, ?string $default = null): ?string {
   static $local = null;
@@ -175,6 +175,7 @@ function country_name(?string $code): string {
 }
 function public_user(array $u): array {
   $seat = current_seat((int) $u['id']);
+  $todo = function_exists('person_todo') ? person_todo($u, $seat) : ['appointment' => false, 'onboarding' => 0, 'activation' => false];
   return [
     'id' => (int) $u['id'], 'member_no' => $u['member_no'], 'email' => $u['email'],
     'first_name' => $u['first_name'], 'last_name' => $u['last_name'], 'phone' => $u['phone'], 'dob' => $u['dob'],
@@ -183,7 +184,7 @@ function public_user(array $u): array {
     'role' => $u['role'], 'status' => $u['status'], 'has_photo' => (int) $u['has_photo'] === 1,
     'has_password' => !empty($u['password_hash']), 'must_change_password' => (int) $u['must_change_password'] === 1,
     'is_hq' => is_hq($u), 'is_leader' => (bool) $seat,
-    'seat' => $seat ? ['position' => $seat['position_code'], 'title' => seat_title($seat), 'status' => $seat['status'], 'network' => $seat['network'], 'level' => $seat['position_level']] : null,
+    'seat' => $seat ? ['position' => $seat['position_code'], 'title' => seat_title($seat), 'status' => $seat['status'], 'network' => $seat['network'], 'level' => $seat['position_level'], 'acceptance' => $seat['acceptance'] ?? ''] : null, 'todo' => $todo,
     'created_at' => $u['created_at'],
   ];
 }

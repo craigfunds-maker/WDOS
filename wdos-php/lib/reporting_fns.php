@@ -102,6 +102,7 @@ function rp_snapshot(array $node, string $from, string $to, string $template): a
     'membership' => ['opening' => $i($m['opening']), 'new' => $i($m['newm']), 'closing' => $i($m['closing']), 'active' => $i($m['active'])],
     'compliance' => $c,
     'issues' => ['open' => $i($iss['open']), 'red_critical' => $i($iss['red']), 'resolved' => $i($iss['resolved'])],
+    'tasks' => tasks_snapshot($node, $a, $b), 'meetings' => meetings_snapshot($node, $a, $b),
     'activities' => ['total' => $i($act['total']), 'people_reached' => $i($act['people']), 'follow_ups_open' => $i($act['fu']), 'escalations' => $i($act['esc'])],
   ];
 }

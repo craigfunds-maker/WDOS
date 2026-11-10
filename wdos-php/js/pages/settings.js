@@ -1,7 +1,7 @@
 /* Settings: profile and photograph, password, fingerprint devices, notifications on this device and per type, theme. */
-import { h, icon, avatar, card, sk, toast, agoIn, theme } from '../ui.js';
+import { h, icon, avatar, card, sk, toast, agoIn, theme, langPicker } from '../ui.js';
 import { api, squarePhoto, fingerprintSupported, fingerprintEnroll, deviceLabel, pushState, pushEnable, pushDisable } from '../api.js';
-import { app, refreshUser } from '../app.js';
+import { app, refreshUser, setLanguage } from '../app.js';
 
 const sw = (checked, onchange, label) => { const i = h('input', { type: 'checkbox', 'aria-label': label }); i.checked = !!checked; i.addEventListener('change', () => onchange(i.checked, i)); return h('label', { class: 'switch' }, i, h('i')); };
 
@@ -51,6 +51,6 @@ export async function render(root) {
   const themeSeg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Theme' }, [['dark', 'Dark', 'moon'], ['light', 'Light', 'sun']].map(([v, l, ic]) => h('button', { type: 'button', 'aria-pressed': String(theme.get() === v), style: 'display:inline-flex;gap:8px;align-items:center', onclick: (e) => { theme.set(v); themeSeg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget))); } }, icon(ic, 16), l)));
 
   root.append(h('div', { class: 'setgrid' }, card('Your profile', u.member_no ? 'Membership number ' + u.member_no : null, pForm), card('Sign-in and security', null, security),
-    card('Notifications', 'Choose what reaches you, and where', h('div', { style: 'display:grid;gap:16px' }, devRow, prefs)), card('Appearance', 'Saved on this device', themeSeg)));
+    card('Notifications', 'Choose what reaches you, and where', h('div', { style: 'display:grid;gap:16px' }, devRow, prefs)), card('Appearance', 'Saved on this device', h('div', { style: 'display:grid;gap:16px' }, themeSeg, h('label', { class: 'field' }, h('span', { text: 'Language' }), langPicker(setLanguage), h('small', { text: 'Menus, page titles, the joining pages and common buttons are translated. Other text stays in English for now.' }))))));
   loadFp(); paintDevice(); loadPrefs();
 }

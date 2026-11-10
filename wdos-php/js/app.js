@@ -1,12 +1,12 @@
 /* WDOS front end entry: session, router, shell (collapsible sidebar, top bar, notification bell). */
-import { h, clear, icon, avatar, toast, ago, theme, empty } from './ui.js';
+import { h, clear, icon, avatar, toast, ago, theme, empty, i18n, t } from './ui.js';
 import { api } from './api.js';
 
 export const app = { user: null, config: { google: false, push: false, vapid: '', mail: false, build: '' }, unread: 0, latest: 0 };
 const root = document.getElementById('app');
 const store = { get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } } };
 
-const KIND_ICON = { welcome: 'award', registration: 'user', announcement: 'megaphone', appointment: 'award', account: 'shield', birthday: 'cake', reminder: 'clock', digest: 'chart', inspiration: 'spark', report: 'chart' };
+const KIND_ICON = { task: 'tasks', meeting: 'calendar', activation: 'route', welcome: 'award', registration: 'user', announcement: 'megaphone', appointment: 'award', account: 'shield', birthday: 'cake', reminder: 'clock', digest: 'chart', inspiration: 'spark', report: 'chart' };
 export const kindIcon = (k) => KIND_ICON[k] || 'bell';
 
 /* ---------------------------------------------------------------- routes -- */
@@ -14,7 +14,8 @@ const pages = {
   welcome: () => import('./pages/welcome.js'), login: () => import('./pages/login.js'),
   hq: () => import('./pages/hq.js'), members: () => import('./pages/members.js'), announcements: () => import('./pages/announcements.js'),
   leader: () => import('./pages/leader.js'), home: () => import('./pages/home.js'),
-  reporting: () => import('./pages/reporting.js'),
+  reporting: () => import('./pages/reporting.js'), tasks: () => import('./pages/tasks.js'), meetings: () => import('./pages/meetings.js'), structure: () => import('./pages/structure.js'),
+  onboarding: () => import('./pages/onboarding.js'), referrals: () => import('./pages/referrals.js'), activation: () => import('./pages/activation.js'),
   notifications: () => import('./pages/notifications.js'), settings: () => import('./pages/settings.js'),
 };
 function resolve(path) {
@@ -23,7 +24,9 @@ function resolve(path) {
   if (!u) {
     if (seg[0] === 'login') return pub('login');
     if (seg[0] === 'reset') return pub('login', { reset: seg[1] });
-    return pub('welcome', { network: (seg[0] === 'join' ? seg[1] : '') || '' });
+    if (seg[0] === 'r' && seg[1]) return pub('welcome', { ref: seg[1] });
+    if (seg[0] === 'join' && seg[1]) return pub('welcome', { network: seg[1], leader: true });
+    return pub('welcome', { network: '' });
   }
   if (u.status === 'pending_profile') return pub('welcome', { complete: true, network: u.network || '' });
   const sh = (name, title, params = {}) => ({ name, title, params, shell: true });
@@ -31,9 +34,16 @@ function resolve(path) {
     case 'members': return u.is_hq ? sh('members', 'Members', { id: seg[1] }) : u.is_leader ? sh('members', 'My members', { scope: 'leader' }) : sh('home', 'Home');
     case 'announcements': return sh('announcements', 'Announcements', { id: seg[1] });
     case 'reporting': return (u.is_hq || u.is_leader) ? sh('reporting', 'Reporting and accountability', { tab: seg[1], id: seg[2] }) : sh('home', 'Home');
+    case 'tasks': return sh('tasks', 'Tasks', { tab: seg[1] });
+    case 'meetings': return sh('meetings', 'Meetings', { tab: seg[1] });
+    case 'structure': return (u.is_hq || u.is_leader) ? sh('structure', 'Leadership structure') : sh('home', 'Home');
+    case 'referrals': return (u.is_hq || u.is_leader) ? sh('referrals', 'Referral and activation', { tab: seg[1], id: seg[2] }) : sh('home', 'Home');
+    case 'onboarding': return (u.is_hq || u.is_leader) ? sh('onboarding', 'Onboarding', { user: seg[1] }) : sh('home', 'Home');
+    case 'appointment': return sh('onboarding', 'Your appointment', { appointment: true });
+    case 'activation': return sh('activation', 'My Activation');
     case 'notifications': return sh('notifications', 'Notifications');
     case 'settings': return sh('settings', 'Settings');
-    case 'login': case 'join': location.hash = '#/'; // signed in already
+    case 'login': case 'join': case 'r': location.hash = '#/'; // signed in already
     // falls through
     default: return u.is_hq ? sh('hq', 'HQ dashboard') : u.is_leader ? sh('leader', 'Leadership dashboard') : sh('home', 'Home');
   }
@@ -44,9 +54,9 @@ async function render() {
   const path = (location.hash || '#/').slice(1).split('?')[0];
   const r = resolve(path);
   let outlet;
-  if (r.shell) { if (!shellEls) buildShell(); shellEls.title.textContent = r.title; markNav(path); outlet = shellEls.page; shellEls.shell.classList.remove('nav-open'); }
+  if (r.shell) { if (!shellEls) buildShell(); shellEls.title.textContent = t(r.title); markNav(path); outlet = shellEls.page; shellEls.shell.classList.remove('nav-open'); }
   else { shellEls = null; clear(root); outlet = root; }
-  document.title = (r.title ? r.title + ' · ' : '') + 'WDOS';
+  document.title = (r.title ? t(r.title) + ' · ' : '') + 'WDOS';
   try {
     const mod = await pages[r.name]();
     if (token !== navToken) return;                    // a newer navigation won
@@ -60,15 +70,16 @@ async function render() {
 }
 export const go = (hash) => { if (location.hash === hash) render(); else location.hash = hash; };
 export async function refreshUser() { app.user = (await api('/me')).user; return app.user; }
+export async function setLanguage(lang) { await i18n.set(lang); shellEls = null; render(); }
 export async function signOut() { stopPulse(); await api('/auth/logout', {}).catch(() => {}); app.user = null; shellEls = null; go('#/login'); }
 export function signedIn(user) { app.user = user; shellEls = null; startPulse(); go('#/'); }
 
 /* ----------------------------------------------------------------- shell -- */
 function navItems() {
-  const u = app.user;
-  if (u.is_hq) return [['Overview'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/reporting', 'chart', 'Reporting'], ['Communication'], ['#/announcements', 'megaphone', 'Announcements'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
-  if (u.is_leader) return [['My leadership'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'My members'], ['#/reporting', 'chart', 'Reporting'], ['Communication'], ['#/announcements', 'megaphone', 'Announcements'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
-  return [['My network'], ['#/', 'grid', 'Home'], ['#/announcements', 'megaphone', 'Announcements'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
+  const u = app.user; const comm = [['Communication'], ['#/announcements', 'megaphone', 'Announcements'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
+  if (u.is_hq) return [['Overview'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/structure', 'tree', 'Leadership structure'], ['#/referrals', 'route', 'Referral and activation'], ['Work'], ['#/reporting', 'chart', 'Reporting'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ...comm];
+  if (u.is_leader) return [['My leadership'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'My members'], ['#/structure', 'tree', 'Leadership structure'], ['#/referrals', 'route', 'Referral links'], ['#/onboarding', 'book', 'Onboarding'], ['Work'], ['#/reporting', 'chart', 'Reporting'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ...comm];
+  return [['My network'], ['#/', 'grid', 'Home'], u.todo && u.todo.activation ? ['#/activation', 'route', 'My Activation'] : null, ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ...comm].filter(Boolean);
 }
 function markNav(path) {
   const first = '#/' + (path.split('/').filter(Boolean)[0] || '');
@@ -157,6 +168,7 @@ window.addEventListener('wdos:signed-out', () => { if (app.user) { app.user = nu
 window.addEventListener('hashchange', render);
 (async function boot() {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+  await i18n.load(i18n.saved());
   try {
     const [cfg, me] = await Promise.all([api('/config'), api('/me')]);
     app.config = cfg; app.user = me.user;

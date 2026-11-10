@@ -269,3 +269,23 @@ a.list__link{color:inherit;text-decoration:none;border-radius:10px} a.list__link
 @media print{.side,.top,.rtabs,.rpbar,.toasts,.btn,.iconbtn{display:none!important} .shell{display:block} .main,body{background:#fff!important} .card,.hero,.panel{box-shadow:none;break-inside:avoid} :root{--bg:#fff;--surface:#fff;--raised:#f6f6f6;--sunken:#fff;--ink:#111;--ink-2:#333;--ink-3:#555;--line:#ccc;--line-soft:#ddd}}
 
 .rprow--wide{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--raised)}
+
+/* v93: tasks, meetings, structure, onboarding, referral and activation */
+.seg a.seg__a{color:var(--ink-2);padding:6px 12px;border-radius:9px;font-weight:600;font-size:13px;min-height:32px;display:inline-flex;align-items:center;text-decoration:none;white-space:nowrap;flex:none}
+.seg a.seg__a[aria-pressed="true"]{background:var(--raised);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+.tagrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end} .list>div .tagrow,.list__link .tagrow{flex:none;max-width:46%}
+.tag__x{border:0;background:transparent;color:inherit;cursor:pointer;padding:0 0 0 4px;display:inline-flex;align-items:center}
+.picklist{display:grid;gap:4px;max-height:220px;overflow:auto} .pick{display:flex;gap:10px;align-items:center;text-align:left;border:1px solid var(--line-soft);background:var(--sunken);color:var(--ink);border-radius:10px;padding:6px 10px;cursor:pointer;font:inherit}
+.pick:hover{border-color:var(--line)} .pick b{display:block;font-weight:600;font-size:14px} .pick small{color:var(--ink-3);font-size:12.5px}
+.docwrap{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--sunken)} .doc__bar{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--raised)}
+.doc__scroll{max-height:min(62vh,560px);overflow-y:auto;padding:18px 20px} .doc{max-width:70ch;font-size:15px;line-height:1.6} .doc h1{font-family:var(--display);font-size:26px;margin:0 0 6px} .doc h2{font-size:19px;margin:22px 0 8px} .doc h3{font-size:16px;margin:16px 0 6px}
+.doc p,.doc li{color:var(--ink-2)} .doc table{border-collapse:collapse;width:100%;font-size:14px} .doc td,.doc th{border:1px solid var(--line);padding:6px 8px;text-align:left}
+.pbar{flex:1;height:8px;border-radius:99px;background:var(--sunken);border:1px solid var(--line);overflow:hidden} .pbar span{display:block;height:100%;background:var(--brand,#D4006A);border-radius:99px;transition:width .4s ease}
+.dots{display:flex;gap:6px;flex-wrap:wrap} .dot{width:28px;height:28px;border-radius:50%;display:inline-grid;place-items:center;font-size:12.5px;font-weight:700;border:1px solid var(--line);color:var(--ink-3);flex:none} .dot.is-done{background:var(--good);border-color:var(--good);color:#10240a}
+.notice{margin:0;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--sunken);font-size:13.5px;color:var(--ink-2)}
+.nudge{border-color:var(--brand,#D4006A)}
+.langpick{width:auto;min-height:36px;padding-top:4px;padding-bottom:4px;max-width:150px}
+[dir="rtl"] .side{left:auto;right:0} [dir="rtl"] .who,[dir="rtl"] .list>div,[dir="rtl"] .list__link{text-align:right} [dir="rtl"] .tagrow{justify-content:flex-start}
+@media (max-width:640px){.list>div .tagrow,.list__link .tagrow{max-width:none;justify-content:flex-start} .list__link,.list>div{flex-wrap:wrap}}
+.card__head .toolbar{padding:0;flex-wrap:nowrap;justify-content:flex-end} .card__head .toolbar .input{min-width:0}
+@media (max-width:760px){.card__head{flex-wrap:wrap} .card__head .toolbar{flex-wrap:wrap;justify-content:flex-start;width:100%}}

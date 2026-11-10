@@ -1,13 +1,13 @@
 /* The front door. A newcomer picks her network by its logo, and the form that
  * opens carries that network all the way into her record. The same form
  * finishes a Google sign-up (complete = true). */
-import { h, clear, icon, NETS, googleMark, theme, toast } from '../ui.js';
+import { h, clear, icon, NETS, googleMark, theme, toast, langPicker } from '../ui.js';
 import { api } from '../api.js';
-import { app, signedIn, refreshUser, go, signOut } from '../app.js';
+import { app, signedIn, refreshUser, go, signOut, setLanguage } from '../app.js';
 
 export function pubBar(right) {
   const tb = h('button', { class: 'iconbtn', type: 'button', 'aria-label': 'Switch between dark and light', onclick: () => { theme.toggle(); tb.replaceChildren(icon(theme.get() === 'light' ? 'moon' : 'sun')); } }, icon(theme.get() === 'light' ? 'moon' : 'sun'));
-  return h('header', { class: 'pubbar' }, h('a', { href: '#/', 'aria-label': 'WODDI home' }, h('img', { src: '/assets/logos/woddi.png', alt: 'WODDI, The Nurturer' })), h('div', { class: 'grow' }), tb, right || null);
+  return h('header', { class: 'pubbar' }, h('a', { href: '#/', 'aria-label': 'WODDI home' }, h('img', { src: '/assets/logos/woddi.png', alt: 'WODDI, The Nurturer' })), h('div', { class: 'grow' }), langPicker(setLanguage), tb, right || null);
 }
 export const pubFoot = () => h('footer', { class: 'pubfoot' }, h('span', { text: 'WODDI Digital Operating System' }), h('span', { text: 'No Woman Is Left Out' }), h('span', { class: 'num', text: 'Build ' + (app.config.build || '') }));
 
@@ -15,6 +15,14 @@ const ageOf = (dob) => { const d = new Date(dob + 'T00:00:00Z'); if (isNaN(d)) r
 
 export async function render(root, params) {
   const complete = !!params.complete; const u = app.user;
+  /* A referral: either a link someone shared (#/r/CODE) or the network's referral form (#/join/WGMN). */
+  let link = null, refMeta = null; const leaderForm = !!params.leader && !complete;
+  if (params.ref && !complete) {
+    try { const r = await api('/ref/' + encodeURIComponent(params.ref)); link = r.link; params.network = link.network; }
+    catch (e) { root.append(h('div', { class: 'public' }, pubBar(h('a', { class: 'btn btn--quiet', href: '#/login', text: 'Sign in' })), h('main', { class: 'join' }, h('div', { class: 'card', style: 'max-width:560px;margin:40px auto' }, h('div', { class: 'card__body', style: 'display:grid;gap:12px;text-align:center' }, h('h2', { text: 'This invitation link is not active' }), h('p', { class: 'muted', text: 'Ask the person who sent it for a new link, or join WODDI directly.' }), h('div', {}, h('a', { class: 'btn', href: '#/', text: 'Join as a member' }))))), pubFoot())); return; }
+  }
+  const candidate = leaderForm || (link && link.position);
+  if (candidate) refMeta = await api('/positions').catch(() => null);
   let chosen = ['WGMN', 'WNNN'].includes(String(params.network).toUpperCase()) ? String(params.network).toUpperCase() : '';
   const nets = h('div', { class: 'nets', role: 'radiogroup', 'aria-label': 'Choose your network' });
   const wrap = h('div', { class: 'formwrap' }); const inner = h('div'); wrap.append(inner);
@@ -65,8 +73,17 @@ export async function render(root, params) {
     const n = NETS[chosen]; const other = chosen === 'WGMN' ? 'WNNN' : 'WGMN';
     const err = h('p', { class: 'err', role: 'alert' });
     const ageNote = h('small', {});
-    const submit = h('button', { class: 'btn btn--block', type: 'submit', text: complete ? `Finish joining ${chosen}` : `Join ${chosen}` });
+    const submit = h('button', { class: 'btn btn--block', type: 'submit', text: complete ? `Finish joining ${chosen}` : candidate ? 'Create my account and begin my Referral Activation' : `Join ${chosen}` });
     const consent = F.consent || (F.consent = h('input', { type: 'checkbox', id: 'f-consent' }));
+    let refBlock = null;
+    if (candidate && refMeta) {
+      F.position = F.position || h('select', { class: 'input', id: 'f-position' }); F.refCat = F.refCat || h('select', { class: 'input', id: 'f-refcat' }, h('option', { value: '', text: 'Choose' }), Object.entries(refMeta.categories).map(([v, l]) => h('option', { value: v, text: l }))); F.refName = F.refName || h('input', { class: 'input', id: 'f-refname', maxlength: 160 });
+      const keep = F.position.value; F.position.replaceChildren(h('option', { value: '', text: 'Choose the position' }), ...refMeta.positions.map((p) => h('option', { value: p.code, text: chosen === 'WNNN' ? p.title_wnnn : p.title_wgmn }))); F.position.value = keep;
+      refBlock = h('fieldset', {}, h('legend', { text: 'The position and where you will serve' }),
+        link ? h('p', { class: 'muted', style: 'margin:0 0 12px', text: `You have been referred by ${link.owner} for consideration as ${link.role}${link.place ? ', ' + link.place : ''}.` })
+          : h('div', { class: 'grid2' }, h('label', { class: 'field', for: 'f-position' }, h('span', { text: 'Position being considered for' }), F.position), h('label', { class: 'field', for: 'f-refcat' }, h('span', { text: 'Who referred you?' }), F.refCat), h('label', { class: 'field', for: 'f-refname' }, h('span', { text: 'Name of the person who referred you' }), F.refName)),
+        h('p', { class: 'notice', text: refMeta.notice }));
+    }
     const form = h('form', { class: 'jform reveal', novalidate: true },
       h('div', { class: 'jform__head' }, h('img', { src: n.disc, alt: '' }), h('div', {}, h('h2', { text: complete ? 'Finish your profile' : `Join ${chosen}` }), h('p', { class: 'muted', text: `${n.name}. ${n.age}.` }))),
       !complete && app.config.google ? h('div', { style: 'margin-top:18px' }, h('a', { class: 'gbtn', href: '/api/auth/google/start?network=' + chosen }, googleMark(), `Continue with Google as ${chosen}`), h('div', { class: 'or', text: 'or fill in the form' })) : null,
@@ -78,6 +95,7 @@ export async function render(root, params) {
       h('fieldset', {}, h('legend', { text: 'Where you are' }), h('div', { class: 'grid2' },
         h('label', { class: 'field', for: 'f-country' }, h('span', { text: 'Country' }), F.country), stateSlot,
         field('lga', 'LGA or district', { maxlength: 120 }), field('community', 'Community or ward', { maxlength: 120 }))),
+      refBlock,
       complete ? null : h('fieldset', {}, h('legend', { text: 'Your sign-in' }), h('div', { class: 'grid2' },
         field('email', 'Email address', { type: 'email', required: true, maxlength: 190, autocomplete: 'email' }),
         field('password', 'Password', { type: 'password', required: true, minlength: 8, autocomplete: 'new-password' }, 'At least 8 characters.'))),
@@ -89,6 +107,7 @@ export async function render(root, params) {
       if (a === null) { ageNote.textContent = chosen === 'WNNN' ? 'WNNN is for ages 18 to 29.' : 'WGMN is for ages 30 and above.'; return true; }
       if (a < 18) { ageNote.style.color = 'var(--bad)'; ageNote.textContent = 'WODDI networks are open to women aged 18 and above.'; return false; }
       const fits = a <= 29 ? 'WNNN' : 'WGMN';
+      if (fits !== chosen && link) { ageNote.style.color = 'var(--bad)'; ageNote.textContent = `This link is for ${chosen}. From your date of birth you belong to ${fits}. Ask your referrer for the correct link.`; return false; }
       if (fits !== chosen) { ageNote.style.color = 'var(--bad)'; ageNote.append(`At ${a}, your network is ${fits}. `, h('a', { href: '#', onclick: (e) => { e.preventDefault(); choose(fits, false); }, text: `Switch to ${fits}` })); return false; }
       ageNote.textContent = `Age ${a}. This matches ${chosen}.`; return true;
     };
@@ -99,12 +118,20 @@ export async function render(root, params) {
       const body = { network: chosen, first_name: F.first_name.value, last_name: F.last_name.value, dob: F.dob.value, phone: F.phone.value, country_id: Number(F.country.value) || 0,
         state_id: stateMode === 'select' ? Number(F.state.value) || 0 : 0, state_region: stateMode === 'text' ? F.stateText.value : '', lga: F.lga.value, community: F.community.value, consent: consent.checked };
       if (!complete) { body.email = F.email.value; body.password = F.password.value; }
+      if (link) body.referral = { code: link.code };
+      else if (candidate) {
+        if (!F.position.value) { err.textContent = 'Choose the position you are being considered for.'; F.position.focus(); return; }
+        if (!F.refCat.value) { err.textContent = 'Please tell us who referred you.'; F.refCat.focus(); return; }
+        if (!F.refName.value.trim()) { err.textContent = 'Please type the name of the person who referred you.'; F.refName.focus(); return; }
+        body.referral = { position: F.position.value, category: F.refCat.value, name: F.refName.value };
+      }
       submit.disabled = true; const label = submit.textContent; submit.textContent = 'Creating your membership…';
       try {
         const r = await api(complete ? '/auth/complete-profile' : '/auth/register', body);
         toast(`Welcome to ${chosen}`, `Your membership number is ${r.user.member_no}.`, 'ok');
         if (complete) { await refreshUser(); }
         signedIn(r.user);
+        if (r.user.todo && r.user.todo.activation) go('#/activation');
       } catch (ex) {
         err.textContent = ex.message; submit.disabled = false; submit.textContent = label;
         const map = { name: 'first_name', phone: 'phone', dob: 'dob', age: 'dob', age_network: 'dob', country: 'country', email: 'email', email_taken: 'email', password: 'password', consent: 'consent', state: stateMode === 'select' ? 'state' : 'stateText' };
@@ -118,10 +145,12 @@ export async function render(root, params) {
   root.append(h('div', { class: 'public' },
     pubBar(complete ? null : h('a', { class: 'btn btn--quiet', href: '#/login', text: 'Sign in' })),
     h('main', { class: 'join' },
-      h('h1', { class: 'display', text: complete ? 'One more step to join your network' : 'Choose the network you are joining' }),
-      h('p', { class: 'lede', text: complete ? 'Your Google account is connected. Pick your network and tell us where you are, so your leaders can find you.' : 'WODDI has two networks, by age. Select a logo to open its membership form. Your record is created inside that network from the first moment.' }),
+      h('h1', { class: 'display', text: complete ? 'One more step to join your network' : link ? `You have been invited by ${link.owner}` : leaderForm ? 'Join WODDI leadership consideration' : 'Choose the network you are joining' }),
+      h('p', { class: 'lede', text: link ? (link.position ? `To apply for the position of ${link.role} in ${link.place || 'your area'} (${link.network}). A referral records who invited you. Selection and appointment remain with WODDI Headquarters after registration, activation and assessment.` : `To join ${link.network} in ${link.place || 'your area'}.`)
+        : leaderForm ? 'You have been referred by a WODDI leader for volunteer leadership consideration. Tell us who you are, the position you are being considered for and where you will serve, then create your WDOS account to begin your three day activation.' : complete ? 'Your Google account is connected. Pick your network and tell us where you are, so your leaders can find you.' : 'WODDI has two networks, by age. Select a logo to open its membership form. Your record is created inside that network from the first moment.' }),
       nets, wrap),
     pubFoot()));
   if (chosen) choose(chosen, false);
+  if (link) { const otherCard = cards[link.network === 'WGMN' ? 'WNNN' : 'WGMN']; otherCard.hidden = true; otherCard.querySelector('input').disabled = true; }
 }
 export { go };

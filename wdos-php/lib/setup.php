@@ -73,6 +73,11 @@ if ($METHOD === 'POST') {
     }
     out(['ok' => true, 'loaded' => $loaded, 'skipped' => $skipped]);
   }
+  if ($act === 'content_import') {
+    require_once __DIR__ . '/work_fns.php'; require_once __DIR__ . '/journey_fns.php'; require __DIR__ . '/content_import.php';
+    @set_time_limit(120);
+    out(['ok' => true, 'report' => content_import(is_array($b['tables'] ?? null) ? $b['tables'] : [])]);
+  }
   fail(400, 'Unknown setup action.', 'action');
 }
 header('Content-Type: text/html; charset=utf-8'); header('Cache-Control: no-store');
@@ -166,6 +171,16 @@ order by u.created_at;</textarea>
 <p>The report forms (monthly leadership report, weekly pulse and the rest) are loaded from the current WDOS exactly as approved. Run this one line in the current WDOS Supabase <b>SQL Editor</b>, then <b>Export</b> &gt; <b>Download CSV</b>, and choose the file here. It is safe to repeat.</p>
 <pre id="tsql" style="user-select:all">select to_jsonb(t)::text as row from report_templates t;</pre>
 <input id="tcsv" type="file" accept=".csv,text/csv"><button id="tload">Load templates</button><p id="tlres"></p></section>
+<section><h2>8. Load the programme content</h2>
+<p>The onboarding steps, the 3-Day and 7-Day activation days, the readiness assessment and the full inspiration message texts are approved content that lives in the current WDOS database. Until they are loaded, onboarding shows the starter steps and an activation stops after Day 1. Run this in the current WDOS Supabase <b>SQL Editor</b>, then <b>Export</b> &gt; <b>Download CSV</b>, and choose the file here. It reads content tables only, never member answers, and it is safe to repeat.</p>
+<pre id="csql" style="user-select:all;white-space:pre-wrap">select t.table_name as tbl,
+  query_to_xml(format('select coalesce(json_agg(r), ''[]''::json)::text as j from public.%I r', t.table_name), false, true, '')::text as data
+from information_schema.tables t join pg_class c on c.relname = t.table_name and c.relnamespace = 'public'::regnamespace
+where t.table_schema = 'public' and t.table_type = 'BASE TABLE' and c.reltuples &lt; 3000
+  and t.table_name ~ '(onboarding|activation|readiness|hq_message|inspiration|weekly_message|monthly_message)'
+  and t.table_name !~ '(progress|response|result|answer|submission|journey|log|event|visit|error|audit|extension|key|milestone)'
+  and t.table_name not in ('activations');</pre>
+<input id="ccsv" type="file" accept=".csv,text/csv"><button id="cload">Load content</button><div id="clres"></div></section>
 <script>
 const $=id=>document.getElementById(id);
 async function call(action,extra={}){const r=await fetch('/api/setup',{method:'POST',headers:{'Content-Type':'application/json','X-WDOS':'1'},body:JSON.stringify({key:$('key').value,action,...extra})});return r.json();}
@@ -209,5 +224,10 @@ async function runImport(commit){
 }
 $('dry').onclick=()=>runImport(false);$('go').onclick=()=>{if(confirm('Import these accounts into this WDOS now?'))runImport(true);};
 $('tload').onclick=async()=>{const f=$('tcsv').files[0];if(!f){$('tlres').textContent='Choose the CSV file first.';return;}const g=parseCSV(await f.text());const head=(g.shift()||[]).map(x=>x.trim());const i=Math.max(0,head.indexOf('row'));const r=await call('templates_import',{rows:g.filter(x=>x[i]).map(x=>x[i])});$('tlres').className=r.ok&&r.loaded.length?'ok':'no';$('tlres').textContent=r.ok?('Loaded '+r.loaded.length+': '+(r.loaded.join('; ')||'none')+(r.skipped.length?'. Skipped (no usable definition): '+r.skipped.join(', '):'')):r.message;};
+$('cload').onclick=async()=>{const f=$('ccsv').files[0];const box=$('clres');if(!f){box.textContent='Choose the CSV file first.';return;}box.textContent='Reading…';
+  const g=parseCSV(await f.text());const head=(g.shift()||[]).map(x=>x.trim());const ti=head.indexOf('tbl'),di=head.indexOf('data');if(ti<0||di<0){box.className='no';box.textContent='This file does not have the tbl and data columns. Run the query above exactly as written.';return;}
+  const tables={};let bad=[];for(const r of g){if(!r[ti])continue;try{const x=new DOMParser().parseFromString(r[di],'text/xml');const j=x.getElementsByTagName('j')[0];tables[r[ti]]=JSON.parse(j?j.textContent:'[]');}catch(e){bad.push(r[ti]);}}
+  const r=await call('content_import',{tables});if(!r.ok){box.className='no';box.textContent=r.message;return;}
+  box.className='';box.innerHTML='<h2 style="margin-top:16px">Content file read</h2><ul>'+r.report.map(t=>'<li><b>'+esc(t.table)+'</b> ('+t.rows+' rows): '+esc(t.result)+'<br><small style="opacity:.7">columns: '+esc(t.columns.join(', '))+'</small></li>').join('')+'</ul>'+(bad.length?'<p class="no">Could not read: '+esc(bad.join(', '))+'</p>':'')+'<p>Send a screenshot of this list to whoever maintains WDOS if any table says "kept, not recognised".</p>';};
 $('tsend').onclick=async()=>{$('tres').textContent='Sending…';const r=await call('insp_test',{email:$('tmail').value});$('tres').className=r.ok?'ok':'no';$('tres').textContent=r.ok?('Sent week '+r.week+': "'+r.headline+'". Devices with notifications on: '+r.devices+', pushes delivered: '+r.sent+'. Sign in as that leader to see the card.'):r.message;};
 </script></main></body></html>

@@ -7,6 +7,8 @@ require __DIR__ . '/../lib/notify.php';
 require __DIR__ . '/../lib/webauthn.php';
 require __DIR__ . '/../lib/inspire_fns.php';
 require __DIR__ . '/../lib/reporting_fns.php';
+require __DIR__ . '/../lib/work_fns.php';
+require __DIR__ . '/../lib/journey_fns.php';
 
 set_exception_handler(function (Throwable $e) {
   error_log('[wdos] ' . $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine());
@@ -90,6 +92,7 @@ function finish_signup(int $id, array $f): void {
   notify($id, 'welcome', 'Welcome to ' . $f['network'] . ', ' . $f['first_name'], "Your membership number is $no. You are now part of the $netName. Add your photograph and switch on notifications to finish setting up.", '#/settings');
   notify_hq('registration', 'New ' . $f['network'] . ' member: ' . $f['first_name'] . ' ' . $f['last_name'], $f['state_region'] . ', ' . country_name($f['country_code']) . ". Membership number $no.", '#/members/' . $id);
   log_activity($id, $id, 'registered', $f['network'] . ' · ' . $f['state_region'] . ', ' . $f['country_code']);
+  referral_attach($id, $f, body()['referral'] ?? null);
   after_response(fn() => push_drain(20));
 }
 
@@ -332,7 +335,7 @@ if ($METHOD === 'GET' && $PATH === '/cron') {
   $key = (string) ($_GET['key'] ?? '');
   if (!cfg('ADMIN_KEY') || !hash_equals((string) cfg('ADMIN_KEY'), $key)) { http_response_code(403); echo 'forbidden'; exit; }
   q("DELETE FROM app_settings WHERE k='auto_tick'"); q("INSERT INTO app_settings (k,v) VALUES ('auto_tick',?)", [(string) time()]);
-  $auto = run_automations(); run_inspiration_automations($auto); rp_reminders_daily($auto);
+  $auto = run_automations(); run_inspiration_automations($auto); rp_reminders_daily($auto); work_automations($auto);
   out(['ok' => true, 'automations' => $auto, 'push' => push_drain(150), 'time' => now()]);
 }
 
@@ -340,5 +343,8 @@ if ($METHOD === 'GET' && $PATH === '/cron') {
 require __DIR__ . '/../lib/inspire.php';
 require __DIR__ . '/../lib/dashboards.php';
 require __DIR__ . '/../lib/reporting.php';
+require __DIR__ . '/../lib/work.php';
+require __DIR__ . '/../lib/structure.php';
+require __DIR__ . '/../lib/journey.php';
 
 fail(404, 'No such WDOS endpoint.', 'not_found');

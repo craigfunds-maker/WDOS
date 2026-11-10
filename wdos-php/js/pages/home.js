@@ -8,6 +8,7 @@ export async function render(root) {
   root.append(h('section', { class: 'hero' }, avatar(u, 76), h('div', { class: 'grow' }, h('h1', { class: 'display', text: `${greeting()}, ${u.first_name}` }), h('p', { text: net.name }),
     h('div', { class: 'hero__meta' }, flag(u.country_code), netTag(u.network), u.member_no ? h('span', { class: 'tag num', text: u.member_no }) : null, h('span', { class: 'tag', text: [u.state_region, u.country].filter(Boolean).join(', ') }), h('span', { class: 'tag', text: 'Member since ' + fmtDate(u.created_at, { month: 'short', year: 'numeric' }) }))),
     h('img', { class: 'hero__disc', src: net.disc, alt: '' })));
+  if (u.todo && u.todo.activation) root.append(h('section', { class: 'card nudge' }, h('div', { class: 'card__body', style: 'display:flex;gap:16px;align-items:center;flex-wrap:wrap' }, h('div', { class: 'grow' }, h('b', { text: 'My Activation' }), h('p', { class: 'muted', style: 'margin:4px 0 0', text: 'You are being considered for a volunteer leadership position. Continue your activation from where you stopped.' })), h('a', { class: 'btn', href: '#/activation', text: 'Open my activation' }))));
   const today = h('div', { hidden: true }); root.append(today);
   api('/inspiration/today').then((r) => { if (r.card) { today.hidden = false; today.append(inspCard(r.card)); } }).catch(() => {});
   const steps = h('div', { class: 'steps' }, sk.rows(3)); const news = h('div', {}, sk.rows(3));

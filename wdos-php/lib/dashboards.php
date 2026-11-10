@@ -139,10 +139,7 @@ route('POST', '/hq/members/(\d+)/seat', function ($id) {
   if (in_array($pos['level'], ['lga', 'community_cluster', 'chapter'], true) && $area === '') fail(422, 'Name the LGA, cluster or chapter this seat covers.', 'area');
   $net = in_array($b['network'] ?? '', ['WGMN', 'WNNN'], true) ? $b['network'] : $u['network'];
   $status = in_array($b['status'] ?? '', ['appointed', 'acting', 'pending'], true) ? $b['status'] : 'appointed';
-  q('INSERT INTO seats (user_id,position_code,network,org_unit_id,area_label,status,appointed_by,starts_at) VALUES (?,?,?,?,?,?,?,?)', [$id, $pos['code'], $net, (int) $unit['id'], $area, $status, (int) $me['id'], now()]);
-  $title = ($net === 'WNNN' ? $pos['title_wnnn'] : $pos['title_wgmn']) . ', ' . ($area !== '' ? $area : $unit['name']);
-  log_activity((int) $me['id'], $id, 'appointed', $title);
-  notify($id, 'appointment', 'You have been appointed ' . $title, 'WODDI HQ has recorded your leadership seat. Your leadership dashboard is now open.', '#/');
+  $title = seat_open($id, $pos['code'], $net, (int) $unit['id'], $area, $status, (int) $me['id']);
   after_response(fn() => push_drain(5));
   return ['ok' => true, 'title' => $title];
 });

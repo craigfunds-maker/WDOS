@@ -1,8 +1,23 @@
 /* Small DOM toolkit: elements, icons, avatars, toasts, skeletons, empty states. No framework. */
+/* Languages. The dictionary is keyed by the English sentence, so a sentence with no translation yet simply stays in English. */
+export const LANGS = { en: 'English', fr: 'Français', pt: 'Português', ar: 'العربية', sw: 'Kiswahili' };
+export const i18n = {
+  lang: 'en', dict: null,
+  saved() { try { const l = localStorage.getItem('wdos.lang'); return LANGS[l] ? l : 'en'; } catch { return 'en'; } },
+  async load(lang) {
+    this.lang = LANGS[lang] ? lang : 'en'; this.dict = null;
+    if (this.lang !== 'en') { try { const r = await fetch(`/assets/i18n/${this.lang}.json`); if (r.ok) this.dict = await r.json(); } catch { /* stays English */ } }
+    document.documentElement.lang = this.lang; document.documentElement.dir = this.lang === 'ar' ? 'rtl' : 'ltr';
+  },
+  async set(lang) { try { localStorage.setItem('wdos.lang', lang); } catch { /* private mode */ } await this.load(lang); },
+};
+export const t = (s) => { if (!i18n.dict || typeof s !== 'string') return s; const k = s.trim(); const v = k && i18n.dict[k]; return v ? s.replace(k, () => v) : s; };
+const T_ATTR = { placeholder: 1, 'aria-label': 1, title: 1, alt: 1, 'data-tip': 1 };
 export function h(tag, attrs = {}, ...kids) {
   const n = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs || {})) {
+  for (let [k, v] of Object.entries(attrs || {})) {
     if (v === null || v === undefined || v === false) continue;
+    if (T_ATTR[k] || k === 'text') v = t(v);
     if (k === 'class') n.className = v;
     else if (k === 'text') n.textContent = v;
     else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
@@ -10,7 +25,7 @@ export function h(tag, attrs = {}, ...kids) {
     else if (v === true) n.setAttribute(k, '');
     else n.setAttribute(k, v);
   }
-  for (const k of kids.flat(Infinity)) if (k !== null && k !== undefined && k !== false) n.append(k.nodeType ? k : document.createTextNode(String(k)));
+  for (const k of kids.flat(Infinity)) if (k !== null && k !== undefined && k !== false) n.append(k.nodeType ? k : document.createTextNode(typeof k === 'string' ? t(k) : String(k)));
   return n;
 }
 export const clear = (n) => { while (n.firstChild) n.removeChild(n.firstChild); return n; };
@@ -43,6 +58,12 @@ const I = {
   camera: ['M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z', 'c:12,13,4'],
   cake: ['M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8', 'M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1', 'M2 21h20', 'M12 7v4', 'M12 3v1'],
   clock: ['c:12,12,10', 'M12 6v6l4 2'],
+  tasks: ['M9 11l3 3L22 4', 'M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'],
+  calendar: ['r:3,4,18,18,2', 'M16 2v4', 'M8 2v4', 'M3 10h18'],
+  tree: ['r:9,2,6,6,1', 'r:2,16,6,6,1', 'r:16,16,6,6,1', 'M12 8v4', 'M5 16v-2a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2'],
+  link: ['M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71', 'M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'],
+  book: ['M4 19.5A2.500 2.500 0 0 1 6.500 17H20', 'M6.500 2H20v20H6.500A2.500 2.500 0 0 1 4 19.500v-15A2.500 2.500 0 0 1 6.500 2z'],
+  route: ['c:6,19,3', 'c:18,5,3', 'M9 19h8.500a3.500 3.500 0 0 0 0-7h-11a3.500 3.500 0 0 1 0-7H15'],
 };
 const NS = 'http://www.w3.org/2000/svg';
 export function icon(name, size = 20) {
@@ -133,3 +154,24 @@ export function inspCard(c, full = false) {
       full && c.body ? h('p', { class: 'insp__body', text: c.body }) : null, h('div', { class: 'insp__sign', text: 'WODDI HQ' })));
 }
 export const TONES = [['celebration', 'Celebration'], ['gratitude', 'Gratitude'], ['courage', 'Courage'], ['calm', 'Calm'], ['growth', 'Growth'], ['purpose', 'Purpose']];
+
+/* A document read inside WDOS. The text is fetched and placed in our own scroller, so we know when the reader reached the end. */
+export function docReader(url, onEnd, title) {
+  const page = h('article', { class: 'doc' }, h('p', { class: 'muted', text: 'Opening the document…' }));
+  const scroller = h('div', { class: 'doc__scroll', tabindex: '0' }, page); let told = false;
+  const seen = () => { if (!told && scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 48) { told = true; onEnd && onEnd(); } };
+  scroller.addEventListener('scroll', seen);
+  fetch(url, { cache: 'no-cache' }).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.text(); }).then((html) => {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    doc.querySelectorAll('script, style, iframe, object, embed, link').forEach((x) => x.remove());
+    page.replaceChildren(...Array.from((doc.body && doc.body.childNodes.length ? doc.body : doc.documentElement).childNodes)); setTimeout(seen, 60);
+  }).catch(() => { page.replaceChildren(h('p', { text: 'This document could not be opened here. Open it in a new tab to read it, then continue.' })); told = true; onEnd && onEnd(); });
+  return h('div', { class: 'docwrap' }, h('div', { class: 'doc__bar' }, h('b', { text: title || 'Read this document' }), h('a', { class: 'btn btn--ghost btn--s', href: url, target: '_blank', rel: 'noopener', text: 'Open in a new tab' })), scroller);
+}
+export const input = (attrs) => h('input', { class: 'input', ...attrs });
+export const field = (label, node, hint) => h('label', { class: 'field' }, h('span', { text: label }), node, hint ? h('small', { text: hint }) : null);
+export const tabs = (list, current, base) => h('div', { class: 'seg rtabs', role: 'tablist' }, list.map(([k, l]) => h('a', { role: 'tab', class: 'seg__a', 'aria-pressed': String(k === current), href: base + (k ? '/' + k : ''), text: l })));
+export function langPicker(onPick) {
+  const s = h('select', { class: 'input langpick', 'aria-label': 'Language' }, Object.entries(LANGS).map(([v, l]) => { const o = document.createElement('option'); o.value = v; o.textContent = l; return o; }));
+  s.value = i18n.lang; s.addEventListener('change', () => onPick(s.value)); return s;
+}
