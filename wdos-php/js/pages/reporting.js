@@ -13,7 +13,7 @@ const CATS = { member_engagement: 'Member engagement or follow-up', mobilisation
 const ROUTES = { supervisor: 'Immediate supervisor', country: 'Country Representative', hofco: 'HOFCO', hq: 'HQ functional authority', management: 'Management' };
 const ISSUE_ST = { open: 'Open', in_progress: 'In progress', awaiting_decision: 'Awaiting decision', resolved: 'Resolved', closed: 'Closed' };
 const METRIC = { leadership: ['Leadership', { filled: 'Seats filled', active: 'Active leaders', inactive: 'Inactive (30 days)', appointments: 'Appointments this period', exits: 'Exits' }], membership: ['Membership', { opening: 'Opening', new: 'New', closing: 'Closing', active: 'Active (30 days)' }],
-  compliance: ['Reporting compliance', { units: 'Direct units', expected: 'Expected', submitted: 'Submitted', on_time: 'On time', approved: 'Approved', returned: 'Returned', not_submitted: 'Not submitted' }], issues: ['Risks and issues', { open: 'Open', red_critical: 'Red or critical', resolved: 'Resolved this period' }],
+  compliance: ['Reporting compliance', { units: 'Direct units', expected: 'Expected', submitted: 'Submitted', on_time: 'On time', approved: 'Approved', returned: 'Returned', overdue: 'Overdue', not_submitted: 'Not submitted' }], issues: ['Risks and issues', { open: 'Open', red_critical: 'Red or critical', resolved: 'Resolved this period' }],
   activities: ['Operational records', { total: 'Records', people_reached: 'People reached', follow_ups_open: 'Follow-ups open', escalations: 'Escalations' }] };
 const tag = (s) => h('span', { class: 'tag' + (ST[s]?.[1] ? ' tag--' + ST[s][1] : ''), text: ST[s]?.[0] || s });
 const tplTitle = (code, list) => list.find((t) => t.code === code)?.title || code.replace(/_/g, ' ');
@@ -114,14 +114,18 @@ async function reportView(root, id) {
   function rowsNode(f) {
     const rows = Array.isArray(answers[f.key]) ? answers[f.key] : (answers[f.key] = []); const box = h('div', { style: 'display:grid;gap:10px' }); const cols = f.cols || f.columns || [];
     const draw = () => { box.replaceChildren(); if (!rows.length) box.append(h('p', { class: 'faint', style: 'font-size:14px', text: 'No rows yet.' }));
-      rows.forEach((row, i) => { const line = h('div', { class: 'rprow', style: `grid-template-columns:repeat(${cols.length},minmax(0,1fr)) auto` });
+      rows.forEach((row, i) => { const wide = cols.length > 5; const line = h('div', { class: 'rprow' + (wide ? ' rprow--wide' : ''), style: wide ? '' : `grid-template-columns:repeat(${cols.length},minmax(0,1fr)) auto` });
         cols.forEach((c) => { let inp; if (c.type === 'select') { inp = h('select', { class: 'input', disabled: !edit, 'aria-label': c.label }, h('option', { value: '', text: c.label }), (c.options || []).map((o) => h('option', { value: o, text: o }))); inp.value = row[c.key] ?? ''; inp.addEventListener('change', () => { row[c.key] = inp.value; save(); }); }
           else { inp = input({ type: c.type === 'date' ? 'date' : c.type === 'number' ? 'number' : 'text', placeholder: c.label, 'aria-label': c.label, disabled: !edit }); inp.value = row[c.key] ?? ''; inp.addEventListener('input', () => { row[c.key] = inp.value; save(); }); } line.append(inp); });
         line.append(edit ? h('button', { class: 'iconbtn', type: 'button', 'aria-label': 'Remove this row', onclick: () => { rows.splice(i, 1); draw(); save(); } }, icon('x', 18)) : h('span')); box.append(line); });
-      if (edit) box.append(h('div', {}, h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: () => { rows.push({}); draw(); save(); } }, icon('plus', 16), 'Add row'))); };
+      const full = f.max && rows.length >= f.max;
+      if (edit) box.append(h('div', { style: 'display:flex;gap:12px;align-items:center' }, h('button', { class: 'btn btn--ghost btn--s', type: 'button', disabled: full, onclick: () => { rows.push({}); draw(); save(); } }, icon('plus', 16), 'Add row'), f.max ? h('small', { class: 'faint', text: `${rows.length} of ${f.max}` }) : null)); };
     draw(); return box;
   }
+  const NOT_YET = { pipeline: 'Recruitment pipeline', learning: 'Learning and WODDI Institute', programmes: 'Programmes', meetings: 'Meetings', meeting: 'Meeting record', tasks: 'Tasks and deliverables', support: 'Support cases' };
   const autoBlock = (key) => { const g = METRIC[key], data = d.snapshot?.[key];
+    if (key === 'identity' && data) return h('dl', { class: 'dl' }, [['Unit', data.unit], ['Accountable leader', data.leader], ['Position', data.role], ['Reporting supervisor', data.supervisor], ['Period', data.period_start === data.period_end ? fmtDate(data.period_start) : `${fmtDate(data.period_start)} to ${fmtDate(data.period_end)}`], ['Due', data.due_on ? fmtDate(data.due_on) : ''], ['Report number', `${data.report_no}, version ${data.version}`]].filter((x) => x[1]).flatMap(([k, v]) => [h('dt', { text: k }), h('dd', { text: v })]));
+    if (NOT_YET[key]) return h('div', { class: 'panel' }, h('b', { text: NOT_YET[key] }), h('p', { class: 'faint', style: 'font-size:13.5px', text: 'No system data for this section yet. This part of WDOS has not been moved to this version.' }));
     if (!g || !data) return h('div', { class: 'panel' }, h('b', { text: g ? g[0] : key.replace(/_/g, ' ') }), h('p', { class: 'faint', style: 'font-size:13.5px', text: 'No system data for this section yet.' }));
     return h('div', { class: 'panel' }, h('b', { text: g[0] + (r.frozen ? ' (as submitted)' : ' (live count)') }), h('div', { class: 'metrics' }, Object.entries(g[1]).filter(([k]) => k in data).map(([k, l]) => h('div', {}, h('div', { class: 'metrics__n num', text: fmt(data[k]) }), h('small', { text: l }))))); };
   for (const sec of t.sections) {

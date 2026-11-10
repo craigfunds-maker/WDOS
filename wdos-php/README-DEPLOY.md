@@ -103,9 +103,9 @@ press Create or update tables once.
 
 Leaders and HQ get a Reporting menu: dashboard, my reports, operational
 records, reports I supervise, compliance, risks and escalations, archive. The
-report forms themselves are loaded from the current WDOS on the setup page,
-section 7 (one query, Download CSV, Load templates). Until then, operational
-records and issues work and the report tabs say the forms are not loaded.
+five approved report forms are part of the build (migration 005), taken
+unchanged from the current WDOS. Setup page section 7 can reload them if the
+forms are revised there.
 Automatic reminders are off until HQ switches them on under Compliance >
 Configure. Evidence is added as links; file upload is not built yet.
 

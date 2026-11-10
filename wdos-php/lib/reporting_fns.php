@@ -87,12 +87,14 @@ function rp_snapshot(array $node, string $from, string $to, string $template): a
               FROM activity_records r JOIN org_units ou ON ou.id=r.org_unit_id WHERE r.network=? AND ou.path LIKE ? AND r.happened_at>=? AND r.happened_at<=?', [$node['network'], $node['unit_path'] . '%', $a, $b]);
   $iss = row("SELECT COALESCE(SUM(i.status NOT IN ('resolved','closed')),0) open, COALESCE(SUM(i.status NOT IN ('resolved','closed') AND i.severity IN ('red','critical')),0) red, COALESCE(SUM(i.resolved_at>=? AND i.resolved_at<=?),0) resolved
               FROM issues i JOIN org_units ou ON ou.id=i.org_unit_id WHERE i.network=? AND ou.path LIKE ?", [$a, $b, $node['network'], $node['unit_path'] . '%']);
-  $units = rp_direct_units((int) $node['user_id']); $c = ['units' => count($units), 'expected' => count($units), 'submitted' => 0, 'on_time' => 0, 'approved' => 0, 'returned' => 0, 'overdue' => 0, 'not_submitted' => 0];
+  $tpl = rp_template($template); $units = array_values(array_filter(rp_direct_units((int) $node['user_id']), fn($n) => !$tpl || rp_applies($tpl, $n['position_level'])));
+  $c = ['units' => count($units), 'expected' => count($units), 'submitted' => 0, 'on_time' => 0, 'approved' => 0, 'returned' => 0, 'overdue' => 0, 'not_submitted' => 0];
+  $pastDue = $tpl ? (rp_period($tpl['cadence'], $tpl['cadence'] === 'monthly' ? substr($from, 0, 7) : null)[2] ?? null) : null; $late = $pastDue && rp_today()->format('Y-m-d') > $pastDue;
   foreach ($units as $un) {
     $r = row("SELECT status, on_time, due_on FROM report_instances WHERE unit_key=? AND template=? AND period_start=? AND status<>'superseded' ORDER BY version DESC LIMIT 1", [$un['unit_key'], $template, $from]);
     if ($r && in_array($r['status'], ['submitted', 'approved', 'escalated'], true)) { $c['submitted']++; if ((int) $r['on_time'] === 1) $c['on_time']++; if ($r['status'] === 'approved') $c['approved']++; }
-    elseif ($r && $r['status'] === 'returned') $c['returned']++;
-    else { $c['not_submitted']++; }
+    elseif ($r && $r['status'] === 'returned') { $c['returned']++; if ($late) $c['overdue']++; }
+    else { $c['not_submitted']++; if ($late) $c['overdue']++; }
   }
   $i = fn($v) => (int) $v;
   return [
@@ -102,6 +104,11 @@ function rp_snapshot(array $node, string $from, string $to, string $template): a
     'issues' => ['open' => $i($iss['open']), 'red_critical' => $i($iss['red']), 'resolved' => $i($iss['resolved'])],
     'activities' => ['total' => $i($act['total']), 'people_reached' => $i($act['people']), 'follow_ups_open' => $i($act['fu']), 'escalations' => $i($act['esc'])],
   ];
+}
+/** Does this report form apply to a seat at this level? The forms name the levels that file them. */
+function rp_applies(array $t, string $positionLevel): bool {
+  $levels = $t['definition']['levels'] ?? []; if (!$levels) return true;
+  return in_array($positionLevel === 'lga' ? 'district_lga' : $positionLevel, $levels, true);
 }
 function rp_template(string $code): ?array {
   $t = row('SELECT * FROM report_templates WHERE code=? AND is_active=1', [$code]);
@@ -118,6 +125,7 @@ function rp_reminders_run(): array {
   $days = (int) floor((strtotime(rp_today()->format('Y-m-d')) - strtotime($due)) / 86400);   // negative = days still to go
   $label = (new DateTimeImmutable($from))->format('F Y'); $n = 0; $e = 0;
   foreach (rp_tree() as $node) {
+    if (!rp_applies($t, $node['position_level'])) continue;
     $r = row("SELECT status FROM report_instances WHERE unit_key=? AND template='monthly_leadership' AND period_start=? AND status<>'superseded' ORDER BY version DESC LIMIT 1", [$node['unit_key'], $from]);
     if ($r && in_array($r['status'], ['submitted', 'approved', 'escalated'], true)) continue;
     $returned = $r && $r['status'] === 'returned';

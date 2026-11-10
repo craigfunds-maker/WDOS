@@ -61,13 +61,14 @@ if ($METHOD === 'POST') {
       if (is_string($def)) $def = json_decode($def, true);
       if (!is_array($def) && isset($j['sections'])) $def = ['sections' => is_string($j['sections']) ? json_decode($j['sections'], true) : $j['sections']];
       if (isset($def[0]) && is_array($def)) $def = ['sections' => $def];
+      if (is_array($def) && !isset($def['levels']) && is_array($j['levels'] ?? null)) $def['levels'] = $j['levels'];
       if ($code === '' || !preg_match('/^[a-z0-9_]{2,40}$/', $code) || !is_array($def) || !is_array($def['sections'] ?? null) || !$def['sections']) { $skipped[] = $code !== '' ? $code : '(row with no code)'; continue; }
       $title = (string) ($j['title'] ?? $j['name'] ?? $j['label'] ?? $def['title'] ?? ucwords(str_replace('_', ' ', $code)));
       $cad = strtolower((string) ($j['cadence'] ?? $j['frequency'] ?? $def['cadence'] ?? ''));
       $cad = str_contains($cad, 'month') || str_starts_with($code, 'monthly') ? 'monthly' : (str_contains($cad, 'week') || str_starts_with($code, 'weekly') ? 'weekly' : 'adhoc');
       $ev = !empty($j['requires_evidence']) || !empty($def['requires_evidence']) || !empty($j['evidence_required']) ? 1 : 0;
       q('DELETE FROM report_templates WHERE code=?', [$code]);
-      q('INSERT INTO report_templates (code,title,cadence,requires_evidence,definition,is_active,loaded_at) VALUES (?,?,?,?,?,?,?)', [$code, mb_substr($title, 0, 160), $cad, $ev, json_encode($def, JSON_UNESCAPED_UNICODE), (($j['is_active'] ?? true) === false) ? 0 : 1, now()]);
+      q('INSERT INTO report_templates (code,title,cadence,requires_evidence,definition,is_active,loaded_at) VALUES (?,?,?,?,?,?,?)', [$code, mb_substr($title, 0, 160), $cad, $ev, json_encode($def, JSON_UNESCAPED_UNICODE), (($j['is_active'] ?? $j['active'] ?? true) === false) ? 0 : 1, now()]);
       $n++; $loaded[] = $code . ' (' . count($def['sections']) . ' sections, ' . $cad . ')';
     }
     out(['ok' => true, 'loaded' => $loaded, 'skipped' => $skipped]);

@@ -25,11 +25,12 @@ const RP_LIST = "SELECT r.*, CONCAT(o.first_name,' ',o.last_name) owner_name FRO
 route('GET', '/reporting/home', function () {
   $u = require_user(); $me = rp_me($u); $hq = is_hq($u);
   $templates = rows('SELECT code, title, cadence FROM report_templates WHERE is_active=1 ORDER BY cadence DESC, title');
+  if ($me['seat']) $templates = array_values(array_filter($templates, fn($t) => rp_applies(rp_template($t['code']), $me['seat']['position_level'])));
   $out = ['is_hq' => $hq, 'templates' => $templates, 'unit' => null, 'monthly' => null, 'counts' => null, 'supervisor' => null];
   if ($me['seat']) {
     $out['unit'] = ['label' => rp_unit_label($me['seat']), 'role' => seat_title($me['seat']), 'principal' => $me['principal'], 'supervisor' => $me['node']['sup_name'] ?? 'WODDI HQ',
       'accountable' => $me['node'] ? trim($me['node']['first_name'] . ' ' . $me['node']['last_name']) : null];
-    if (rp_template('monthly_leadership')) {
+    if (($mt = rp_template('monthly_leadership')) && rp_applies($mt, $me['seat']['position_level'])) {
       [$from, $to, $due] = rp_period('monthly');
       $r = row("SELECT * FROM report_instances WHERE unit_key=? AND template='monthly_leadership' AND period_start=? AND status<>'superseded' ORDER BY version DESC LIMIT 1", [$me['unit_key'], $from]);
       $out['monthly'] = ['period_start' => $from, 'due_on' => $due, 'status' => $r['status'] ?? 'not_started', 'id' => $r ? (int) $r['id'] : null, 'overdue' => !$r || in_array($r['status'], ['draft', 'returned'], true) ? rp_today()->format('Y-m-d') > $due : false];
@@ -45,7 +46,8 @@ route('GET', '/reporting/home', function () {
     'awaiting_review' => (int) val("SELECT COUNT(*) FROM report_instances r WHERE r.unit_key IN ($in) AND r.status IN ('submitted','escalated')"),
     'open_issues' => (int) val("SELECT COUNT(*) FROM issues i LEFT JOIN org_units ou ON ou.id=i.org_unit_id WHERE i.status NOT IN ('resolved','closed') AND " . ($hq ? '1=1' : ($me['seat'] ? 'i.network=' . db()->quote($me['seat']['network']) . ' AND ou.path LIKE ' . db()->quote($me['seat']['unit_path'] . '%') : 'i.raised_by=' . $uid)), []),
   ];
-  if ($direct && rp_template('monthly_leadership')) {
+  if ($mt = rp_template('monthly_leadership')) $direct = array_values(array_filter($direct, fn($n) => rp_applies($mt, $n['position_level'])));
+  if ($direct && $mt) {
     [$from, , $due] = rp_period('monthly'); $late = rp_today()->format('Y-m-d') > $due; $s = ['units' => count($direct), 'approved' => 0, 'submitted' => 0, 'returned' => 0, 'overdue' => 0, 'not_started' => 0];
     foreach ($direct as $n) {
       $st = val("SELECT status FROM report_instances WHERE unit_key=? AND template='monthly_leadership' AND period_start=? AND status<>'superseded' ORDER BY version DESC LIMIT 1", [$n['unit_key'], $from]);
@@ -60,6 +62,7 @@ route('POST', '/reporting/open', function () {
   $u = require_user(); $me = rp_me($u);
   if (!$me['seat']) fail(403, 'Formal reports belong to a leadership unit. Once HQ seats you, your unit\'s reports appear here.', 'no_unit');
   $t = rp_template(str_in('template', 40)); if (!$t) fail(404, 'That report type is not loaded.', 'no_template');
+  if (!rp_applies($t, $me['seat']['position_level'])) fail(403, 'This report form is not filed at your level.', 'level');
   if (!$me['owner_id']) fail(409, 'This unit has no accountable leader seated yet, so no report can be opened for it.', 'no_leader');
   [$from, $to, $due] = rp_period($t['cadence'], str_in('period', 7) ?: null);
   if ($from > rp_today()->format('Y-m-d')) fail(422, 'That period has not started yet.', 'future');
@@ -78,6 +81,9 @@ route('GET', '/reporting/report/(\d+)', function ($id) {
   $t = rp_template($r['template']); $node = rp_node_for($r);
   $frozen = json_decode((string) $r['snapshot'], true);
   $snap = is_array($frozen) ? $frozen : ($node ? rp_snapshot($node, $r['period_start'], $r['period_end'], $r['template']) : []);
+  $ownerSeat = current_seat((int) $r['owner_id']);
+  $snap['identity'] = ['unit' => $r['unit_label'], 'leader' => (string) val("SELECT CONCAT(first_name,' ',last_name) FROM users WHERE id=?", [(int) $r['owner_id']]), 'role' => $ownerSeat ? seat_title($ownerSeat) : '', 'supervisor' => $node['sup_name'] ?? 'WODDI HQ',
+    'period_start' => $r['period_start'], 'period_end' => $r['period_end'], 'due_on' => $r['due_on'], 'report_no' => $r['report_no'], 'version' => (int) $r['version']];
   return ['report' => rp_brief($r + ['owner_name' => (string) val("SELECT CONCAT(first_name,' ',last_name) FROM users WHERE id=?", [(int) $r['owner_id']])]) + ['nil_reason' => $r['nil_reason'], 'answers' => json_decode((string) $r['answers'], true) ?: new stdClass(), 'supervisor' => $node['sup_name'] ?? 'WODDI HQ', 'frozen' => is_array($frozen)],
     'template' => $t ? ['code' => $t['code'], 'title' => $t['title'], 'cadence' => $t['cadence'], 'requires_evidence' => (int) $t['requires_evidence'] === 1, 'sections' => $t['definition']['sections'] ?? []] : null,
     'snapshot' => $snap, 'rights' => $rights,
@@ -98,14 +104,19 @@ route('POST', '/reporting/report/(\d+)/save', function ($id) {
 /** Returns [errors, warnings]. Rules follow the reporting specification: required answers, declaration, evidence, nil reason, five priorities, red risks owned. */
 function rp_validate(array $r, array $t): array {
   $a = json_decode((string) $r['answers'], true) ?: []; $err = []; $warn = [];
+  $node = rp_node_for($r); $snap = $node ? rp_snapshot($node, $r['period_start'], $r['period_end'], $r['template']) : [];
+  // "requiredWhen": "compliance.overdue>0" makes an answer compulsory only when the counted figure says so
+  $when = function (string $rule) use ($snap): bool { return preg_match('/^(\w+)\.(\w+)\s*>\s*(\d+)$/', trim($rule), $m) ? ((int) ($snap[$m[1]][$m[2]] ?? 0) > (int) $m[3]) : false; };
   if ((int) $r['is_nil'] === 1) { if (trim($r['nil_reason']) === '') $err[] = 'Give the reason for the nil declaration.'; }
   else foreach ($t['definition']['sections'] ?? [] as $sec) {
     if (($sec['conditional'] ?? '') === 'finance' && empty($a['has_finance'])) continue;
     foreach ($sec['fields'] ?? [] as $f) {
       $v = $a[$f['key']] ?? null; $empty = $v === null || $v === '' || $v === false || (is_array($v) && !$v);
       if (!empty($f['required']) && $empty) $err[] = 'Required: ' . ($sec['key'] ?? '') . '. ' . ($f['label'] ?? $f['key']);
+      if ($empty && !empty($f['requiredWhen']) && $when((string) $f['requiredWhen'])) $err[] = 'Required because the figures in section ' . ($sec['key'] ?? '') . ' show items overdue: ' . ($f['label'] ?? $f['key']);
+      if (($f['type'] ?? '') === 'rows' && is_array($v) && !empty($f['max']) && count($v) > (int) $f['max']) $err[] = ($sec['key'] ?? '') . '. ' . ($sec['title'] ?? '') . ': at most ' . (int) $f['max'] . ' rows.';
       if (($f['type'] ?? '') === 'rows' && is_array($v)) {
-        if (stripos($f['key'], 'priorit') !== false && count($v) > 5) $err[] = 'Maximum five priorities.';
+        if (empty($f['max']) && stripos($f['key'], 'priorit') !== false && count($v) > 5) $err[] = 'Maximum five priorities.';
         foreach ($v as $row) {
           $sev = strtolower((string) ($row['severity'] ?? $row['rating'] ?? ''));
           if (in_array($sev, ['red', 'critical'], true) && (trim((string) ($row['action'] ?? $row['action_taken'] ?? '')) === '' || trim((string) ($row['owner'] ?? '')) === '')) { $err[] = 'Every red or critical issue needs the action already taken and an owner.'; break; }
@@ -113,7 +124,7 @@ function rp_validate(array $r, array $t): array {
       }
     }
   }
-  if (array_key_exists('declaration', $a) || rp_has_field($t, 'declaration')) { if (empty($a['declaration'])) $err[] = 'Tick the leader declaration.'; }
+  if (rp_has_field($t, 'declaration') && empty($a['declaration']) && (int) $r['is_nil'] === 1) $err[] = 'Tick the leader declaration.';
   if ((int) $t['requires_evidence'] === 1 && !(int) val('SELECT COUNT(*) FROM report_evidence WHERE report_id=?', [(int) $r['id']])) $err[] = 'This report type requires at least one piece of evidence.';
   if (!(int) val('SELECT COUNT(*) FROM activity_records WHERE user_id=? AND happened_at>=? AND happened_at<=?', [(int) $r['owner_id'], $r['period_start'] . ' 00:00:00', $r['period_end'] . ' 23:59:59']) && (int) $r['is_nil'] === 0) $warn[] = 'No operational activity records exist for this period; achievements claimed here are not backed by records.';
   if (preg_match('/\b(safeguard|abuse|harass|assault|rape|violence|complaint against)/i', json_encode($a))) $warn[] = 'Wording suggests a safeguarding or complaint matter. Those go through the confidential channel to HQ, never a routine report.';
@@ -197,7 +208,9 @@ route('GET', '/reporting/compliance', function () {
   if ($of) { foreach ($tree as $n) if ((int) $n['user_id'] === $of) $parent = $n; if (!$parent || !rp_is_above($u, $parent) && (int) $u['id'] !== $of) fail(403, 'That unit is outside your scope.', 'forbidden'); }
   elseif (!$hq) { if (!$me['node'] || !$me['principal']) return ['rows' => [], 'period_start' => null, 'due_on' => null, 'parent' => null, 'loaded' => (bool) rp_template('monthly_leadership')]; $parent = $me['node']; }
   [$from, , $due] = rp_period('monthly'); $late = rp_today()->format('Y-m-d') > $due; $out = [];
+  $mt = rp_template('monthly_leadership');
   foreach (rp_direct_units($parent ? (int) $parent['user_id'] : null) as $n) {
+    if ($mt && !rp_applies($mt, $n['position_level'])) continue;
     $r = row("SELECT id, status, submitted_at, on_time, report_no FROM report_instances WHERE unit_key=? AND template='monthly_leadership' AND period_start=? AND status<>'superseded' ORDER BY version DESC LIMIT 1", [$n['unit_key'], $from]);
     $st = $r['status'] ?? 'not_started';
     $out[] = ['user_id' => (int) $n['user_id'], 'first_name' => $n['first_name'], 'last_name' => $n['last_name'], 'has_photo' => (int) $n['has_photo'], 'title' => $n['title'], 'unit' => rp_unit_label($n), 'country_code' => $n['country_code'],
