@@ -1,0 +1,90 @@
+# WDOS on PHP: deployment guide (build v90.0)
+
+Everything here is done in a browser. No terminal is needed.
+
+## What this package is
+
+WDOS rebuilt as an installable PWA on plain PHP 8.1+ with a MySQL-compatible
+database. It runs on Render with TiDB Cloud for testing, and on QServers shared
+hosting (cPanel) later, with no code change. Only the settings differ.
+
+Phase 1 contains: the network sign-up home page (WGMN and WNNN logos), sign-in
+with password, Google and fingerprint, in-app notifications, push
+notifications with automations, the HQ dashboard, the volunteer leadership
+dashboard, Members, Announcements and Settings.
+
+## A. Test deployment on Render + TiDB Cloud
+
+1. **Database.** In TiDB Cloud, open your cluster and create a database named
+   `wdos` (SQL Editor: `CREATE DATABASE wdos;`). Keep the host, port (4000),
+   user and password from the Connect panel.
+2. **Code.** On github.com create a private repository, for example
+   `Buja-OS/wdos-php`. Unzip this package on your computer, open the
+   repository, choose Add file > Upload files, and drag in everything inside
+   the `wdos-php` folder. The website accepts 100 files at a time, so upload
+   `assets/flags` separately from the rest. Commit.
+3. **Service.** Tell Claude "deployed to github" with the repository address.
+   Claude creates the Render web service (Docker, free plan) and triggers each
+   deploy, the same routine as Buja.
+4. **Settings.** In Render > the service > Environment, add:
+
+   | Name | Value |
+   |---|---|
+   | `APP_URL` | the Render address, e.g. `https://wdos.onrender.com` (no slash at the end) |
+   | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS` | from TiDB (`DB_NAME` = `wdos`) |
+   | `DB_SSL` | `1` |
+   | `ADMIN_KEY` | a long random phrase you invent; keep it private |
+
+   Paste the database password yourself. Never send it in chat.
+5. **Setup page.** Open `APP_URL/api/setup`. Enter the admin key, then press, in
+   order: Check the server, Create or update tables, Create HQ administrator,
+   Generate push keys.
+6. **Push keys.** Copy the two values shown into Render > Environment as
+   `VAPID_PUBLIC` and `VAPID_PRIVATE`. Save (Render restarts). Generate these
+   once only.
+7. **Timer for automations.** At cron-job.org create a job that opens
+   `APP_URL/api/cron?key=YOUR_ADMIN_KEY` every 5 minutes. This sends queued
+   push notifications, birthday greetings, the photo reminder and the HQ
+   morning summary, and it keeps the free Render service awake.
+
+## B. Google sign-in (optional, can be added any time)
+
+In Google Cloud Console > Credentials, open the OAuth client already used for
+WDOS (or create a Web application client) and add this Authorised redirect URI:
+`APP_URL/api/auth/google/callback`. Then add `GOOGLE_CLIENT_ID` and
+`GOOGLE_CLIENT_SECRET` to the environment. Until then the Google button is
+shown greyed out.
+
+## C. Email for password-reset links (optional)
+
+Add `BREVO_API_KEY` and `MAIL_FROM` (a sender verified in Brevo). Without them
+members ask HQ, and HQ resets the password from Members.
+
+## D. Moving to QServers shared hosting later
+
+1. In cPanel create a MySQL database and user, and note the names.
+2. Upload the same files into `public_html` with File Manager (upload the zip,
+   then Extract). Make sure `.htaccess` is there: switch on "Show hidden files"
+   in File Manager settings.
+3. Copy `config.sample.php` to `config.local.php` and fill it in (`DB_SSL` = 0).
+4. Open `https://your-domain/api/setup` and press the same buttons. Reuse the
+   same `VAPID` keys only if the domain stays the same; on a new domain members
+   switch notifications and fingerprint on again, because browsers tie both to
+   the web address.
+5. In cPanel > Cron Jobs add, every 5 minutes:
+   `curl -s "https://your-domain/api/cron?key=YOUR_ADMIN_KEY" > /dev/null`
+6. Moving the data: export the TiDB database (or let Claude prepare the SQL
+   file) and import it with phpMyAdmin.
+
+## Releasing an update
+
+Upload the changed files, open `/api/setup` and press Create or update tables.
+Each release changes `BUILD` in `sw.js`, and open apps reload themselves once.
+
+## Not in this phase
+
+The current Supabase WDOS stays the live system. Its other modules (reporting,
+meetings and the multilingual room, activation journeys, referral links,
+onboarding reader, HQ role homepages, message library, tasks, documents) and
+its existing members and leaders are not moved yet. Interface languages other
+than English are also still to be ported.
