@@ -6,7 +6,7 @@ export const app = { user: null, config: { google: false, push: false, vapid: ''
 const root = document.getElementById('app');
 const store = { get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } } };
 
-const KIND_ICON = { welcome: 'award', registration: 'user', announcement: 'megaphone', appointment: 'award', account: 'shield', birthday: 'cake', reminder: 'clock', digest: 'chart', inspiration: 'spark' };
+const KIND_ICON = { welcome: 'award', registration: 'user', announcement: 'megaphone', appointment: 'award', account: 'shield', birthday: 'cake', reminder: 'clock', digest: 'chart', inspiration: 'spark', report: 'chart' };
 export const kindIcon = (k) => KIND_ICON[k] || 'bell';
 
 /* ---------------------------------------------------------------- routes -- */
@@ -14,6 +14,7 @@ const pages = {
   welcome: () => import('./pages/welcome.js'), login: () => import('./pages/login.js'),
   hq: () => import('./pages/hq.js'), members: () => import('./pages/members.js'), announcements: () => import('./pages/announcements.js'),
   leader: () => import('./pages/leader.js'), home: () => import('./pages/home.js'),
+  reporting: () => import('./pages/reporting.js'),
   notifications: () => import('./pages/notifications.js'), settings: () => import('./pages/settings.js'),
 };
 function resolve(path) {
@@ -29,6 +30,7 @@ function resolve(path) {
   switch (seg[0]) {
     case 'members': return u.is_hq ? sh('members', 'Members', { id: seg[1] }) : u.is_leader ? sh('members', 'My members', { scope: 'leader' }) : sh('home', 'Home');
     case 'announcements': return sh('announcements', 'Announcements', { id: seg[1] });
+    case 'reporting': return (u.is_hq || u.is_leader) ? sh('reporting', 'Reporting and accountability', { tab: seg[1], id: seg[2] }) : sh('home', 'Home');
     case 'notifications': return sh('notifications', 'Notifications');
     case 'settings': return sh('settings', 'Settings');
     case 'login': case 'join': location.hash = '#/'; // signed in already
@@ -64,8 +66,8 @@ export function signedIn(user) { app.user = user; shellEls = null; startPulse();
 /* ----------------------------------------------------------------- shell -- */
 function navItems() {
   const u = app.user;
-  if (u.is_hq) return [['Overview'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['Communication'], ['#/announcements', 'megaphone', 'Announcements'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
-  if (u.is_leader) return [['My leadership'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'My members'], ['Communication'], ['#/announcements', 'megaphone', 'Announcements'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
+  if (u.is_hq) return [['Overview'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/reporting', 'chart', 'Reporting'], ['Communication'], ['#/announcements', 'megaphone', 'Announcements'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
+  if (u.is_leader) return [['My leadership'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'My members'], ['#/reporting', 'chart', 'Reporting'], ['Communication'], ['#/announcements', 'megaphone', 'Announcements'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
   return [['My network'], ['#/', 'grid', 'Home'], ['#/announcements', 'megaphone', 'Announcements'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
 }
 function markNav(path) {

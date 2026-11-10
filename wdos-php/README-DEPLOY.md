@@ -99,10 +99,19 @@ timer from section A step 7, because the timer is what sends them. Pictures
 live in `assets/inspiration`. After uploading this build, open `/api/setup` and
 press Create or update tables once.
 
+## Reporting and accountability (v92.0)
+
+Leaders and HQ get a Reporting menu: dashboard, my reports, operational
+records, reports I supervise, compliance, risks and escalations, archive. The
+report forms themselves are loaded from the current WDOS on the setup page,
+section 7 (one query, Download CSV, Load templates). Until then, operational
+records and issues work and the report tabs say the forms are not loaded.
+Automatic reminders are off until HQ switches them on under Compliance >
+Configure. Evidence is added as links; file upload is not built yet.
+
 ## Not in this phase
 
-The current Supabase WDOS stays the live system. Its other modules (reporting,
-meetings and the multilingual room, activation journeys, referral links,
+The current Supabase WDOS stays the live system. Its other modules (meetings and the multilingual room, activation journeys, referral links,
 onboarding reader, HQ role homepages, message library, tasks, documents) are
 not moved yet. Profile photographs are not copied by the import. Interface languages other
 than English are also still to be ported.

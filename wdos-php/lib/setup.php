@@ -52,6 +52,26 @@ if ($METHOD === 'POST') {
     notify((int) $u['id'], 'inspiration', $m['headline'], $m['key_thought'], '#/');
     out(['ok' => true, 'week' => (int) $m['seq'], 'headline' => $m['headline'], 'devices' => (int) val('SELECT COUNT(*) FROM push_subscriptions WHERE user_id=?', [(int) $u['id']])] + push_drain(10));
   }
+  if ($act === 'templates_import') {
+    $n = 0; $skipped = []; $loaded = [];
+    foreach (is_array($b['rows'] ?? null) ? $b['rows'] : [] as $raw) {
+      $j = is_array($raw) ? $raw : json_decode((string) $raw, true); if (!is_array($j)) continue;
+      $code = (string) ($j['code'] ?? $j['key'] ?? $j['slug'] ?? $j['template'] ?? $j['id'] ?? '');
+      $def = $j['definition'] ?? $j['schema'] ?? $j['body'] ?? $j['config'] ?? $j['template_json'] ?? null;
+      if (is_string($def)) $def = json_decode($def, true);
+      if (!is_array($def) && isset($j['sections'])) $def = ['sections' => is_string($j['sections']) ? json_decode($j['sections'], true) : $j['sections']];
+      if (isset($def[0]) && is_array($def)) $def = ['sections' => $def];
+      if ($code === '' || !preg_match('/^[a-z0-9_]{2,40}$/', $code) || !is_array($def) || !is_array($def['sections'] ?? null) || !$def['sections']) { $skipped[] = $code !== '' ? $code : '(row with no code)'; continue; }
+      $title = (string) ($j['title'] ?? $j['name'] ?? $j['label'] ?? $def['title'] ?? ucwords(str_replace('_', ' ', $code)));
+      $cad = strtolower((string) ($j['cadence'] ?? $j['frequency'] ?? $def['cadence'] ?? ''));
+      $cad = str_contains($cad, 'month') || str_starts_with($code, 'monthly') ? 'monthly' : (str_contains($cad, 'week') || str_starts_with($code, 'weekly') ? 'weekly' : 'adhoc');
+      $ev = !empty($j['requires_evidence']) || !empty($def['requires_evidence']) || !empty($j['evidence_required']) ? 1 : 0;
+      q('DELETE FROM report_templates WHERE code=?', [$code]);
+      q('INSERT INTO report_templates (code,title,cadence,requires_evidence,definition,is_active,loaded_at) VALUES (?,?,?,?,?,?,?)', [$code, mb_substr($title, 0, 160), $cad, $ev, json_encode($def, JSON_UNESCAPED_UNICODE), (($j['is_active'] ?? true) === false) ? 0 : 1, now()]);
+      $n++; $loaded[] = $code . ' (' . count($def['sections']) . ' sections, ' . $cad . ')';
+    }
+    out(['ok' => true, 'loaded' => $loaded, 'skipped' => $skipped]);
+  }
   fail(400, 'Unknown setup action.', 'action');
 }
 header('Content-Type: text/html; charset=utf-8'); header('Cache-Control: no-store');
@@ -141,6 +161,10 @@ order by u.created_at;</textarea>
 <section><h2>6. Test the weekly inspiration on one leader</h2>
 <p>Sends this week's message to ONE leader account now, in the app and as a push to that leader's devices, and shows the card on that leader's dashboard for the rest of today. Nobody else receives anything.</p>
 <input id="tmail" type="email" placeholder="Email of a leader account you can sign in to"><button id="tsend">Send the test</button><p id="tres"></p></section>
+<section><h2>7. Load the report templates</h2>
+<p>The report forms (monthly leadership report, weekly pulse and the rest) are loaded from the current WDOS exactly as approved. Run this one line in the current WDOS Supabase <b>SQL Editor</b>, then <b>Export</b> &gt; <b>Download CSV</b>, and choose the file here. It is safe to repeat.</p>
+<pre id="tsql" style="user-select:all">select to_jsonb(t)::text as row from report_templates t;</pre>
+<input id="tcsv" type="file" accept=".csv,text/csv"><button id="tload">Load templates</button><p id="tlres"></p></section>
 <script>
 const $=id=>document.getElementById(id);
 async function call(action,extra={}){const r=await fetch('/api/setup',{method:'POST',headers:{'Content-Type':'application/json','X-WDOS':'1'},body:JSON.stringify({key:$('key').value,action,...extra})});return r.json();}
@@ -183,5 +207,6 @@ async function runImport(commit){
   $('dry').disabled=false;$('go').disabled=commit||!(T.created>0)||(expected&&expected!==rows.length);
 }
 $('dry').onclick=()=>runImport(false);$('go').onclick=()=>{if(confirm('Import these accounts into this WDOS now?'))runImport(true);};
+$('tload').onclick=async()=>{const f=$('tcsv').files[0];if(!f){$('tlres').textContent='Choose the CSV file first.';return;}const g=parseCSV(await f.text());const head=(g.shift()||[]).map(x=>x.trim());const i=Math.max(0,head.indexOf('row'));const r=await call('templates_import',{rows:g.filter(x=>x[i]).map(x=>x[i])});$('tlres').className=r.ok&&r.loaded.length?'ok':'no';$('tlres').textContent=r.ok?('Loaded '+r.loaded.length+': '+(r.loaded.join('; ')||'none')+(r.skipped.length?'. Skipped (no usable definition): '+r.skipped.join(', '):'')):r.message;};
 $('tsend').onclick=async()=>{$('tres').textContent='Sending…';const r=await call('insp_test',{email:$('tmail').value});$('tres').className=r.ok?'ok':'no';$('tres').textContent=r.ok?('Sent week '+r.week+': "'+r.headline+'". Devices with notifications on: '+r.devices+', pushes delivered: '+r.sent+'. Sign in as that leader to see the card.'):r.message;};
 </script></main></body></html>

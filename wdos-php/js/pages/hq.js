@@ -21,7 +21,7 @@ export function peopleList(items, hrefFor) {
   return h('div', { class: 'list' }, items.map((p) => h(hrefFor ? 'a' : 'div', { class: hrefFor ? 'list__link' : '', href: hrefFor ? hrefFor(p) : null }, avatar(p, 40),
     h('div', { class: 'grow' }, h('b', { text: `${p.first_name} ${p.last_name}` }), h('small', { text: [p.state_region, p.member_no].filter(Boolean).join(' · ') })), flag(p.country_code), netTag(p.network), h('small', { class: 'hide-s', style: 'flex:none', text: ago(p.created_at) }))));
 }
-const ACTION = { registered: 'joined', appointed: 'was appointed', seat_closed: 'left a leadership seat', password_reset: 'had a password reset by HQ', suspended: 'was suspended', reinstated: 'was reinstated', hq_access_given: 'was given HQ access', hq_access_removed: 'had HQ access removed', announcement: 'HQ sent an announcement' };
+const ACTION = { registered: 'joined', appointed: 'was appointed', seat_closed: 'left a leadership seat', password_reset: 'had a password reset by HQ', suspended: 'was suspended', reinstated: 'was reinstated', hq_access_given: 'was given HQ access', hq_access_removed: 'had HQ access removed', announcement: 'HQ sent an announcement', report_submitted: 'submitted a report', details_corrected: 'had details corrected by HQ', import: 'Accounts were brought across' };
 
 export async function render(root) {
   let days = Number(sessionStorage.getItem('wdos.days')) || 30;

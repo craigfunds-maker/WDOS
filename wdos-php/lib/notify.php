@@ -8,6 +8,7 @@ const NOTIFY_KINDS = [
   'registration' => 'New registrations (HQ)',
   'announcement' => 'Announcements from HQ',
   'inspiration'  => 'Weekly and monthly inspiration (leaders)',
+  'report'       => 'Reports, reviews and issues',
   'appointment'  => 'Leadership appointments',
   'account'      => 'Security and password changes',
   'birthday'     => 'Birthday greetings',

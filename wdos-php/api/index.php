@@ -6,6 +6,7 @@ require __DIR__ . '/../lib/push.php';
 require __DIR__ . '/../lib/notify.php';
 require __DIR__ . '/../lib/webauthn.php';
 require __DIR__ . '/../lib/inspire_fns.php';
+require __DIR__ . '/../lib/reporting_fns.php';
 
 set_exception_handler(function (Throwable $e) {
   error_log('[wdos] ' . $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine());
@@ -331,12 +332,13 @@ if ($METHOD === 'GET' && $PATH === '/cron') {
   $key = (string) ($_GET['key'] ?? '');
   if (!cfg('ADMIN_KEY') || !hash_equals((string) cfg('ADMIN_KEY'), $key)) { http_response_code(403); echo 'forbidden'; exit; }
   q("DELETE FROM app_settings WHERE k='auto_tick'"); q("INSERT INTO app_settings (k,v) VALUES ('auto_tick',?)", [(string) time()]);
-  $auto = run_automations(); run_inspiration_automations($auto);
+  $auto = run_automations(); run_inspiration_automations($auto); rp_reminders_daily($auto);
   out(['ok' => true, 'automations' => $auto, 'push' => push_drain(150), 'time' => now()]);
 }
 
 /* ------------------------------------------------------------ dashboards -- */
 require __DIR__ . '/../lib/inspire.php';
 require __DIR__ . '/../lib/dashboards.php';
+require __DIR__ . '/../lib/reporting.php';
 
 fail(404, 'No such WDOS endpoint.', 'not_found');
