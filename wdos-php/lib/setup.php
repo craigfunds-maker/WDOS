@@ -157,7 +157,7 @@ async function runImport(commit){
   const file=$('csv').files[0],box=$('ires');if(!file){box.innerHTML='<p class="no">Choose the CSV file first.</p>';return;}
   const grid=parseCSV(await file.text());const head=(grid.shift()||[]).map(h=>h.trim());
   if(!head.includes('email')||!head.includes('password_hash')){box.innerHTML='<p class="no">This is not the export file: the email and password_hash columns are missing. Run the export query again and download the CSV.</p>';return;}
-  const rows=grid.filter(r=>r.length>1).map(r=>Object.fromEntries(head.map((h,i)=>[h,r[i]===undefined||r[i]==='NULL'?'':r[i]])));
+  const rows=grid.filter(r=>r.length>1).map(r=>Object.fromEntries(head.map((h,i)=>[h,r[i]===undefined||(/^null$/i.test(r[i])&&h!=='first_name'&&h!=='last_name')?'':r[i]])));
   const expected=Number(rows[0]&&rows[0].total_rows)||0;
   $('dry').disabled=$('go').disabled=true;const T={};const lists={seat_notes:[],hq_holders:[],new_units:[],no_country_list:[]};
   for(let i=0;i<rows.length;i+=50){

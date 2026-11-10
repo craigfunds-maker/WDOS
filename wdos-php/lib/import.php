@@ -57,7 +57,10 @@ function import_rows(array $list, bool $commit): array {
   try {
     foreach ($list as $r) {
       if (!is_array($r)) continue;
-      $r = array_map(fn($v) => is_scalar($v) ? trim((string) $v) : '', $r); $v = fn(string $k) => $r[$k] ?? '';
+      $r = array_map(fn($v) => is_scalar($v) ? trim((string) $v) : '', $r);
+      // Supabase writes the word "null" into the CSV for an empty value: treat it as empty (names excepted, Null is a real surname)
+      foreach ($r as $k => $val) if ($k !== 'first_name' && $k !== 'last_name' && strcasecmp($val, 'null') === 0) $r[$k] = '';
+      $v = fn(string $k) => $r[$k] ?? '';
       $sum['rows']++;
       $email = strtolower($v('email'));
       if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 190) { $sum['invalid']++; continue; }
