@@ -1,0 +1,57 @@
+-- Run this in the CURRENT WDOS (Supabase) SQL Editor, not in TiDB.
+-- Set the row limit to "No limit" first, then Export > Download CSV.
+-- It only reads. It changes nothing in the current WDOS.
+
+with recursive up as (
+  select o.id as start_id, o.id, o.parent_id, o.level::text as lvl, o.name, o.country_iso::text as iso, 0 as d
+  from org_units o
+  union all
+  select up.start_id, o.id, o.parent_id, o.level::text, o.name, o.country_iso::text, up.d + 1
+  from up join org_units o on o.id = up.parent_id where up.d < 8
+), chain as (
+  select start_id,
+    max(name) filter (where lvl = 'country') as country_name,
+    max(iso) as country_iso,
+    max(name) filter (where lvl = 'state_region') as state_name,
+    max(name) filter (where lvl = 'district_lga') as lga_name,
+    max(name) filter (where lvl = 'community_cluster') as cluster_name,
+    max(name) filter (where lvl = 'chapter') as chapter_name
+  from up group by start_id
+), seat as (
+  select distinct on (ra.profile_id) ra.profile_id, ra.role::text as role, ra.org_unit_id, ra.starts_at,
+    to_jsonb(ra)->>'appointment_status' as appt
+  from role_assignments ra
+  where ra.ends_at is null and ra.role::text in ('country_rep','deputy_country_rep','state_coordinator','assistant_state_coordinator','state_secretary','district_coordinator','assistant_district_coordinator','cluster_coordinator','assistant_cluster_coordinator','chapter_lead','assistant_chapter_lead')
+  order by ra.profile_id, array_position(array['country_rep','deputy_country_rep','state_coordinator','assistant_state_coordinator','state_secretary','district_coordinator','assistant_district_coordinator','cluster_coordinator','assistant_cluster_coordinator','chapter_lead','assistant_chapter_lead'], ra.role::text)
+), hq as (
+  select ra.profile_id, string_agg(distinct ra.role::text, '|') as roles
+  from role_assignments ra
+  where ra.ends_at is null and ra.role::text not in ('country_rep','deputy_country_rep','state_coordinator','assistant_state_coordinator','state_secretary','district_coordinator','assistant_district_coordinator','cluster_coordinator','assistant_cluster_coordinator','chapter_lead','assistant_chapter_lead','member')
+  group by ra.profile_id
+)
+select
+  u.email,
+  u.encrypted_password as password_hash,
+  (select coalesce(to_jsonb(i)->>'provider_id', i.identity_data->>'sub') from auth.identities i
+    where i.user_id = u.id and i.provider = 'google' limit 1) as google_sub,
+  p.membership_no, p.first_name, p.last_name, p.phone,
+  to_jsonb(p)->>'birth_date' as birth_date,
+  p.network::text as network, p.status::text as status,
+  p.country as profile_country, p.state_region, p.lga,
+  to_jsonb(p)->>'community' as community,
+  pc.country_iso as unit_country_iso, pc.country_name as unit_country, pc.state_name as unit_state, pc.lga_name as unit_lga,
+  to_jsonb(p)->>'hq_function' as hq_function, hq.roles as hq_roles,
+  s.role as seat_role, s.appt as seat_status, s.starts_at as seat_since,
+  sc.country_iso as seat_country_iso, sc.country_name as seat_country, sc.state_name as seat_state,
+  sc.lga_name as seat_lga, sc.cluster_name as seat_cluster, sc.chapter_name as seat_chapter,
+  u.created_at, u.last_sign_in_at,
+  (u.banned_until is not null and u.banned_until > now()) as banned,
+  count(*) over () as total_rows
+from auth.users u
+join profiles p on p.id = u.id
+left join chain pc on pc.start_id = p.org_unit_id
+left join seat s on s.profile_id = p.id
+left join chain sc on sc.start_id = s.org_unit_id
+left join hq on hq.profile_id = p.id
+where u.email is not null
+order by u.created_at;

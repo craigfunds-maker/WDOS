@@ -1,4 +1,4 @@
-# WDOS on PHP: deployment guide (build v90.0)
+# WDOS on PHP: deployment guide (build v90.1)
 
 Everything here is done in a browser. No terminal is needed.
 
@@ -81,10 +81,19 @@ members ask HQ, and HQ resets the password from Members.
 Upload the changed files, open `/api/setup` and press Create or update tables.
 Each release changes `BUILD` in `sw.js`, and open apps reload themselves once.
 
+## Bringing members across from the current WDOS (v90.1)
+
+Open `/api/setup`, section 5. It gives the export query to run in the current
+WDOS (Supabase SQL Editor, row limit set to No limit, Export > Download CSV),
+then checks the file without saving, then imports. Members keep their current
+passwords. Existing emails are never overwritten, so it is safe to run again
+later to pick up people who joined in between. HQ access is never granted by
+the import. The same query is saved in `migrations/EXPORT-FROM-CURRENT-WDOS.pgsql.txt`.
+
 ## Not in this phase
 
 The current Supabase WDOS stays the live system. Its other modules (reporting,
 meetings and the multilingual room, activation journeys, referral links,
-onboarding reader, HQ role homepages, message library, tasks, documents) and
-its existing members and leaders are not moved yet. Interface languages other
+onboarding reader, HQ role homepages, message library, tasks, documents) are
+not moved yet. Profile photographs are not copied by the import. Interface languages other
 than English are also still to be ported.
