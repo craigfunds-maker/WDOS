@@ -38,8 +38,11 @@ function insp_today(array $u): ?array {
   }
   $seat = is_hq($u) ? null : current_seat((int) $u['id']);
   if (!$seat) return null;
-  if ((int) $d->format('N') === 1 && ($m = insp_weekly_for($seat['network'], insp_week($d)))) return insp_shape($m, $u, 'Weekly inspiration, week ' . $m['seq']);
-  if (($n = insp_month($d)) && ($m = row("SELECT * FROM hq_messages WHERE kind='monthly' AND seq=?", [$n]))) return insp_shape($m, $u, 'Monthly leadership inspiration, ' . $d->format('F Y'));
+  $preview = setting('weekly_preview') === $u['id'] . ':' . $d->format('Y-m-d');           // one-leader test from the setup page
+  if (((int) $d->format('N') === 1 || $preview) && ($m = insp_weekly_for($seat['network'], insp_week($d)))) return insp_shape($m, $u, 'Weekly inspiration, week ' . $m['seq']);
+  // the monthly message stays on the dashboard for three days from the moment it was sent, then leaves
+  $n = insp_month($d); $sent = $n ? setting('sent_monthly_' . $n) : '';
+  if ($sent !== '' && time() - strtotime($sent . ' UTC') < 3 * 86400 && ($m = row("SELECT * FROM hq_messages WHERE kind='monthly' AND seq=?", [$n]))) return insp_shape($m, $u, 'Monthly leadership inspiration, ' . $d->format('F Y'));
   return null;
 }
 function set_setting(string $k, string $v): void { q('DELETE FROM app_settings WHERE k=?', [$k]); q('INSERT INTO app_settings (k,v) VALUES (?,?)', [$k, $v]); }
@@ -58,12 +61,12 @@ function run_inspiration_automations(array &$done): void {
   $week = insp_week($d);
   if ((int) $d->format('N') === 1 && $week >= 1 && insp_weekly_for('WGMN', $week) && claim_send('sent_weekly_' . $week)) {
     $n = 0;
-    foreach (['WGMN', 'WNNN'] as $net) if ($m = insp_weekly_for($net, $week)) $n += notify_many($leaders, [$net], 'inspiration', $m['headline'], $m['key_thought'], '#/inspiration');
+    foreach (['WGMN', 'WNNN'] as $net) if ($m = insp_weekly_for($net, $week)) $n += notify_many($leaders, [$net], 'inspiration', $m['headline'], $m['key_thought'], '#/');
     $done['weekly_inspiration'] = "week $week to $n leaders";
   }
   $month = insp_month($d);
   if ($month >= 1 && ($m = row("SELECT * FROM hq_messages WHERE kind='monthly' AND seq=?", [$month])) && claim_send('sent_monthly_' . $month)) {
-    $n = notify_many('EXISTS (SELECT 1 FROM seats s WHERE s.user_id=u.id AND s.ends_at IS NULL)', [], 'inspiration', 'This month: ' . $m['headline'], 'Monthly leadership inspiration for ' . $d->format('F') . '. Theme: ' . $m['theme'] . '.', '#/inspiration');
+    $n = notify_many('EXISTS (SELECT 1 FROM seats s WHERE s.user_id=u.id AND s.ends_at IS NULL)', [], 'inspiration', 'This month: ' . $m['headline'], 'Monthly leadership inspiration for ' . $d->format('F') . '. Theme: ' . $m['theme'] . '.', '#/');
     $done['monthly_inspiration'] = "month $month to $n leaders";
   }
 }

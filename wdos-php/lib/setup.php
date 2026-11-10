@@ -40,6 +40,18 @@ if ($METHOD === 'POST') {
     $list = is_array($b['rows'] ?? null) ? array_slice($b['rows'], 0, 80) : [];
     out(['ok' => true, 'commit' => !empty($b['commit'])] + import_rows($list, !empty($b['commit'])));
   }
+  if ($act === 'insp_test') {
+    require_once __DIR__ . '/inspire_fns.php'; require_once __DIR__ . '/notify.php';
+    $u = row('SELECT * FROM users WHERE email=?', [strtolower(trim((string) ($b['email'] ?? '')))]);
+    if (!$u) fail(404, 'No account has that email.', 'not_found');
+    $seat = current_seat((int) $u['id']);
+    if (!$seat) fail(422, 'That account holds no leadership seat. Appoint it from Members first: inspiration goes to volunteer leaders only.', 'no_seat');
+    $m = insp_weekly_for($seat['network'], insp_week());
+    if (!$m) fail(422, 'No weekly message is loaded for week ' . insp_week() . '.', 'no_message');
+    set_setting('weekly_preview', $u['id'] . ':' . hq_today()->format('Y-m-d'));
+    notify((int) $u['id'], 'inspiration', $m['headline'], $m['key_thought'], '#/');
+    out(['ok' => true, 'week' => (int) $m['seq'], 'headline' => $m['headline'], 'devices' => (int) val('SELECT COUNT(*) FROM push_subscriptions WHERE user_id=?', [(int) $u['id']])] + push_drain(10));
+  }
   fail(400, 'Unknown setup action.', 'action');
 }
 header('Content-Type: text/html; charset=utf-8'); header('Cache-Control: no-store');
@@ -126,6 +138,9 @@ order by u.created_at;</textarea>
 <input id="csv" type="file" accept=".csv,text/csv">
 <button id="dry">Check the file</button> <button id="go" disabled style="background:#7cb518;color:#17240a">Import now</button>
 <div id="ires"></div></section>
+<section><h2>6. Test the weekly inspiration on one leader</h2>
+<p>Sends this week's message to ONE leader account now, in the app and as a push to that leader's devices, and shows the card on that leader's dashboard for the rest of today. Nobody else receives anything.</p>
+<input id="tmail" type="email" placeholder="Email of a leader account you can sign in to"><button id="tsend">Send the test</button><p id="tres"></p></section>
 <script>
 const $=id=>document.getElementById(id);
 async function call(action,extra={}){const r=await fetch('/api/setup',{method:'POST',headers:{'Content-Type':'application/json','X-WDOS':'1'},body:JSON.stringify({key:$('key').value,action,...extra})});return r.json();}
@@ -168,4 +183,5 @@ async function runImport(commit){
   $('dry').disabled=false;$('go').disabled=commit||!(T.created>0)||(expected&&expected!==rows.length);
 }
 $('dry').onclick=()=>runImport(false);$('go').onclick=()=>{if(confirm('Import these accounts into this WDOS now?'))runImport(true);};
+$('tsend').onclick=async()=>{$('tres').textContent='Sending…';const r=await call('insp_test',{email:$('tmail').value});$('tres').className=r.ok?'ok':'no';$('tres').textContent=r.ok?('Sent week '+r.week+': "'+r.headline+'". Devices with notifications on: '+r.devices+', pushes delivered: '+r.sent+'. Sign in as that leader to see the card.'):r.message;};
 </script></main></body></html>
