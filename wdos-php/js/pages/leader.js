@@ -1,5 +1,6 @@
 /* Volunteer leadership dashboard: everything is scoped to the leader's own seat and network. */
 import { h, clear, icon, avatar, flag, netTag, card, sk, empty, ago, agoIn, fmt, greeting, fmtDate, NETS, inspCard } from '../ui.js';
+import { pushNudge } from '../pushnudge.js';
 import { goodMotherCard } from '../goodmother.js';
 import { api } from '../api.js';
 import { app } from '../app.js';
@@ -18,7 +19,7 @@ export async function render(root) {
   const todo = u.todo || {}; const nudge = (title, text, href, label) => h('section', { class: 'card nudge' }, h('div', { class: 'card__body', style: 'display:flex;gap:16px;align-items:center;flex-wrap:wrap' }, h('div', { class: 'grow' }, h('b', { text: title }), h('p', { class: 'muted', style: 'margin:4px 0 0', text })), h('a', { class: 'btn', href, text: label })));
   if (todo.appointment) root.append(hero, nudge('Accept your appointment', 'Read the Volunteer Leadership Agreement to the end and accept it to take up your seat.', '#/appointment', 'Read the Agreement'));
   else if (todo.onboarding > 0) root.append(hero, nudge('Your onboarding', `${todo.onboarding} required ${todo.onboarding === 1 ? 'step is' : 'steps are'} still to finish. Work through each step in order.`, '#/onboarding', 'Continue my onboarding'));
-  root.append(hero, today, kpis, u.network === 'WGMN' && u.country_code ? goodMotherCard(u.country_code, u.country) : '', h('div', { class: 'row row--2-1' }, card('New members in your area', 'Registrations per day', trend), breakCard),
+  root.append(hero, pushNudge(), today, kpis, u.network === 'WGMN' && u.country_code ? goodMotherCard(u.country_code, u.country) : '', h('div', { class: 'row row--2-1' }, card('New members in your area', 'Registrations per day', trend), breakCard),
     h('div', { class: 'row row--2' }, card('Your leadership team', 'Leaders serving under your seat', team), card('Newest members', null, recent, h('a', { class: 'btn btn--ghost btn--s', href: '#/members', text: 'All my members' }))));
 
   async function load() {

@@ -57,7 +57,7 @@ export async function pushState() {
   return sub ? 'on' : 'off';
 }
 export async function pushEnable(vapid) {
-  if (!pushSupported()) throw new Error('This browser cannot receive push notifications. On an iPhone, add WDOS to the Home Screen first.');
+  if (!pushSupported()) throw new Error(isIos() && !isInstalled() ? 'On an iPhone, notifications only work after WDOS is added to the Home Screen. Tap the Share button, choose Add to Home Screen, open WDOS from the new icon, then switch notifications on there.' : 'This browser cannot receive push notifications.');
   if (!vapid) throw new Error('Push keys are not set on the server yet. HQ IT needs to finish /api/setup.');
   const perm = await Notification.requestPermission();
   if (perm !== 'granted') throw new Error('Notifications are blocked for this site. Allow them from the padlock beside the address, then try again.');
@@ -68,6 +68,19 @@ export async function pushEnable(vapid) {
   await api('/push/subscribe', { subscription: sub.toJSON() });
   return true;
 }
+/* Keep the server in step with this browser. A browser can hold a push address the server has lost, or one made
+ * with older keys; either way notifications silently stop. Runs quietly each time the app opens. */
+export async function pushSync(vapid) {
+  try {
+    if (!pushSupported() || !vapid || Notification.permission !== 'granted') return;
+    const reg = await navigator.serviceWorker.ready; let sub = await reg.pushManager.getSubscription(); if (!sub) return;
+    const cur = sub.options?.applicationServerKey ? toB64u(sub.options.applicationServerKey) : '';
+    if (cur && cur !== vapid) { await sub.unsubscribe(); sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: fromB64u(vapid) }); }
+    await api('/push/subscribe', { subscription: sub.toJSON() });
+  } catch { /* never blocks the app */ }
+}
+export const isIos = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+export const isInstalled = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 export async function pushDisable() {
   const reg = await navigator.serviceWorker.getRegistration();
   const sub = reg && await reg.pushManager.getSubscription();

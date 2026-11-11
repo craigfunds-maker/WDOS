@@ -94,8 +94,31 @@ function push_drain(int $limit = 40): array {
       $retry = ((int) $j['attempts'] + 1) < 3;
       q('UPDATE push_outbox SET status=?, last_error=? WHERE id=?', [$retry ? 'queued' : 'failed', mb_substr("HTTP $code $err", 0, 180), (int) $j['id']]);
       q('UPDATE push_subscriptions SET fail_count=fail_count+1 WHERE id=?', [(int) $j['sid']]);
+      error_log('[wdos push] not accepted by ' . parse_url($j['endpoint'], PHP_URL_HOST) . ": HTTP $code $err");
       $failed++;
     }
   }
   return ['sent' => $sent, 'failed' => $failed, 'gone' => $gone, 'left' => (int) val("SELECT COUNT(*) FROM push_outbox WHERE status='queued'"), 'configured' => true];
+}
+
+/** Which kind of device a push address belongs to, in words a member understands. */
+function push_device(string $endpoint, string $ua = ''): string {
+  $h = (string) parse_url($endpoint, PHP_URL_HOST);
+  $os = str_contains($ua, 'iPhone') || str_contains($ua, 'iPad') ? 'iPhone or iPad' : (str_contains($ua, 'Android') ? 'Android phone' : (str_contains($ua, 'Windows') ? 'Windows computer' : (str_contains($ua, 'Mac OS') ? 'Mac' : 'This device')));
+  $via = str_contains($h, 'apple.com') ? 'Apple' : (str_contains($h, 'googleapis.com') || str_contains($h, 'google.com') ? 'Google' : (str_contains($h, 'mozilla') ? 'Firefox' : (str_contains($h, 'windows.com') || str_contains($h, 'microsoft') ? 'Microsoft' : $h)));
+  return "$os (through $via)";
+}
+/** Send one test straight to every device of this person and say exactly what each push service answered. */
+function push_test_user(int $userId, string $title, string $body): array {
+  $out = [];
+  foreach (rows('SELECT * FROM push_subscriptions WHERE user_id=? ORDER BY id', [$userId]) as $s) {
+    $payload = json_encode(['title' => $title, 'body' => $body, 'url' => '#/notifications', 'kind' => 'reminder', 'id' => null], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    try { [$code, $err] = push_send($s, $payload); } catch (Throwable $e) { $code = 0; $err = $e->getMessage(); }
+    $ok = $code >= 200 && $code < 300;
+    if ($ok) q('UPDATE push_subscriptions SET last_ok_at=?, fail_count=0 WHERE id=?', [now(), (int) $s['id']]);
+    elseif ($code === 404 || $code === 410) q('DELETE FROM push_subscriptions WHERE id=?', [(int) $s['id']]);
+    if (!$ok) error_log('[wdos push] test not accepted by ' . parse_url($s['endpoint'], PHP_URL_HOST) . ": HTTP $code $err");
+    $out[] = ['device' => push_device($s['endpoint'], (string) $s['user_agent']), 'ok' => $ok, 'code' => $code, 'gone' => $code === 404 || $code === 410, 'error' => $ok ? '' : mb_substr($err, 0, 160), 'since' => $s['created_at']];
+  }
+  return $out;
 }

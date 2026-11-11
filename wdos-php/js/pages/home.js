@@ -1,5 +1,6 @@
 /* A member's home: her membership, what is left to set up, and the latest from HQ. */
 import { h, icon, avatar, flag, netTag, card, sk, empty, ago, greeting, fmtDate, NETS, inspCard } from '../ui.js';
+import { pushNudge } from '../pushnudge.js';
 import { goodMotherCard } from '../goodmother.js';
 import { api, pushState } from '../api.js';
 import { app } from '../app.js';
@@ -10,6 +11,7 @@ export async function render(root) {
     h('div', { class: 'hero__meta' }, flag(u.country_code), netTag(u.network), u.member_no ? h('span', { class: 'tag num', text: u.member_no }) : null, h('span', { class: 'tag', text: [u.state_region, u.country].filter(Boolean).join(', ') }), h('span', { class: 'tag', text: 'Member since ' + fmtDate(u.created_at, { month: 'short', year: 'numeric' }) }))),
     h('img', { class: 'hero__disc', src: net.disc, alt: '' })));
   if (u.todo && u.todo.activation) root.append(h('section', { class: 'card nudge' }, h('div', { class: 'card__body', style: 'display:flex;gap:16px;align-items:center;flex-wrap:wrap' }, h('div', { class: 'grow' }, h('b', { text: 'My Activation' }), h('p', { class: 'muted', style: 'margin:4px 0 0', text: 'You are being considered for a volunteer leadership position. Continue your activation from where you stopped.' })), h('a', { class: 'btn', href: '#/activation', text: 'Open my activation' }))));
+  root.append(pushNudge());
   if (u.network === 'WGMN' && u.country_code) root.append(goodMotherCard(u.country_code, u.country));
   const today = h('div', { hidden: true }); root.append(today);
   api('/inspiration/today').then((r) => { if (r.card) { today.hidden = false; today.append(inspCard(r.card)); } }).catch(() => {});

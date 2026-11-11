@@ -86,18 +86,26 @@ export function africaMap(highlight) {
     h('div', { class: 'gm__body' }, h('div', {}, stage, cap), h('figcaption', { class: 'gm__plaque' }, h('span', { 'aria-hidden': 'true', text: '❦' }), h('p', { text: PLAQUE }), h('span', { 'aria-hidden': 'true', text: '❦' }))));
 }
 
-/** The member's own country, for the dashboard: its shape and what a Good Mother is called in its major languages. */
+/** The member's own country, for the dashboard: its shape, with what a Good Mother is called in its major languages written inside it. */
 export function goodMotherCard(code, countryName) {
   const g = GOOD_MOTHER[code]; const name = countryName || nameOf(code);
   const art = h('div', { class: 'gmc__art' });
   loadShapes().then((M) => {
     const c = M.c[code]; if (!c) return;
-    if (g) { const pad = 14, w = c.b[2] - c.b[0], ht = c.b[3] - c.b[1];
-      art.replaceChildren(s('svg', { viewBox: `${c.b[0] - pad} ${c.b[1] - pad} ${w + pad * 2} ${ht + pad * 2}`, class: 'gmc__svg', role: 'img', 'aria-label': 'Map of ' + name }, s('path', { d: c.d, fill: '#F4C766', stroke: '#8C4A22', 'stroke-width': Math.max(1.2, w / 140), 'stroke-linejoin': 'round' })));
-    } else art.replaceChildren(drawAfrica(M, () => {}, code));
-  }).catch(() => {});
-  return h('section', { class: 'card gmc' }, art,
+    if (!g) { art.replaceChildren(drawAfrica(M, () => {}, code)); return; }
+    const w = c.b[2] - c.b[0], ht = c.b[3] - c.b[1], pad = Math.max(w, ht) * 0.05;
+    // the picture is the country's own box, widened when the country is narrow so the words keep a readable size
+    const vw = Math.max(w, ht * 0.9) + pad * 2, vh = ht + pad * 2, vx = c.p[0] - vw / 2 < c.b[0] - pad ? Math.min(c.b[0] - pad, c.p[0] - vw / 2) : c.b[0] - pad - (vw - w - pad * 2) / 2, vy = c.b[1] - pad;
+    const lines = g[1]; const longest = Math.max(...lines.map(([p, l]) => p.length + l.length * 0.55 + 3));
+    const fit = Math.min(vw / 9, (Math.min(w, vw * 0.8) * 1.7) / longest, ht / (lines.length * 1.9));
+    const fs = Math.min((vw * 1.7) / longest, Math.max(fit, vw / 15)); /* a narrow country still gets words large enough to read */ const lh = fs * 1.5; const y0 = c.p[1] - ((lines.length - 1) * lh) / 2;
+    const svg = s('svg', { viewBox: `${vx} ${vy} ${vw} ${vh}`, class: 'gmc__svg', role: 'img', 'aria-label': `Map of ${name}: ` + lines.map(([p, l]) => `${p} (${l})`).join(', ') },
+      s('path', { d: c.d, fill: '#F4C766', stroke: '#8C4A22', 'stroke-width': vw / 220, 'stroke-linejoin': 'round' }));
+    lines.forEach(([p, l], i) => { const t = s('text', { x: c.p[0], y: y0 + i * lh, 'text-anchor': 'middle', 'dominant-baseline': 'middle', 'font-size': fs.toFixed(2), 'font-weight': 800, fill: '#2A1708', stroke: '#F4C766', 'stroke-width': (fs / 3.2).toFixed(2), 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, p);
+      t.append(s('tspan', { 'font-size': (fs * 0.56).toFixed(2), 'font-weight': 600, fill: '#6b3a16', dx: (fs * 0.35).toFixed(2) }, l)); svg.append(t); });
+    art.replaceChildren(svg);
+  }).catch(() => { if (g) art.replaceChildren(h('div', { class: 'gmc__list' }, g[1].map(([p, l]) => h('div', { class: 'gmc__ph' }, h('b', { text: p }), h('small', { text: l }))))); });
+  return h('section', { class: 'card gmc' + (g ? '' : ' gmc--africa') }, art,
     h('div', { class: 'gmc__text' }, h('span', { class: 'gmc__kicker', text: 'WODDI Good Mother Network' }), h('h2', { class: 'display', text: g ? `A Good Mother in ${name}` : 'A Good Mother across Africa' }),
-      g ? h('p', { class: 'muted', text: `What a Good Mother is called in the major languages of ${name}.` }) : null,
-      g ? h('div', { class: 'gmc__list' }, g[1].map(([p, l]) => h('div', { class: 'gmc__ph' }, h('b', { text: p }), h('small', { text: l })))) : h('p', { class: 'muted', text: PLAQUE })));
+      h('p', { class: 'muted', text: g ? `What a Good Mother is called in the major languages of ${name}.` : PLAQUE })));
 }

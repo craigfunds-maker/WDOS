@@ -177,7 +177,7 @@ export function langPicker(onPick) {
   s.value = i18n.lang; s.addEventListener('change', () => onPick(s.value)); return s;
 }
 /* Language pills for the public pages. Languages still being prepared are listed but cannot be chosen yet. */
-export const LANGS_SOON = ['Hausa', 'Yorùbá', 'Igbo'];
+export const LANGS_SOON = ['Afrikaans', 'Amharic', 'Bambara', 'Chichewa', 'Fulfulde', 'Hausa', 'Igbo', 'Kinyarwanda', 'Kirundi', 'Lingala', 'Luganda', 'Malagasy', 'Oromo', 'Sesotho', 'Setswana', 'Shona', 'Somali', 'Tigrinya', 'Twi', 'Wolof', 'Xhosa', 'Yorùbá', 'Zulu'];
 export function langPills(onPick) {
   const order = ['en', 'fr', 'ar', 'sw', 'pt'];
   const more = h('details', { class: 'lpill lpill--more' }, h('summary', {}, h('span', { text: 'Other African Languages' }), icon('chevdown', 16)),

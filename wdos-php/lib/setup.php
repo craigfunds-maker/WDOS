@@ -73,6 +73,13 @@ if ($METHOD === 'POST') {
     }
     out(['ok' => true, 'loaded' => $loaded, 'skipped' => $skipped]);
   }
+  if ($act === 'push_health') {
+    require_once __DIR__ . '/push.php';
+    $subs = rows('SELECT s.endpoint, s.user_agent, s.created_at, s.last_ok_at, s.fail_count, u.first_name, u.last_name FROM push_subscriptions s JOIN users u ON u.id=s.user_id ORDER BY s.id DESC LIMIT 40');
+    out(['ok' => true, 'configured' => push_configured(), 'subject' => cfg('VAPID_SUBJECT', 'mailto:it@thewoddi.org'),
+      'devices' => array_map(fn($x) => ['who' => $x['first_name'] . ' ' . $x['last_name'], 'device' => push_device($x['endpoint'], (string) $x['user_agent']), 'since' => $x['created_at'], 'last_ok' => $x['last_ok_at'], 'fails' => (int) $x['fail_count']], $subs),
+      'outbox' => rows('SELECT status, COUNT(*) n FROM push_outbox GROUP BY status'), 'errors' => rows("SELECT last_error, COUNT(*) n, MAX(created_at) latest FROM push_outbox WHERE last_error IS NOT NULL AND last_error<>'' GROUP BY last_error ORDER BY latest DESC LIMIT 8")]);
+  }
   if ($act === 'content_import') {
     require_once __DIR__ . '/work_fns.php'; require_once __DIR__ . '/journey_fns.php'; require __DIR__ . '/content_import.php';
     @set_time_limit(120);
@@ -181,6 +188,9 @@ where t.table_schema = 'public' and t.table_type = 'BASE TABLE' and c.reltuples 
   and t.table_name !~ '(progress|response|result|answer|submission|journey|log|event|visit|error|audit|extension|key|milestone)'
   and t.table_name not in ('activations');</pre>
 <input id="ccsv" type="file" accept=".csv,text/csv"><button id="cload">Load content</button><div id="clres"></div></section>
+<section><h2>9. Push notification health</h2>
+<p>Shows which devices have notifications switched on, and what the push services answered. Use this when someone says a notification did not arrive.</p>
+<button id="phgo">Check push health</button><div id="phres"></div></section>
 <script>
 const $=id=>document.getElementById(id);
 async function call(action,extra={}){const r=await fetch('/api/setup',{method:'POST',headers:{'Content-Type':'application/json','X-WDOS':'1'},body:JSON.stringify({key:$('key').value,action,...extra})});return r.json();}
@@ -224,6 +234,8 @@ async function runImport(commit){
 }
 $('dry').onclick=()=>runImport(false);$('go').onclick=()=>{if(confirm('Import these accounts into this WDOS now?'))runImport(true);};
 $('tload').onclick=async()=>{const f=$('tcsv').files[0];if(!f){$('tlres').textContent='Choose the CSV file first.';return;}const g=parseCSV(await f.text());const head=(g.shift()||[]).map(x=>x.trim());const i=Math.max(0,head.indexOf('row'));const r=await call('templates_import',{rows:g.filter(x=>x[i]).map(x=>x[i])});$('tlres').className=r.ok&&r.loaded.length?'ok':'no';$('tlres').textContent=r.ok?('Loaded '+r.loaded.length+': '+(r.loaded.join('; ')||'none')+(r.skipped.length?'. Skipped (no usable definition): '+r.skipped.join(', '):'')):r.message;};
+$('phgo').onclick=async()=>{const box=$('phres');box.textContent='Checking…';const r=await call('push_health',{});if(!r.ok){box.className='no';box.textContent=r.message;return;}
+  box.className='';box.innerHTML='<p>Push keys on the server: <b>'+(r.configured?'set':'NOT set')+'</b>. Contact address sent to the push services: '+esc(r.subject)+'</p><p><b>'+r.devices.length+'</b> device(s) with notifications on (latest 40):</p><ul>'+r.devices.map(d=>'<li>'+esc(d.who)+': '+esc(d.device)+', on since '+esc(d.since)+', last delivered '+esc(d.last_ok||'never')+', failures '+d.fails+'</li>').join('')+'</ul><p>Queue: '+(r.outbox.map(o=>esc(o.status)+' '+o.n).join(', ')||'empty')+'</p>'+(r.errors.length?'<p>Latest errors:</p><ul>'+r.errors.map(e=>'<li>'+esc(e.last_error)+' ('+e.n+' times, latest '+esc(e.latest)+')</li>').join('')+'</ul>':'<p>No delivery errors recorded.</p>');};
 $('cload').onclick=async()=>{const f=$('ccsv').files[0];const box=$('clres');if(!f){box.textContent='Choose the CSV file first.';return;}box.textContent='Reading…';
   const g=parseCSV(await f.text());const head=(g.shift()||[]).map(x=>x.trim());const ti=head.indexOf('tbl'),di=head.indexOf('data');if(ti<0||di<0){box.className='no';box.textContent='This file does not have the tbl and data columns. Run the query above exactly as written.';return;}
   const tables={};let bad=[];for(const r of g){if(!r[ti])continue;try{const x=new DOMParser().parseFromString(r[di],'text/xml');const j=x.getElementsByTagName('j')[0];tables[r[ti]]=JSON.parse(j?j.textContent:'[]');}catch(e){bad.push(r[ti]);}}

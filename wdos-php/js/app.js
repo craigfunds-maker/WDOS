@@ -1,5 +1,6 @@
 /* WDOS front end entry: session, router, shell (collapsible sidebar, top bar, notification bell). */
 import { h, clear, icon, avatar, toast, ago, theme, empty, i18n, t } from './ui.js';
+import { pushSync } from './api.js';
 import { api } from './api.js';
 
 export const app = { user: null, config: { google: false, push: false, vapid: '', mail: false, build: '' }, unread: 0, latest: 0 };
@@ -72,7 +73,7 @@ export const go = (hash) => { if (location.hash === hash) render(); else locatio
 export async function refreshUser() { app.user = (await api('/me')).user; return app.user; }
 export async function setLanguage(lang) { await i18n.set(lang); shellEls = null; render(); }
 export async function signOut() { stopPulse(); await api('/auth/logout', {}).catch(() => {}); app.user = null; shellEls = null; go('#/login'); }
-export function signedIn(user) { app.user = user; shellEls = null; startPulse(); go('#/'); }
+export function signedIn(user) { app.user = user; shellEls = null; startPulse(); pushSync(app.config.vapid); go('#/'); }
 
 /* ----------------------------------------------------------------- shell -- */
 function navItems() {
@@ -83,7 +84,7 @@ function navItems() {
 }
 function markNav(path) {
   const first = '#/' + (path.split('/').filter(Boolean)[0] || '');
-  shellEls.nav.querySelectorAll('a').forEach((a) => { if (a.getAttribute('href') === first) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  [...shellEls.nav.querySelectorAll('a'), ...shellEls.tabbar.querySelectorAll('a')].forEach((a) => { if (a.getAttribute('href') === first) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
 }
 function buildShell() {
   clear(root); const u = app.user;
@@ -109,9 +110,15 @@ function buildShell() {
   const main = h('div', { class: 'main' },
     h('header', { class: 'top' }, h('button', { class: 'iconbtn top__menu', type: 'button', 'aria-label': 'Open the menu', 'aria-controls': 'side', onclick: () => shell.classList.add('nav-open') }, icon('menu')), title, h('div', { class: 'grow' }), themeBtn, bellWrap, meWrap),
     h('main', {}, page));
-  shell.append(side, h('div', { class: 'scrim', onclick: () => shell.classList.remove('nav-open') }), main);
+  /* On a phone the main destinations sit in a bar at the bottom, as in a native app. "More" opens the full menu. */
+  const tabs = u.is_hq ? [['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/reporting', 'chart', 'Reporting'], ['#/notifications', 'bell', 'Alerts']]
+    : u.is_leader ? [['#/', 'grid', 'Dashboard'], ['#/tasks', 'tasks', 'Tasks'], ['#/reporting', 'chart', 'Reporting'], ['#/notifications', 'bell', 'Alerts']]
+    : [['#/', 'grid', 'Home'], ['#/tasks', 'tasks', 'Tasks'], ['#/announcements', 'megaphone', 'News'], ['#/notifications', 'bell', 'Alerts']];
+  const tabbar = h('nav', { class: 'tabbar', 'aria-label': 'Quick menu' }, tabs.map((it) => h('a', { href: it[0] }, h('span', { class: 'tabbar__ico' }, icon(it[1], 22), it[0] === '#/notifications' ? h('i', { class: 'tabbar__n', hidden: true, 'data-unread': '' }) : null), h('span', { text: it[2] }))),
+    h('button', { type: 'button', 'aria-controls': 'side', onclick: () => shell.classList.add('nav-open') }, h('span', { class: 'tabbar__ico' }, icon('menu', 22)), h('span', { text: 'More' })));
+  shell.append(side, h('div', { class: 'scrim', onclick: () => shell.classList.remove('nav-open') }), main, tabbar);
   root.append(shell);
-  shellEls = { shell, nav, title, page };
+  shellEls = { shell, nav, title, page, tabbar };
   paintUnread();
 }
 let openPop = null;
@@ -172,6 +179,7 @@ window.addEventListener('hashchange', render);
   try {
     const [cfg, me] = await Promise.all([api('/config'), api('/me')]);
     app.config = cfg; app.user = me.user;
+    if (app.user) pushSync(cfg.vapid);
   } catch (e) {
     clear(root).append(h('div', { class: 'public' }, h('div', { class: 'signin' }, h('div', { class: 'card' }, empty('x', 'WDOS cannot start', e.message, h('button', { class: 'btn', onclick: () => location.reload() }, 'Reload'))))));
     return;

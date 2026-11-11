@@ -308,9 +308,10 @@ route('POST', '/push/subscribe', function () {
   $ep = (string) ($s['endpoint'] ?? ''); $p = (string) ($s['keys']['p256dh'] ?? ''); $a = (string) ($s['keys']['auth'] ?? '');
   if (!str_starts_with($ep, 'https://') || $p === '' || $a === '') fail(422, 'This browser did not give WDOS a usable push address.', 'subscription');
   $h = hash('sha256', $ep);
-  q('DELETE FROM push_subscriptions WHERE endpoint_hash=?', [$h]);
-  q('INSERT INTO push_subscriptions (user_id,endpoint_hash,endpoint,p256dh,auth,user_agent,created_at) VALUES (?,?,?,?,?,?,?)',
-    [(int) $u['id'], $h, $ep, $p, $a, mb_substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 250), now()]);
+  $ua = mb_substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 250);
+  // keep the same row when this browser is already known, so pushes already queued for it still arrive
+  if (val('SELECT 1 FROM push_subscriptions WHERE endpoint_hash=?', [$h])) q('UPDATE push_subscriptions SET user_id=?, p256dh=?, auth=?, user_agent=?, fail_count=0 WHERE endpoint_hash=?', [(int) $u['id'], $p, $a, $ua, $h]);
+  else q('INSERT INTO push_subscriptions (user_id,endpoint_hash,endpoint,p256dh,auth,user_agent,created_at) VALUES (?,?,?,?,?,?,?)', [(int) $u['id'], $h, $ep, $p, $a, $ua, now()]);
 });
 route('POST', '/push/unsubscribe', function () {
   $u = require_user();
@@ -320,8 +321,8 @@ route('POST', '/push/test', function () {
   $u = require_user();
   if (!push_configured()) fail(503, 'Push keys are not set on the server yet. Open /api/setup to create them.', 'push_off');
   if (!(int) val('SELECT COUNT(*) FROM push_subscriptions WHERE user_id=?', [(int) $u['id']])) fail(409, 'Switch on notifications on this device first.', 'no_device');
-  notify((int) $u['id'], 'reminder', 'WDOS notifications are working', 'This is the test you asked for. You will receive announcements and reminders here.', '#/notifications');
-  return ['ok' => true] + push_drain(10);
+  $res = push_test_user((int) $u['id'], 'WDOS notifications are working', 'This is the test you asked for. You will receive announcements and reminders here.');
+  return ['ok' => true, 'devices' => $res, 'sent' => count(array_filter($res, fn($r) => $r['ok']))];
 });
 route('POST', '/push/drain', function () { require_hq(); return push_drain(60); });
 /* The service worker asks for this if a push ever arrives without a readable body. */

@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Configuration comes from environment variables (Render) or from
  * config.local.php beside index.html (shared hosting / cPanel). */
 
-const WDOS_BUILD = 'v93.1';
+const WDOS_BUILD = 'v93.2';
 
 function cfg(string $key, ?string $default = null): ?string {
   static $local = null;

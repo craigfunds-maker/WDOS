@@ -2,6 +2,8 @@
 import { h, icon, avatar, card, sk, toast, agoIn, theme, langPicker } from '../ui.js';
 import { api, squarePhoto, fingerprintSupported, fingerprintEnroll, deviceLabel, pushState, pushEnable, pushDisable } from '../api.js';
 import { app, refreshUser, setLanguage } from '../app.js';
+import { sendTest } from '../pushnudge.js';
+import { isIos, isInstalled } from '../api.js';
 
 const sw = (checked, onchange, label) => { const i = h('input', { type: 'checkbox', 'aria-label': label }); i.checked = !!checked; i.addEventListener('change', () => onchange(i.checked, i)); return h('label', { class: 'switch' }, i, h('i')); };
 
@@ -37,10 +39,10 @@ export async function render(root) {
   const devRow = h('div', {}, sk.rows(1)); const prefs = h('div', {}, sk.rows(4));
   const paintDevice = async () => {
     const st = await pushState();
-    const text = { on: 'On for this device', off: 'Off for this device', blocked: 'Blocked in this browser. Allow notifications from the padlock beside the address.', unsupported: 'Not available in this browser. On an iPhone, add WDOS to the Home Screen first, then open it from there.' }[st];
+    const text = { on: 'On for this device', off: 'Off for this device', blocked: 'Blocked in this browser. Allow notifications from the padlock beside the address.', unsupported: isIos() && !isInstalled() ? 'On an iPhone, notifications only reach an installed app. Tap the Share button, choose Add to Home Screen, open WDOS from the new icon, then switch notifications on there.' : 'Not available in this browser.' }[st];
     devRow.replaceChildren(h('div', { style: 'display:flex;gap:14px;align-items:center;flex-wrap:wrap' }, h('div', { class: 'nrow__ico' }, icon('bell', 18)), h('div', { style: 'flex:1;min-width:180px' }, h('b', { text: 'Phone and desktop notifications' }), h('div', { class: 'faint', style: 'font-size:13.5px', text })),
       st === 'on' || st === 'off' ? sw(st === 'on', async (on, input) => { try { if (on) await pushEnable(app.config.vapid); else await pushDisable(); } catch (e) { toast('Notifications not switched on', e.message, 'bad'); input.checked = false; } paintDevice(); }, 'Notifications on this device') : null,
-      st === 'on' ? h('button', { class: 'btn btn--ghost btn--s', onclick: async (e) => { e.currentTarget.disabled = true; try { const r = await api('/push/test', {}); toast(r.sent ? 'Test sent' : 'Test queued', r.sent ? 'It should appear on this device within a few seconds.' : 'The push service did not accept it yet. It will retry.', r.sent ? 'ok' : 'info'); } catch (ex) { toast('Test not sent', ex.message, 'bad'); } e.target.disabled = false; } }, 'Send a test') : null));
+      st === 'on' ? h('button', { class: 'btn btn--ghost btn--s', onclick: async (e) => { e.currentTarget.disabled = true; try { const r = await sendTest(); if (r.devices.some((d) => d.gone)) paintDevice(); } catch (ex) { toast('Test not sent', ex.message, 'bad'); } e.target.disabled = false; } }, 'Send a test') : null));
   };
   const loadPrefs = async () => { const r = await api('/notifications/prefs');
     prefs.replaceChildren(h('div', { class: 'prefrow prefhead' }, h('span', { text: 'Tell me about' }), h('span', { text: 'In app' }), h('span', { text: 'Push' })), ...r.prefs.map((p) => { const st = { in_app: p.in_app, push: p.push }; const save = () => api('/notifications/prefs', { kind: p.kind, ...st }).catch((e) => toast('Not saved', e.message, 'bad'));

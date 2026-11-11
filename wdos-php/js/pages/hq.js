@@ -1,5 +1,6 @@
 /* HQ dashboard. Every figure is a count of real rows; an empty system shows empty states, never sample numbers. */
 import { h, clear, icon, avatar, flag, netTag, card, sk, empty, ago, fmt, greeting, fmtDate } from '../ui.js';
+import { pushNudge } from '../pushnudge.js';
 import { api } from '../api.js';
 import { app } from '../app.js';
 import { lineChart, donut, bars, sparkline, countUp, seriesColor, legend } from '../charts.js';
@@ -31,7 +32,7 @@ export async function render(root) {
     h('p', { text: new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + '. Here is where both networks stand.' })), seg);
   const kpis = h('div', { class: 'row row--4' });
   const trend = h('div'), split = h('div'), countries = h('div'), seats = h('div'), recent = h('div'), feed = h('div');
-  root.append(hero, kpis,
+  root.append(hero, pushNudge(), kpis,
     h('div', { class: 'row row--2-1' }, card('New members', 'Registrations per day, by network', trend, legend([{ name: 'WGMN', color: seriesColor.WGMN }, { name: 'WNNN', color: seriesColor.WNNN }])), card('Network split', 'All members to date', split)),
     h('div', { class: 'row row--2' }, card('Members by country', 'The eight largest', countries), card('Volunteer leaders seated', 'Open seats by level', seats)),
     h('div', { class: 'row row--2' }, card('Newest members', null, recent, h('a', { class: 'btn btn--ghost btn--s', href: '#/members', text: 'All members' })), card('Recent activity', null, feed)));

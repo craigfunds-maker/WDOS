@@ -35,9 +35,9 @@ export async function render(root, params) {
   const cardFor = (code) => {
     const n = NETS[code];
     const input = h('input', { type: 'radio', name: 'network', value: code, 'aria-label': `${n.name}. ${n.age}.` });
-    const c = h('label', { class: 'net net--' + code.toLowerCase() }, input, h('img', { class: 'net__disc', src: n.disc, alt: '', width: 240, height: 240 }),
-      h('div', { class: 'net__name', text: n.name }), h('div', { class: 'net__for' }, icon('users', 18), h('span', { text: NET_ABOUT[code][0] })), h('p', { class: 'net__desc', text: NET_ABOUT[code][1] }),
-      h('div', { class: 'net__pick' }));
+    const c = h('label', { class: 'net net--' + code.toLowerCase() }, input, h('img', { class: 'net__disc', src: n.disc, alt: '' }),
+      h('div', { class: 'net__text' }, h('div', { class: 'net__name', text: n.name }), h('div', { class: 'net__for' }, icon('users', 18), h('span', { text: NET_ABOUT[code][0] })), h('p', { class: 'net__desc', text: NET_ABOUT[code][1] }),
+      h('div', { class: 'net__pick' })));
     input.addEventListener('change', () => choose(code, true));
     return c;
   };
@@ -177,7 +177,7 @@ export async function render(root, params) {
   root.append(h('div', { class: 'public' },
     pubBar(complete ? null : h('a', { class: 'btn btn--quiet', href: '#/login', text: 'Sign in' })),
     h('main', { class: 'join' },
-      plain ? h('section', { class: 'welcome' }, h('div', { class: 'welcome__script', text: 'Welcome to' }), h('h1', { class: 'welcome__title', text: 'WODDI Digital Operating System (WDOS)' }),
+      plain ? h('section', { class: 'welcome' }, h('h1', { class: 'welcome__title' }, h('span', { text: 'Welcome to' }), h('span', { text: 'WODDI Digital Operating System (WDOS)' })),
         h('p', { class: 'welcome__sub' }, h('span', { text: 'Join a growing network of women across Africa and the diaspora committed to' }), h('b', { text: 'personal growth, leadership, service and lasting generational impact.' }))) : null,
       h(plain ? 'h2' : 'h1', { class: 'display' + (plain ? ' join__pick' : ''), text: complete ? 'One more step to join your network' : link ? `You have been invited by ${link.owner}` : leaderForm ? 'Join WODDI leadership consideration' : 'Choose the network you are joining' }),
       h('p', { class: 'lede' + (plain ? ' lede--c' : ''), text: link ? (link.position ? `To apply for the position of ${link.role} in ${link.place || 'your area'} (${link.network}). A referral records who invited you. Selection and appointment remain with WODDI Headquarters after registration, activation and assessment.` : `To join ${link.network} in ${link.place || 'your area'}.`)
