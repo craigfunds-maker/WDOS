@@ -73,7 +73,7 @@ route('GET', '/chapters/tree', function () {
   $col = $levels[$next]; $dia = is_diaspora((string) ($_GET['country'] ?? ''));
   $rowsOut = rows("SELECT $col k, COUNT(*) chapters, COALESCE(SUM(c.members),0) members, COALESCE(SUM(c.network='WGMN'),0) wgmn, COALESCE(SUM(c.network='WNNN'),0) wnnn,
                           COALESCE(SUM(c.status='full'),0) `full`, COALESCE(SUM(c.status='developing'),0) developing FROM chapters c WHERE $w GROUP BY $col ORDER BY members DESC, k LIMIT 300", $p);
-  foreach ($rowsOut as &$r) { $r['label'] = $next === 'country' ? country_name($r['k']) : ($r['k'] === '' ? 'Not stated' : $r['k']); $r['key'] = $r['k'] === '' ? '(none)' : $r['k']; foreach (['chapters', 'members', 'wgmn', 'wnnn', 'full', 'developing'] as $n) $r[$n] = (int) $r[$n]; unset($r['k']); } unset($r);
+  foreach ($rowsOut as &$r) { $r['label'] = $next === 'country' ? (country_name($r['k']) ?: 'Country not stated') : ($r['k'] === '' ? 'Not stated' : $r['k']); $r['key'] = $r['k'] === '' ? '(none)' : $r['k']; foreach (['chapters', 'members', 'wgmn', 'wnnn', 'full', 'developing'] as $n) $r[$n] = (int) $r[$n]; unset($r['k']); } unset($r);
   return ['level' => $next, 'rows' => $rowsOut, 'as_of' => now(), 'skipped' => $skipped, 'diaspora' => $dia];
 });
 route('POST', '/chapters', function () {
@@ -355,7 +355,7 @@ route('GET', '/reports/auto', function () {
   $rowsOut = [];
   foreach ($out as $key => $r) {
     if (!isset($r['members'])) continue;
-    $key = (string) $key; $label = $next === 'country' ? country_name($key) : ($next === 'chapter' ? ($key === '0' ? 'Waiting for a chapter' : ($names[$key]['name'] ?? 'Chapter ' . $key)) : ($key === '' ? 'Not stated' : $key));
+    $key = (string) $key; $label = $next === 'country' ? (country_name($key) ?: 'Country not stated') : ($next === 'chapter' ? ($key === '0' ? 'Waiting for a chapter' : ($names[$key]['name'] ?? 'Chapter ' . $key)) : ($key === '' ? 'Not stated' : $key));
     $rowsOut[] = ['key' => $next === 'chapter' ? (string) $key : ($key === '' ? '(none)' : (string) $key), 'label' => $label, 'chapter_status' => $next === 'chapter' && isset($names[$key]) ? CHAPTER_STATUS[$names[$key]['status']] ?? '' : '']
       + array_map(fn($f) => (int) ($r[$f] ?? 0), ['members' => 'members', 'pending' => 'pending', 'active_7d' => 'active_7d', 'activated' => 'activated', 'on_journey' => 'on_journey', 'referrals' => 'referrals', 'leaders' => 'leaders', 'attended' => 'attended', 'tasks_open' => 'tasks_open']);
   }
