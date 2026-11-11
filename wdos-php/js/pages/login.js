@@ -19,7 +19,8 @@ export async function render(root, params) {
     const btn = h('button', { class: 'btn btn--block', type: 'submit', text: 'Sign in' });
     const form = h('form', { style: 'display:grid;gap:14px', novalidate: true },
       h('label', { class: 'field', for: 'l-email' }, h('span', { text: 'Email address' }), email),
-      h('label', { class: 'field', for: 'l-pw' }, h('span', { style: 'display:flex;justify-content:space-between' }, 'Password', h('a', { href: '#', style: 'font-weight:500', onclick: (e) => { e.preventDefault(); card.replaceChildren(...forgotView(email.value)); }, text: 'Forgot password?' })), pw),
+      h('label', { class: 'field', for: 'l-pw' }, h('span', { text: 'Password' }), pw),
+      h('div', { class: 'forgot' }, h('a', { href: '#', onclick: (e) => { e.preventDefault(); card.replaceChildren(...forgotView(email.value)); }, text: 'Forgot password?' })),
       err, btn);
     form.addEventListener('submit', async (e) => {
       e.preventDefault(); err.textContent = ''; btn.disabled = true; btn.textContent = 'Signing in…';
