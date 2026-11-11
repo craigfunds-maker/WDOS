@@ -376,3 +376,6 @@ html{-webkit-tap-highlight-color:transparent} body{overscroll-behavior-y:none}
 .bubble.is-hq:not(.is-mine){border-left:3px solid var(--s-wgmn)} .list__link.is-unread b{font-weight:800}
 @media(max-width:600px){.list--stack .list__link{flex-wrap:wrap;row-gap:8px} .list--stack .list__link .grow{flex:1 1 60%;min-width:0} .list--stack .list__link .tagrow{flex:1 1 100%;max-width:none;justify-content:flex-start;padding-inline-start:52px}}
 .forgot{display:flex;justify-content:flex-end;margin-top:-6px} .forgot a{font-size:14px;font-weight:600;color:var(--accent);text-decoration:none;padding:4px 0} .forgot a:hover{text-decoration:underline} form>.err:empty{display:none}
+.hero__id{display:grid;gap:10px;justify-items:start;flex:none} .hero__id .hero__disc{width:58px;height:58px;box-shadow:0 2px 8px rgba(0,0,0,.14)}
+.hero__map{margin:0;flex:0 1 300px;min-width:200px} .hero__map .gmc__art{min-height:0} .hero__map .gmc__svg{max-height:190px} .hero__map .gm__svg{max-height:190px}
+@media(max-width:760px){.hero__map{flex:1 1 100%;order:5} .hero__map .gmc__svg{max-height:220px} .hero__id{grid-auto-flow:column;align-items:center}}

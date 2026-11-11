@@ -89,6 +89,14 @@ export function africaMap(highlight) {
 
 /** The member's own country, for the dashboard: its shape, with what a Good Mother is called in its major languages written inside it. */
 export function goodMotherCard(code, countryName) {
+  const g = GOOD_MOTHER[code]; const name = countryName || nameOf(code); const art = goodMotherArt(code, countryName);
+  return h('section', { class: 'card gmc' + (g ? '' : ' gmc--africa') }, art,
+    h('div', { class: 'gmc__text' }, h('span', { class: 'gmc__kicker', text: 'WODDI Good Mother Network' }), h('h2', { class: 'display', text: g ? `A Good Mother in ${name}` : 'A Good Mother across Africa' }),
+      h('p', { class: 'muted', text: g ? `What a Good Mother is called in the major languages of ${name}.` : PLAQUE })));
+}
+
+/** Only the picture: the country's shape with the Good Mother names inside it. Used in the leader dashboard header. */
+export function goodMotherArt(code, countryName) {
   const g = GOOD_MOTHER[code]; const name = countryName || nameOf(code);
   const art = h('div', { class: 'gmc__art' });
   loadShapes().then((M) => {
@@ -106,7 +114,5 @@ export function goodMotherCard(code, countryName) {
       t.append(s('tspan', { 'font-size': (fs * 0.56).toFixed(2), 'font-weight': 600, fill: '#1F3A0C', dx: (fs * 0.35).toFixed(2) }, l)); svg.append(t); });
     art.replaceChildren(svg);
   }).catch(() => { if (g) art.replaceChildren(h('div', { class: 'gmc__list' }, g[1].map(([p, l]) => h('div', { class: 'gmc__ph' }, h('b', { text: p }), h('small', { text: l }))))); });
-  return h('section', { class: 'card gmc' + (g ? '' : ' gmc--africa') }, art,
-    h('div', { class: 'gmc__text' }, h('span', { class: 'gmc__kicker', text: 'WODDI Good Mother Network' }), h('h2', { class: 'display', text: g ? `A Good Mother in ${name}` : 'A Good Mother across Africa' }),
-      h('p', { class: 'muted', text: g ? `What a Good Mother is called in the major languages of ${name}.` : PLAQUE })));
+  return art;
 }
