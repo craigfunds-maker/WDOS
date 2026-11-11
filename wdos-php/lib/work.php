@@ -128,7 +128,7 @@ function meeting_get(int $id): array { $m = row('SELECT m.*, h.first_name h_firs
 function meeting_shape(array $m): array {
   return ['id' => (int) $m['id'], 'title' => $m['title'], 'mode' => $m['mode'], 'location' => $m['location'], 'starts_at' => $m['starts_at'], 'ends_at' => $m['ends_at'], 'agenda' => (string) $m['agenda'],
     'host' => trim($m['h_first'] . ' ' . $m['h_last']), 'host_id' => (int) $m['host_id'], 'audience' => $m['audience'], 'network' => $m['network'], 'scope_label' => $m['scope_label'],
-    'status' => $m['status'], 'minutes' => (string) $m['minutes'], 'is_link' => (bool) preg_match('#^https://#i', $m['location'])];
+    'status' => $m['status'], 'minutes' => (string) $m['minutes'], 'link' => preg_match('#https?://\S+#i', $m['location'], $lk) ? rtrim($lk[0], '.,)') : '', 'is_link' => (bool) preg_match('#^https?://\S+$#i', trim($m['location']))];
 }
 function meeting_audiences(array $u): array {
   if (is_hq($u)) return ['leaders:ALL' => 'All volunteer leaders, both networks', 'leaders:WGMN' => 'WGMN leadership', 'leaders:WNNN' => 'WNNN leadership', 'hq_team:ALL' => 'WODDI HQ team'];
@@ -158,10 +158,21 @@ route('POST', '/meetings', function () {
      $seat ? $seat['position_level'] : '', $seat ? (string) $seat['area_label'] : '', $seat ? seat_title($seat) : $aud[$pick], 'scheduled', now()]);
   $m = meeting_get($mid); [$w, $p] = meeting_invited_sql($m);
   $join = $audience === 'members' ? "u.id IN (SELECT u.id FROM (SELECT u.id FROM users u JOIN org_units ou ON ou.id=u.org_unit_id WHERE $w) u)" : $w;
-  $n = notify_many("u.id<>? AND $join", array_merge([(int) $u['id']], $p), 'meeting', 'Meeting: ' . mb_substr($title, 0, 120), 'Called by ' . work_name($u) . ' for ' . gmdate('j M Y, H:i', $s) . ' GMT. Open WDOS for the agenda and the ' . ($mode === 'in_person' ? 'address' : 'link') . '.', '#/meetings/' . $mid);
+  $n = notify_many("u.id<>? AND $join", array_merge([(int) $u['id']], $p), 'meeting', 'Meeting: ' . mb_substr($title, 0, 120), 'Called by ' . work_name($u) . ' for ' . gmdate('j M Y, H:i', $s) . ' GMT. Tap to open the agenda and the ' . ($mode === 'in_person' ? 'address' : 'meeting link') . '.', '#/meetings/' . $mid);
+  // e-mail to everyone invited, with the link or address in it (queued, then sent a few at a time)
+  $mailed = 0;
+  if (mail_configured()) {
+    $when = gmdate('l j F Y, H:i', $s) . ' to ' . gmdate('H:i', $e) . ' GMT'; $link = preg_match('#https://\S+#i', $loc, $lm) ? rtrim($lm[0], '.,)') : '';
+    $html = '<p><b>' . htmlspecialchars(work_name($u)) . '</b> has called a meeting.</p><table cellpadding="6" style="border-collapse:collapse;font-size:15px"><tr><td style="color:#7a6a72">Meeting</td><td><b>' . htmlspecialchars($title) . '</b></td></tr><tr><td style="color:#7a6a72">When</td><td>' . $when . '</td></tr><tr><td style="color:#7a6a72">Format</td><td>' . MEETING_MODES[$mode] . '</td></tr><tr><td style="color:#7a6a72">' . ($link ? 'Link' : 'Where') . '</td><td>'
+      . ($link ? '<a href="' . htmlspecialchars($link) . '">' . htmlspecialchars($link) . '</a>' . (trim(str_replace($lm[0], '', $loc)) !== '' ? '<br>' . htmlspecialchars(trim(str_replace($lm[0], '', $loc))) : '') : htmlspecialchars($loc)) . '</td></tr></table>'
+      . (trim(str_in('agenda', 6000)) !== '' ? '<p style="margin-top:14px"><b>Agenda</b></p><p style="white-space:pre-wrap">' . nl2br(htmlspecialchars(mb_substr(str_in('agenda', 6000), 0, 2000))) . '</p>' : '');
+    foreach (rows("SELECT u.email, u.first_name FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND u.email<>'' AND (u.id=? OR ($w)) LIMIT 800", array_merge([(int) $u['id']], $p)) as $r) {
+      if (mail_queue($r['email'], $r['first_name'], 'Meeting: ' . mb_substr($title, 0, 150), mail_wrap('Dear ' . $r['first_name'] . ',', $html, $link ? 'Join the meeting' : 'Open in WDOS', $link ?: app_url() . '/#/meetings/' . $mid))) $mailed++;
+    }
+  }
   log_activity((int) $u['id'], null, 'meeting_scheduled', $title);
-  after_response(fn() => push_drain(80));
-  return ['ok' => true, 'id' => $mid, 'invited' => $n];
+  after_response(fn() => push_drain(80)); after_response(fn() => mail_drain(15));
+  return ['ok' => true, 'id' => $mid, 'invited' => $n, 'emails' => $mailed, 'mail_on' => mail_configured()];
 });
 route('GET', '/meetings/(\d+)', function ($id) {
   $u = require_user(); $m = meeting_get((int) $id);

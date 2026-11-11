@@ -7,7 +7,7 @@ export const app = { user: null, config: { google: false, push: false, vapid: ''
 const root = document.getElementById('app');
 const store = { get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } } };
 
-const KIND_ICON = { task: 'tasks', meeting: 'calendar', activation: 'route', welcome: 'award', registration: 'user', announcement: 'megaphone', appointment: 'award', account: 'shield', birthday: 'cake', reminder: 'clock', digest: 'chart', inspiration: 'spark', report: 'chart' };
+const KIND_ICON = { message: 'send', task: 'tasks', meeting: 'calendar', activation: 'route', welcome: 'award', registration: 'user', announcement: 'megaphone', appointment: 'award', account: 'shield', birthday: 'cake', reminder: 'clock', digest: 'chart', inspiration: 'spark', report: 'chart' };
 export const kindIcon = (k) => KIND_ICON[k] || 'bell';
 
 /* ---------------------------------------------------------------- routes -- */
@@ -16,7 +16,7 @@ const pages = {
   hq: () => import('./pages/hq.js'), members: () => import('./pages/members.js'), announcements: () => import('./pages/announcements.js'),
   leader: () => import('./pages/leader.js'), home: () => import('./pages/home.js'),
   reporting: () => import('./pages/reporting.js'), tasks: () => import('./pages/tasks.js'), meetings: () => import('./pages/meetings.js'), structure: () => import('./pages/structure.js'),
-  onboarding: () => import('./pages/onboarding.js'), referrals: () => import('./pages/referrals.js'), activation: () => import('./pages/activation.js'), inspiration: () => import('./pages/inspiration.js'),
+  onboarding: () => import('./pages/onboarding.js'), referrals: () => import('./pages/referrals.js'), activation: () => import('./pages/activation.js'), inspiration: () => import('./pages/inspiration.js'), messages: () => import('./pages/messages.js'), library: () => import('./pages/library.js'),
   notifications: () => import('./pages/notifications.js'), settings: () => import('./pages/settings.js'),
 };
 function resolve(path) {
@@ -38,6 +38,8 @@ function resolve(path) {
     case 'announcements': return sh('announcements', 'Announcements', { id: seg[1] });
     case 'reporting': return (u.is_hq || u.is_leader) ? sh('reporting', 'Reporting and accountability', { tab: seg[1], id: seg[2] }) : sh('home', 'Home');
     case 'inspiration': return u.is_hq ? sh('inspiration', 'Inspiration messages', { tab: seg[1] }) : sh(u.is_leader ? 'leader' : 'home', u.is_leader ? 'Leadership dashboard' : 'Home');
+    case 'messages': return sh('messages', u.is_hq ? 'Messages' : 'Messages with HQ', { tab: seg[1], id: seg[2] });
+    case 'library': return sh('library', 'Document library');
     case 'tasks': return sh('tasks', 'Tasks', { tab: seg[1] });
     case 'meetings': return sh('meetings', 'Meetings', { tab: seg[1] });
     case 'structure': return (u.is_hq || u.is_leader) ? sh('structure', 'Leadership structure') : sh('home', 'Home');
@@ -80,7 +82,7 @@ export function signedIn(user) { app.user = user; shellEls = null; startPulse();
 
 /* ----------------------------------------------------------------- shell -- */
 function navItems() {
-  const u = app.user; const comm = [['Communication'], ['#/announcements', 'megaphone', 'Announcements'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
+  const u = app.user; const comm = [['Communication'], ['#/messages', 'send', u.is_hq ? 'Messages' : 'Messages with HQ'], ['#/announcements', 'megaphone', 'Announcements'], ['#/library', 'book', 'Document library'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
   if (u.is_hq) return [['Overview'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/leaders', 'eye', 'Leader dashboards'], ['#/structure', 'tree', 'Leadership structure'], ['#/referrals', 'route', 'Referral and activation'], ['Work'], ['#/reporting', 'chart', 'Reporting'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ['Communication'], ['#/inspiration', 'award', 'Inspiration messages'], ...comm.slice(1)];
   if (u.is_leader) return [['My leadership'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'My members'], ['#/structure', 'tree', 'Leadership structure'], ['#/referrals', 'route', 'Referral links'], ['#/onboarding', 'book', 'Onboarding'], ['Work'], ['#/reporting', 'chart', 'Reporting'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ...comm];
   return [['My network'], ['#/', 'grid', 'Home'], u.todo && u.todo.activation ? ['#/activation', 'route', 'My Activation'] : null, ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ...comm].filter(Boolean);
@@ -116,7 +118,7 @@ function buildShell() {
   /* On a phone the main destinations sit in a bar at the bottom, as in a native app. "More" opens the full menu. */
   const tabs = u.is_hq ? [['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/reporting', 'chart', 'Reporting'], ['#/notifications', 'bell', 'Alerts']]
     : u.is_leader ? [['#/', 'grid', 'Dashboard'], ['#/tasks', 'tasks', 'Tasks'], ['#/reporting', 'chart', 'Reporting'], ['#/notifications', 'bell', 'Alerts']]
-    : [['#/', 'grid', 'Home'], ['#/tasks', 'tasks', 'Tasks'], ['#/announcements', 'megaphone', 'News'], ['#/notifications', 'bell', 'Alerts']];
+    : [['#/', 'grid', 'Home'], ['#/messages', 'send', 'Messages'], ['#/announcements', 'megaphone', 'News'], ['#/notifications', 'bell', 'Alerts']];
   const tabbar = h('nav', { class: 'tabbar', 'aria-label': 'Quick menu' }, tabs.map((it) => h('a', { href: it[0] }, h('span', { class: 'tabbar__ico' }, icon(it[1], 22), it[0] === '#/notifications' ? h('i', { class: 'tabbar__n', hidden: true, 'data-unread': '' }) : null), h('span', { text: it[2] }))),
     h('button', { type: 'button', 'aria-controls': 'side', onclick: () => shell.classList.add('nav-open') }, h('span', { class: 'tabbar__ico' }, icon('menu', 22)), h('span', { text: 'More' })));
   shell.append(side, h('div', { class: 'scrim', onclick: () => shell.classList.remove('nav-open') }), main, tabbar);

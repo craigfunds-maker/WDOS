@@ -200,3 +200,10 @@ export function langPills(onPick) {
     b.type = 'button'; b.className = 'lpill' + (on ? ' is-on' : ''); b.setAttribute('aria-pressed', String(on)); b.lang = code; if (on) b.append(icon('globe', 18)); b.append(document.createTextNode(LANGS[code]));
     b.addEventListener('click', () => { if (!on) onPick(code); }); return b; }), more);
 }
+/* Text with any web address in it turned into a link that can be tapped. */
+export function linkify(text) {
+  const out = []; const re = /(https?:\/\/[^\s<]+[^\s<.,;:!?)\]'"])/g; let last = 0, m; const str = String(text || '');
+  while ((m = re.exec(str))) { if (m.index > last) out.push(document.createTextNode(str.slice(last, m.index))); const a = document.createElement('a'); a.href = m[1]; a.target = '_blank'; a.rel = 'noopener'; a.textContent = m[1]; a.className = 'tlink'; out.push(a); last = m.index + m[1].length; }
+  if (last < str.length) out.push(document.createTextNode(str.slice(last)));
+  return out;
+}

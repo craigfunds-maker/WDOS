@@ -1,5 +1,5 @@
 /* Meetings: schedule, attendance, minutes, and the actions that become tasks. Wording follows the current WDOS. */
-import { h, icon, avatar, card, sk, empty, fmt, toast, input, field, tabs, netTag } from '../ui.js';
+import { h, icon, avatar, card, sk, empty, fmt, toast, input, field, tabs, netTag, linkify } from '../ui.js';
 import { api } from '../api.js';
 import { taskRow, peoplePicker } from './tasks.js';
 
@@ -17,8 +17,8 @@ export async function render(root, params) {
   async function load() {
     let r; try { r = await api('/meetings?scope=' + (scope || 'upcoming')); } catch (e) { list.replaceChildren(empty('x', 'Meetings did not load', e.message)); return; }
     tools.replaceChildren(r.can_schedule ? h('button', { class: 'btn', type: 'button', onclick: () => { if (formSlot.firstChild) formSlot.replaceChildren(); else formSlot.replaceChildren(newForm(r, () => { formSlot.replaceChildren(); load(); })); } }, icon('plus', 18), 'Schedule a meeting') : '');
-    list.replaceChildren(r.items.length ? h('div', { class: 'list reveal' }, r.items.map((m) => h('a', { class: 'list__link', href: '#/meetings/' + m.id }, h('div', { class: 'nrow__ico' }, icon('calendar', 18)),
-      h('div', { class: 'grow' }, h('b', { text: m.title }), h('small', { text: `${fmtWhen(m.starts_at, m.ends_at)} · hosted by ${m.host}` })), h('div', { class: 'tagrow' }, h('span', { class: 'tag', text: MODES[m.mode] }), mTag(m.status)))))
+    list.replaceChildren(r.items.length ? h('div', { class: 'list list--stack reveal' }, r.items.map((m) => h('a', { class: 'list__link', href: '#/meetings/' + m.id }, h('div', { class: 'nrow__ico' }, icon('calendar', 18)),
+      h('div', { class: 'grow' }, h('b', { text: m.title }), h('small', { text: `${fmtWhen(m.starts_at, m.ends_at)} · hosted by ${m.host}` })), h('div', { class: 'tagrow' }, m.link && m.status === 'scheduled' ? h('span', { class: 'btn btn--quiet btn--s', role: 'link', onclick: (e) => { e.preventDefault(); e.stopPropagation(); window.open(m.link, '_blank', 'noopener'); } }, 'Join') : null, h('span', { class: 'tag', text: MODES[m.mode] }), mTag(m.status)))))
       : empty('calendar', 'No meetings here', r.can_schedule ? 'Schedule a meeting and everyone invited is notified in the app and on their phones.' : 'Meetings for your unit will appear here once scheduled.'));
   }
   load();
@@ -31,7 +31,7 @@ function newForm(r, done) {
   const agenda = h('textarea', { class: 'input', rows: 4 }); const err = h('p', { class: 'err', role: 'alert' });
   const save = h('button', { class: 'btn', type: 'button', onclick: async () => { err.textContent = ''; save.disabled = true;
     try { const iso = (v) => v ? new Date(v).toISOString() : ''; const x = await api('/meetings', { title: title.value, mode: mode.value, location: loc.value, starts_at: iso(start.value), ends_at: iso(end.value), audience: aud.value, agenda: agenda.value });
-      toast('Meeting scheduled', `${fmt(x.invited)} people notified.`, 'ok'); done(); } catch (e) { err.textContent = e.message; save.disabled = false; } } }, 'Schedule');
+      toast('Meeting scheduled', `${fmt(x.invited)} people notified in the app and by push.` + (x.mail_on ? ` ${fmt(x.emails)} emails are being sent.` : ' Emails are not set up on the server yet.'), 'ok'); done(); } catch (e) { err.textContent = e.message; save.disabled = false; } } }, 'Schedule');
   return card('Schedule a meeting', 'Times are in your own time zone. Each person invited sees the meeting in their own.', h('div', { style: 'display:grid;gap:14px' }, field('Meeting title', title), h('div', { class: 'grid2' }, field('Starts', start), field('Ends', end), field('Format', mode), field('Who is invited?', aud)),
     h('label', { class: 'field' }, h('span', { text: 'Location or link' }), loc, locHint), field('Agenda (optional)', agenda), err, h('div', {}, save)));
 }
@@ -42,10 +42,10 @@ async function detail(root, id) {
     const m = d.meeting; const parts = [];
     parts.push(h('section', { class: 'card' }, h('div', { class: 'card__body', style: 'display:grid;gap:14px' }, h('div', { class: 'tagrow' }, mTag(m.status), h('span', { class: 'tag', text: MODES[m.mode] }), m.network !== 'ALL' ? netTag(m.network) : null),
       h('h2', { class: 'display', style: 'font-size:26px;margin:0', text: m.title }),
-      h('dl', { class: 'dl' }, [['When', fmtWhen(m.starts_at, m.ends_at)], ['Hosted by', m.host], ['For', m.scope_label], ['Where', m.is_link ? null : m.location]].filter((x) => x[1]).flatMap(([k, v]) => [h('dt', { text: k }), h('dd', { text: v })])),
-      m.is_link && m.status === 'scheduled' ? h('div', {}, h('a', { class: 'btn', href: m.location, target: '_blank', rel: 'noopener' }, 'Join meeting')) : null,
-      m.agenda ? h('div', {}, h('b', { text: 'Agenda' }), h('p', { style: 'white-space:pre-wrap;margin:6px 0 0', text: m.agenda })) : null,
-      m.minutes ? h('div', {}, h('b', { text: 'Minutes' }), h('p', { style: 'white-space:pre-wrap;margin:6px 0 0', text: m.minutes })) : null,
+      h('dl', { class: 'dl' }, [['When', fmtWhen(m.starts_at, m.ends_at)], ['Hosted by', m.host], ['For', m.scope_label], [m.link ? 'Meeting link' : 'Where', m.location]].filter((x) => x[1]).flatMap(([k, v]) => [h('dt', { text: k }), h('dd', {}, k === 'Hosted by' || k === 'When' || k === 'For' ? v : linkify(v))])),
+      m.link && m.status === 'scheduled' ? h('div', {}, h('a', { class: 'btn', href: m.link, target: '_blank', rel: 'noopener' }, icon('link', 18), 'Join meeting')) : null,
+      m.agenda ? h('div', {}, h('b', { text: 'Agenda' }), h('p', { style: 'white-space:pre-wrap;margin:6px 0 0' }, linkify(m.agenda))) : null,
+      m.minutes ? h('div', {}, h('b', { text: 'Minutes' }), h('p', { style: 'white-space:pre-wrap;margin:6px 0 0' }, linkify(m.minutes))) : null,
       d.my_mark ? h('p', { class: 'muted', text: 'Your attendance: ' + (d.my_mark === 'present' ? 'Present' : 'Absent') }) : null)));
     if (d.tasks.length) parts.push(card('Actions from this meeting', 'Each action is a task with its own owner and status.', h('div', { class: 'list' }, d.tasks.map((t) => taskRow(t)))));
     if (d.host && m.status !== 'cancelled') {

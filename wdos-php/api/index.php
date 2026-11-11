@@ -252,6 +252,14 @@ route('POST', '/hq/members/(\d+)/photo', function ($id) {
   photo_from_upload((int) $id); log_activity((int) $me['id'], (int) $id, 'photo_set', '');
   return ['ok' => true, 'v' => time()];
 });
+if ($METHOD === 'GET' && preg_match('#^/library/(\d+)/file$#', $PATH, $m)) {
+  $u = require_user(); require_once __DIR__ . '/../lib/work_fns.php';
+  $it = row('SELECT * FROM library_items WHERE id=?', [(int) $m[1]]);
+  $can = $it && $it['bytes'] !== null && (is_hq($u) || ((int) $it['archived'] === 0 && ($it['audience'] === 'all' || ($it['audience'] === 'leaders' && current_seat((int) $u['id'])))));
+  if (!$can) { http_response_code(404); exit; }
+  header('Content-Type: ' . $it['mime']); header('X-Content-Type-Options: nosniff'); header('Content-Disposition: ' . (in_array($it['mime'], ['application/pdf', 'image/jpeg', 'image/png'], true) ? 'inline' : 'attachment') . '; filename="' . str_replace('"', '', $it['file_name'] ?: 'document') . '"');
+  header('Cache-Control: private, max-age=3600'); echo $it['bytes']; exit;
+}
 if ($METHOD === 'GET' && $PATH === '/inspiration/photo') {
   require_user();
   $p = row('SELECT mime, bytes FROM message_photos WHERE image_key=?', [(string) ($_GET['k'] ?? '')]);
@@ -275,7 +283,7 @@ route('GET', '/notifications', function () {
 /* The bell polls this: one cheap indexed read. */
 route('GET', '/notifications/pulse', function () {
   $u = require_user(); $after = (int) ($_GET['after'] ?? 0);
-  after_response('automations_tick'); after_response(fn() => insp_photos_tick());
+  after_response('automations_tick'); after_response(fn() => insp_photos_tick()); after_response(fn() => mail_drain(8));
   return ['unread' => (int) val('SELECT COUNT(*) FROM notifications WHERE user_id=? AND read_at IS NULL', [(int) $u['id']]),
     'fresh' => $after ? rows('SELECT id, kind, title, body, url, created_at FROM notifications WHERE user_id=? AND id>? ORDER BY id DESC LIMIT 5', [(int) $u['id'], $after]) : [],
     'latest' => (int) (val('SELECT MAX(id) FROM notifications WHERE user_id=?', [(int) $u['id']]) ?? 0)];
@@ -348,5 +356,6 @@ require __DIR__ . '/../lib/reporting.php';
 require __DIR__ . '/../lib/work.php';
 require __DIR__ . '/../lib/structure.php';
 require __DIR__ . '/../lib/journey.php';
+require __DIR__ . '/../lib/comms.php';
 
 fail(404, 'No such WDOS endpoint.', 'not_found');

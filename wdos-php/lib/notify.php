@@ -9,6 +9,7 @@ const NOTIFY_KINDS = [
   'announcement' => 'Announcements from HQ',
   'inspiration'  => 'Weekly and monthly inspiration (leaders)',
   'report'       => 'Reports, reviews and issues',
+  'message'      => 'Messages with WODDI HQ',
   'task'         => 'Tasks',
   'meeting'      => 'Meetings',
   'activation'   => 'Referrals and activation',
@@ -122,3 +123,29 @@ function run_automations(): array {
   if ($r !== null) $done['cleanup'] = $r;
   return $done;
 }
+
+/* ---- e-mail queue: mail is written here and sent a few at a time after replies, so no page waits for it ---- */
+function mail_wrap(string $heading, string $bodyHtml, string $buttonText = '', string $buttonUrl = ''): string {
+  $btn = $buttonText !== '' ? '<p style="margin:24px 0"><a href="' . htmlspecialchars($buttonUrl) . '" style="background:#D4006A;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:bold;display:inline-block">' . htmlspecialchars($buttonText) . '</a></p>' : '';
+  return '<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#231019"><div style="border-top:6px solid #D4006A;border-bottom:3px solid #7CB518;padding:22px 4px"><h2 style="margin:0 0 14px;font-size:20px">' . htmlspecialchars($heading) . '</h2>' . $bodyHtml . $btn
+    . '<p style="color:#7a6a72;font-size:12.5px;margin-top:26px">WODDI Digital Operating System. You receive this because you hold a WDOS account.</p></div></div>';
+}
+function mail_queue(string $to, string $name, string $subject, string $html): bool {
+  if (!mail_configured() || !filter_var($to, FILTER_VALIDATE_EMAIL) || preg_match('/\.(invalid|test|example|local)$/i', $to)) return false;
+  q('INSERT INTO mail_outbox (to_email,to_name,subject,html,created_at) VALUES (?,?,?,?,?)', [$to, mb_substr($name, 0, 160), mb_substr($subject, 0, 190), $html, now()]);
+  return true;
+}
+function mail_drain(int $limit = 12): array {
+  $sent = 0; $failed = 0;
+  try {
+    if (!mail_configured()) return ['sent' => 0, 'failed' => 0, 'configured' => false];
+    foreach (rows("SELECT * FROM mail_outbox WHERE status='queued' ORDER BY id LIMIT " . max(1, min(40, $limit))) as $m) {
+      if (q("UPDATE mail_outbox SET status='sending', attempts=attempts+1 WHERE id=? AND status='queued'", [(int) $m['id']])->rowCount() === 0) continue;
+      if (send_mail($m['to_email'], $m['to_name'], $m['subject'], $m['html'])) { q("UPDATE mail_outbox SET status='sent', sent_at=?, html='' WHERE id=?", [now(), (int) $m['id']]); $sent++; }
+      else { q('UPDATE mail_outbox SET status=? WHERE id=?', [(int) $m['attempts'] + 1 < 3 ? 'queued' : 'failed', (int) $m['id']]); $failed++; if ($failed >= 3) break; }
+    }
+  } catch (PDOException $e) { /* table arrives with the next migration run */ }
+  return ['sent' => $sent, 'failed' => $failed, 'configured' => true];
+}
+function app_url(): string { return rtrim((string) cfg('APP_URL', 'https://' . ($_SERVER['HTTP_HOST'] ?? 'wdos.onrender.com')), '/'); }
+
