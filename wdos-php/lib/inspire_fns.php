@@ -27,6 +27,38 @@ function insp_photo(string $key): string {
   if ($have === null) { $have = []; try { foreach (rows('SELECT image_key, updated_at FROM message_photos') as $r) $have[$r['image_key']] = strtotime($r['updated_at']); } catch (PDOException $e) { /* table arrives with the next migration run */ } }
   return isset($have[$key]) ? '/api/inspiration/photo?k=' . rawurlencode($key) . '&v=' . $have[$key] : '';
 }
+/** Fetch one photograph from Pexels, cropped wide for the card, and keep it. Returns '' or the reason it failed. */
+function insp_photo_fetch(string $key, int $pexelsId, string $photographer = '', string $alt = ''): string {
+  if ($pexelsId < 1) return 'no photograph number';
+  $ch = curl_init("https://images.pexels.com/photos/$pexelsId/pexels-photo-$pexelsId.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=1280&h=640");
+  curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_FOLLOWLOCATION => false, CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; WDOS/1.0; +https://thewoddi.org)']);
+  $bin = curl_exec($ch); $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+  $info = $bin ? @getimagesizefromstring($bin) : false;
+  if ($code !== 200 || !$info || !in_array($info['mime'], ['image/jpeg', 'image/png', 'image/webp'], true)) return "Pexels answered $code";
+  if (strlen($bin) > 1500000) return 'photograph too large';
+  q('DELETE FROM message_photos WHERE image_key=?', [$key]);
+  $st = db()->prepare('INSERT INTO message_photos (image_key,mime,bytes,pexels_id,photographer,page_url,alt,focus,updated_at) VALUES (?,?,?,?,?,?,?,?,?)');
+  $st->bindValue(1, $key); $st->bindValue(2, $info['mime']); $st->bindValue(3, $bin, PDO::PARAM_LOB); $st->bindValue(4, $pexelsId, PDO::PARAM_INT);
+  $st->bindValue(5, mb_substr($photographer, 0, 160)); $st->bindValue(6, "https://www.pexels.com/photo/$pexelsId/"); $st->bindValue(7, mb_substr($alt, 0, 300)); $st->bindValue(8, ''); $st->bindValue(9, now());
+  $st->execute();
+  return '';
+}
+/** The chosen photographs (lib/message_photos.json) load themselves: a few at a time, after a reply has been sent,
+ *  until every message has its photograph. Nothing to press, and a fresh database fills itself the same way. */
+function insp_photos_tick(int $max = 5): void {
+  try {
+    $map = json_decode((string) @file_get_contents(__DIR__ . '/message_photos.json'), true); if (!is_array($map) || !$map) return;
+    $have = array_flip(array_column(rows('SELECT image_key FROM message_photos'), 'image_key'));
+    $todo = array_diff_key($map, $have); if (!$todo) return;
+    $lock = val("SELECT v FROM app_settings WHERE k='msg_photos_lock'");
+    if ($lock && strtotime($lock . ' UTC') > time() - 45) return;
+    q("DELETE FROM app_settings WHERE k='msg_photos_lock'"); q("INSERT INTO app_settings (k,v) VALUES ('msg_photos_lock',?)", [now()]);
+    $n = 0; $errs = [];
+    foreach ($todo as $key => $id) { if ($n >= $max) break; $e = insp_photo_fetch((string) $key, (int) $id); if ($e !== '') $errs[] = "$key: $e"; $n++; }
+    if ($errs) { error_log('[wdos photos] ' . implode('; ', array_slice($errs, 0, 3))); q("UPDATE app_settings SET v=? WHERE k='msg_photos_lock'", [gmdate('Y-m-d H:i:s', time() + 600)]); }   // Pexels refused: wait ten minutes before trying again
+    else q("DELETE FROM app_settings WHERE k='msg_photos_lock'");
+  } catch (Throwable $e) { /* tables arrive with the next migration run, or another request holds the lock */ }
+}
 function insp_shape(array $m, array $u, string $label): array {
   return ['id' => (int) $m['id'], 'kind' => $m['kind'], 'seq' => (int) $m['seq'], 'network' => $m['network'], 'label' => $label, 'theme' => $m['theme'],
     'headline' => $m['headline'], 'key_thought' => $m['key_thought'], 'body' => (string) ($m['body'] ?? ''), 'image' => insp_photo($m['image']), 'first_name' => $u['first_name']];

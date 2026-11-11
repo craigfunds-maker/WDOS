@@ -39,7 +39,7 @@ if (str_starts_with($PATH, '/setup')) { require __DIR__ . '/../lib/setup.php'; e
 /* ----------------------------------------------------------------- misc -- */
 route('GET', '/health', fn() => ['ok' => true, 'build' => WDOS_BUILD, 'db' => (bool) val('SELECT 1'), 'time' => now()]);
 
-route('GET', '/config', function () { require_once __DIR__ . '/../lib/migrate.php'; ensure_migrated(); photos_seed_once(); return [
+route('GET', '/config', function () { require_once __DIR__ . '/../lib/migrate.php'; ensure_migrated(); photos_seed_once(); after_response(fn() => insp_photos_tick()); return [
   'build' => WDOS_BUILD,
   'google' => (bool) cfg('GOOGLE_CLIENT_ID') && (bool) cfg('GOOGLE_CLIENT_SECRET'),
   'push' => push_configured(), 'vapid' => cfg('VAPID_PUBLIC', ''),
@@ -275,7 +275,7 @@ route('GET', '/notifications', function () {
 /* The bell polls this: one cheap indexed read. */
 route('GET', '/notifications/pulse', function () {
   $u = require_user(); $after = (int) ($_GET['after'] ?? 0);
-  after_response('automations_tick');
+  after_response('automations_tick'); after_response(fn() => insp_photos_tick());
   return ['unread' => (int) val('SELECT COUNT(*) FROM notifications WHERE user_id=? AND read_at IS NULL', [(int) $u['id']]),
     'fresh' => $after ? rows('SELECT id, kind, title, body, url, created_at FROM notifications WHERE user_id=? AND id>? ORDER BY id DESC LIMIT 5', [(int) $u['id'], $after]) : [],
     'latest' => (int) (val('SELECT MAX(id) FROM notifications WHERE user_id=?', [(int) $u['id']]) ?? 0)];

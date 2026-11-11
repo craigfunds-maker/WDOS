@@ -34,19 +34,8 @@ route('POST', '/hq/inspiration/photos', function () {
     if (!isset($keys[$key])) $r['error'] = 'unknown message';
     elseif (($u['scheme'] ?? '') !== 'https' || ($u['host'] ?? '') !== 'images.pexels.com' || !preg_match('#^/photos/\d+/[A-Za-z0-9._-]+\.(jpe?g|png)$#i', (string) ($u['path'] ?? ''))) $r['error'] = 'not a Pexels photograph address';
     else {
-      $ch = curl_init('https://images.pexels.com' . $u['path'] . '?auto=compress&cs=tinysrgb&fit=crop&w=1280&h=640');
-      curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 25, CURLOPT_FOLLOWLOCATION => false, CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; WDOS/1.0; +https://thewoddi.org)']);
-      $bin = curl_exec($ch); $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
-      $info = $bin ? @getimagesizefromstring($bin) : false;
-      if ($code !== 200 || !$info || !in_array($info['mime'], ['image/jpeg', 'image/png', 'image/webp'], true)) $r['error'] = "Pexels answered $code";
-      elseif (strlen($bin) > 1500000) $r['error'] = 'photograph too large';
-      else {
-        q('DELETE FROM message_photos WHERE image_key=?', [$key]);
-        $st = db()->prepare('INSERT INTO message_photos (image_key,mime,bytes,pexels_id,photographer,page_url,alt,focus,updated_at) VALUES (?,?,?,?,?,?,?,?,?)');
-        $st->bindValue(1, $key); $st->bindValue(2, $info['mime']); $st->bindValue(3, $bin, PDO::PARAM_LOB); $st->bindValue(4, (int) ($it['pexels_id'] ?? 0), PDO::PARAM_INT);
-        $st->bindValue(5, mb_substr((string) ($it['photographer'] ?? ''), 0, 160)); $st->bindValue(6, mb_substr((string) ($it['page_url'] ?? ''), 0, 255)); $st->bindValue(7, mb_substr((string) ($it['alt'] ?? ''), 0, 300)); $st->bindValue(8, ''); $st->bindValue(9, now());
-        $st->execute(); $r = ['key' => $key, 'ok' => true, 'kb' => (int) round(strlen($bin) / 1024), 'size' => $info[0] . 'x' . $info[1]];
-      }
+      preg_match('#^/photos/(\d+)/#', (string) $u['path'], $pm); $e = insp_photo_fetch($key, (int) $pm[1], (string) ($it['photographer'] ?? ''), (string) ($it['alt'] ?? ''));
+      $r = $e === '' ? ['key' => $key, 'ok' => true] : ['key' => $key, 'ok' => false, 'error' => $e];
     }
     $res[] = $r;
   }
