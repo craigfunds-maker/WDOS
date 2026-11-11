@@ -16,17 +16,22 @@ const POLICY_DEFS = [
   'journey_extension_days' => ['Member journey: automatic extension in days', 'int', 0, 60],
   'journey_required_referrals' => ['Member journey: registered referrals needed', 'int', 0, 10],
   'wnnn_country_title' => ['WNNN country leader title in Africa', 'choice', ['Country Lead' => 'Country Lead (African structure document)', 'Country Representative' => 'Country Representative (diaspora document)']],
+  'recovery_by_leader' => ['Account recovery: a chapter leader may give a member a temporary PIN in person', 'choice', ['off' => 'Off. Recovery is by fingerprint, by email link, or by HQ', 'on' => 'On. Every use is logged and HQ is told']],
+  'community_blocked_words' => ['Community: words that hold a post for review (separate with commas)', 'text'],
+  'welcome_video_url' => ['Welcome screen: link to WODDI\'s own short video file (optional)', 'text'],
+  'welcome_audio_url' => ['Welcome screen: link to WODDI\'s own recorded audio file (optional)', 'text'],
+  'welcome_transcript' => ['Welcome screen: the words spoken in the video or audio', 'text'],
 ];
 const POLICY_FALLBACK = ['chapter_min_active' => '30', 'chapter_plan_next' => '40', 'chapter_capacity' => '50', 'chapter_auto_activate' => 'eligible', 'chapter_auto_create' => 'on',
-  'journey_days' => '7', 'journey_unlock' => 'daily', 'journey_extension_days' => '7', 'journey_required_referrals' => '0', 'wnnn_country_title' => 'Country Lead'];
+  'journey_days' => '7', 'journey_unlock' => 'daily', 'journey_extension_days' => '7', 'journey_required_referrals' => '0', 'wnnn_country_title' => 'Country Lead', 'recovery_by_leader' => 'off', 'community_blocked_words' => '', 'welcome_video_url' => '', 'welcome_audio_url' => '', 'welcome_transcript' => ''];
 /* The six items the amendments document lists as needing a recorded management choice. */
 const POLICY_DECISIONS = [
   ['wnnn_country_title', 'African WNNN country title', 'Country Lead (African structure document) or Country Representative (diaspora document). Both sources are kept; WDOS shows the one chosen here.'],
   ['chapter_auto_activate', 'What reaching 30 members does', 'Either the chapter becomes active by itself, or it is marked eligible and HQ activates it.'],
-  ['chapter_capacity', 'Whether 50 is the universal maximum', 'One capacity applies everywhere today. Capacity by geography is not built yet.'],
+  ['chapter_capacity', 'Whether 50 is the universal maximum', 'One capacity applies everywhere unless a country is given its own on this page. Both ways are built; management chooses.'],
   ['chapter_auto_create', 'Automatic chapter creation and catchment', 'Placement follows network, country, state, LGA or city, and community. Automatic splitting of a full chapter is not built: the next chapter is opened instead.'],
   ['', 'Exceptional security and safeguarding cases', 'Possible duplicate accounts are held in an exceptions list for HQ. They are never removed or sanctioned automatically.'],
-  ['', 'Account recovery without OTP', 'A member with an email address resets by email link. A member who signed up with a phone number only is reset by HQ today. A tested self-service route still needs a decision.'],
+  ['recovery_by_leader', 'Account recovery without OTP', 'Built: a member who signs in with her fingerprint or face can choose a new PIN herself; a member with email resets by link; HQ can reset anyone. Also built but switched off until approved: a chapter leader gives a temporary PIN in person.'],
 ];
 
 function policy(string $key): string {
@@ -39,6 +44,8 @@ function policy(string $key): string {
   return (string) ($cache[$key] ?? POLICY_FALLBACK[$key] ?? '');
 }
 function policy_int(string $key): int { return (int) policy($key); }
+/** Capacity of a chapter: the country's own figure when management has set one, otherwise the general figure. */
+function chapter_cap(?string $cc): int { $own = $cc ? (int) policy('chapter_capacity@' . $cc) : 0; return $own > 0 ? $own : policy_int('chapter_capacity'); }
 
 /* ---- geography ------------------------------------------------------------- */
 const AFRICA_CC = ['AO','BF','BI','BJ','BW','CD','CF','CG','CI','CM','CV','DJ','DZ','EG','EH','ER','ET','GA','GH','GM','GN','GQ','GW','KE','KM','LR','LS','LY','MA','MG','ML','MR','MU','MW','MZ','NA','NE','NG','RW','SC','SD','SL','SN','SO','SS','ST','SZ','TD','TG','TN','TZ','UG','ZA','ZM','ZW'];
@@ -52,7 +59,7 @@ const CHAPTER_OPEN = "('developing','eligible','active')";
 function chapter_refresh(int $id): void {
   $c = row('SELECT * FROM chapters WHERE id=?', [$id]); if (!$c || in_array($c['status'], ['merged', 'closed'], true)) return;
   $n = (int) val('SELECT COUNT(*) FROM chapter_members WHERE chapter_id=? AND ended_at IS NULL', [$id]);
-  $min = policy_int('chapter_min_active'); $cap = policy_int('chapter_capacity'); $activated = $c['activated_at'];
+  $min = policy_int('chapter_min_active'); $cap = chapter_cap($c['country_code']); $activated = $c['activated_at'];
   if ($n >= $min && !$activated && policy('chapter_auto_activate') === 'active') $activated = now();
   $status = $n >= $cap ? 'full' : ($n < $min ? 'developing' : ($activated ? 'active' : 'eligible'));
   if ($n >= $cap && !$activated) $activated = now();                       // a full chapter is by definition a working one
@@ -69,7 +76,7 @@ function chapter_create(string $net, string $cc, string $state, string $lga, str
 /** The first chapter of this catchment with room, lowest number first; a new one if the rules allow; otherwise 0. */
 function chapter_with_room(string $net, string $cc, string $state, string $lga, string $community, bool $lock = false): int {
   $id = (int) val('SELECT id FROM chapters WHERE network=? AND country_code=? AND state_region=? AND lga=? AND community=? AND status IN ' . CHAPTER_OPEN . ' AND members<? ORDER BY seq LIMIT 1' . ($lock ? ' FOR UPDATE' : ''),
-    [$net, $cc, $state, $lga, $community, policy_int('chapter_capacity')]);
+    [$net, $cc, $state, $lga, $community, chapter_cap($cc)]);
   if ($id) return $id;
   return policy('chapter_auto_create') === 'on' ? chapter_create($net, $cc, $state, $lga, $community, null) : 0;
 }
@@ -112,7 +119,7 @@ function chapter_move(int $userId, int $toId, string $reason, string $by, bool $
   if ($to['network'] !== $u['network']) fail(422, 'A ' . $u['network'] . ' member cannot be placed in a ' . $to['network'] . ' chapter.', 'network');
   if (in_array($to['status'], ['merged', 'closed'], true)) fail(422, 'That chapter is no longer open.', 'closed');
   if ((int) $u['chapter_id'] === $toId) return;
-  if (!$allowFull && (int) $to['members'] >= policy_int('chapter_capacity')) fail(422, 'That chapter is at capacity.', 'full');
+  if (!$allowFull && (int) $to['members'] >= chapter_cap($to['country_code'])) fail(422, 'That chapter is at capacity.', 'full');
   chapter_leave($userId, $reason);
   q('INSERT INTO chapter_members (chapter_id,user_id,network,placed_by,started_at) VALUES (?,?,?,?,?)', [$toId, $userId, $u['network'], $by, now()]);
   q('UPDATE users SET chapter_id=? WHERE id=?', [$toId, $userId]);
@@ -133,7 +140,7 @@ function chapter_replace_after_change(int $userId): void {
 }
 /** Place waiting members in bulk, a catchment at a time. Returns how many were placed. */
 function chapters_backfill(int $maxChapters = 40): int {
-  $placed = 0; $cap = policy_int('chapter_capacity');
+  $placed = 0;
   $groups = rows("SELECT network, country_code, state_region, lga, community, COUNT(*) n FROM users
                   WHERE status='active' AND chapter_id IS NULL AND network IS NOT NULL AND country_code IS NOT NULL AND participant_class='member' AND role NOT IN ('hq_admin','super_admin') AND (lga<>'' OR community<>'')
                   GROUP BY network, country_code, state_region, lga, community ORDER BY n DESC LIMIT 30");
@@ -141,7 +148,7 @@ function chapters_backfill(int $maxChapters = 40): int {
     $left = (int) $g['n'];
     while ($left > 0 && $maxChapters > 0) {
       $cid = chapter_with_room($g['network'], $g['country_code'], $g['state_region'], $g['lga'], $g['community']); if (!$cid) break;
-      $free = $cap - (int) val('SELECT members FROM chapters WHERE id=?', [$cid]); if ($free < 1) { chapter_refresh($cid); break; }
+      $free = chapter_cap($g['country_code']) - (int) val('SELECT members FROM chapters WHERE id=?', [$cid]); if ($free < 1) { chapter_refresh($cid); break; }
       $ids = array_map('intval', array_column(rows("SELECT id FROM users WHERE status='active' AND chapter_id IS NULL AND network=? AND country_code=? AND state_region=? AND lga=? AND community=? AND participant_class='member' AND role NOT IN ('hq_admin','super_admin') ORDER BY id LIMIT " . (int) $free,
         [$g['network'], $g['country_code'], $g['state_region'], $g['lga'], $g['community']]), 'id'));
       if (!$ids) break;
@@ -155,7 +162,7 @@ function chapters_backfill(int $maxChapters = 40): int {
   return $placed;
 }
 function chapter_shape(array $c): array {
-  $cap = policy_int('chapter_capacity'); $n = (int) $c['members'];
+  $cap = chapter_cap($c['country_code']); $n = (int) $c['members'];
   return ['id' => (int) $c['id'], 'code' => $c['code'], 'name' => $c['name'], 'network' => $c['network'], 'country_code' => $c['country_code'], 'country' => country_name($c['country_code']),
     'state_region' => $c['state_region'], 'lga' => $c['lga'], 'community' => $c['community'], 'zone' => $c['zone'], 'seq' => (int) $c['seq'], 'status' => $c['status'], 'status_label' => CHAPTER_STATUS[$c['status']] ?? $c['status'],
     'members' => $n, 'capacity' => $cap, 'minimum' => policy_int('chapter_min_active'), 'plan_next' => $n >= policy_int('chapter_plan_next') && $n < $cap, 'diaspora' => is_diaspora($c['country_code']), 'created_at' => $c['created_at'], 'activated_at' => $c['activated_at']];
@@ -305,6 +312,7 @@ function amend_automations(array &$done): void {
   try {
     $r = cron_once('member_journey', 'mj_daily'); if ($r !== null) $done['member_journey'] = $r;
     $n = chapters_backfill(25); if ($n) $done['chapter_placement'] = "$n placed";
+    $n = announcements_due(); if ($n) { $done['scheduled_announcements'] = "$n sent"; push_drain(60); }
   } catch (Throwable $e) { error_log('[wdos amend] ' . $e->getMessage()); }
 }
 /** Short facts about a person's chapter and journey for the app shell. Safe before the migration has run. */
@@ -314,7 +322,7 @@ function amend_brief(array $u): array {
     $j = row('SELECT status FROM member_journeys WHERE user_id=?', [(int) $u['id']]);
     return ['chapter' => $c ? ['id' => (int) $c['id'], 'name' => $c['name'], 'code' => $c['code'], 'status' => $c['status'], 'members' => (int) $c['members']] : null,
       'journey' => $j ? ['status' => $j['status'], 'done' => (int) val('SELECT COUNT(*) FROM member_journey_steps WHERE user_id=?', [(int) $u['id']]), 'total' => count(MJ_DAYS)] : null,
-      'lang' => $u['lang'] ?? 'en', 'diaspora' => is_diaspora($u['country_code'])];
+      'lang' => $u['lang'] ?? 'en', 'diaspora' => is_diaspora($u['country_code']), 'person_id' => sprintf('WDP-%07d', (int) $u['id']), 'ward' => $u['ward'] ?? ''];
   } catch (PDOException $e) { return ['chapter' => null, 'journey' => null, 'lang' => 'en', 'diaspora' => false]; }
 }
 
@@ -350,17 +358,85 @@ function audience_from_request(array $me): array {
   if ($a['lang'] !== '') { $w[] = 'u.lang=?'; $p[] = $a['lang']; }
   return [$a, implode(' AND ', $w), $p];
 }
+/** The audience of a stored announcement as SQL on users u. */
+function audience_where(array $a): array {
+  $w = ["u.status='active'"]; $p = [];
+  if ($a['audience_network'] !== 'ALL') { $w[] = 'u.network=?'; $p[] = $a['audience_network']; }
+  if ($a['audience_role'] === 'leaders') $w[] = 'EXISTS (SELECT 1 FROM seats s WHERE s.user_id=u.id AND s.ends_at IS NULL)';
+  if ($a['audience_country']) { $w[] = 'u.country_code=?'; $p[] = $a['audience_country']; }
+  foreach (['audience_state' => 'u.state_region', 'audience_lga' => 'u.lga', 'audience_community' => 'u.community', 'audience_lang' => 'u.lang'] as $k => $col) if ((string) $a[$k] !== '') { $w[] = "$col=?"; $p[] = $a[$k]; }
+  if ($a['audience_chapter']) { $w[] = 'u.chapter_id=?'; $p[] = (int) $a['audience_chapter']; }
+  return [implode(' AND ', $w), $p];
+}
+/** Send a stored announcement now: each member gets it in her own language when that version was written. */
+function announcement_deliver(int $id): int {
+  $a = row('SELECT * FROM announcements WHERE id=? AND sent_at IS NULL', [$id]); if (!$a) return 0;
+  if (q('UPDATE announcements SET sent_at=? WHERE id=? AND sent_at IS NULL', [now(), $id])->rowCount() === 0) return 0;      // another request sent it
+  [$w, $p] = audience_where($a); $texts = [];
+  foreach (rows('SELECT lang, title, body FROM announcement_texts WHERE announcement_id=?', [$id]) as $t) $texts[$t['lang']] = [$t['title'], mb_substr($t['body'], 0, 240)];
+  $n = notify_many($w, $p, 'announcement', $a['title'], mb_substr($a['body'], 0, 240), '#/announcements/' . $id, $texts);
+  q('UPDATE announcements SET recipients=? WHERE id=?', [$n, $id]);
+  return $n;
+}
 function announcement_send(array $me): array {
   $title = str_in('title', 160); $text = str_in('body', 4000);
   if (mb_strlen($title) < 3 || mb_strlen($text) < 3) fail(422, 'Write a title and a message.', 'empty');
-  [$a, $w, $p] = audience_from_request($me);
+  [$a] = audience_from_request($me);
   $tone = in_array(body()['tone'] ?? '', ['celebration', 'gratitude', 'courage', 'calm', 'growth', 'purpose'], true) ? body()['tone'] : '';
-  $id = ins('INSERT INTO announcements (author_id,title,body,audience_network,audience_role,audience_country,audience_state,audience_lga,audience_community,audience_chapter,audience_lang,tone,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
-    [(int) $me['id'], $title, $text, $a['network'], $a['role'], $a['country'], $a['state'], $a['lga'], $a['community'], $a['chapter'], $a['lang'], $tone, now()]);
-  $n = notify_many($w, $p, 'announcement', $title, mb_substr($text, 0, 240), '#/announcements/' . $id);
-  q('UPDATE announcements SET recipients=? WHERE id=?', [$n, $id]);
-  log_activity((int) $me['id'], null, 'announcement', $title);
+  $when = null; $raw = trim((string) (body()['scheduled_at'] ?? ''));
+  if ($raw !== '') { $ts = strtotime($raw); if (!$ts || $ts < time() - 60) fail(422, 'Choose a time in the future, or leave it empty to send now.', 'scheduled_at'); if ($ts > time() + 60) $when = gmdate('Y-m-d H:i:s', $ts); }
+  $id = ins('INSERT INTO announcements (author_id,title,body,audience_network,audience_role,audience_country,audience_state,audience_lga,audience_community,audience_chapter,audience_lang,tone,scheduled_at,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+    [(int) $me['id'], $title, $text, $a['network'], $a['role'], $a['country'], $a['state'], $a['lga'], $a['community'], $a['chapter'], $a['lang'], $tone, $when, now()]);
+  foreach ((array) (body()['texts'] ?? []) as $l => $t) {
+    if (!in_array($l, NOTE_LANGS, true) || !is_array($t)) continue; $lt = mb_substr(trim((string) ($t['title'] ?? '')), 0, 160); $lb = mb_substr(trim((string) ($t['body'] ?? '')), 0, 4000);
+    if ($lt !== '' && $lb !== '') q('INSERT INTO announcement_texts (announcement_id,lang,title,body) VALUES (?,?,?,?)', [$id, $l, $lt, $lb]);
+  }
+  log_activity((int) $me['id'], null, $when ? 'announcement_scheduled' : 'announcement', $title);
+  if ($when) return ['ok' => true, 'id' => $id, 'scheduled_at' => $when, 'recipients' => 0, 'push_queued' => 0];
+  $n = announcement_deliver($id);
   after_response(fn() => push_drain(60));
   // "sent" means WDOS queued it for each person. It does not mean it was read.
   return ['ok' => true, 'id' => $id, 'recipients' => $n, 'push_queued' => (int) val("SELECT COUNT(*) FROM push_outbox WHERE status='queued'")];
+}
+
+/* ---- community spaces: one for every level a member belongs to, plus topic circles and mentorship ------------------ */
+/** The level spaces this person belongs to, widest first. Each is network-specific, so the other network's members never appear. */
+function community_keys(array $u): array {
+  $n = (string) $u['network']; $cc = (string) $u['country_code']; if ($n === '' || $cc === '') return [];
+  $out = [['net:' . $n, $n . ' across Africa and the diaspora', 'Network'], ["cc:$n:$cc", country_name($cc), 'Country']];
+  $st = $u['state_region']; $lg = $u['lga']; $cm = $u['community'];
+  if ($st !== '') $out[] = ["st:$n:$cc:" . mb_strtolower($st), $st, 'State or region'];
+  if ($lg !== '') $out[] = ["lg:$n:$cc:" . mb_strtolower($st) . ':' . mb_strtolower($lg), $lg, is_diaspora($cc) ? 'City' : 'LGA or district'];
+  if ($cm !== '') $out[] = ["cm:$n:$cc:" . mb_strtolower($st) . ':' . mb_strtolower($lg) . ':' . mb_strtolower($cm), $cm, 'Community or cluster'];
+  return $out;
+}
+/** 'hq', 'leader' (may moderate), 'member' (may read and write), or ''. */
+function space_access(array $u, string $key): string {
+  if (is_hq($u)) return 'hq';
+  $mine = in_array($key, array_column(community_keys($u), 0), true);
+  if (!$mine && preg_match('/^sp:(\d+)$/', $key, $m)) $mine = (bool) val('SELECT 1 FROM space_members WHERE space_id=? AND user_id=?', [(int) $m[1], (int) $u['id']]);
+  if (!$mine) return '';
+  $seat = current_seat((int) $u['id']);
+  return $seat && empty($seat['he_for_she']) && $seat['position_code'] !== 'campus_ambassador' && !str_starts_with($key, 'sp:') ? 'leader' : 'member';
+}
+/** True when a post contains a word management has listed, so it waits for a leader or HQ before others see it. */
+function community_held(string $text): bool {
+  $list = array_filter(array_map(fn($x) => mb_strtolower(trim($x)), explode(',', policy('community_blocked_words'))));
+  $low = mb_strtolower($text);
+  foreach ($list as $wd) if ($wd !== '' && str_contains($low, $wd)) return true;
+  return false;
+}
+/** SQL on users u that holds a leader to her own area (used by the automatic report). */
+function user_scope_sql(array $seat): array {
+  if (!empty($seat['chapter_id'])) return ['u.chapter_id=?', [(int) $seat['chapter_id']]];
+  $w = 'u.network=? AND u.country_code=?'; $p = [$seat['network'], (string) $seat['unit_country']];
+  if ($seat['position_level'] === 'state_region') { $w .= ' AND u.state_region=?'; $p[] = $seat['unit_name']; }
+  elseif ($seat['position_level'] === 'lga') { $w .= ' AND u.lga=?'; $p[] = $seat['area_label']; }
+  elseif (in_array($seat['position_level'], ['community_cluster', 'chapter'], true)) { $w .= ' AND u.community=?'; $p[] = $seat['area_label']; }
+  return [$w, $p];
+}
+/** Scheduled announcements whose time has come. */
+function announcements_due(): int {
+  $n = 0; foreach (rows('SELECT id FROM announcements WHERE sent_at IS NULL AND scheduled_at IS NOT NULL AND scheduled_at<=? ORDER BY scheduled_at LIMIT 10', [now()]) as $a) { announcement_deliver((int) $a['id']); $n++; }
+  return $n;
 }

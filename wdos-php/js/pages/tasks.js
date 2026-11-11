@@ -22,15 +22,16 @@ export async function render(root, params) {
   const kpis = h('div', { class: 'row row--4' }, sk.kpi(), sk.kpi(), sk.kpi(), sk.kpi());
   const status = h('select', { class: 'input', 'aria-label': 'Status', style: 'width:auto' }, [['active', 'Open tasks'], ['', 'All statuses'], ['overdue', 'Overdue only'], ['completed', 'Completed'], ['cancelled', 'Cancelled']].map(([v, l]) => h('option', { value: v, text: l })));
   const search = input({ type: 'search', placeholder: 'Search tasks…', 'aria-label': 'Search tasks', style: 'max-width:260px' });
-  const list = h('div', {}, sk.rows(5)); const formSlot = h('div');
+  const list = h('div', {}, sk.rows(5)); const formSlot = h('div'); const chapFilter = h('select', { class: 'input', 'aria-label': 'Chapter', hidden: true }, h('option', { value: '', text: 'Every chapter' }));
   const newBtn = h('button', { class: 'btn', type: 'button', onclick: () => { if (formSlot.firstChild) formSlot.replaceChildren(); else formSlot.replaceChildren(newForm(leader, () => { formSlot.replaceChildren(); load(); })); } }, icon('plus', 18), 'New task');
   if (leader) root.append(tabs(SCOPES, scope, '#/tasks'));
-  root.append(kpis, formSlot, card(SCOPES.find(([k]) => k === scope)[1], null, list, h('div', { class: 'toolbar' }, search, status, newBtn)));
+  root.append(kpis, formSlot, card(SCOPES.find(([k]) => k === scope)[1], null, list, h('div', { class: 'toolbar' }, search, status, chapFilter, newBtn)));
+  if (leader) { api('/chapters').then((r) => { if (r.items.length) { chapFilter.append(...r.items.map((c) => h('option', { value: c.id, text: c.name }))); chapFilter.hidden = false; } }).catch(() => {}); chapFilter.addEventListener('change', load); }
   let timer;
   search.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(load, 300); }); status.addEventListener('change', load);
   async function load() {
     let r;
-    try { r = await api(`/tasks?scope=${scope || 'mine'}&status=${status.value}&q=${encodeURIComponent(search.value)}`); }
+    try { r = await api(`/tasks?scope=${scope || 'mine'}&status=${status.value}&q=${encodeURIComponent(search.value)}` + (chapFilter.value ? '&chapter=' + chapFilter.value : '')); }
     catch (e) { kpis.replaceChildren(); list.replaceChildren(empty('x', 'Tasks did not load', e.message, h('button', { class: 'btn btn--quiet btn--s', onclick: load }, 'Try again'))); return; }
     const c = r.counts;
     kpis.replaceChildren(kpi('tasks', 'My open tasks', c.mine, [h('span', { text: 'Assigned to you' })]), kpi('clock', 'My overdue tasks', c.overdue, [h('span', { text: 'Past the due date' })]),
@@ -53,11 +54,14 @@ export function peoplePicker(multi = true) {
   q.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(find, 250); }); q.addEventListener('focus', () => { if (!results.firstChild) find(); });
   return { node: h('div', { style: 'display:grid;gap:8px' }, chips, q, results), ids: () => [...picked.keys()] };
 }
-function newForm(leader, done) {
+function newForm(leader, done, opts = {}) {
   const title = input({ maxlength: 190, placeholder: 'Task title' }); const details = h('textarea', { class: 'input', rows: 3, placeholder: 'Start typing the details…' });
   const pri = h('select', { class: 'input' }, Object.entries(PRI).map(([v, l]) => h('option', { value: v, text: l }))); pri.value = 'normal';
   const due = input({ type: 'date' }); const approval = h('input', { type: 'checkbox' }); const checklist = h('textarea', { class: 'input', rows: 3, placeholder: 'One checklist item per line' });
   const who = h('select', { class: 'input' }, h('option', { value: 'me', text: 'Myself' }), leader ? h('option', { value: 'others', text: 'People in my area' }) : null);
+  /* scope: one chapter, or every chapter (the wider area) */
+  const chap = h('select', { class: 'input' }, h('option', { value: '', text: 'Not tied to one chapter' })); if (opts.chapter) chap.append(h('option', { value: opts.chapter, text: 'The chapter of the first task' })), (chap.value = String(opts.chapter));
+  if (leader) api('/chapters').then((r) => chap.append(...r.items.filter((c) => c.id !== opts.chapter).map((c) => h('option', { value: c.id, text: c.name })))).catch(() => {});
   const picker = peoplePicker(true); const pickWrap = h('div', { hidden: true }, field('Who should receive this task', picker.node, 'Each person gets a separate task with its own tracked status. You can only reach people within your authority.'));
   const apprWrap = h('label', { class: 'check', hidden: true }, approval, h('span', {}, h('b', { text: 'Requires approval' }), h('br'), h('small', { class: 'faint', text: 'Only you or a leader over the unit can mark it completed.' })));
   who.addEventListener('change', () => { pickWrap.hidden = apprWrap.hidden = who.value !== 'others'; });
@@ -66,10 +70,11 @@ function newForm(leader, done) {
     err.textContent = ''; const ids = who.value === 'others' ? picker.ids() : [app.user.id];
     if (who.value === 'others' && !ids.length) { err.textContent = 'Find recipients first.'; return; }
     save.disabled = true;
-    try { const r = await api('/tasks', { title: title.value, details: details.value, priority: pri.value, due_on: due.value, requires_approval: approval.checked, assignees: ids, checklist: checklist.value.split('\n') });
+    try { const r = await api('/tasks', { title: title.value, details: details.value, priority: pri.value, due_on: due.value, requires_approval: approval.checked, assignees: ids, checklist: checklist.value.split('\n'), chapter_id: Number(chap.value) || 0, parent_id: opts.parent || 0 });
       toast(r.created > 1 ? `Task assigned to ${r.created} leaders` : 'Task created', '', 'ok'); done(); }
     catch (e) { err.textContent = e.message; save.disabled = false; } } }, 'Create task');
-  return card('New task', null, h('div', { style: 'display:grid;gap:14px' }, field('Task title', title), field('Details', details), h('div', { class: 'grid2' }, field('Priority', pri), field('Due date (optional)', due), field('Assign to', who)), pickWrap, apprWrap, field('Checklist (optional)', checklist), err, h('div', {}, save)));
+  if (opts.parent && leader) { who.value = 'others'; who.dispatchEvent(new Event('change')); }
+  return card(opts.parent ? 'Delegate part of this task' : 'New task', opts.parent ? 'The new task stays linked to this one. Each task has one person accountable for it.' : null, h('div', { style: 'display:grid;gap:14px' }, field('Task title', title), field('Details', details), h('div', { class: 'grid2' }, field('Priority', pri), field('Due date (optional)', due), field('Assign to', who), leader ? field('Chapter', chap) : null), pickWrap, apprWrap, field('Checklist (optional)', checklist), err, h('div', {}, save)));
 }
 
 /* ------------------------------------------------------------------ detail -- */
@@ -81,6 +86,8 @@ async function detail(root, id) {
     const move = async (to, note) => { try { await api(`/tasks/${id}/status`, { to, note: note || '' }); toast('Task updated', '', 'ok'); load(); } catch (e) { toast('Not updated', e.message, 'bad'); } };
     const btn = (label, to, cls = 'btn', ask) => h('button', { class: cls, type: 'button', onclick: () => { if (ask) { const n = prompt(ask); if (n === null) return; move(to, n); } else move(to); } }, label);
     const active = ['open', 'in_progress'].includes(t.status);
+    const dSlot = h('div'); const canLead = app.user.is_hq || app.user.is_leader;
+    if ((r.mine || r.manage) && active && canLead) act.append(h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => { if (dSlot.firstChild) dSlot.replaceChildren(); else dSlot.replaceChildren(newForm(true, () => { dSlot.replaceChildren(); toast('Delegated', 'The new task is linked to this one.', 'ok'); }, { parent: t.id, chapter: t.chapter_id })); } }, 'Delegate part of this'));
     if (r.mine && t.status === 'open') act.append(btn('Start', 'in_progress', 'btn btn--quiet'));
     if (r.mine && active && t.requires_approval && !r.manage) act.append(btn('Submit for review', 'submitted'));
     if (r.mine && active && (!t.requires_approval || r.manage)) act.append(btn('Mark completed', 'completed'));
@@ -96,9 +103,9 @@ async function detail(root, id) {
     const comments = h('div', { style: 'display:grid;gap:12px' }, d.comments.length ? h('div', { class: 'list' }, d.comments.map((c) => h('div', {}, avatar({ id: c.user_id, first_name: c.first_name, last_name: c.last_name, has_photo: c.has_photo }, 34), h('div', { class: 'grow' }, h('b', { text: `${c.first_name} ${c.last_name}` }), h('p', { style: 'margin:2px 0;white-space:pre-wrap', text: c.body }), h('small', { text: ago(c.created_at) }))))) : h('p', { class: 'faint', text: 'No comments yet.' }),
       cIn, h('div', {}, h('button', { class: 'btn btn--quiet btn--s', type: 'button', onclick: async () => { try { await api(`/tasks/${id}/comment`, { body: cIn.value }); load(); } catch (e) { toast('Not sent', e.message, 'bad'); } } }, 'Comment')));
     box.replaceChildren(
-      h('section', { class: 'card' }, h('div', { class: 'card__body', style: 'display:grid;gap:14px' }, h('div', { class: 'tagrow' }, taskTag(t.status), t.overdue ? h('span', { class: 'tag tag--bad', text: 'Overdue' }) : null, h('span', { class: 'tag', text: 'Priority: ' + PRI[t.priority] }), t.requires_approval ? h('span', { class: 'tag', text: 'Approval required' }) : null),
-        h('h2', { class: 'display', style: 'font-size:26px;margin:0', text: t.title }), t.details ? h('p', { style: 'white-space:pre-wrap;margin:0', text: t.details }) : null,
-        h('dl', { class: 'dl' }, [['Assigned to', `${t.assignee.first_name} ${t.assignee.last_name}`], ['Assigned by', t.by.name], ['Due', t.due_on ? fmtDate(t.due_on) : 'No due date'], ['Created', fmtDate(t.created_at)], t.completed_at ? ['Completed', fmtDate(t.completed_at)] : null].filter(Boolean).flatMap(([k, v]) => [h('dt', { text: k }), h('dd', { text: v })])),
+      h('section', { class: 'card' }, h('div', { class: 'card__body', style: 'display:grid;gap:14px' }, h('div', { class: 'tagrow' }, taskTag(t.status), t.overdue ? h('span', { class: 'tag tag--bad', text: 'Overdue' }) : null, h('span', { class: 'tag', text: 'Priority: ' + PRI[t.priority] }), t.requires_approval ? h('span', { class: 'tag', text: 'Approval required' }) : null, t.network ? h('span', { class: 'tag', text: t.network }) : null, t.chapter_id ? h('a', { class: 'tag', href: '#/chapter/' + t.chapter_id, text: 'Chapter task' }) : h('span', { class: 'tag', text: 'Area task' }), t.parent_id ? h('a', { class: 'tag', href: '#/tasks/' + t.parent_id, text: 'Delegated from another task' }) : null),
+        h('h2', { class: 'display', style: 'font-size:26px;margin:0', text: t.title }), dSlot, t.details ? h('p', { style: 'white-space:pre-wrap;margin:0', text: t.details }) : null,
+        h('dl', { class: 'dl' }, [['Accountable owner', `${t.assignee.first_name} ${t.assignee.last_name}`], ['Assigned by', t.by.name], ['Due', t.due_on ? fmtDate(t.due_on) : 'No due date'], ['Created', fmtDate(t.created_at)], t.completed_at ? ['Completed', fmtDate(t.completed_at)] : null].filter(Boolean).flatMap(([k, v]) => [h('dt', { text: k }), h('dd', { text: v })])),
         t.from_report ? h('a', { href: '#/reporting/r/' + t.from_report, text: 'Open the report this task came from' }) : null, t.from_meeting ? h('a', { href: '#/meetings/' + t.from_meeting, text: 'Open the meeting this task came from' }) : null, act)),
       h('div', { class: 'row row--2' }, card(`Checklist (${t.items_done}/${t.items})`, null, items), card('Comments', null, comments)));
   }

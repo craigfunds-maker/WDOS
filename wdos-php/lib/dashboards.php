@@ -168,7 +168,8 @@ route('POST', '/hq/members/(\\d+)/details', function ($id) {
 
 route('GET', '/hq/announcements', function () {
   require_hq();
-  return ['items' => rows("SELECT a.*, CONCAT(u.first_name,' ',u.last_name) author FROM announcements a JOIN users u ON u.id=a.author_id ORDER BY a.id DESC LIMIT 30")];
+  return ['items' => rows("SELECT a.*, CONCAT(u.first_name,' ',u.last_name) author, (SELECT COUNT(*) FROM announcement_acks k WHERE k.announcement_id=a.id) acks,
+                                  (SELECT GROUP_CONCAT(t.lang ORDER BY t.lang) FROM announcement_texts t WHERE t.announcement_id=a.id) langs FROM announcements a JOIN users u ON u.id=a.author_id ORDER BY a.id DESC LIMIT 30")];
 });
 route('POST', '/hq/announcements', function () { return announcement_send(require_hq()); });
 /* Everyone reads the announcements addressed to her. */
@@ -176,8 +177,11 @@ route('GET', '/announcements', function () {
   $u = require_user(); $leader = current_seat((int) $u['id']) ? 1 : 0;
   $w = is_hq($u) ? '1=1' : "(a.audience_network='ALL' OR a.audience_network=?) AND (a.audience_role='all' OR ?=1) AND (a.audience_country IS NULL OR a.audience_country=?)
         AND (a.audience_state='' OR a.audience_state=?) AND (a.audience_lga='' OR a.audience_lga=?) AND (a.audience_community='' OR a.audience_community=?) AND (a.audience_chapter IS NULL OR a.audience_chapter=?) AND (a.audience_lang='' OR a.audience_lang=?)";
-  return ['items' => rows("SELECT a.id, a.title, a.body, a.audience_network, a.audience_role, a.tone, a.created_at FROM announcements a WHERE $w ORDER BY a.id DESC LIMIT 20",
-    is_hq($u) ? [] : [(string) $u['network'], $leader, (string) $u['country_code'], $u['state_region'], $u['lga'], $u['community'], (int) ($u['chapter_id'] ?? 0), (string) ($u['lang'] ?? 'en')])];
+  $lang = (string) ($u['lang'] ?? 'en');                     // her own language where that version was written
+  return ['items' => rows("SELECT a.id, COALESCE(t.title, a.title) title, COALESCE(t.body, a.body) body, a.audience_network, a.audience_role, a.audience_chapter, a.tone, COALESCE(a.sent_at, a.created_at) created_at,
+                                  EXISTS (SELECT 1 FROM announcement_acks k WHERE k.announcement_id=a.id AND k.user_id=?) acked
+                           FROM announcements a LEFT JOIN announcement_texts t ON t.announcement_id=a.id AND t.lang=? WHERE a.sent_at IS NOT NULL AND $w ORDER BY a.id DESC LIMIT 20",
+    is_hq($u) ? [(int) $u['id'], $lang] : [(int) $u['id'], $lang, (string) $u['network'], $leader, (string) $u['country_code'], $u['state_region'], $u['lga'], $u['community'], (int) ($u['chapter_id'] ?? 0), (string) ($u['lang'] ?? 'en')])];
 });
 
 /* ------------------------------------------------ volunteer leadership -- */
@@ -235,6 +239,8 @@ route('GET', '/leader/members', function () {
   $u = require_user(); [$seat] = leader_view($u, 'This list opens when WODDI HQ records your leadership seat.');
   // a He-for-She Champion works through assigned tasks, meetings and approved reports; the appointment does not open the personal roster
   if (!empty($seat['he_for_she']) && !is_hq($u)) fail(403, 'The member roster is not part of a He-for-She appointment. Your tasks, meetings and reports are open to you.', 'he_for_she');
+  // a Campus Ambassador is an outreach role at a tertiary institution: referral links and outreach, not a member roster
+  if ($seat['position_code'] === 'campus_ambassador' && !is_hq($u)) fail(403, 'A Campus Ambassador works through outreach and referral links. The member roster belongs to the supervising leader.', 'campus');
   [$w, $p] = leader_scope($seat);
   if (($s = trim((string) ($_GET['q'] ?? ''))) !== '') { $w .= " AND (CONCAT(u.first_name,' ',u.last_name) LIKE ? OR u.member_no LIKE ?)"; $p[] = "%$s%"; $p[] = "%$s%"; }
   $page = max(1, (int) ($_GET['page'] ?? 1)); $size = 20;

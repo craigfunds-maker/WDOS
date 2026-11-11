@@ -31,6 +31,8 @@ function notify_prefs(int $userId): array {
 /** File one notification. Security messages always land in the app. */
 function notify(int $userId, string $kind, string $title, string $body = '', string $url = '#/notifications'): ?int {
   $p = notify_prefs($userId)[$kind] ?? ['in_app' => true, 'push' => true];
+  // in her own language where WDOS has the message in it
+  try { $lang = (string) val('SELECT lang FROM users WHERE id=?', [$userId]); if ($lang !== '' && $lang !== 'en' && ($tr = note_in($lang, $title, $body))) [$title, $body] = $tr; } catch (PDOException $e) { /* before the language column exists */ }
   $id = null;
   if ($p['in_app'] || $kind === 'account') {
     $id = ins('INSERT INTO notifications (user_id,kind,title,body,url,created_at) VALUES (?,?,?,?,?,?)',
@@ -43,7 +45,14 @@ function notify(int $userId, string $kind, string $title, string $body = '', str
   return $id;
 }
 /** File the same notification for many members with two statements, not thousands. */
-function notify_many(string $whereSql, array $params, string $kind, string $title, string $body, string $url): int {
+function notify_many(string $whereSql, array $params, string $kind, string $title, string $body, string $url, ?array $texts = null): int {
+  // $texts: the same message in other languages, [lang => [title, body]]. Each member gets the one in her language; the rest get the main one.
+  if ($texts === null) { $texts = []; foreach (NOTE_LANGS as $l) if ($tr = note_in($l, $title, $body)) $texts[$l] = $tr; }
+  if ($texts) {
+    $n = 0; $langs = array_keys($texts);
+    foreach ($texts as $l => [$lt, $lb]) $n += notify_many("($whereSql) AND u.lang=?", array_merge($params, [$l]), $kind, $lt, $lb, $url, []);
+    return $n + notify_many("($whereSql) AND u.lang NOT IN (" . implode(',', array_fill(0, count($langs), '?')) . ')', array_merge($params, $langs), $kind, $title, $body, $url, []);
+  }
   $t = mb_substr($title, 0, 160); $b = mb_substr($body, 0, 600); $n = now();
   $optOutApp = "NOT EXISTS (SELECT 1 FROM notification_prefs np WHERE np.user_id=u.id AND np.kind=? AND np.in_app=0)";
   $optOutPush = "NOT EXISTS (SELECT 1 FROM notification_prefs np WHERE np.user_id=u.id AND np.kind=? AND np.push=0)";

@@ -15,7 +15,8 @@ function task_shape(array $t): array {
     'assignee' => ['id' => (int) $t['assignee_id'], 'first_name' => $t['a_first'], 'last_name' => $t['a_last'], 'has_photo' => (int) $t['a_photo']],
     'by' => ['id' => (int) $t['assigned_by'], 'name' => trim($t['b_first'] . ' ' . $t['b_last'])], 'from_report' => str_starts_with((string) $t['source'], 'report:') ? (int) substr($t['source'], 7) : null,
     'from_meeting' => str_starts_with((string) $t['source'], 'meeting:') ? (int) substr($t['source'], 8) : null,
-    'items' => (int) $t['items'], 'items_done' => (int) $t['items_done'], 'comments' => (int) $t['comments'], 'created_at' => $t['created_at'], 'completed_at' => $t['completed_at']];
+    'items' => (int) $t['items'], 'items_done' => (int) $t['items_done'], 'comments' => (int) $t['comments'], 'created_at' => $t['created_at'], 'completed_at' => $t['completed_at'],
+    'network' => $t['network'], 'chapter_id' => !empty($t['chapter_id']) ? (int) $t['chapter_id'] : null, 'parent_id' => !empty($t['parent_id']) ? (int) $t['parent_id'] : null];
 }
 function task_get(int $id): array { $t = row(TASK_SELECT . ' WHERE t.id=?', [$id]); if (!$t) fail(404, 'That task was not found.', 'not_found'); return $t; }
 function task_rights(array $u, array $t): array {
@@ -31,6 +32,10 @@ route('GET', '/tasks', function () {
   if ($scope === 'area') {
     if (is_hq($u)) { $w = '1=1'; $p = []; }
     else { $seat = work_seat($u); if (!$seat) { $w = '1=0'; $p = []; } else { $w = 't.network=? AND t.org_unit_id IN (SELECT id FROM org_units WHERE path LIKE ?) AND t.assignee_id<>?'; $p = [$seat['network'], $seat['unit_path'] . '%', $id]; } }
+  }
+  if ($cid = (int) ($_GET['chapter'] ?? 0)) {                     // every task of one chapter, for those who may see that chapter's roster
+    $c = row('SELECT * FROM chapters WHERE id=?', [$cid]); if (!$c || !in_array(chapter_access($u, $c), ['hq', 'leader'], true)) fail(403, 'That chapter is outside your area.', 'forbidden');
+    $w = 't.chapter_id=?'; $p = [$cid];
   }
   $st = (string) ($_GET['status'] ?? '');
   if ($st === 'active') $w .= ' AND t.status IN ' . TASK_OPEN;
@@ -61,11 +66,16 @@ route('POST', '/tasks', function () {
   if (!$ids) $ids = [(int) $u['id']];
   if (count($ids) > 60) fail(422, 'Assign to 60 people at most in one go.', 'assignees');
   foreach ($ids as $aid) if (!work_may_assign($u, $aid)) fail(403, 'You can only assign tasks to yourself or within your own area.', 'scope');
+  // scope: a task can belong to one chapter; a delegated task keeps a link to the task it came from, and still has one accountable owner
+  $chapterId = (int) ($b['chapter_id'] ?? 0) ?: null; $parentId = (int) ($b['parent_id'] ?? 0) ?: null;
+  if ($parentId) { $par = row('SELECT * FROM tasks WHERE id=?', [$parentId]); if (!$par || ((int) $par['assignee_id'] !== (int) $u['id'] && (int) $par['assigned_by'] !== (int) $u['id'] && !is_hq($u))) fail(403, 'You can delegate only a task that is yours.', 'parent'); if (!$chapterId && $par['chapter_id']) $chapterId = (int) $par['chapter_id']; }
+  if ($chapterId) { $c = row('SELECT * FROM chapters WHERE id=?', [$chapterId]); if (!$c || !in_array(chapter_access($u, $c), ['hq', 'leader'], true)) fail(403, 'That chapter is outside your area.', 'chapter'); }
   $due = work_date(str_in('due_on', 10)); $items = array_slice(array_filter(array_map(fn($x) => mb_substr(trim((string) $x), 0, 190), is_array($b['checklist'] ?? null) ? $b['checklist'] : [])), 0, 20);
   $made = [];
   foreach ($ids as $aid) {
     $tid = task_create((int) $u['id'], $aid, $title, str_in('details', 4000), str_in('priority', 8), $due, !empty($b['requires_approval']) && $aid !== (int) $u['id']);
     foreach ($items as $label) q('INSERT INTO task_items (task_id,label) VALUES (?,?)', [$tid, $label]);
+    if ($chapterId || $parentId) q('UPDATE tasks SET chapter_id=?, parent_id=? WHERE id=?', [$chapterId, $parentId, $tid]);
     $made[] = $tid;
   }
   log_activity((int) $u['id'], count($ids) === 1 ? $ids[0] : null, 'task_created', $title . (count($ids) > 1 ? ' (' . count($ids) . ' people)' : ''));

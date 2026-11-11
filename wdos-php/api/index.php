@@ -3,6 +3,7 @@ declare(strict_types=1);
 /* WDOS API. Every /api/... request lands here (see .htaccess). */
 require __DIR__ . '/../lib/core.php';
 require __DIR__ . '/../lib/push.php';
+require __DIR__ . '/../lib/notify_i18n.php';
 require __DIR__ . '/../lib/notify.php';
 require __DIR__ . '/../lib/webauthn.php';
 require __DIR__ . '/../lib/inspire_fns.php';
@@ -76,7 +77,8 @@ function validate_profile_fields(bool $withPassword): array {
     $s = row('SELECT id, name FROM org_units WHERE id=? AND parent_id=?', [$stateId, (int) $country['id']]);
     if ($s) { $unitId = (int) $s['id']; $state = $s['name']; }
   }
-  if ($state === '') fail(422, 'Enter your state or region.', 'state');
+  // in the diaspora the state layer is optional: a city can stand directly under the country
+  if ($state === '' && !is_diaspora($country['country_code'])) fail(422, 'Enter your state or region.', 'state');
   $pw = null;
   if ($withPassword) {
     $pw = (string) (body()['password'] ?? '');
@@ -89,6 +91,7 @@ function validate_profile_fields(bool $withPassword): array {
     'lga' => str_in('lga', 120), 'community' => str_in('community', 120), 'password' => $pw];
 }
 function finish_signup(int $id, array $f): void {
+  if (preg_match('/^[a-z]{2,3}$/', (string) (body()['lang'] ?? ''))) q('UPDATE users SET lang=? WHERE id=?', [body()['lang'], $id]);      // first, so the welcome arrives in her language
   $no = sprintf('%s-%s-%06d', $f['network'], $f['country_code'], $id);
   q('UPDATE users SET member_no=? WHERE id=?', [$no, $id]);
   $netName = $f['network'] === 'WNNN' ? 'WODDI Nurture NextGen Network' : 'WODDI Good Mother Network';
@@ -99,7 +102,7 @@ function finish_signup(int $id, array $f): void {
   // automatic from here: a chapter near her, and the seven-day journey. A leadership candidate follows the referral activation instead.
   $fresh = row('SELECT * FROM users WHERE id=?', [$id]); if ($fresh) chapter_place_user($fresh);
   if (!$aid) mj_start($id);
-  if (preg_match('/^[a-z]{2,3}$/', (string) (body()['lang'] ?? ''))) q('UPDATE users SET lang=? WHERE id=?', [body()['lang'], $id]);
+  if (($ward = str_in('ward', 120)) !== '') q('UPDATE users SET ward=? WHERE id=?', [$ward, $id]);      // the official ward, kept apart from the WODDI community
   after_response(fn() => push_drain(20));
 }
 
@@ -251,13 +254,16 @@ route('POST', '/me', function () {
   $first = str_in('first_name', 80) ?: $u['first_name']; $last = str_in('last_name', 80) ?: $u['last_name'];
   $phone = preg_replace('/[^\d+]/', '', str_in('phone', 32)) ?: $u['phone'];
   q('UPDATE users SET first_name=?, last_name=?, phone=?, lga=?, community=? WHERE id=?', [$first, $last, $phone, str_in('lga', 120), str_in('community', 120), (int) $u['id']]);
+  if (array_key_exists('ward', body())) q('UPDATE users SET ward=? WHERE id=?', [str_in('ward', 120), (int) $u['id']]);
   chapter_replace_after_change((int) $u['id']);
   return ['ok' => true, 'user' => public_user(row('SELECT * FROM users WHERE id=?', [(int) $u['id']]))];
 });
 route('POST', '/me/password', function () {
   $u = require_user(); $new = (string) (body()['new_password'] ?? '');
-  if ($u['password_hash'] && !password_verify((string) (body()['current_password'] ?? ''), $u['password_hash'])) fail(401, 'Your current password is not correct.', 'bad_credentials');
-  if (strlen($new) < 8) fail(422, 'Choose a password of at least 8 characters.', 'password');
+  // Recovery without a code: a member who has just signed in with her fingerprint or face on her own phone may choose a new PIN without the old one.
+  $viaPasskey = (bool) val("SELECT 1 FROM sessions WHERE token_hash=? AND method='fingerprint' AND created_at>=?", [hash('sha256', (string) ($_COOKIE[SESSION_COOKIE] ?? '')), gmdate('Y-m-d H:i:s', time() - 900)]);
+  if ($u['password_hash'] && !$viaPasskey && !password_verify((string) (body()['current_password'] ?? ''), $u['password_hash'])) fail(401, 'Your current password is not correct.', 'bad_credentials');
+  if (strlen($new) < 6) fail(422, 'Choose a password or PIN of at least 6 characters.', 'password');
   q('UPDATE users SET password_hash=?, must_change_password=0 WHERE id=?', [password_hash($new, PASSWORD_DEFAULT), (int) $u['id']]);
   notify((int) $u['id'], 'account', 'Your password was changed', 'If this was not you, contact WODDI HQ straight away.', '#/settings');
   after_response(fn() => push_drain(5));

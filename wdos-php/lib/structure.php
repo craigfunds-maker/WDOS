@@ -7,7 +7,7 @@ route('GET', '/structure', function () {
   if (!is_hq($u) && !$seat) fail(403, 'The leadership structure opens for volunteer leaders and WODDI HQ.', 'forbidden');
   $path = $seat ? $seat['unit_path'] : '/'; $nets = $seat ? [$seat['network']] : ['WGMN', 'WNNN'];
   $steps = (int) val('SELECT COUNT(*) FROM onboarding_steps WHERE is_active=1 AND required=1');
-  $filled = rows("SELECT s.id seat_id, s.user_id, s.network, s.position_code, s.area_label, s.status, s.acceptance, s.starts_at, p.level, p.rank_no, ou.id unit_id, ou.name unit, ou.level unit_level, ou.country_code, ou.path,
+  $filled = rows("SELECT s.id seat_id, s.user_id, s.network, s.position_code, s.area_label, s.status, s.acceptance, s.he_for_she, s.starts_at, p.level, p.rank_no, ou.id unit_id, ou.name unit, ou.level unit_level, ou.country_code, ou.path,
         u.first_name, u.last_name, u.has_photo, u.last_seen_at, CASE WHEN s.network='WNNN' THEN p.title_wnnn ELSE p.title_wgmn END title,
         (SELECT COUNT(*) FROM onboarding_progress op JOIN onboarding_steps os ON os.code=op.step_code AND os.is_active=1 AND os.required=1 WHERE op.user_id=s.user_id) ob_done
       FROM seats s JOIN positions p ON p.code=s.position_code JOIN org_units ou ON ou.id=s.org_unit_id JOIN users u ON u.id=s.user_id

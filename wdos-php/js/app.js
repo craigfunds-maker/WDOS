@@ -16,7 +16,7 @@ const pages = {
   hq: () => import('./pages/hq.js'), members: () => import('./pages/members.js'), announcements: () => import('./pages/announcements.js'),
   leader: () => import('./pages/leader.js'), home: () => import('./pages/home.js'),
   reporting: () => import('./pages/reporting.js'), tasks: () => import('./pages/tasks.js'), meetings: () => import('./pages/meetings.js'), structure: () => import('./pages/structure.js'),
-  onboarding: () => import('./pages/onboarding.js'), referrals: () => import('./pages/referrals.js'), activation: () => import('./pages/activation.js'), inspiration: () => import('./pages/inspiration.js'), messages: () => import('./pages/messages.js'), journey: () => import('./pages/journey.js'), chapter: () => import('./pages/chapter.js'), chapters: () => import('./pages/chapters.js'), rules: () => import('./pages/rules.js'), library: () => import('./pages/library.js'),
+  onboarding: () => import('./pages/onboarding.js'), referrals: () => import('./pages/referrals.js'), activation: () => import('./pages/activation.js'), inspiration: () => import('./pages/inspiration.js'), messages: () => import('./pages/messages.js'), journey: () => import('./pages/journey.js'), community: () => import('./pages/community.js'), chapter: () => import('./pages/chapter.js'), chapters: () => import('./pages/chapters.js'), rules: () => import('./pages/rules.js'), library: () => import('./pages/library.js'),
   notifications: () => import('./pages/notifications.js'), settings: () => import('./pages/settings.js'),
 };
 function resolve(path) {
@@ -41,6 +41,7 @@ function resolve(path) {
     case 'messages': return sh('messages', u.is_hq ? 'Messages' : 'Messages with HQ', { tab: seg[1], id: seg[2] });
     case 'library': return sh('library', 'Document library');
     case 'journey': return sh('journey', 'My seven-day journey');
+    case 'community': return sh('community', 'WODDI Community', { tab: seg[1] });
     case 'chapter': return sh('chapter', seg[1] ? 'Chapter' : 'My chapter', { id: seg[1] });
     case 'chapters': return (u.is_hq || u.is_leader) ? sh('chapters', 'Chapters') : sh('chapter', 'My chapter', {});
     case 'rules': return u.is_hq ? sh('rules', 'System rules') : sh('home', 'Home');
@@ -86,7 +87,7 @@ export function signedIn(user) { app.user = user; shellEls = null; startPulse();
 
 /* ----------------------------------------------------------------- shell -- */
 function navItems() {
-  const u = app.user; const comm = [['Communication'], ['#/messages', 'send', u.is_hq ? 'Messages' : 'Messages with HQ'], ['#/announcements', 'megaphone', 'Announcements'], ['#/library', 'book', 'Document library'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
+  const u = app.user; const comm = [['Communication'], ['#/community', 'spark', 'WODDI Community'], ['#/messages', 'send', u.is_hq ? 'Messages' : 'Messages with HQ'], ['#/announcements', 'megaphone', 'Announcements'], ['#/library', 'book', 'Document library'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
   if (u.is_hq) return [['Overview'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/leaders', 'eye', 'Leader dashboards'], ['#/structure', 'tree', 'Leadership structure'], ['#/chapters', 'grid', 'Chapters'], ['#/referrals', 'route', 'Referral and activation'], ['#/rules', 'sliders', 'System rules'], ['Work'], ['#/reporting', 'chart', 'Reporting'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ['Communication'], ['#/inspiration', 'award', 'Inspiration messages'], ...comm.slice(1)];
   if (u.is_leader) return [['My leadership'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'My members'], ['#/chapters', 'grid', 'Chapters'], u.chapter || (u.seat && u.seat.level === 'chapter') ? ['#/chapter', 'users', 'My chapter'] : null, ['#/structure', 'tree', 'Leadership structure'], ['#/referrals', 'route', 'Referral links'], ['#/onboarding', 'book', 'Onboarding'], ['Work'], ['#/reporting', 'chart', 'Reporting'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ...comm].filter(Boolean);
   return [['My network'], ['#/', 'grid', 'Home'], u.journey ? ['#/journey', 'route', 'My seven-day journey'] : null, ['#/chapter', 'users', 'My chapter'], u.todo && u.todo.activation ? ['#/activation', 'route', 'My Activation'] : null, ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ...comm].filter(Boolean);
