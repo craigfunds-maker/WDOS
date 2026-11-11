@@ -97,6 +97,10 @@ function meetings_snapshot(array $node, string $a, string $b): array {
 function meeting_invited_sql(array $m): array {
   if ($m['audience'] === 'hq_team') return ["u.role IN ('hq_admin','super_admin')", []];
   if ($m['audience'] === 'members') {
+    if ($m['scope_level'] === 'chapter') {                                      // a chapter leader's meeting is for her own chapter
+      try { $cid = (int) val('SELECT chapter_id FROM seats WHERE user_id=? AND ends_at IS NULL AND chapter_id IS NOT NULL LIMIT 1', [(int) $m['host_id']]); } catch (PDOException $e) { $cid = 0; }
+      if ($cid) return ['u.chapter_id=?', [$cid]];
+    }
     $w = 'u.network=? AND ou.path LIKE ?'; $p = [$m['network'], $m['unit_path'] . '%'];
     if ($m['scope_level'] === 'lga') { $w .= ' AND u.lga=?'; $p[] = $m['scope_area']; }
     if (in_array($m['scope_level'], ['community_cluster', 'chapter'], true)) { $w .= ' AND u.community=?'; $p[] = $m['scope_area']; }

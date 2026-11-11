@@ -1,0 +1,46 @@
+/* Chapter directory and drilldown: country, state or region, LGA or city, community, chapter.
+ * HQ sees everything; a leader sees the chapters in her own area. Counts come straight from membership records. */
+import { h, icon, card, sk, empty, fmt, fmtDate, toast, netTag, meter, CH_TAG, input, field } from '../ui.js';
+import { api } from '../api.js';
+import { app } from '../app.js';
+import { kpi } from './hq.js';
+
+const LEVEL = { country: 'Country', state: 'State or region', lga: 'LGA, district or city', community: 'Community or cluster', chapter: 'Chapter' };
+
+export async function render(root) {
+  const hq = app.user.is_hq; const path = {}; const filt = { network: '', status: '', q: '' };
+  const kpis = h('div', { class: 'row row--4' }, sk.kpi(), sk.kpi(), sk.kpi(), sk.kpi()); const alerts = h('div'); const crumbs = h('nav', { class: 'crumbs', 'aria-label': 'Where you are' }); const tree = h('div', {}, sk.rows(4)); const list = h('div'); const stamp = h('small', { class: 'faint' });
+  const net = h('select', { class: 'input', 'aria-label': 'Network' }, [['', 'Both networks'], ['WGMN', 'WGMN'], ['WNNN', 'WNNN']].map(([v, l]) => h('option', { value: v, text: l })));
+  const status = h('select', { class: 'input', 'aria-label': 'Status' }, [['', 'Every status'], ['developing', 'Developing'], ['eligible', 'Eligible for activation'], ['active', 'Active'], ['full', 'At capacity']].map(([v, l]) => h('option', { value: v, text: l })));
+  const search = input({ type: 'search', placeholder: 'Search by name or code', 'aria-label': 'Search chapters' });
+  net.onchange = () => { filt.network = net.value; load(); }; status.onchange = () => { filt.status = status.value; load(); }; let timer; search.oninput = () => { clearTimeout(timer); timer = setTimeout(() => { filt.q = search.value; load(); }, 300); };
+  root.append(kpis, alerts, card('Chapters', hq ? 'Every chapter, down from the continent. Select a row to go one level down.' : 'The chapters in your area. Select a row to go one level down.', h('div', { style: 'display:grid;gap:16px' }, crumbs, tree, list, stamp), h('div', { class: 'toolbar' }, net, status, search)));
+  const qs = (extra = {}) => Object.entries({ ...path, ...filt, ...extra }).filter(([, v]) => v !== '' && v !== undefined).map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&');
+  async function load(page = 1) {
+    let d, t;
+    try { [d, t] = await Promise.all([api('/chapters?' + qs({ page })), api('/chapters/tree?' + qs())]); } catch (e) { kpis.replaceChildren(); tree.replaceChildren(empty('x', 'Chapters did not load', e.message)); return; }
+    const s = d.summary;
+    kpis.replaceChildren(kpi('grid', 'Chapters', s.total, [h('span', { text: `${fmt(s.members)} members placed` })]), kpi('plus', 'Developing', s.developing, [h('span', { text: `Fewer than ${d.rules.minimum} members` })]),
+      kpi('check', 'Active', s.active + s.eligible, [h('span', { text: s.eligible ? `${s.eligible} eligible, waiting for activation` : `${d.rules.minimum} members or more` })]), kpi('users', 'At capacity', s.full, [h('span', { text: `${d.rules.capacity} members. Placement goes to the next chapter.` })]));
+    const al = [];
+    if (s.plan_next) al.push(['Plan the next chapter', `${s.plan_next} ${s.plan_next === 1 ? 'chapter has' : 'chapters have'} ${d.rules.plan_next} or more members.`]);
+    if (s.no_leader) al.push(['Chapter leadership vacant', `${s.no_leader} ${s.no_leader === 1 ? 'chapter has' : 'chapters have'} no leader linked yet.`]);
+    if (d.pending) { if (d.pending.placeable) al.push(['Waiting for placement', `${fmt(d.pending.placeable)} members have a location and no chapter yet. WDOS places them by itself every few minutes.`, 'place']); if (d.pending.no_location) al.push(['Location missing', `${fmt(d.pending.no_location)} ${d.pending.no_location === 1 ? 'member gave' : 'members gave'} no LGA, city or community, so WDOS cannot place them yet. Each one is asked to add it in Settings.`]); }
+    alerts.replaceChildren(al.length ? h('div', { class: 'alerts' }, al.map(([tt, tx, actn]) => h('div', { class: 'notice' }, h('b', { text: tt }), h('p', { style: 'margin:6px 0 0', text: tx }), actn === 'place' ? h('button', { class: 'btn btn--s', style: 'margin-top:10px', type: 'button', onclick: async (e) => { e.target.disabled = true; try { let r, guard = 0, total = 0; do { r = await api('/chapters/backfill', {}); total += r.placed; guard++; e.target.textContent = `${fmt(total)} placed, ${fmt(r.left)} left…`; } while (r.left > 0 && r.placed > 0 && guard < 60); toast('Placement finished', `${fmt(total)} members placed.`, 'ok'); load(); } catch (ex) { toast('Placement stopped', ex.message, 'bad'); e.target.disabled = false; } } }, 'Place them now') : null))) : '');
+    const keys = Object.keys(path); crumbs.replaceChildren(h('button', { type: 'button', class: 'linkbtn', onclick: () => { for (const k of keys) delete path[k]; load(); } }, hq ? 'All countries' : 'My area'), ...keys.map((k, i) => h('span', {}, ' / ', h('button', { type: 'button', class: 'linkbtn', onclick: () => { keys.slice(i + 1).forEach((x) => delete path[x]); load(); } }, path[k] === '(none)' ? 'Not stated' : (k === 'country' ? (d.items[0]?.country || path[k]) : path[k])))));
+    tree.replaceChildren(t.level !== 'chapter' && t.rows.length ? h('div', { class: 'tablewrap' }, h('table', { class: 'table' }, h('thead', {}, h('tr', {}, [LEVEL[t.level], 'Chapters', 'Members', 'WGMN', 'WNNN', 'At capacity', 'Developing'].map((x, i) => h('th', { class: i ? 'num' : '', text: x })))),
+      h('tbody', {}, t.rows.map((r) => h('tr', { class: 'is-link', tabindex: 0, onclick: () => { path[t.level] = r.key; load(); }, onkeydown: (e) => { if (e.key === 'Enter') { path[t.level] = r.key; load(); } } }, h('td', {}, h('b', { text: r.label })), ...[r.chapters, r.members, r.wgmn, r.wnnn, r.full, r.developing].map((n) => h('td', { class: 'num', text: fmt(n) }))))))) : t.level === 'chapter' ? '' : empty('grid', 'No chapters here yet', 'Chapters open by themselves as members register with their location.'));
+    list.replaceChildren(d.items.length ? h('div', { style: 'display:grid;gap:10px' }, h('b', { text: t.level === 'chapter' ? 'Chapters in this community' : 'Chapters' + (d.total > d.items.length ? ` (${fmt(d.total)})` : '') }), h('div', { class: 'list list--stack reveal' }, d.items.map((c) => h('a', { class: 'list__link', href: '#/chapter/' + c.id }, h('div', { class: 'nrow__ico' }, icon('users', 18)),
+      h('div', { class: 'grow' }, h('b', { text: c.name }), h('small', { text: [c.code, c.lga, c.state_region, c.country, c.leader ? 'Led by ' + c.leader : 'No leader yet'].filter(Boolean).join(' · ') }), h('div', { style: 'max-width:260px;margin-top:6px' }, meter(c.members, c.capacity, c.minimum))),
+      h('div', { class: 'tagrow' }, netTag(c.network), h('span', { class: 'tag ' + CH_TAG[c.status], text: c.status_label }), h('span', { class: 'tag num', text: `${c.members}/${c.capacity}` }), c.plan_next ? h('span', { class: 'tag tag--wgmn', text: 'Plan next' }) : null)))),
+      d.pages > 1 ? h('div', { class: 'toolbar' }, d.page > 1 ? h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: () => load(d.page - 1) }, 'Previous') : null, h('small', { class: 'faint', text: `Page ${d.page} of ${d.pages}` }), d.page < d.pages ? h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: () => load(d.page + 1) }, 'Next') : null) : null) : '');
+    stamp.textContent = 'Figures as of ' + fmtDate(d.as_of, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + ' (GMT), counted from membership records, not from reported numbers.';
+  }
+  if (hq) {
+    const fn = h('select', { class: 'input' }, h('option', { value: 'WGMN', text: 'WGMN' }), h('option', { value: 'WNNN', text: 'WNNN' })); const fc = h('select', { class: 'input' }, h('option', { value: '', text: 'Choose the country' })); const fs = input({ maxlength: 120 }), fl = input({ maxlength: 120 }), fm = input({ maxlength: 120 }), fz = input({ maxlength: 120 }); const err = h('p', { class: 'err', role: 'alert' });
+    api('/geo/countries').then((r) => fc.append(...r.countries.map((c) => h('option', { value: c.code, text: c.name })))).catch(() => {});
+    root.append(card('Open a chapter by hand', 'WDOS opens chapters by itself. Use this only to prepare a chapter before its members arrive.', h('div', { style: 'display:grid;gap:14px' }, h('div', { class: 'grid2' }, field('Network', fn), field('Country', fc), field('State, province or region', fs), field('LGA, district or city', fl), field('Community or cluster', fm, 'Leave empty for a city chapter in the diaspora.'), field('Operational zone (optional)', fz)), err,
+      h('div', {}, h('button', { class: 'btn', type: 'button', onclick: async () => { err.textContent = ''; try { const r = await api('/chapters', { network: fn.value, country: fc.value, state_region: fs.value, lga: fl.value, community: fm.value, zone: fz.value }); toast('Chapter opened', '', 'ok'); location.hash = '#/chapter/' + r.id; } catch (e) { err.textContent = e.message; } } }, 'Open chapter')))));
+  }
+  load();
+}

@@ -11,6 +11,16 @@ export async function render(root) {
     h('div', { class: 'hero__meta' }, flag(u.country_code), netTag(u.network), u.member_no ? h('span', { class: 'tag num', text: u.member_no }) : null, h('span', { class: 'tag', text: [u.state_region, u.country].filter(Boolean).join(', ') }), h('span', { class: 'tag', text: 'Member since ' + fmtDate(u.created_at, { month: 'short', year: 'numeric' }) }))),
     h('img', { class: 'hero__disc', src: net.disc, alt: '' })));
   if (u.todo && u.todo.activation) root.append(h('section', { class: 'card nudge' }, h('div', { class: 'card__body', style: 'display:flex;gap:16px;align-items:center;flex-wrap:wrap' }, h('div', { class: 'grow' }, h('b', { text: 'My Activation' }), h('p', { class: 'muted', style: 'margin:4px 0 0', text: 'You are being considered for a volunteer leadership position. Continue your activation from where you stopped.' })), h('a', { class: 'btn', href: '#/activation', text: 'Open my activation' }))));
+  /* the member's own dashboard: chapter, journey, referrals, learning */
+  const tiles = h('div', { class: 'row row--4' }); root.append(tiles);
+  const tile = (ic, label, value, foot, href, ext) => h('a', { class: 'card kpi kpi--link', href, ...(ext ? { target: '_blank', rel: 'noopener' } : {}) }, h('div', { class: 'kpi__label' }, icon(ic, 17), h('span', { text: label })), h('div', { class: 'kpi__value', style: String(value).length > 6 ? 'font-size:21px;line-height:1.25;letter-spacing:0' : '', text: String(value) }), h('div', { class: 'kpi__foot' }, h('span', { text: foot })));
+  const jr = u.journey; const paintTiles = (ref) => tiles.replaceChildren(
+    tile('users', 'My chapter', u.chapter ? u.chapter.name : 'Pending', u.chapter ? `${u.chapter.members} women in your chapter` : 'Open to see what is needed', '#/chapter'),
+    tile('route', 'Seven-day journey', jr ? (jr.status === 'active' ? 'Active' : `${jr.done}/${jr.total}`) : 'Active', jr ? (jr.status === 'active' ? 'You completed your seven days' : 'Steps completed') : 'Member before the journey began', '#/journey'),
+    tile('send', 'Referral progress', ref ? `${ref.registered}/${ref.target}` : '0/3', ref ? `${ref.verified} completed their seven days` : 'Invite three women', '#/journey'),
+    tile('book', 'Learning', 'Institute', 'Courses at the WODDI Institute', 'https://woddiinstitute.com', true));
+  paintTiles(null); if (jr) api('/journey').then((d) => paintTiles(d.referrals)).catch(() => {});
+  if (jr && jr.status !== 'active') root.append(h('section', { class: 'card nudge' }, h('div', { class: 'card__body', style: 'display:flex;gap:16px;align-items:center;flex-wrap:wrap' }, h('div', { class: 'grow' }, h('b', { text: 'Your next step is ready' }), h('p', { class: 'muted', style: 'margin:4px 0 0', text: 'One short step each day for seven days. You can read it or listen to it.' })), h('a', { class: 'btn', href: '#/journey', text: 'Continue my seven days' }))));
   root.append(pushNudge());
   if (u.network === 'WGMN' && u.country_code) root.append(goodMotherCard(u.country_code, u.country));
   const today = h('div', { hidden: true }); root.append(today);

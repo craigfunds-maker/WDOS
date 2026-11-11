@@ -134,6 +134,6 @@ function automations_tick(): void {
     if ($last !== 0 || !claim_send('auto_tick')) return;                      // someone else took this tick
     set_setting('auto_tick', (string) time());
   }
-  $done = run_automations(); run_inspiration_automations($done); if (function_exists('rp_reminders_daily')) rp_reminders_daily($done); if (function_exists('work_automations')) work_automations($done);
+  $done = run_automations(); run_inspiration_automations($done); if (function_exists('rp_reminders_daily')) rp_reminders_daily($done); if (function_exists('work_automations')) work_automations($done); if (function_exists('amend_automations')) amend_automations($done);
   push_drain(60);
 }

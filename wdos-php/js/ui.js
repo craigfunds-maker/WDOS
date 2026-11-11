@@ -1,6 +1,8 @@
 /* Small DOM toolkit: elements, icons, avatars, toasts, skeletons, empty states. No framework. */
 /* Languages. The dictionary is keyed by the English sentence, so a sentence with no translation yet simply stays in English. */
-export const LANGS = { en: 'English', fr: 'Français', pt: 'Português', ar: 'العربية', sw: 'Kiswahili' };
+/* Alphabetical by the English name of the language: Arabic, English, French, Portuguese, Swahili. */
+export const LANGS = { ar: 'العربية', en: 'English', fr: 'Français', pt: 'Português', sw: 'Kiswahili' };
+export const LANG_NAMES = { ar: 'Arabic', en: 'English', fr: 'French', pt: 'Portuguese', sw: 'Swahili' };
 export const i18n = {
   lang: 'en', dict: null,
   saved() { try { const l = localStorage.getItem('wdos.lang'); return LANGS[l] ? l : 'en'; } catch { return 'en'; } },
@@ -33,6 +35,7 @@ export const clear = (n) => { while (n.firstChild) n.removeChild(n.firstChild); 
 const I = {
   grid: ['r:3,3,7,7,1.5', 'r:14,3,7,7,1.5', 'r:14,14,7,7,1.5', 'r:3,14,7,7,1.5'],
   users: ['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2', 'c:9,7,4', 'M22 21v-2a4 4 0 0 0-3-3.87', 'M16 3.13a4 4 0 0 1 0 7.75'],
+  volume: ['M11 5L6 9H2v6h4l5 4V5z', 'M15.5 8.5a5 5 0 0 1 0 7', 'M19 5a9 9 0 0 1 0 14'],
   megaphone: ['M3 11l18-5v12L3 14v-3z', 'M11.6 16.8a3 3 0 1 1-5.8-1.6'],
   spark: ['M12 3l1.9 5.6L19.5 10.5 13.9 12.4 12 18l-1.9-5.6L4.5 10.5l5.6-1.9z', 'M19 3v4', 'M21 5h-4', 'M5 17v3', 'M6.5 18.5h-3'],
   bell: ['M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9', 'M10.3 21a1.94 1.94 0 0 0 3.4 0'],
@@ -192,12 +195,12 @@ export function langPicker(onPick) {
 /* Language pills for the public pages. Languages still being prepared are listed but cannot be chosen yet. */
 export const LANGS_SOON = ['Afrikaans', 'Amharic', 'Bambara', 'Chichewa', 'Fulfulde', 'Hausa', 'Igbo', 'Kinyarwanda', 'Kirundi', 'Lingala', 'Luganda', 'Malagasy', 'Oromo', 'Sesotho', 'Setswana', 'Shona', 'Somali', 'Tigrinya', 'Twi', 'Wolof', 'Xhosa', 'Yorùbá', 'Zulu'];
 export function langPills(onPick) {
-  const order = ['en', 'fr', 'ar', 'sw', 'pt'];
+  const order = ['ar', 'en', 'fr', 'pt', 'sw'];
   const more = h('details', { class: 'lpill lpill--more' }, h('summary', {}, h('span', { text: 'Other African Languages' }), icon('chevdown', 16)),
     h('div', { class: 'lpill__menu' }, LANGS_SOON.map((l) => h('div', { class: 'lpill__soon' }, document.createTextNode(l), h('small', { text: 'Being prepared' })))));
   document.addEventListener('click', (e) => { if (more.isConnected && !more.contains(e.target)) more.removeAttribute('open'); });
   return h('nav', { class: 'lpills', 'aria-label': 'Language' }, order.map((code) => { const on = i18n.lang === code; const b = document.createElement('button');
-    b.type = 'button'; b.className = 'lpill' + (on ? ' is-on' : ''); b.setAttribute('aria-pressed', String(on)); b.lang = code; if (on) b.append(icon('globe', 18)); b.append(document.createTextNode(LANGS[code]));
+    b.type = 'button'; b.className = 'lpill' + (on ? ' is-on' : ''); b.setAttribute('aria-pressed', String(on)); b.lang = code; b.title = LANG_NAMES[code]; b.setAttribute('aria-label', LANG_NAMES[code] + ', ' + LANGS[code]); if (on) b.append(icon('globe', 18)); b.append(document.createTextNode(LANGS[code]));
     b.addEventListener('click', () => { if (!on) onPick(code); }); return b; }), more);
 }
 /* Text with any web address in it turned into a link that can be tapped. */
@@ -207,3 +210,26 @@ export function linkify(text) {
   if (last < str.length) out.push(document.createTextNode(str.slice(last)));
   return out;
 }
+
+/* Listen: the device reads the words aloud in the chosen language. It is optional help, uses no mobile data, and is the
+ * device's own voice, not a recorded WODDI voice. Where a device has no voice, the button is not shown. */
+const VOICE = { ar: 'ar-SA', en: 'en-GB', fr: 'fr-FR', pt: 'pt-PT', sw: 'sw-KE' };
+export function listenBtn(getText, label = 'Listen') {
+  if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') return null;
+  const b = h('button', { class: 'btn btn--quiet btn--s listen', type: 'button', 'aria-pressed': 'false' }, icon('volume', 18), h('span', { text: label }));
+  const stop = () => { b.setAttribute('aria-pressed', 'false'); b.lastChild.textContent = t(label); };
+  b.addEventListener('click', () => {
+    const on = b.getAttribute('aria-pressed') === 'true'; speechSynthesis.cancel(); document.querySelectorAll('.listen[aria-pressed="true"]').forEach((x) => { x.setAttribute('aria-pressed', 'false'); x.lastChild.textContent = t('Listen'); });
+    if (on) return;
+    const raw = typeof getText === 'function' ? getText() : getText; const text = (Array.isArray(raw) ? raw : [raw]).filter(Boolean).map((x) => t(String(x))).join('. ');
+    const u = new SpeechSynthesisUtterance(text); u.lang = VOICE[i18n.lang] || 'en-GB'; u.rate = 0.92; u.onend = stop; u.onerror = stop;
+    b.setAttribute('aria-pressed', 'true'); b.lastChild.textContent = t('Stop'); speechSynthesis.speak(u);
+  });
+  return b;
+}
+/* A capacity meter: members against the chapter's capacity, with the minimum marked. */
+export function meter(n, cap, min) {
+  const pct = Math.max(0, Math.min(100, Math.round((n / Math.max(1, cap)) * 100)));
+  return h('div', { class: 'meter' + (n >= cap ? ' is-full' : n >= min ? ' is-ok' : ''), role: 'img', 'aria-label': `${n} of ${cap} members` }, h('span', { style: `width:${pct}%` }), min && min < cap ? h('i', { style: `inset-inline-start:${Math.round((min / cap) * 100)}%` }) : null);
+}
+export const CH_TAG = { developing: '', eligible: 'tag--wgmn', active: 'tag--wnnn', full: 'tag--bad', merged: '', closed: '' };

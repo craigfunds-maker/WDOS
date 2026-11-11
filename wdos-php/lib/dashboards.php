@@ -136,10 +136,17 @@ route('POST', '/hq/members/(\d+)/seat', function ($id) {
   $unit = row('SELECT * FROM org_units WHERE id=?', [(int) ($b['org_unit_id'] ?? 0)]);
   if (!$unit || $unit['level'] === 'hq') fail(422, 'Choose the country or state this seat covers.', 'unit');
   $area = str_in('area_label', 120);
-  if (in_array($pos['level'], ['lga', 'community_cluster', 'chapter'], true) && $area === '') fail(422, 'Name the LGA, cluster or chapter this seat covers.', 'area');
+  if (in_array($pos['level'], ['lga', 'community_cluster', 'chapter'], true) && $area === '' && empty($b['chapter_id'])) fail(422, 'Name the LGA, city, cluster or chapter this seat covers.', 'area');
   $net = in_array($b['network'] ?? '', ['WGMN', 'WNNN'], true) ? $b['network'] : $u['network'];
   $status = in_array($b['status'] ?? '', ['appointed', 'acting', 'pending'], true) ? $b['status'] : 'appointed';
-  $title = seat_open($id, $pos['code'], $net, (int) $unit['id'], $area, $status, (int) $me['id']);
+  $chap = (int) ($b['chapter_id'] ?? 0) ? row('SELECT * FROM chapters WHERE id=?', [(int) $b['chapter_id']]) : null;
+  if ($chap && $chap['network'] !== $net) fail(422, 'That chapter belongs to the other network.', 'chapter');
+  $hfs = !empty($b['he_for_she']);
+  // He-for-She Champions serve as deputies, assistants or administrative secretaries only
+  if ($hfs && !preg_match('/^(deputy_|assistant_)|_secretary$/', $pos['code'])) fail(422, 'A He-for-She Champion can be appointed as a deputy, an assistant or an administrative secretary only.', 'he_for_she');
+  $title = seat_open($id, $pos['code'], $net, (int) $unit['id'], $chap && $area === '' ? $chap['name'] : $area, $status, (int) $me['id']);
+  q('UPDATE seats SET chapter_id=?, he_for_she=? WHERE user_id=? AND ends_at IS NULL', [$chap ? (int) $chap['id'] : null, $hfs ? 1 : 0, $id]);
+  if ($hfs) { q("UPDATE users SET participant_class='he_for_she' WHERE id=?", [$id]); chapter_leave($id, 'he_for_she'); }
   after_response(fn() => push_drain(5));
   return ['ok' => true, 'title' => $title];
 });
@@ -155,6 +162,7 @@ route('POST', '/hq/members/(\\d+)/details', function ($id) {
   if ($sid = (int) ($b['state_id'] ?? 0)) { $s = row('SELECT id, name FROM org_units WHERE id=? AND parent_id=?', [$sid, (int) $country['id']]); if ($s) { $unit = (int) $s['id']; $state = $s['name']; } }
   q('UPDATE users SET network=?, country_code=?, org_unit_id=?, state_region=?, lga=?, community=? WHERE id=?', [$net, $country['country_code'], $unit, $state, str_in('lga', 120), str_in('community', 120), $id]);
   log_activity((int) $me['id'], $id, 'details_corrected', trim(($net ?? '') . ' · ' . $state . ', ' . $country['name'], ' ·,'));
+  chapter_replace_after_change($id);
   return ['ok' => true];
 });
 
@@ -162,34 +170,19 @@ route('GET', '/hq/announcements', function () {
   require_hq();
   return ['items' => rows("SELECT a.*, CONCAT(u.first_name,' ',u.last_name) author FROM announcements a JOIN users u ON u.id=a.author_id ORDER BY a.id DESC LIMIT 30")];
 });
-route('POST', '/hq/announcements', function () {
-  $me = require_hq();
-  $title = str_in('title', 160); $text = str_in('body', 4000);
-  if (mb_strlen($title) < 3 || mb_strlen($text) < 3) fail(422, 'Write a title and a message.', 'empty');
-  $net = in_array(body()['network'] ?? '', ['WGMN', 'WNNN'], true) ? body()['network'] : 'ALL';
-  $role = in_array(body()['role'] ?? '', ['leaders'], true) ? 'leaders' : 'all';
-  $country = preg_match('/^[A-Z]{2}$/', (string) (body()['country'] ?? '')) ? body()['country'] : null;
-  $w = ["u.status='active'"]; $p = [];
-  if ($net !== 'ALL') { $w[] = 'u.network=?'; $p[] = $net; }
-  if ($role === 'leaders') $w[] = 'EXISTS (SELECT 1 FROM seats s WHERE s.user_id=u.id AND s.ends_at IS NULL)';
-  if ($country) { $w[] = 'u.country_code=?'; $p[] = $country; }
-  $tone = in_array(body()['tone'] ?? '', ['celebration', 'gratitude', 'courage', 'calm', 'growth', 'purpose'], true) ? body()['tone'] : '';
-  $id = ins('INSERT INTO announcements (author_id,title,body,audience_network,audience_role,audience_country,tone,created_at) VALUES (?,?,?,?,?,?,?,?)', [(int) $me['id'], $title, $text, $net, $role, $country, $tone, now()]);
-  $n = notify_many(implode(' AND ', $w), $p, 'announcement', $title, mb_substr($text, 0, 240), '#/announcements/' . $id);
-  q('UPDATE announcements SET recipients=? WHERE id=?', [$n, $id]);
-  log_activity((int) $me['id'], null, 'announcement', $title);
-  return ['ok' => true, 'id' => $id, 'recipients' => $n, 'push_queued' => (int) val("SELECT COUNT(*) FROM push_outbox WHERE status='queued'")];
-});
+route('POST', '/hq/announcements', function () { return announcement_send(require_hq()); });
 /* Everyone reads the announcements addressed to her. */
 route('GET', '/announcements', function () {
   $u = require_user(); $leader = current_seat((int) $u['id']) ? 1 : 0;
-  $w = is_hq($u) ? '1=1' : "(a.audience_network='ALL' OR a.audience_network=?) AND (a.audience_role='all' OR ?=1) AND (a.audience_country IS NULL OR a.audience_country=?)";
+  $w = is_hq($u) ? '1=1' : "(a.audience_network='ALL' OR a.audience_network=?) AND (a.audience_role='all' OR ?=1) AND (a.audience_country IS NULL OR a.audience_country=?)
+        AND (a.audience_state='' OR a.audience_state=?) AND (a.audience_lga='' OR a.audience_lga=?) AND (a.audience_community='' OR a.audience_community=?) AND (a.audience_chapter IS NULL OR a.audience_chapter=?) AND (a.audience_lang='' OR a.audience_lang=?)";
   return ['items' => rows("SELECT a.id, a.title, a.body, a.audience_network, a.audience_role, a.tone, a.created_at FROM announcements a WHERE $w ORDER BY a.id DESC LIMIT 20",
-    is_hq($u) ? [] : [(string) $u['network'], $leader, (string) $u['country_code']])];
+    is_hq($u) ? [] : [(string) $u['network'], $leader, (string) $u['country_code'], $u['state_region'], $u['lga'], $u['community'], (int) ($u['chapter_id'] ?? 0), (string) ($u['lang'] ?? 'en')])];
 });
 
 /* ------------------------------------------------ volunteer leadership -- */
 function leader_scope(array $seat): array {
+  if (!empty($seat['chapter_id'])) return ['u.chapter_id=? AND u.network=?', [(int) $seat['chapter_id'], $seat['network']]];   // a chapter leader sees her own chapter only
   $w = 'ou.path LIKE ? AND u.network=?'; $p = [$seat['unit_path'] . '%', $seat['network']];
   if ($seat['position_level'] === 'lga') { $w .= ' AND u.lga=?'; $p[] = $seat['area_label']; }
   if (in_array($seat['position_level'], ['community_cluster', 'chapter'], true)) { $w .= ' AND u.community=?'; $p[] = $seat['area_label']; }
@@ -240,6 +233,8 @@ route('GET', '/leader/dashboard', function () {
 });
 route('GET', '/leader/members', function () {
   $u = require_user(); [$seat] = leader_view($u, 'This list opens when WODDI HQ records your leadership seat.');
+  // a He-for-She Champion works through assigned tasks, meetings and approved reports; the appointment does not open the personal roster
+  if (!empty($seat['he_for_she']) && !is_hq($u)) fail(403, 'The member roster is not part of a He-for-She appointment. Your tasks, meetings and reports are open to you.', 'he_for_she');
   [$w, $p] = leader_scope($seat);
   if (($s = trim((string) ($_GET['q'] ?? ''))) !== '') { $w .= " AND (CONCAT(u.first_name,' ',u.last_name) LIKE ? OR u.member_no LIKE ?)"; $p[] = "%$s%"; $p[] = "%$s%"; }
   $page = max(1, (int) ($_GET['page'] ?? 1)); $size = 20;

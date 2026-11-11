@@ -14,11 +14,11 @@ export async function render(root, params) {
   let lastEmail = ''; try { lastEmail = localStorage.getItem('wdos.email') || ''; } catch { /* ignore */ }
 
   const signInView = () => {
-    const email = h('input', { class: 'input', id: 'l-email', type: 'email', required: true, autocomplete: 'username webauthn', value: lastEmail });
+    const email = h('input', { class: 'input', id: 'l-email', type: 'text', inputmode: 'email', autocapitalize: 'none', required: true, autocomplete: 'username webauthn', value: lastEmail });
     const pw = h('input', { class: 'input', id: 'l-pw', type: 'password', required: true, autocomplete: 'current-password' });
     const btn = h('button', { class: 'btn btn--block', type: 'submit', text: 'Sign in' });
     const form = h('form', { style: 'display:grid;gap:14px', novalidate: true },
-      h('label', { class: 'field', for: 'l-email' }, h('span', { text: 'Email address' }), email),
+      h('label', { class: 'field', for: 'l-email' }, h('span', { text: 'Email address or phone number' }), email),
       h('label', { class: 'field', for: 'l-pw' }, h('span', { text: 'Password' }), pw),
       h('div', { class: 'forgot' }, h('a', { href: '#', onclick: (e) => { e.preventDefault(); card.replaceChildren(...forgotView(email.value)); }, text: 'Forgot password?' })),
       err, btn);

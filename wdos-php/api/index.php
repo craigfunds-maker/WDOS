@@ -10,6 +10,7 @@ require __DIR__ . '/../lib/reporting_fns.php';
 require __DIR__ . '/../lib/work_fns.php';
 require __DIR__ . '/../lib/photos.php';
 require __DIR__ . '/../lib/journey_fns.php';
+require __DIR__ . '/../lib/amend_fns.php';
 
 set_exception_handler(function (Throwable $e) {
   error_log('[wdos] ' . $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine());
@@ -79,7 +80,8 @@ function validate_profile_fields(bool $withPassword): array {
   $pw = null;
   if ($withPassword) {
     $pw = (string) (body()['password'] ?? '');
-    if (strlen($pw) < 8) fail(422, 'Choose a password of at least 8 characters.', 'password');
+    if (strlen($pw) < 6) fail(422, 'Choose a password or PIN of at least 6 characters.', 'password');
+    if (preg_match('/^(\d)\1+$/', $pw) || in_array($pw, ['123456', '1234567', '12345678', '654321', '012345'], true)) fail(422, 'That PIN is too easy to guess. Choose another.', 'password');
   }
   if (empty(body()['consent'])) fail(422, 'Please confirm you agree to the Code of Conduct.', 'consent');
   return ['network' => $net, 'first_name' => $first, 'last_name' => $last, 'phone' => $phone, 'dob' => $dob,
@@ -93,15 +95,24 @@ function finish_signup(int $id, array $f): void {
   notify($id, 'welcome', 'Welcome to ' . $f['network'] . ', ' . $f['first_name'], "Your membership number is $no. You are now part of the $netName. Add your photograph and switch on notifications to finish setting up.", '#/settings');
   notify_hq('registration', 'New ' . $f['network'] . ' member: ' . $f['first_name'] . ' ' . $f['last_name'], $f['state_region'] . ', ' . country_name($f['country_code']) . ". Membership number $no.", '#/members/' . $id);
   log_activity($id, $id, 'registered', $f['network'] . ' · ' . $f['state_region'] . ', ' . $f['country_code']);
-  referral_attach($id, $f, body()['referral'] ?? null);
+  $aid = referral_attach($id, $f, body()['referral'] ?? null);
+  // automatic from here: a chapter near her, and the seven-day journey. A leadership candidate follows the referral activation instead.
+  $fresh = row('SELECT * FROM users WHERE id=?', [$id]); if ($fresh) chapter_place_user($fresh);
+  if (!$aid) mj_start($id);
+  if (preg_match('/^[a-z]{2,3}$/', (string) (body()['lang'] ?? ''))) q('UPDATE users SET lang=? WHERE id=?', [body()['lang'], $id]);
   after_response(fn() => push_drain(20));
 }
+
+/** The sign-in name of an account made with a phone number and no email address. */
+function phone_login_name(string $phone): string { return 'p' . ltrim($phone, '+') . '@phone.wdos.invalid'; }
 
 route('POST', '/auth/register', function () {
   throttle('reg:' . client_ip(), 12, 3600);
   $email = strtolower(str_in('email', 190));
-  if (!filter_var($email, FILTER_VALIDATE_EMAIL)) fail(422, 'Enter a valid email address.', 'email');
   $f = validate_profile_fields(true);
+  // An email address is optional. Without one, the phone number is the sign-in name. No code is sent either way.
+  if ($email === '') { $email = phone_login_name($f['phone']); if (val('SELECT id FROM users WHERE email=?', [$email])) fail(409, 'An account with this phone number already exists. Sign in instead.', 'phone_taken'); }
+  elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) fail(422, 'Enter a valid email address, or leave it empty to sign in with your phone number.', 'email');
   if (val('SELECT id FROM users WHERE email=?', [$email])) fail(409, 'An account with this email already exists. Sign in instead.', 'email_taken');
   throttle_hit('reg:' . client_ip());
   $id = ins('INSERT INTO users (email,password_hash,first_name,last_name,phone,dob,network,country_code,org_unit_id,state_region,lga,community,role,status,signup_method,created_at)
@@ -127,9 +138,14 @@ route('POST', '/auth/login', function () {
   $email = strtolower(str_in('email', 190)); $pw = (string) (body()['password'] ?? '');
   throttle('login:' . $email, 8, 900); throttle('login-ip:' . client_ip(), 40, 900);
   $u = row('SELECT * FROM users WHERE email=?', [$email]);
+  if (!$u && $email !== '' && !str_contains($email, '@')) {                 // a phone number: the account made with it, or the only account that carries it
+    $ph = preg_replace('/[^\d+]/', '', $email);
+    $u = row('SELECT * FROM users WHERE email=?', [phone_login_name($ph)]);
+    if (!$u && strlen(ltrim($ph, '+')) >= 8) { $m = rows('SELECT * FROM users WHERE phone=? LIMIT 2', [$ph]); if (count($m) === 1) $u = $m[0]; }
+  }
   if (!$u || !$u['password_hash'] || !password_verify($pw, $u['password_hash'])) {
     throttle_hit('login:' . $email); throttle_hit('login-ip:' . client_ip());
-    fail(401, $u && !$u['password_hash'] ? 'This account was created with Google. Use Continue with Google.' : 'Email or password is not correct.', 'bad_credentials');
+    fail(401, $u && !$u['password_hash'] ? 'This account was created with Google. Use Continue with Google.' : 'Those sign-in details are not correct.', 'bad_credentials');
   }
   if ($u['status'] === 'suspended') fail(403, 'This account is suspended. Contact WODDI HQ.', 'suspended');
   session_start_for((int) $u['id'], 'password');
@@ -235,6 +251,7 @@ route('POST', '/me', function () {
   $first = str_in('first_name', 80) ?: $u['first_name']; $last = str_in('last_name', 80) ?: $u['last_name'];
   $phone = preg_replace('/[^\d+]/', '', str_in('phone', 32)) ?: $u['phone'];
   q('UPDATE users SET first_name=?, last_name=?, phone=?, lga=?, community=? WHERE id=?', [$first, $last, $phone, str_in('lga', 120), str_in('community', 120), (int) $u['id']]);
+  chapter_replace_after_change((int) $u['id']);
   return ['ok' => true, 'user' => public_user(row('SELECT * FROM users WHERE id=?', [(int) $u['id']]))];
 });
 route('POST', '/me/password', function () {
@@ -357,5 +374,6 @@ require __DIR__ . '/../lib/work.php';
 require __DIR__ . '/../lib/structure.php';
 require __DIR__ . '/../lib/journey.php';
 require __DIR__ . '/../lib/comms.php';
+require __DIR__ . '/../lib/amend.php';
 
 fail(404, 'No such WDOS endpoint.', 'not_found');
