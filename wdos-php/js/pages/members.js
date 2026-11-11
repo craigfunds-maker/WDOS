@@ -20,7 +20,7 @@ export async function render(root, params) {
   async function load() {
     holder.replaceChildren(table); tbody.replaceChildren(...sk.table(cols.length, 8)); pager.replaceChildren();
     let r;
-    try { r = await api((hq ? '/hq/members?' : '/leader/members?') + new URLSearchParams({ q: state.q, network: state.network, kind: state.kind, page: state.page })); }
+    try { r = await api((hq ? '/hq/members?' : '/leader/members?') + new URLSearchParams({ q: state.q, network: state.network, kind: state.kind, page: state.page, ...(params.as ? { as: params.as } : {}) })); }
     catch (e) { holder.replaceChildren(empty('x', 'Members did not load', e.message, h('button', { class: 'btn btn--quiet btn--s', onclick: load }, 'Try again'))); return; }
     count.textContent = fmt(r.total) + (r.total === 1 ? ' member' : ' members') + (r.scope ? ' · ' + r.scope : '');
     if (!r.items.length) {
@@ -81,6 +81,7 @@ async function openMember(id, reload) {
       h('div', { style: 'display:flex;gap:14px;align-items:center' }, avatar(m, 64), h('div', {}, h('div', { class: 'display', style: 'font-size:24px;line-height:1.15', text: `${m.first_name} ${m.last_name}` }), h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center' }, flag(m.country_code), netTag(m.network), m.status === 'suspended' ? h('span', { class: 'tag tag--bad', text: 'Suspended' }) : null, m.is_hq ? h('span', { class: 'tag', text: 'HQ access' }) : null))),
       dl([['Membership no.', m.member_no], ['Email', h('a', { href: 'mailto:' + m.email, text: m.email })], ['Phone', m.phone && h('a', { href: 'tel:' + m.phone, text: m.phone })], ['Date of birth', fmtDate(m.dob)], ['Location', [m.community, m.lga, m.state_region, m.country].filter(Boolean).join(', ')], ['Leadership seat', m.seat?.title], ['Joined', fmtDate(m.created_at) + ' by ' + (m.signup_method === 'google' ? 'Google' : m.signup_method === 'setup' ? 'setup page' : 'email')], ['Last active', ago(m.last_seen_at)], ['Devices', `${m.devices} with notifications on, ${m.fingerprints} with fingerprint`]]),
       msg,
+      m.seat ? h('div', {}, h('a', { class: 'btn btn--quiet btn--s', href: '#/leaders/' + id }, 'Open leadership dashboard')) : null,
       m.network ? h('div', { class: 'panel' }, h('b', { text: m.seat ? 'Change leadership seat' : 'Appoint to a leadership seat' }), pos, country, st, area, seatStatus,
         h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, h('button', { class: 'btn btn--s', onclick: () => act(() => api(`/hq/members/${id}/seat`, { position: pos.value, org_unit_id: Number(st.value || country.value), area_label: area.value, status: seatStatus.value }), 'Seat recorded. The member has been notified.') }, m.seat ? 'Save new seat' : 'Appoint'),
           m.seat ? h('button', { class: 'btn btn--ghost btn--s', onclick: () => act(() => api(`/hq/members/${id}/seat`, { vacate: true }), 'Seat closed') }, 'Close this seat') : null)) : null,

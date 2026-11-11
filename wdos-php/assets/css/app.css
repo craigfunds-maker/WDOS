@@ -360,3 +360,4 @@ html{-webkit-tap-highlight-color:transparent} body{overscroll-behavior-y:none}
 }
 @media (display-mode:standalone){.pubfoot{padding-bottom:calc(16px + env(safe-area-inset-bottom))} body{user-select:none;-webkit-user-select:none} input,textarea,.doc,p,dd,td,b,h1,h2,h3{user-select:text;-webkit-user-select:text}}
 .lpill--more,.lpill--more:hover,.lpill--more:active{transform:none!important;transition:none}
+.viewas{border-color:var(--lime)} .viewas .nrow__ico{color:var(--lime-ink)}

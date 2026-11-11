@@ -32,6 +32,8 @@ function resolve(path) {
   if (u.status === 'pending_profile') return pub('welcome', { complete: true, network: u.network || '' });
   const sh = (name, title, params = {}) => ({ name, title, params, shell: true });
   switch (seg[0]) {
+    case 'leaders': if (!u.is_hq) return sh(u.is_leader ? 'leader' : 'home', u.is_leader ? 'Leadership dashboard' : 'Home');
+      return !seg[1] ? sh('leader', 'Leader dashboards', { pick: true }) : seg[2] === 'members' ? sh('members', 'Members in this leader\'s area', { scope: 'leader', as: seg[1] }) : sh('leader', 'Leader dashboard', { as: seg[1] });
     case 'members': return u.is_hq ? sh('members', 'Members', { id: seg[1] }) : u.is_leader ? sh('members', 'My members', { scope: 'leader' }) : sh('home', 'Home');
     case 'announcements': return sh('announcements', 'Announcements', { id: seg[1] });
     case 'reporting': return (u.is_hq || u.is_leader) ? sh('reporting', 'Reporting and accountability', { tab: seg[1], id: seg[2] }) : sh('home', 'Home');
@@ -78,7 +80,7 @@ export function signedIn(user) { app.user = user; shellEls = null; startPulse();
 /* ----------------------------------------------------------------- shell -- */
 function navItems() {
   const u = app.user; const comm = [['Communication'], ['#/announcements', 'megaphone', 'Announcements'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
-  if (u.is_hq) return [['Overview'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/structure', 'tree', 'Leadership structure'], ['#/referrals', 'route', 'Referral and activation'], ['Work'], ['#/reporting', 'chart', 'Reporting'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ...comm];
+  if (u.is_hq) return [['Overview'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/leaders', 'eye', 'Leader dashboards'], ['#/structure', 'tree', 'Leadership structure'], ['#/referrals', 'route', 'Referral and activation'], ['Work'], ['#/reporting', 'chart', 'Reporting'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ...comm];
   if (u.is_leader) return [['My leadership'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'My members'], ['#/structure', 'tree', 'Leadership structure'], ['#/referrals', 'route', 'Referral links'], ['#/onboarding', 'book', 'Onboarding'], ['Work'], ['#/reporting', 'chart', 'Reporting'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ...comm];
   return [['My network'], ['#/', 'grid', 'Home'], u.todo && u.todo.activation ? ['#/activation', 'route', 'My Activation'] : null, ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ...comm].filter(Boolean);
 }

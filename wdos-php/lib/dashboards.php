@@ -195,9 +195,20 @@ function leader_scope(array $seat): array {
   if (in_array($seat['position_level'], ['community_cluster', 'chapter'], true)) { $w .= ' AND u.community=?'; $p[] = $seat['area_label']; }
   return [$w, $p];
 }
+/** Whose leadership view is being asked for: the signed-in leader's own, or (HQ only, read-only) the leader named in ?as=. */
+function leader_view(array $u, string $noSeat): array {
+  $as = (int) ($_GET['as'] ?? 0);
+  if ($as && $as !== (int) $u['id']) {
+    if (!is_hq($u)) fail(403, 'Only WODDI HQ can open another leader\'s dashboard.', 'forbidden');
+    $p = row('SELECT id, first_name, last_name, has_photo, member_no, network, country_code FROM users WHERE id=?', [$as]); $seat = $p ? current_seat($as) : null;
+    if (!$seat) fail(404, 'That person does not hold a leadership seat.', 'no_seat');
+    return [$seat, $p];
+  }
+  $seat = current_seat((int) $u['id']); if (!$seat) fail(403, $noSeat, 'no_seat');
+  return [$seat, $u];
+}
 route('GET', '/leader/dashboard', function () {
-  $u = require_user(); $seat = current_seat((int) $u['id']);
-  if (!$seat) fail(403, 'This dashboard opens when WODDI HQ records your leadership seat.', 'no_seat');
+  $u = require_user(); [$seat, $who] = leader_view($u, 'This dashboard opens when WODDI HQ records your leadership seat.');
   [$w, $p] = leader_scope($seat);
   $days = (int) ($_GET['days'] ?? 30); if (!in_array($days, [7, 30, 90], true)) $days = 30;
   $from = gmdate('Y-m-d 00:00:00', time() - ($days - 1) * 86400); $prev = gmdate('Y-m-d 00:00:00', time() - (2 * $days - 1) * 86400);
@@ -223,11 +234,12 @@ route('GET', '/leader/dashboard', function () {
     'breakdown' => rows("SELECT COALESCE(NULLIF($col,''),'Not stated') label, COUNT(*) total FROM users u JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND $w GROUP BY label ORDER BY total DESC, label LIMIT 8", $p),
     'recent' => people_brief($w, $p, 7),
     'team' => $team, 'reports_to' => $above,
+    'person' => ['id' => (int) $who['id'], 'first_name' => $who['first_name'], 'last_name' => $who['last_name'], 'has_photo' => (int) $who['has_photo'], 'member_no' => $who['member_no'], 'network' => $seat['network'],
+      'country_code' => $who['country_code'], 'country' => country_name((string) $who['country_code']), 'seat' => ['title' => seat_title($seat), 'network' => $seat['network']]], 'viewing' => (int) $who['id'] !== (int) $u['id'],
   ];
 });
 route('GET', '/leader/members', function () {
-  $u = require_user(); $seat = current_seat((int) $u['id']);
-  if (!$seat) fail(403, 'This list opens when WODDI HQ records your leadership seat.', 'no_seat');
+  $u = require_user(); [$seat] = leader_view($u, 'This list opens when WODDI HQ records your leadership seat.');
   [$w, $p] = leader_scope($seat);
   if (($s = trim((string) ($_GET['q'] ?? ''))) !== '') { $w .= " AND (CONCAT(u.first_name,' ',u.last_name) LIKE ? OR u.member_no LIKE ?)"; $p[] = "%$s%"; $p[] = "%$s%"; }
   $page = max(1, (int) ($_GET['page'] ?? 1)); $size = 20;
