@@ -33,7 +33,7 @@ export async function render(root, params) {
     } }, icon('fingerprint', 20), 'Sign in with fingerprint') : null;
     const g = app.config.google ? h('a', { class: 'gbtn', href: '/api/auth/google/start' }, googleMark(), 'Continue with Google')
       : h('span', { class: 'gbtn', 'aria-disabled': 'true', title: 'HQ IT has not added the Google keys yet' }, googleMark(), 'Continue with Google');
-    return [h('h1', { class: 'display', text: 'Sign in to WDOS' }), h('p', { class: 'muted', text: 'For WGMN and WNNN members, volunteer leaders and HQ.' }), form, h('div', { class: 'or', text: 'or' }), g, fp,
+    return [h('h1', { class: 'display', text: 'Sign in to WDOS' }), form, h('div', { class: 'or', text: 'or' }), g, fp,
       h('p', { class: 'muted', style: 'text-align:center;font-size:14.5px;margin-top:4px' }, 'New to WODDI? ', h('a', { href: '#/', text: 'Choose your network and join' }))];
   };
   const forgotView = (prefill) => {
