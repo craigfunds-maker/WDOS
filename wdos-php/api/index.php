@@ -252,25 +252,6 @@ route('POST', '/hq/members/(\d+)/photo', function ($id) {
   photo_from_upload((int) $id); log_activity((int) $me['id'], (int) $id, 'photo_set', '');
   return ['ok' => true, 'v' => time()];
 });
-/* One-off transfer of the approved message write-ups from the current WDOS (woddicrm.org), sent by HQ's own browser.
- * Guarded by a single-use secret whose hash is all that is kept here, and closed after 14 November 2026. */
-if ($PATH === '/import/message-texts') {
-  header('Access-Control-Allow-Origin: https://woddicrm.org'); header('Vary: Origin');
-  if ($METHOD !== 'POST' || gmdate('Y-m-d') > '2026-11-14') { http_response_code(404); exit; }
-  $in = json_decode((string) file_get_contents('php://input'), true);
-  if (!is_array($in) || !hash_equals('87cf81a5efeb2ce0ad42396ff3d7a5c2911afc08e2111c9b240230107bda39e4', hash('sha256', (string) ($in['token'] ?? '')))) { http_response_code(403); exit; }
-  require_once __DIR__ . '/../lib/migrate.php'; ensure_migrated(); $n = 0; $miss = [];
-  foreach (array_slice(is_array($in['items'] ?? null) ? $in['items'] : [], 0, 80) as $it) {
-    $kind = ($it['kind'] ?? '') === 'monthly' ? 'monthly' : 'weekly'; $lang = preg_replace('/[^a-z]/', '', strtolower((string) ($it['lang'] ?? 'en'))) ?: 'en';
-    $id = val('SELECT id FROM hq_messages WHERE kind=? AND seq=? AND network=?', [$kind, (int) ($it['seq'] ?? 0), $kind === 'monthly' ? 'ALL' : strtoupper((string) ($it['network'] ?? ''))]);
-    if (!$id) { $miss[] = "$kind " . ($it['seq'] ?? '?') . ' ' . ($it['network'] ?? ''); continue; }
-    $f = fn(string $k, int $max) => mb_substr(trim((string) ($it[$k] ?? '')), 0, $max);
-    q('DELETE FROM hq_message_texts WHERE message_id=? AND lang=?', [(int) $id, $lang]);
-    q('INSERT INTO hq_message_texts (message_id,lang,headline,key_thought,body,lens_wgmn,lens_wnnn,reflection,closing) VALUES (?,?,?,?,?,?,?,?,?)', [(int) $id, $lang, $f('headline', 190), $f('key_thought', 600), $f('body', 8000), $f('lens_wgmn', 4000), $f('lens_wnnn', 4000), $f('reflection', 800), $f('closing', 600)]);
-    $n++;
-  }
-  out(['ok' => true, 'loaded' => $n, 'not_found' => $miss, 'total' => (int) val('SELECT COUNT(*) FROM hq_message_texts'), 'photos' => (int) val('SELECT COUNT(*) FROM message_photos')]);
-}
 if ($METHOD === 'GET' && $PATH === '/inspiration/photo') {
   require_user();
   $p = row('SELECT mime, bytes FROM message_photos WHERE image_key=?', [(string) ($_GET['k'] ?? '')]);
