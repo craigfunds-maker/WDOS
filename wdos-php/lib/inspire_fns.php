@@ -20,9 +20,16 @@ function insp_month(?DateTimeImmutable $d = null): int {
   if ($d->setTime(0, 0) < first_wednesday($d)) $n--;
   return max(0, $n);
 }
+const INSP_TONES = ['celebration', 'gratitude', 'courage', 'calm', 'growth', 'purpose'];
+/** Address of the photograph for a message, or '' when none is loaded yet. One query for the whole request. */
+function insp_photo(string $key): string {
+  static $have = null;
+  if ($have === null) { $have = []; try { foreach (rows('SELECT image_key, updated_at FROM message_photos') as $r) $have[$r['image_key']] = strtotime($r['updated_at']); } catch (PDOException $e) { /* table arrives with the next migration run */ } }
+  return isset($have[$key]) ? '/api/inspiration/photo?k=' . rawurlencode($key) . '&v=' . $have[$key] : '';
+}
 function insp_shape(array $m, array $u, string $label): array {
   return ['id' => (int) $m['id'], 'kind' => $m['kind'], 'seq' => (int) $m['seq'], 'network' => $m['network'], 'label' => $label, 'theme' => $m['theme'],
-    'headline' => $m['headline'], 'key_thought' => $m['key_thought'], 'body' => (string) ($m['body'] ?? ''), 'image' => '/assets/inspiration/' . $m['image'], 'first_name' => $u['first_name']];
+    'headline' => $m['headline'], 'key_thought' => $m['key_thought'], 'body' => (string) ($m['body'] ?? ''), 'image' => insp_photo($m['image']), 'first_name' => $u['first_name']];
 }
 function insp_weekly_for(?string $network, int $week): ?array {
   if (!$network || $week < 1) return null;
@@ -34,7 +41,7 @@ function insp_today(array $u): ?array {
   $d = hq_today();
   if ($u['dob'] && substr($u['dob'], 5) === $d->format('m-d')) {
     return ['id' => 0, 'kind' => 'birthday', 'seq' => 0, 'network' => (string) $u['network'], 'label' => 'Happy birthday', 'theme' => '', 'headline' => 'A day to celebrate you',
-      'key_thought' => 'Everyone at WODDI HQ is celebrating you today.', 'body' => '', 'image' => '/assets/inspiration/messages/celebration.webp', 'first_name' => $u['first_name']];
+      'key_thought' => 'Everyone at WODDI HQ is celebrating you today.', 'body' => '', 'image' => insp_photo('messages/celebration.webp'), 'first_name' => $u['first_name']];
   }
   $seat = is_hq($u) ? null : current_seat((int) $u['id']);
   if (!$seat) return null;

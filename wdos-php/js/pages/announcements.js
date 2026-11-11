@@ -1,5 +1,5 @@
 /* Announcements. HQ composes and sends (in-app + push in one step); everyone else reads what was addressed to them. */
-import { h, icon, card, sk, empty, ago, fmt, toast, netTag, TONES } from '../ui.js';
+import { h, icon, card, sk, empty, ago, fmt, toast, netTag, TONES, tonePhoto } from '../ui.js';
 import { api } from '../api.js';
 import { app } from '../app.js';
 
@@ -9,7 +9,7 @@ export async function render(root, params) {
     let r; try { r = await api(hq ? '/hq/announcements' : '/announcements'); } catch (e) { list.replaceChildren(empty('x', 'Announcements did not load', e.message)); return; }
     if (!r.items.length) { list.replaceChildren(empty('megaphone', 'No announcements yet', hq ? 'Write the first one. It reaches every member it is addressed to, in the app and as a phone notification.' : 'When WODDI HQ writes to your network, it appears here.')); return; }
     list.replaceChildren(h('div', { class: 'reveal', style: 'display:grid;gap:14px' }, r.items.map((a) => h('article', { class: 'panel', id: 'a' + a.id, style: String(params.id) === String(a.id) ? 'border-color:var(--accent)' : '' },
-      a.tone ? h('img', { class: 'annpic', src: `/assets/inspiration/messages/${a.tone}.webp`, alt: '', loading: 'lazy' }) : null,
+      a.tone ? h('img', { class: 'annpic', src: tonePhoto(a.tone), alt: '', loading: 'lazy', onerror: (e) => e.target.remove() }) : null,
       h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, h('b', { style: 'font-size:16px;flex:1;min-width:200px', text: a.title }), a.audience_network !== 'ALL' ? netTag(a.audience_network) : h('span', { class: 'tag', text: 'Both networks' }), a.audience_role === 'leaders' ? h('span', { class: 'tag', text: 'Leaders only' }) : null),
       h('p', { style: 'white-space:pre-wrap;max-width:75ch', text: a.body }),
       h('small', { class: 'faint', text: [ago(a.created_at), hq && a.author ? 'by ' + a.author : '', hq ? `delivered to ${fmt(a.recipients)}` : ''].filter(Boolean).join(' · ') })))));
@@ -26,7 +26,7 @@ export async function render(root, params) {
     const tones = h('div', { class: 'tones', role: 'group', 'aria-label': 'Picture' });
     const pick = (v) => { tone = v; tones.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === v))); };
     tones.append(h('button', { type: 'button', class: 'tone tone--none', 'data-v': '', 'aria-pressed': 'true', onclick: () => pick('') }, 'No picture'),
-      ...TONES.map(([v, l]) => h('button', { type: 'button', class: 'tone', 'data-v': v, 'aria-pressed': 'false', onclick: () => pick(v) }, h('img', { src: `/assets/inspiration/messages/${v}.webp`, alt: '', loading: 'lazy' }), h('span', { text: l }))));
+      ...TONES.map(([v, l]) => h('button', { type: 'button', class: 'tone', 'data-v': v, 'aria-pressed': 'false', onclick: () => pick(v) }, h('img', { src: tonePhoto(v), alt: '', loading: 'lazy', onerror: (e) => { e.target.style.visibility = 'hidden'; } }), h('span', { text: l }))));
     const status = h('p', { class: 'okmsg', role: 'status' }); const btn = h('button', { class: 'btn', type: 'submit' }, icon('send', 17), 'Send announcement');
     const form = h('form', { style: 'display:grid;gap:14px' },
       h('label', { class: 'field', for: 'an-title' }, h('span', { text: 'Title' }), title), h('label', { class: 'field', for: 'an-body' }, h('span', { text: 'Message' }), body),

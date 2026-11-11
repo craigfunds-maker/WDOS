@@ -147,13 +147,21 @@ export const theme = {
 };
 
 /* An HQ inspiration message: picture on the right, words on the calm left side. The words are live text, never part of the picture. */
+export const tonePhoto = (tone) => '/api/inspiration/photo?k=' + encodeURIComponent(`messages/${tone}.webp`);
+/* The message card. The photograph is a royalty-free one HQ chose; when none is loaded the card stands on the brand colours.
+ * The write-up opens in full on request, so a long message never crowds the dashboard. */
 export function inspCard(c, full = false) {
-  const birthday = c.kind === 'birthday';
-  return h('section', { class: 'insp reveal', 'aria-label': c.label }, h('img', { src: c.image, alt: '', loading: 'lazy' }),
+  const birthday = c.kind === 'birthday'; const paras = String(c.body || '').split(/\n\s*\n|\r?\n/).map((x) => x.trim()).filter(Boolean);
+  const body = paras.length ? h('div', { class: 'insp__body' + (full ? '' : ' is-clamped') }, paras.map((p) => h('p', { text: p }))) : null;
+  const more = body && !full ? h('button', { class: 'insp__more', type: 'button', 'aria-expanded': 'false', onclick: () => { const open = body.classList.toggle('is-clamped') === false; more.setAttribute('aria-expanded', String(open)); more.textContent = t(open ? 'Show less' : 'Read the full message'); } }, 'Read the full message') : null;
+  const img = c.image ? h('img', { src: c.image, alt: '', loading: 'lazy' }) : null; if (img) img.addEventListener('error', () => { img.remove(); card.classList.add('insp--plain'); });
+  const card = h('section', { class: 'insp reveal' + (c.image ? '' : ' insp--plain'), 'aria-label': c.label }, img,
     h('div', { class: 'insp__text' }, h('div', { class: 'insp__label', text: c.label + (c.theme ? '. ' + c.theme : '') }),
       c.first_name ? h('div', { class: 'insp__dear', text: (birthday ? 'Happy birthday, ' : 'Dear ') + c.first_name + (birthday ? '.' : ',') }) : null,
       h('h2', { class: 'insp__head', text: c.headline }), c.key_thought ? h('p', { class: 'insp__thought', text: c.key_thought }) : null,
-      full && c.body ? h('p', { class: 'insp__body', text: c.body }) : null, h('div', { class: 'insp__sign', text: 'WODDI HQ' })));
+      body, more, h('div', { class: 'insp__sign', text: 'WODDI HQ' })));
+  if (body && !full) requestAnimationFrame(() => { if (body.scrollHeight <= body.clientHeight + 4) { more.remove(); body.classList.remove('is-clamped'); } });
+  return card;
 }
 export const TONES = [['celebration', 'Celebration'], ['gratitude', 'Gratitude'], ['courage', 'Courage'], ['calm', 'Calm'], ['growth', 'Growth'], ['purpose', 'Purpose']];
 

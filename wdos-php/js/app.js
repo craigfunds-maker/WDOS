@@ -16,7 +16,7 @@ const pages = {
   hq: () => import('./pages/hq.js'), members: () => import('./pages/members.js'), announcements: () => import('./pages/announcements.js'),
   leader: () => import('./pages/leader.js'), home: () => import('./pages/home.js'),
   reporting: () => import('./pages/reporting.js'), tasks: () => import('./pages/tasks.js'), meetings: () => import('./pages/meetings.js'), structure: () => import('./pages/structure.js'),
-  onboarding: () => import('./pages/onboarding.js'), referrals: () => import('./pages/referrals.js'), activation: () => import('./pages/activation.js'),
+  onboarding: () => import('./pages/onboarding.js'), referrals: () => import('./pages/referrals.js'), activation: () => import('./pages/activation.js'), inspiration: () => import('./pages/inspiration.js'),
   notifications: () => import('./pages/notifications.js'), settings: () => import('./pages/settings.js'),
 };
 function resolve(path) {
@@ -37,6 +37,7 @@ function resolve(path) {
     case 'members': return u.is_hq ? sh('members', 'Members', { id: seg[1] }) : u.is_leader ? sh('members', 'My members', { scope: 'leader' }) : sh('home', 'Home');
     case 'announcements': return sh('announcements', 'Announcements', { id: seg[1] });
     case 'reporting': return (u.is_hq || u.is_leader) ? sh('reporting', 'Reporting and accountability', { tab: seg[1], id: seg[2] }) : sh('home', 'Home');
+    case 'inspiration': return u.is_hq ? sh('inspiration', 'Inspiration messages', { tab: seg[1] }) : sh(u.is_leader ? 'leader' : 'home', u.is_leader ? 'Leadership dashboard' : 'Home');
     case 'tasks': return sh('tasks', 'Tasks', { tab: seg[1] });
     case 'meetings': return sh('meetings', 'Meetings', { tab: seg[1] });
     case 'structure': return (u.is_hq || u.is_leader) ? sh('structure', 'Leadership structure') : sh('home', 'Home');
@@ -80,7 +81,7 @@ export function signedIn(user) { app.user = user; shellEls = null; startPulse();
 /* ----------------------------------------------------------------- shell -- */
 function navItems() {
   const u = app.user; const comm = [['Communication'], ['#/announcements', 'megaphone', 'Announcements'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
-  if (u.is_hq) return [['Overview'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/leaders', 'eye', 'Leader dashboards'], ['#/structure', 'tree', 'Leadership structure'], ['#/referrals', 'route', 'Referral and activation'], ['Work'], ['#/reporting', 'chart', 'Reporting'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ...comm];
+  if (u.is_hq) return [['Overview'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/leaders', 'eye', 'Leader dashboards'], ['#/structure', 'tree', 'Leadership structure'], ['#/referrals', 'route', 'Referral and activation'], ['Work'], ['#/reporting', 'chart', 'Reporting'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ['Communication'], ['#/inspiration', 'award', 'Inspiration messages'], ...comm.slice(1)];
   if (u.is_leader) return [['My leadership'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'My members'], ['#/structure', 'tree', 'Leadership structure'], ['#/referrals', 'route', 'Referral links'], ['#/onboarding', 'book', 'Onboarding'], ['Work'], ['#/reporting', 'chart', 'Reporting'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ...comm];
   return [['My network'], ['#/', 'grid', 'Home'], u.todo && u.todo.activation ? ['#/activation', 'route', 'My Activation'] : null, ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ...comm].filter(Boolean);
 }

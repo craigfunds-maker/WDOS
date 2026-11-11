@@ -361,3 +361,10 @@ html{-webkit-tap-highlight-color:transparent} body{overscroll-behavior-y:none}
 @media (display-mode:standalone){.pubfoot{padding-bottom:calc(16px + env(safe-area-inset-bottom))} body{user-select:none;-webkit-user-select:none} input,textarea,.doc,p,dd,td,b,h1,h2,h3{user-select:text;-webkit-user-select:text}}
 .lpill--more,.lpill--more:hover,.lpill--more:active{transform:none!important;transition:none}
 .viewas{border-color:var(--lime)} .viewas .nrow__ico{color:var(--lime-ink)}
+
+/* v94: message photographs and write-ups */
+.insp--plain{background:radial-gradient(120% 140% at 100% 0,#7a0d47 0,#3a1030 45%,#1f0d1c 100%)} .insp--plain::before{display:none} .insp--plain .insp__text{max-width:min(100%,760px)}
+.insp__body{white-space:normal;display:grid;gap:10px} .insp__body p{margin:0} .insp__body.is-clamped{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden} .insp__body.is-clamped p{display:inline} .insp__body.is-clamped p::after{content:" "}
+.insp__more{justify-self:start;border:0;background:none;color:#FFC2DF;font:inherit;font-weight:650;font-size:14px;padding:4px 0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.insp>img{object-position:center 30%} .inspmini img{object-position:center 30%} .inspmini__none{aspect-ratio:2.3;background:radial-gradient(120% 140% at 100% 0,#7a0d47 0,#3a1030 45%,#1f0d1c 100%)}
+@media (max-width:640px){.insp--plain{background:var(--surface)} .insp__more{color:var(--accent)} .insp__body{color:var(--ink-2)}}

@@ -252,6 +252,12 @@ route('POST', '/hq/members/(\d+)/photo', function ($id) {
   photo_from_upload((int) $id); log_activity((int) $me['id'], (int) $id, 'photo_set', '');
   return ['ok' => true, 'v' => time()];
 });
+if ($METHOD === 'GET' && $PATH === '/inspiration/photo') {
+  require_user();
+  $p = row('SELECT mime, bytes FROM message_photos WHERE image_key=?', [(string) ($_GET['k'] ?? '')]);
+  if (!$p) { http_response_code(404); exit; }
+  header('Content-Type: ' . $p['mime']); header('Cache-Control: private, max-age=2592000, immutable'); echo $p['bytes']; exit;
+}
 if ($METHOD === 'GET' && preg_match('#^/photo/(\d+)$#', $PATH, $m)) {
   require_user();
   $p = row('SELECT mime, bytes FROM user_photos WHERE user_id=?', [(int) $m[1]]);
