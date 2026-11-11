@@ -45,6 +45,7 @@ const I = {
   search: ['c:11,11,8', 'M21 21l-4.3-4.3'],
   fingerprint: ['M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4', 'M14 13.12c0 2.38 0 6.38-1 8.88', 'M17.29 21.02c.12-.6.43-2.3.5-3.02', 'M2 12a10 10 0 0 1 18-6', 'M2 16h.01', 'M21.8 16c.2-2 .131-5.354 0-6', 'M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2', 'M8.65 22c.21-.66.45-1.32.57-2', 'M9 6.8a6 6 0 0 1 9 5.2v2'],
   up: ['M7 17L17 7', 'M7 7h10v10'], down: ['M7 7l10 10', 'M17 7v10H7'], flat: ['M5 12h14'],
+  chevdown: ['M6 9l6 6 6-6'],
   check: ['M20 6L9 17l-5-5'], x: ['M18 6L6 18', 'M6 6l12 12'], plus: ['M12 5v14', 'M5 12h14'],
   shield: ['M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'],
   pin: ['M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z', 'c:12,10,3'],
@@ -174,4 +175,15 @@ export const tabs = (list, current, base) => h('div', { class: 'seg rtabs', role
 export function langPicker(onPick) {
   const s = h('select', { class: 'input langpick', 'aria-label': 'Language' }, Object.entries(LANGS).map(([v, l]) => { const o = document.createElement('option'); o.value = v; o.textContent = l; return o; }));
   s.value = i18n.lang; s.addEventListener('change', () => onPick(s.value)); return s;
+}
+/* Language pills for the public pages. Languages still being prepared are listed but cannot be chosen yet. */
+export const LANGS_SOON = ['Hausa', 'Yorùbá', 'Igbo'];
+export function langPills(onPick) {
+  const order = ['en', 'fr', 'ar', 'sw', 'pt'];
+  const more = h('details', { class: 'lpill lpill--more' }, h('summary', {}, h('span', { text: 'Other African Languages' }), icon('chevdown', 16)),
+    h('div', { class: 'lpill__menu' }, LANGS_SOON.map((l) => h('div', { class: 'lpill__soon' }, document.createTextNode(l), h('small', { text: 'Being prepared' })))));
+  document.addEventListener('click', (e) => { if (more.isConnected && !more.contains(e.target)) more.removeAttribute('open'); });
+  return h('nav', { class: 'lpills', 'aria-label': 'Language' }, order.map((code) => { const on = i18n.lang === code; const b = document.createElement('button');
+    b.type = 'button'; b.className = 'lpill' + (on ? ' is-on' : ''); b.setAttribute('aria-pressed', String(on)); b.lang = code; if (on) b.append(icon('globe', 18)); b.append(document.createTextNode(LANGS[code]));
+    b.addEventListener('click', () => { if (!on) onPick(code); }); return b; }), more);
 }
