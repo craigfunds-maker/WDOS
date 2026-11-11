@@ -89,15 +89,26 @@ export function africaMap(highlight) {
 
 /** The member's own country, for the dashboard: its shape, with what a Good Mother is called in its major languages written inside it. */
 export function goodMotherCard(code, countryName) {
-  const g = GOOD_MOTHER[code]; const name = countryName || nameOf(code); const art = goodMotherArt(code, countryName);
-  return h('section', { class: 'card gmc' + (g ? '' : ' gmc--africa') }, art,
+  const g = GOOD_MOTHER[code] || POSTERS.has(code); const name = countryName || nameOf(code); const art = goodMotherArt(code, countryName);
+  return h('section', { class: 'card gmc' + (g ? '' : ' gmc--africa') + (POSTERS.has(code) ? ' gmc--poster' : '') }, art,
     h('div', { class: 'gmc__text' }, h('span', { class: 'gmc__kicker', text: 'WODDI Good Mother Network' }), h('h2', { class: 'display', text: g ? `A Good Mother in ${name}` : 'A Good Mother across Africa' }),
-      h('p', { class: 'muted', text: g ? `What a Good Mother is called in the major languages of ${name}.` : PLAQUE })));
+      h('p', { class: 'muted', text: POSTERS.has(code) ? `What a Good Mother is called across the regions and languages of ${name}. Select the map to read it at full size.` : g ? `What a Good Mother is called in the major languages of ${name}.` : PLAQUE })));
+}
+
+/* Countries with a finished WODDI Good Mother country map (the Founder's artwork, in assets/goodmother). The others keep the drawn shape until their maps arrive. */
+const POSTERS = new Set(['AO', 'BI', 'BW', 'CD', 'CF', 'CG', 'CM', 'DJ', 'DZ', 'EG', 'EH', 'ER', 'ET', 'GA', 'GQ', 'KE', 'KM', 'LS', 'LY', 'MA', 'MG', 'MU', 'MW', 'MZ', 'RW', 'SC', 'SD', 'SO', 'SS', 'ST', 'SZ', 'TD', 'TN', 'TZ', 'UG', 'ZA', 'ZM', 'ZW']);
+function openPoster(code, name) {
+  const close = () => { box.remove(); document.removeEventListener('keydown', esc); }; const esc = (e) => { if (e.key === 'Escape') close(); };
+  const box = h('div', { class: 'gmview', role: 'dialog', 'aria-modal': 'true', 'aria-label': `WODDI Good Mother Network map of ${name}`, onclick: (e) => { if (e.target === box) close(); } },
+    h('button', { class: 'gmview__x', type: 'button', 'aria-label': 'Close', onclick: close }, '×'), h('img', { src: `/assets/goodmother/${code}.webp`, alt: `WODDI Good Mother Network map of ${name}, showing what a Good Mother is called in its regions and languages` }));
+  document.addEventListener('keydown', esc); document.body.append(box); box.querySelector('button').focus();
 }
 
 /** Only the picture: the country's shape with the Good Mother names inside it. Used in the leader dashboard header. */
 export function goodMotherArt(code, countryName) {
   const g = GOOD_MOTHER[code]; const name = countryName || nameOf(code);
+  if (POSTERS.has(code)) return h('div', { class: 'gmc__art' }, h('button', { class: 'gmposter', type: 'button', title: 'Open the map at full size', onclick: () => openPoster(code, name) },
+    h('img', { src: `/assets/goodmother/${code}-s.webp`, width: 480, height: 625, loading: 'lazy', alt: `WODDI Good Mother Network map of ${name}` })));
   const art = h('div', { class: 'gmc__art' });
   loadShapes().then((M) => {
     const c = M.c[code]; if (!c) return;

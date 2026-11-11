@@ -379,3 +379,8 @@ html{-webkit-tap-highlight-color:transparent} body{overscroll-behavior-y:none}
 .hero__id{display:grid;gap:10px;justify-items:start;flex:none} .hero__id .hero__disc{width:58px;height:58px;box-shadow:0 2px 8px rgba(0,0,0,.14)}
 .hero__map{margin:0;flex:0 1 300px;min-width:200px} .hero__map .gmc__art{min-height:0} .hero__map .gmc__svg{max-height:190px} .hero__map .gm__svg{max-height:190px}
 @media(max-width:760px){.hero__map{flex:1 1 100%;order:5} .hero__map .gmc__svg{max-height:220px} .hero__id{grid-auto-flow:column;align-items:center}}
+.gmposter{display:block;padding:0;border:0;background:none;cursor:zoom-in;border-radius:12px;overflow:hidden;box-shadow:0 8px 22px rgba(0,0,0,.22);line-height:0;transition:transform .15s} .gmposter:hover{transform:translateY(-2px)} .gmposter:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.gmposter img{display:block;width:100%;height:auto;max-height:420px;object-fit:contain;background:#f8f4ee} .gmc--poster{grid-template-columns:minmax(180px,300px) 1fr} .hero__map .gmposter img{max-height:210px;width:auto;margin-inline:auto}
+.gmview{position:fixed;inset:0;z-index:400;background:rgba(15,5,14,.86);overflow:auto;display:grid;justify-items:center;align-items:start;padding:clamp(10px,3vw,32px);-webkit-overflow-scrolling:touch} .gmview img{width:min(100%,1100px);height:auto;border-radius:10px;background:#f8f4ee;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.gmview__x{position:fixed;top:max(12px,env(safe-area-inset-top));right:14px;width:44px;height:44px;border-radius:50%;border:0;background:#fff;color:#1c0a1b;font-size:28px;line-height:1;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);z-index:1}
+@media(max-width:760px){.gmc--poster{grid-template-columns:1fr} .hero__map .gmposter img{max-height:300px}}
