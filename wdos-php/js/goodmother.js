@@ -45,7 +45,8 @@ export const PLAQUE = 'This map represents the WODDI Good Mother Network across 
 
 const NS = 'http://www.w3.org/2000/svg';
 const s = (tag, attrs = {}, ...kids) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) if (v !== null && v !== undefined) n.setAttribute(k, v); n.append(...kids); return n; };
-const TONES = [['#F4C766', '#2A1708'], ['#FBE3A4', '#2A1708'], ['#8C4A22', '#FFF6E0'], ['#2B1A15', '#FFF6E0']];
+/* WODDI brand: lemon green and magenta, each in two strengths so neighbouring countries stay distinct */
+const TONES = [['#7CB518', '#12210A'], ['#CDEB8B', '#12210A'], ['#D4006A', '#FFFFFF'], ['#8A0046', '#FFFFFF']];
 let shapes = null;
 const loadShapes = () => shapes || (shapes = fetch('/assets/geo/africa.json').then((r) => { if (!r.ok) throw new Error('map'); return r.json(); }).catch((e) => { shapes = null; throw e; }));
 const nameOf = (code) => (GOOD_MOTHER[code] ? GOOD_MOTHER[code][0] : OTHER[code] || '');
@@ -55,7 +56,7 @@ function drawAfrica(M, pick, highlight) {
   const svg = s('svg', { viewBox: `0 0 ${M.w} ${M.h}`, class: 'gm__svg', role: 'img', 'aria-label': 'Map of Africa showing what Good Mother is called in each country' });
   const land = s('g'), labels = s('g', { 'pointer-events': 'none' }); let on = null;
   for (const [code, c] of Object.entries(M.c)) {
-    const real = !code.startsWith('_'); const fill = real ? TONES[c.t][0] : code === '_SOL' && M.c.SO ? TONES[M.c.SO.t][0] : '#6b5645';
+    const real = !code.startsWith('_'); const fill = real ? TONES[c.t][0] : code === '_SOL' && M.c.SO ? TONES[M.c.SO.t][0] : '#5d5560';
     const p = s('path', { d: c.d, fill, class: 'gm__c' + (code === highlight ? ' is-on' : '') + (real ? '' : ' gm__c--plain'), tabindex: real ? '0' : null, 'aria-label': real ? nameOf(code) : null });
     if (real) { const go = () => { if (on) on.classList.remove('is-on'); on = p; p.classList.add('is-on'); land.append(p); pick(code); };
       p.addEventListener('click', go); p.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }); if (code === highlight) on = p; }
@@ -100,9 +101,9 @@ export function goodMotherCard(code, countryName) {
     const fit = Math.min(vw / 9, (Math.min(w, vw * 0.8) * 1.7) / longest, ht / (lines.length * 1.9));
     const fs = Math.min((vw * 1.7) / longest, Math.max(fit, vw / 15)); /* a narrow country still gets words large enough to read */ const lh = fs * 1.5; const y0 = c.p[1] - ((lines.length - 1) * lh) / 2;
     const svg = s('svg', { viewBox: `${vx} ${vy} ${vw} ${vh}`, class: 'gmc__svg', role: 'img', 'aria-label': `Map of ${name}: ` + lines.map(([p, l]) => `${p} (${l})`).join(', ') },
-      s('path', { d: c.d, fill: '#F4C766', stroke: '#8C4A22', 'stroke-width': vw / 220, 'stroke-linejoin': 'round' }));
-    lines.forEach(([p, l], i) => { const t = s('text', { x: c.p[0], y: y0 + i * lh, 'text-anchor': 'middle', 'dominant-baseline': 'middle', 'font-size': fs.toFixed(2), 'font-weight': 800, fill: '#2A1708', stroke: '#F4C766', 'stroke-width': (fs / 3.2).toFixed(2), 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, p);
-      t.append(s('tspan', { 'font-size': (fs * 0.56).toFixed(2), 'font-weight': 600, fill: '#6b3a16', dx: (fs * 0.35).toFixed(2) }, l)); svg.append(t); });
+      s('path', { d: c.d, fill: '#7CB518', stroke: '#D4006A', 'stroke-width': vw / 160, 'stroke-linejoin': 'round' }));
+    lines.forEach(([p, l], i) => { const t = s('text', { x: c.p[0], y: y0 + i * lh, 'text-anchor': 'middle', 'dominant-baseline': 'middle', 'font-size': fs.toFixed(2), 'font-weight': 800, fill: '#12210A', stroke: '#7CB518', 'stroke-width': (fs / 3.2).toFixed(2), 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, p);
+      t.append(s('tspan', { 'font-size': (fs * 0.56).toFixed(2), 'font-weight': 600, fill: '#1F3A0C', dx: (fs * 0.35).toFixed(2) }, l)); svg.append(t); });
     art.replaceChildren(svg);
   }).catch(() => { if (g) art.replaceChildren(h('div', { class: 'gmc__list' }, g[1].map(([p, l]) => h('div', { class: 'gmc__ph' }, h('b', { text: p }), h('small', { text: l }))))); });
   return h('section', { class: 'card gmc' + (g ? '' : ' gmc--africa') }, art,
