@@ -8,6 +8,7 @@ require __DIR__ . '/../lib/webauthn.php';
 require __DIR__ . '/../lib/inspire_fns.php';
 require __DIR__ . '/../lib/reporting_fns.php';
 require __DIR__ . '/../lib/work_fns.php';
+require __DIR__ . '/../lib/photos.php';
 require __DIR__ . '/../lib/journey_fns.php';
 
 set_exception_handler(function (Throwable $e) {
@@ -38,7 +39,7 @@ if (str_starts_with($PATH, '/setup')) { require __DIR__ . '/../lib/setup.php'; e
 /* ----------------------------------------------------------------- misc -- */
 route('GET', '/health', fn() => ['ok' => true, 'build' => WDOS_BUILD, 'db' => (bool) val('SELECT 1'), 'time' => now()]);
 
-route('GET', '/config', function () { require_once __DIR__ . '/../lib/migrate.php'; ensure_migrated(); return [
+route('GET', '/config', function () { require_once __DIR__ . '/../lib/migrate.php'; ensure_migrated(); photos_seed_once(); return [
   'build' => WDOS_BUILD,
   'google' => (bool) cfg('GOOGLE_CLIENT_ID') && (bool) cfg('GOOGLE_CLIENT_SECRET'),
   'push' => push_configured(), 'vapid' => cfg('VAPID_PUBLIC', ''),
@@ -244,24 +245,18 @@ route('POST', '/me/password', function () {
   notify((int) $u['id'], 'account', 'Your password was changed', 'If this was not you, contact WODDI HQ straight away.', '#/settings');
   after_response(fn() => push_drain(5));
 });
-route('POST', '/me/photo', function () {
-  $u = require_user();
-  $bin = base64_decode((string) preg_replace('#^data:image/\w+;base64,#', '', (string) (body()['data'] ?? '')), true);
-  if (!$bin || strlen($bin) > 400000) fail(422, 'That photograph is too large. Choose another.', 'photo_size');
-  $info = @getimagesizefromstring($bin);
-  if (!$info || !in_array($info['mime'], ['image/jpeg', 'image/png', 'image/webp'], true)) fail(422, 'Choose a JPG or PNG photograph.', 'photo_type');
-  q('DELETE FROM user_photos WHERE user_id=?', [(int) $u['id']]);
-  $st = db()->prepare('INSERT INTO user_photos (user_id,mime,bytes,updated_at) VALUES (?,?,?,?)');
-  $st->bindValue(1, (int) $u['id'], PDO::PARAM_INT); $st->bindValue(2, $info['mime']); $st->bindValue(3, $bin, PDO::PARAM_LOB); $st->bindValue(4, now());
-  $st->execute();
-  q('UPDATE users SET has_photo=1 WHERE id=?', [(int) $u['id']]);
+route('POST', '/me/photo', function () { $u = require_user(); photo_from_upload((int) $u['id']); return ['ok' => true, 'v' => time()]; });
+/* HQ sets or replaces a member's photograph, for leaders who send theirs by WhatsApp or email. */
+route('POST', '/hq/members/(\d+)/photo', function ($id) {
+  $me = require_hq(); if (!val('SELECT 1 FROM users WHERE id=?', [(int) $id])) fail(404, 'That member was not found.', 'not_found');
+  photo_from_upload((int) $id); log_activity((int) $me['id'], (int) $id, 'photo_set', '');
   return ['ok' => true, 'v' => time()];
 });
 if ($METHOD === 'GET' && preg_match('#^/photo/(\d+)$#', $PATH, $m)) {
   require_user();
   $p = row('SELECT mime, bytes FROM user_photos WHERE user_id=?', [(int) $m[1]]);
   if (!$p) { http_response_code(404); exit; }
-  header('Content-Type: ' . $p['mime']); header('Cache-Control: private, max-age=86400'); echo $p['bytes']; exit;
+  header('Content-Type: ' . $p['mime']); header('Cache-Control: private, max-age=600'); echo $p['bytes']; exit;
 }
 
 /* -------------------------------------------------------- notifications -- */

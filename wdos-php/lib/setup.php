@@ -73,6 +73,7 @@ if ($METHOD === 'POST') {
     }
     out(['ok' => true, 'loaded' => $loaded, 'skipped' => $skipped]);
   }
+  if ($act === 'photos_seed') { require_once __DIR__ . '/photos.php'; out(['ok' => true] + photos_seed() + ['with_photo' => (int) val('SELECT COUNT(*) FROM users WHERE has_photo=1'), 'leaders_without' => (int) val('SELECT COUNT(DISTINCT u.id) FROM users u JOIN seats s ON s.user_id=u.id AND s.ends_at IS NULL WHERE u.has_photo=0')]); }
   if ($act === 'push_health') {
     require_once __DIR__ . '/push.php';
     $subs = rows('SELECT s.endpoint, s.user_agent, s.created_at, s.last_ok_at, s.fail_count, u.first_name, u.last_name FROM push_subscriptions s JOIN users u ON u.id=s.user_id ORDER BY s.id DESC LIMIT 40');
@@ -191,6 +192,9 @@ where t.table_schema = 'public' and t.table_type = 'BASE TABLE' and c.reltuples 
 <section><h2>9. Push notification health</h2>
 <p>Shows which devices have notifications switched on, and what the push services answered. Use this when someone says a notification did not arrive.</p>
 <button id="phgo">Check push health</button><div id="phres"></div></section>
+<section><h2>10. Leader photographs</h2>
+<p>The 59 leader headshots that ship with the current WDOS are matched to leaders by name. This runs by itself after an update. Press the button after importing more leaders. A photograph a person uploaded is never replaced.</p>
+<button id="phseed">Give leaders their photographs</button><div id="phsres"></div></section>
 <script>
 const $=id=>document.getElementById(id);
 async function call(action,extra={}){const r=await fetch('/api/setup',{method:'POST',headers:{'Content-Type':'application/json','X-WDOS':'1'},body:JSON.stringify({key:$('key').value,action,...extra})});return r.json();}
@@ -234,6 +238,8 @@ async function runImport(commit){
 }
 $('dry').onclick=()=>runImport(false);$('go').onclick=()=>{if(confirm('Import these accounts into this WDOS now?'))runImport(true);};
 $('tload').onclick=async()=>{const f=$('tcsv').files[0];if(!f){$('tlres').textContent='Choose the CSV file first.';return;}const g=parseCSV(await f.text());const head=(g.shift()||[]).map(x=>x.trim());const i=Math.max(0,head.indexOf('row'));const r=await call('templates_import',{rows:g.filter(x=>x[i]).map(x=>x[i])});$('tlres').className=r.ok&&r.loaded.length?'ok':'no';$('tlres').textContent=r.ok?('Loaded '+r.loaded.length+': '+(r.loaded.join('; ')||'none')+(r.skipped.length?'. Skipped (no usable definition): '+r.skipped.join(', '):'')):r.message;};
+$('phseed').onclick=async()=>{const box=$('phsres');box.textContent='Matching…';const r=await call('photos_seed',{});if(!r.ok){box.className='no';box.textContent=r.message;return;}
+  box.className='';box.innerHTML='<p><b>'+r.given+'</b> leader(s) received a photograph just now'+(r.names.length?': '+esc(r.names.join(', ')):'')+'.</p><p>'+r.with_photo+' people have a photograph in total. '+r.leaders_without+' seated leader(s) still have none; they can add one in Settings, or HQ can set it from the member record.</p>';};
 $('phgo').onclick=async()=>{const box=$('phres');box.textContent='Checking…';const r=await call('push_health',{});if(!r.ok){box.className='no';box.textContent=r.message;return;}
   box.className='';box.innerHTML='<p>Push keys on the server: <b>'+(r.configured?'set':'NOT set')+'</b>. Contact address sent to the push services: '+esc(r.subject)+'</p><p><b>'+r.devices.length+'</b> device(s) with notifications on (latest 40):</p><ul>'+r.devices.map(d=>'<li>'+esc(d.who)+': '+esc(d.device)+', on since '+esc(d.since)+', last delivered '+esc(d.last_ok||'never')+', failures '+d.fails+'</li>').join('')+'</ul><p>Queue: '+(r.outbox.map(o=>esc(o.status)+' '+o.n).join(', ')||'empty')+'</p>'+(r.errors.length?'<p>Latest errors:</p><ul>'+r.errors.map(e=>'<li>'+esc(e.last_error)+' ('+e.n+' times, latest '+esc(e.latest)+')</li>').join('')+'</ul>':'<p>No delivery errors recorded.</p>');};
 $('cload').onclick=async()=>{const f=$('ccsv').files[0];const box=$('clres');if(!f){box.textContent='Choose the CSV file first.';return;}box.textContent='Reading…';
