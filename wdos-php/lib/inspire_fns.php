@@ -59,9 +59,26 @@ function insp_photos_tick(int $max = 5): void {
     else q("DELETE FROM app_settings WHERE k='msg_photos_lock'");
   } catch (Throwable $e) { /* tables arrive with the next migration run, or another request holds the lock */ }
 }
-function insp_shape(array $m, array $u, string $label): array {
+/** The approved write-up for a message in the reader's language (English when that language is not written yet). */
+function insp_text(int $messageId, string $lang): ?array {
+  try { return row("SELECT * FROM hq_message_texts WHERE message_id=? AND lang IN (?, 'en') ORDER BY (lang=?) DESC LIMIT 1", [$messageId, $lang, $lang]); } catch (PDOException $e) { return null; }
+}
+/** $seat is the reader's seat; null (HQ's library) shows the text for both networks. */
+function insp_shape(array $m, array $u, string $label, ?array $seat = null, string $lang = 'en'): array {
+  $t = insp_text((int) $m['id'], $lang); $paras = []; $reflection = '';
+  if ($t) {
+    $fill = fn(string $x) => strtr($x, ['{{FirstName}}' => (string) ($u['first_name'] ?? '') !== '' ? (string) $u['first_name'] : 'Leader', '{{RoleTitle}}' => $seat ? ($seat['network'] === 'WNNN' ? $seat['title_wnnn'] : $seat['title_wgmn']) : 'a volunteer leader',
+      '{{LocationName}}' => $seat ? ((string) $seat['area_label'] !== '' ? $seat['area_label'] : $seat['unit_name']) : 'your area']);
+    if (trim((string) $t['body']) !== '') $paras[] = $fill(trim((string) $t['body']));
+    $net = $seat['network'] ?? '';
+    if ($net !== 'WNNN' && trim((string) $t['lens_wgmn']) !== '') $paras[] = trim((string) $t['lens_wgmn']);
+    if ($net !== 'WGMN' && trim((string) $t['lens_wnnn']) !== '') $paras[] = trim((string) $t['lens_wnnn']);
+    if ($t['closing'] !== '') $paras[] = $fill($t['closing']);
+    $reflection = $t['reflection'];
+  }
   return ['id' => (int) $m['id'], 'kind' => $m['kind'], 'seq' => (int) $m['seq'], 'network' => $m['network'], 'label' => $label, 'theme' => $m['theme'],
-    'headline' => $m['headline'], 'key_thought' => $m['key_thought'], 'body' => (string) ($m['body'] ?? ''), 'image' => insp_photo($m['image']), 'first_name' => $u['first_name']];
+    'headline' => $t && $t['headline'] !== '' ? $t['headline'] : $m['headline'], 'key_thought' => $t && $t['key_thought'] !== '' ? $t['key_thought'] : $m['key_thought'],
+    'body' => $paras ? implode("\n\n", $paras) : (string) ($m['body'] ?? ''), 'reflection' => $reflection, 'image' => insp_photo($m['image']), 'first_name' => $u['first_name'] ?? ''];
 }
 function insp_weekly_for(?string $network, int $week): ?array {
   if (!$network || $week < 1) return null;
@@ -69,7 +86,7 @@ function insp_weekly_for(?string $network, int $week): ?array {
 }
 /** The one card a person sees on the dashboard today, or null.
  *  The birthday card is for everyone. Weekly and monthly inspiration is written for volunteer leaders only. */
-function insp_today(array $u): ?array {
+function insp_today(array $u, string $lang = 'en'): ?array {
   $d = hq_today();
   if ($u['dob'] && substr($u['dob'], 5) === $d->format('m-d')) {
     return ['id' => 0, 'kind' => 'birthday', 'seq' => 0, 'network' => (string) $u['network'], 'label' => 'Happy birthday', 'theme' => '', 'headline' => 'A day to celebrate you',
@@ -78,10 +95,10 @@ function insp_today(array $u): ?array {
   $seat = is_hq($u) ? null : current_seat((int) $u['id']);
   if (!$seat) return null;
   $preview = setting('weekly_preview') === $u['id'] . ':' . $d->format('Y-m-d');           // one-leader test from the setup page
-  if (((int) $d->format('N') === 1 || $preview) && ($m = insp_weekly_for($seat['network'], insp_week($d)))) return insp_shape($m, $u, 'Weekly inspiration, week ' . $m['seq']);
+  if (((int) $d->format('N') === 1 || $preview) && ($m = insp_weekly_for($seat['network'], insp_week($d)))) return insp_shape($m, $u, 'Weekly inspiration, week ' . $m['seq'], $seat, $lang);
   // the monthly message stays on the dashboard for three days from the moment it was sent, then leaves
   $n = insp_month($d); $sent = $n ? setting('sent_monthly_' . $n) : '';
-  if ($sent !== '' && time() - strtotime($sent . ' UTC') < 3 * 86400 && ($m = row("SELECT * FROM hq_messages WHERE kind='monthly' AND seq=?", [$n]))) return insp_shape($m, $u, 'Monthly leadership inspiration, ' . $d->format('F Y'));
+  if ($sent !== '' && time() - strtotime($sent . ' UTC') < 3 * 86400 && ($m = row("SELECT * FROM hq_messages WHERE kind='monthly' AND seq=?", [$n]))) return insp_shape($m, $u, 'Monthly leadership inspiration, ' . $d->format('F Y'), $seat, $lang);
   return null;
 }
 function set_setting(string $k, string $v): void { q('DELETE FROM app_settings WHERE k=?', [$k]); q('INSERT INTO app_settings (k,v) VALUES (?,?)', [$k, $v]); }

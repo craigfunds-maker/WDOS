@@ -159,7 +159,7 @@ export function inspCard(c, full = false) {
     h('div', { class: 'insp__text' }, h('div', { class: 'insp__label', text: c.label + (c.theme ? '. ' + c.theme : '') }),
       c.first_name ? h('div', { class: 'insp__dear', text: (birthday ? 'Happy birthday, ' : 'Dear ') + c.first_name + (birthday ? '.' : ',') }) : null,
       h('h2', { class: 'insp__head', text: c.headline }), c.key_thought ? h('p', { class: 'insp__thought', text: c.key_thought }) : null,
-      body, more, h('div', { class: 'insp__sign', text: 'WODDI HQ' })));
+      body, more, c.reflection ? h('div', { class: 'insp__reflect' }, h('small', { text: 'Reflection' }), h('p', { text: c.reflection })) : null, h('div', { class: 'insp__sign', text: 'WODDI HQ' })));
   if (body && !full) requestAnimationFrame(() => { if (body.scrollHeight <= body.clientHeight + 4) { more.remove(); body.classList.remove('is-clamped'); } });
   return card;
 }

@@ -368,3 +368,5 @@ html{-webkit-tap-highlight-color:transparent} body{overscroll-behavior-y:none}
 .insp__more{justify-self:start;border:0;background:none;color:#FFC2DF;font:inherit;font-weight:650;font-size:14px;padding:4px 0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .insp>img{object-position:center 30%} .inspmini img{object-position:center 30%} .inspmini__none{aspect-ratio:2.3;background:radial-gradient(120% 140% at 100% 0,#7a0d47 0,#3a1030 45%,#1f0d1c 100%)}
 @media (max-width:640px){.insp--plain{background:var(--surface)} .insp__more{color:var(--accent)} .insp__body{color:var(--ink-2)}}
+.insp__reflect{border-left:3px solid #CDE98F;padding:2px 0 2px 12px;display:grid;gap:2px} .insp__reflect small{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#CDE98F} .insp__reflect p{margin:0;font-size:15px;font-style:italic;color:rgba(255,255,255,.92)}
+@media (max-width:640px){.insp__reflect{border-color:var(--lime)} .insp__reflect small{color:var(--lime-ink)} .insp__reflect p{color:var(--ink)}}

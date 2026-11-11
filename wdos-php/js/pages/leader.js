@@ -24,7 +24,7 @@ export async function render(root, params = {}) {
   const kpis = h('div', { class: 'row row--4' }); const trend = h('div'), breakdown = h('div'), team = h('div'), recent = h('div');
   const breakCard = card('Where your members are', null, breakdown);
   const today = h('div', { hidden: true });
-  if (!viewing) api('/inspiration/today').then((r) => { if (r.card) { today.hidden = false; today.append(inspCard(r.card)); } }).catch(() => {});
+  if (!viewing) api('/inspiration/today?lang=' + document.documentElement.lang).then((r) => { if (r.card) { today.hidden = false; today.append(inspCard(r.card)); } }).catch(() => {});
   const todo = viewing ? {} : u.todo || {}; const nudge = (title, text, href, label) => h('section', { class: 'card nudge' }, h('div', { class: 'card__body', style: 'display:flex;gap:16px;align-items:center;flex-wrap:wrap' }, h('div', { class: 'grow' }, h('b', { text: title }), h('p', { class: 'muted', style: 'margin:4px 0 0', text })), h('a', { class: 'btn', href, text: label })));
   if (todo.appointment) root.append(hero, nudge('Accept your appointment', 'Read the Volunteer Leadership Agreement to the end and accept it to take up your seat.', '#/appointment', 'Read the Agreement'));
   else if (todo.onboarding > 0) root.append(hero, nudge('Your onboarding', `${todo.onboarding} required ${todo.onboarding === 1 ? 'step is' : 'steps are'} still to finish. Work through each step in order.`, '#/onboarding', 'Continue my onboarding'));

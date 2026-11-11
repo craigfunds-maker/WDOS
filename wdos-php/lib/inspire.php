@@ -2,7 +2,7 @@
 declare(strict_types=1);
 /* Today's card for the signed-in leader. There is no menu entry or library page: a message appears on the
  * dashboard at its time and arrives as a notification. */
-route('GET', '/inspiration/today', fn() => ['card' => insp_today(require_user())]);
+route('GET', '/inspiration/today', fn() => ['card' => insp_today(require_user(), preg_replace('/[^a-z]/', '', strtolower((string) ($_GET['lang'] ?? 'en'))) ?: 'en')]);
 
 /* ---- photographs and texts: HQ library --------------------------------------- */
 function insp_keys(): array {
@@ -15,12 +15,13 @@ route('GET', '/hq/inspiration', function () {
   require_hq(); $tz = new DateTimeZone('Africa/Lagos');
   $photos = []; foreach (rows('SELECT image_key, pexels_id, photographer, page_url, alt, updated_at FROM message_photos') as $p) $photos[$p['image_key']] = $p;
   $wk = new DateTimeImmutable(setting('weekly_start', '2026-09-14'), $tz); [$sy, $sm] = array_map('intval', explode('-', setting('monthly_start', '2026-09')));
-  $out = [];
+  $out = []; $langs = []; try { foreach (rows('SELECT message_id, lang FROM hq_message_texts ORDER BY lang') as $x) $langs[(int) $x['message_id']][] = $x['lang']; } catch (PDOException $e) { }
   foreach (rows("SELECT * FROM hq_messages ORDER BY kind DESC, seq, network") as $m) {
     $when = $m['kind'] === 'weekly' ? $wk->modify('+' . (((int) $m['seq'] - 1) * 7) . ' days') : first_wednesday((new DateTimeImmutable(sprintf('%04d-%02d-01', $sy, $sm), $tz))->modify('+' . ((int) $m['seq'] - 1) . ' months'));
     $p = $photos[$m['image']] ?? null;
-    $out[] = ['id' => (int) $m['id'], 'kind' => $m['kind'], 'seq' => (int) $m['seq'], 'network' => $m['network'], 'theme' => $m['theme'], 'headline' => $m['headline'], 'key_thought' => $m['key_thought'], 'body' => (string) ($m['body'] ?? ''),
-      'date' => $when->format('Y-m-d'), 'key' => $m['image'], 'image' => insp_photo($m['image']), 'credit' => $p ? ['photographer' => $p['photographer'], 'page_url' => $p['page_url'], 'alt' => $p['alt']] : null];
+    $c = insp_shape($m, ['first_name' => ''], '', null, 'en');
+    $out[] = ['id' => (int) $m['id'], 'kind' => $m['kind'], 'seq' => (int) $m['seq'], 'network' => $m['network'], 'theme' => $m['theme'], 'headline' => $c['headline'], 'key_thought' => $c['key_thought'], 'body' => $c['body'], 'reflection' => $c['reflection'],
+      'langs' => $langs[(int) $m['id']] ?? [], 'date' => $when->format('Y-m-d'), 'key' => $m['image'], 'image' => insp_photo($m['image']), 'credit' => $p ? ['photographer' => $p['photographer'], 'page_url' => $p['page_url'], 'alt' => $p['alt']] : null];
   }
   $tones = array_map(fn($t) => ['tone' => $t, 'key' => "messages/$t.webp", 'image' => insp_photo("messages/$t.webp"), 'credit' => isset($photos["messages/$t.webp"]) ? ['photographer' => $photos["messages/$t.webp"]['photographer'], 'page_url' => $photos["messages/$t.webp"]['page_url']] : null], INSP_TONES);
   return ['messages' => $out, 'tones' => $tones, 'today' => hq_today()->format('Y-m-d'), 'with_photo' => count($photos), 'with_text' => count(array_filter($out, fn($m) => trim($m['body']) !== ''))];
