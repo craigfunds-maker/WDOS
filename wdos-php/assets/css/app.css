@@ -384,3 +384,4 @@ html{-webkit-tap-highlight-color:transparent} body{overscroll-behavior-y:none}
 .gmview{position:fixed;inset:0;z-index:400;background:rgba(15,5,14,.86);overflow:auto;display:grid;justify-items:center;align-items:start;padding:clamp(10px,3vw,32px);-webkit-overflow-scrolling:touch} .gmview img{width:min(100%,1100px);height:auto;border-radius:10px;background:#f8f4ee;box-shadow:0 20px 60px rgba(0,0,0,.5)}
 .gmview__x{position:fixed;top:max(12px,env(safe-area-inset-top));right:14px;width:44px;height:44px;border-radius:50%;border:0;background:#fff;color:#1c0a1b;font-size:28px;line-height:1;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35);z-index:1}
 @media(max-width:760px){.gmc--poster{grid-template-columns:1fr} .hero__map .gmposter img{max-height:300px}}
+.gmposter{border:2px solid #7CB518;outline:2px solid #D4006A;outline-offset:0} .gmview img{border:3px solid #7CB518;outline:3px solid #D4006A}
