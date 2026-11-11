@@ -97,15 +97,18 @@ function referral_attach(int $userId, array $f, $ref): ?int {
 function activation_days(string $route): array {
   $out = [];
   foreach (rows('SELECT * FROM activation_days WHERE route=? ORDER BY day_no', [$route]) as $d) {
-    $out[] = ['day' => (int) $d['day_no'], 'title' => $d['title'], 'instruction' => $d['instruction'], 'content' => jn_json($d['content']), 'notice' => $d['notice'], 'questions' => jn_json($d['questions']), 'acks' => jn_json($d['acks'])];
+    $out[] = ['day' => (int) $d['day_no'], 'title' => $d['title'], 'instruction' => $d['instruction'], 'content' => jn_json($d['content']), 'notice' => $d['notice'], 'questions' => jn_json($d['questions']), 'acks' => jn_json($d['acks']), 'needs_profile' => (int) ($d['needs_profile'] ?? 0) === 1, 'purpose' => (string) ($d['purpose'] ?? '')];
   }
   return $out;
 }
-function readiness_form(): array {
+function readiness_form(string $network = '', bool $forHq = false): array {
   $f = ['statements' => [], 'questions' => [], 'confirmations' => []];
   foreach (rows('SELECT * FROM readiness_items ORDER BY kind, seq, id') as $r) {
     $k = ['statement' => 'statements', 'question' => 'questions', 'confirmation' => 'confirmations'][$r['kind']] ?? null; if (!$k) continue;
-    $f[$k][] = ['seq' => (int) $r['seq'], 'section' => $r['section'], 'section_title' => $r['section_title'], 'text' => $r['body']];
+    if (($r['network'] ?? '') !== '' && $network !== '' && $r['network'] !== $network) continue;   // statements are written per network
+    $x = ['seq' => (int) $r['seq'], 'section' => $r['section'], 'section_title' => $r['section_title'], 'text' => $r['body']];
+    if ($forHq && $k === 'questions') $x += ['reviewer_note' => (string) ($r['reviewer_note'] ?? ''), 'critical' => (int) ($r['critical'] ?? 0) === 1];
+    $f[$k][] = $x;
   }
   return $f;
 }

@@ -81,7 +81,7 @@ function activation_view(array $a, bool $forHq = false): array {
   $v = ['id' => (int) $a['id'], 'route' => $a['route'], 'route_label' => ACT_ROUTES[$a['route']]['label'], 'network' => $a['network'], 'role_title' => position_title($a['position_code'], $a['network']),
     'unit' => trim(($a['area_label'] !== '' ? $a['area_label'] . ', ' : '') . $unit, ', '), 'referrer' => $a['referrer_name'], 'status' => $a['status'], 'deadline' => $a['deadline'],
     'extension_status' => $a['extension_status'], 'return_note' => $a['return_note'], 'outcome' => $forHq ? $a['outcome'] : '', 'disclosed' => $a['disclosed'], 'started_at' => $a['started_at'], 'submitted_at' => $a['submitted_at'], 'decided_at' => $a['decided_at'],
-    'first_name' => $u['first_name'], 'last_name' => $u['last_name'], 'notice' => ACT_NOTICE, 'days' => $days, 'content' => activation_content_ready($a['route']), 'form' => readiness_form(), 'existing' => $existing];
+    'first_name' => $u['first_name'], 'last_name' => $u['last_name'], 'notice' => ACT_NOTICE, 'days' => $days, 'content' => activation_content_ready($a['route']), 'form' => readiness_form($a['network'], $forHq), 'profile' => ['dob' => $u['dob'], 'phone' => $u['phone'], 'email' => $u['email'], 'country' => country_name((string) $u['country_code']), 'state_region' => $u['state_region'], 'lga' => $u['lga'], 'community' => $u['community']], 'existing' => $existing];
   if ($forHq) $v += ['outcome_note' => $a['outcome_note'], 'extension_reason' => $a['extension_reason'], 'candidate' => ['id' => (int) $u['id'], 'first_name' => $u['first_name'], 'last_name' => $u['last_name'], 'has_photo' => (int) $u['has_photo'], 'email' => $u['email'], 'phone' => $u['phone'],
     'country_code' => $u['country_code'], 'state_region' => $u['state_region'], 'lga' => $u['lga'], 'community' => $u['community'], 'member_no' => $u['member_no'], 'seated' => (bool) current_seat((int) $u['id'])], 'position' => $a['position_code'], 'org_unit_id' => (int) $a['org_unit_id'], 'area_label' => $a['area_label']];
   return $v;
@@ -117,7 +117,7 @@ route('POST', '/activation/assessment', function () {
   $c = activation_content_ready($a['route']); if (!$c['complete']) fail(409, 'The rest of this activation is still being loaded by WODDI HQ. Your progress is saved.', 'content');
   $done = (int) val('SELECT COUNT(*) FROM activation_progress WHERE activation_id=? AND completed_at IS NOT NULL', [(int) $a['id']]);
   if ($done < $c['days_loaded']) fail(409, 'Finish every day of the activation first.', 'order');
-  $f = readiness_form(); $st = []; $sa = [];
+  $f = readiness_form($a['network']); $st = []; $sa = [];
   foreach ($f['statements'] as $x) { $v = (string) ($b['statements'][(string) $x['seq']] ?? ''); if (!in_array($v, ['yes', 'clarify'], true)) fail(422, 'Please choose an option for every statement.', 'statements'); $st[(string) $x['seq']] = $v; }
   foreach ($f['questions'] as $x) { $v = mb_substr(trim((string) ($b['short_answers'][(string) $x['seq']] ?? '')), 0, 2000); if ($v === '') fail(422, 'Please answer each question briefly.', 'questions'); $sa[(string) $x['seq']] = $v; }
   $conf = array_values(array_unique(array_map('intval', is_array($b['confirmations'] ?? null) ? $b['confirmations'] : [])));

@@ -252,6 +252,30 @@ route('POST', '/hq/members/(\d+)/photo', function ($id) {
   photo_from_upload((int) $id); log_activity((int) $me['id'], (int) $id, 'photo_set', '');
   return ['ok' => true, 'v' => time()];
 });
+/* One-off transfer of the approved programme content from the current WDOS (woddicrm.org), sent by HQ's own browser.
+ * Guarded by a single-use secret whose hash is all that is kept here, and closed after 14 November 2026. */
+if ($PATH === '/import/programme') {
+  header('Access-Control-Allow-Origin: https://woddicrm.org'); header('Vary: Origin');
+  if ($METHOD !== 'POST' || gmdate('Y-m-d') > '2026-11-14') { http_response_code(404); exit; }
+  $in = json_decode((string) file_get_contents('php://input'), true);
+  if (!is_array($in) || !hash_equals('63f25eed1be071aa16d4c06a80f49cc5f7ab1334a55d43437ffd0234eff2baba', hash('sha256', (string) ($in['token'] ?? '')))) { http_response_code(403); exit; }
+  require_once __DIR__ . '/../lib/migrate.php'; ensure_migrated();
+  $doc = fn($u) => ($u = (string) $u) !== '' && is_file(__DIR__ . '/../assets/docs/' . basename($u)) ? '/assets/docs/' . basename($u) : $u;
+  $href = fn($h) => ['#/my/network' => '#/structure', '#/my/templates' => '#/reporting', '#/my/settings' => '#/settings', '#/my/documents' => '#/onboarding', '#/my/safeguarding' => '#/onboarding'][(string) $h] ?? (str_starts_with((string) $h, '#/') ? (string) $h : '');
+  $j = fn($v) => json_encode(is_array($v) ? $v : [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+  if (!empty($in['onboarding'])) { q('DELETE FROM onboarding_steps');
+    foreach ($in['onboarding'] as $s) q("INSERT INTO onboarding_steps (code,seq,title,detail,mode,doc_url,href,min_seconds,required,is_active,origin) VALUES (?,?,?,?,?,?,?,?,?,?,'current')",
+      [(string) $s['code'], (int) $s['seq'], mb_substr((string) $s['title'], 0, 190), mb_substr((string) ($s['detail'] ?? ''), 0, 600), in_array($s['mode'] ?? '', ['read', 'visit', 'declare'], true) ? $s['mode'] : 'read', $doc($s['doc_url'] ?? ''), $href($s['href'] ?? ''), (int) ($s['min_seconds'] ?? 20), empty($s['required']) ? 0 : 1, empty($s['active']) ? 0 : 1]); }
+  if (!empty($in['days'])) { q('DELETE FROM activation_days');
+    foreach ($in['days'] as $d) { if (!isset(ACT_ROUTES[$d['route'] ?? ''])) continue;
+      $content = array_map(function ($c) use ($doc) { $c['doc'] = $doc($c['doc'] ?? ''); return $c; }, is_array($d['content'] ?? null) ? $d['content'] : []);
+      q("INSERT INTO activation_days (route,day_no,title,instruction,content,notice,questions,acks,origin,needs_profile,purpose) VALUES (?,?,?,?,?,?,?,?,'current',?,?)", [$d['route'], (int) $d['day'], mb_substr((string) $d['title'], 0, 190), mb_substr((string) ($d['instruction'] ?? ''), 0, 1000), $j($content), mb_substr((string) ($d['notice'] ?? ''), 0, 1000), $j($d['questions'] ?? []), $j($d['acks'] ?? []), empty($d['needs_profile']) ? 0 : 1, mb_substr((string) ($d['purpose'] ?? ''), 0, 1000)]); } }
+  if (!empty($in['statements'])) { q('DELETE FROM readiness_items');
+    foreach ($in['statements'] as $x) q("INSERT INTO readiness_items (kind,seq,section,section_title,body,network) VALUES ('statement',?,?,?,?,?)", [(int) $x['seq'], mb_substr((string) $x['section'], 0, 4), mb_substr((string) $x['section_title'], 0, 190), mb_substr((string) $x['statement'], 0, 1500), strtoupper((string) ($x['network'] ?? ''))]);
+    foreach ($in['questions'] ?? [] as $x) q("INSERT INTO readiness_items (kind,seq,body,reviewer_note,critical) VALUES ('question',?,?,?,?)", [(int) $x['seq'], mb_substr((string) $x['question'], 0, 1500), mb_substr((string) ($x['reviewer_looks_for'] ?? ''), 0, 1000), empty($x['critical']) ? 0 : 1]);
+    foreach ($in['confirmations'] ?? [] as $x) q("INSERT INTO readiness_items (kind,seq,body) VALUES ('confirmation',?,?)", [(int) $x['seq'], mb_substr((string) $x['text'], 0, 1500)]); }
+  out(['ok' => true, 'onboarding' => (int) val('SELECT COUNT(*) FROM onboarding_steps'), 'days' => rows('SELECT route, COUNT(*) n FROM activation_days GROUP BY route'), 'readiness' => rows('SELECT kind, network, COUNT(*) n FROM readiness_items GROUP BY kind, network')]);
+}
 if ($METHOD === 'GET' && $PATH === '/inspiration/photo') {
   require_user();
   $p = row('SELECT mime, bytes FROM message_photos WHERE image_key=?', [(string) ($_GET['k'] ?? '')]);

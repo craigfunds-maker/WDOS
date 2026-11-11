@@ -166,7 +166,7 @@ export function inspCard(c, full = false) {
 export const TONES = [['celebration', 'Celebration'], ['gratitude', 'Gratitude'], ['courage', 'Courage'], ['calm', 'Calm'], ['growth', 'Growth'], ['purpose', 'Purpose']];
 
 /* A document read inside WDOS. The text is fetched and placed in our own scroller, so we know when the reader reached the end. */
-export function docReader(url, onEnd, title) {
+export function docReader(url, onEnd, title, sections) {
   const page = h('article', { class: 'doc' }, h('p', { class: 'muted', text: 'Opening the document…' }));
   const scroller = h('div', { class: 'doc__scroll', tabindex: '0' }, page); let told = false;
   const seen = () => { if (!told && scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 48) { told = true; onEnd && onEnd(); } };
@@ -174,7 +174,11 @@ export function docReader(url, onEnd, title) {
   fetch(url, { cache: 'no-cache' }).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.text(); }).then((html) => {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     doc.querySelectorAll('script, style, iframe, object, embed, link').forEach((x) => x.remove());
-    page.replaceChildren(...Array.from((doc.body && doc.body.childNodes.length ? doc.body : doc.documentElement).childNodes)); setTimeout(seen, 60);
+    let nodes = Array.from((doc.body && doc.body.childNodes.length ? doc.body : doc.documentElement).childNodes);
+    if (sections && sections.length) { const want = sections.map((x) => String(x).trim().toLowerCase()); const keep = []; let on = false;   // only the sections named for this day
+      for (const n of nodes) { if (n.nodeType === 1 && n.tagName === 'H2') { const tx = n.textContent.trim().toLowerCase(); on = want.some((w) => tx === w || tx.startsWith(w) || w.startsWith(tx)); } if (on) keep.push(n); }
+      if (keep.length) nodes = keep; }
+    page.replaceChildren(...nodes); setTimeout(seen, 60);
   }).catch(() => { page.replaceChildren(h('p', { text: 'This document could not be opened here. Open it in a new tab to read it, then continue.' })); told = true; onEnd && onEnd(); });
   return h('div', { class: 'docwrap' }, h('div', { class: 'doc__bar' }, h('b', { text: title || 'Read this document' }), h('a', { class: 'btn btn--ghost btn--s', href: url, target: '_blank', rel: 'noopener', text: 'Open in a new tab' })), scroller);
 }
