@@ -96,9 +96,10 @@ export function goodMotherCard(code, givenName) {
     g ? countryPlaque(code, givenName) : null);
 }
 
-/* Countries with a finished WODDI Good Mother country map (the Founder's artwork, in assets/goodmother): 38 in Africa and 130 in the diaspora.
-   The other African countries keep the drawn shape until their maps arrive. */
-const POSTERS_AFRICA = new Set(["AO", "BI", "BW", "CD", "CF", "CG", "CM", "DJ", "DZ", "EG", "EH", "ER", "ET", "GA", "GQ", "KE", "KM", "LS", "LY", "MA", "MG", "MU", "MW", "MZ", "RW", "SC", "SD", "SO", "SS", "ST", "SZ", "TD", "TN", "TZ", "UG", "ZA", "ZM", "ZW"]);
+/* Countries with a finished WODDI Good Mother country map (in assets/goodmother): all 55 in Africa and 130 in the diaspora.
+   38 African maps are the Founder's artwork; 17 were drawn in the same style on 12 Nov 2026 (afmaps/gen.py) and their phrases await a native reviewer.
+   Mauritania's regions come from Natural Earth; the other 16 from geoBoundaries. */
+const POSTERS_AFRICA = new Set(["AO", "BF", "BI", "BJ", "BW", "CD", "CF", "CG", "CI", "CM", "CV", "DJ", "DZ", "EG", "EH", "ER", "ET", "GA", "GH", "GM", "GN", "GQ", "GW", "KE", "KM", "LR", "LS", "LY", "MA", "MG", "ML", "MR", "MU", "MW", "MZ", "NA", "NE", "NG", "RW", "SC", "SD", "SL", "SN", "SO", "SS", "ST", "SZ", "TD", "TG", "TN", "TZ", "UG", "ZA", "ZM", "ZW"]);
 const POSTERS_DIASPORA = new Set(["AD", "AE", "AF", "AG", "AL", "AM", "AR", "AT", "AU", "AZ", "BA", "BB", "BD", "BE", "BG", "BH", "BN", "BO", "BR", "BS", "BT", "BY", "BZ", "CA", "CH", "CL", "CN", "CO", "CR", "CU", "CY", "CZ", "DE", "DK", "DM", "DO", "EC", "EE", "ES", "FI", "FJ", "FR", "GB", "GD", "GE", "GR", "GT", "GY", "HN", "HR", "HT", "HU", "ID", "IE", "IL", "IN", "IQ", "IR", "IS", "IT", "JM", "JO", "JP", "KG", "KH", "KN", "KP", "KR", "KW", "KZ", "LA", "LB", "LC", "LI", "LK", "LT", "LU", "LV", "MC", "MD", "ME", "MK", "MM", "MN", "MT", "MV", "MX", "MY", "NI", "NL", "NO", "NP", "NZ", "OM", "PA", "PE", "PG", "PH", "PK", "PL", "PT", "PY", "QA", "RO", "RS", "RU", "SA", "SE", "SG", "SI", "SK", "SM", "SR", "SV", "SY", "TH", "TJ", "TL", "TM", "TR", "TT", "UA", "US", "UY", "UZ", "VC", "VE", "VN", "VU", "YE"]);
 const POSTERS = new Set([...POSTERS_AFRICA, ...POSTERS_DIASPORA]);
 export const hasGoodMotherMap = (code) => POSTERS.has(code) || !!GOOD_MOTHER[code] || !!OTHER[code];
@@ -114,9 +115,9 @@ export function countryPlaque(code, fallbackName) {
 }
 function openPoster(code, name) {
   const close = () => { box.remove(); document.removeEventListener('keydown', esc); }; const esc = (e) => { if (e.key === 'Escape') close(); };
-  const box = h('div', { class: 'gmview', role: 'dialog', 'aria-modal': 'true', 'aria-label': `WODDI Good Mother Network map of ${name}`, onclick: (e) => { if (e.target === box) close(); } },
+  const box = h('div', { class: 'gmview', role: 'dialog', 'aria-modal': 'true', 'aria-label': tf('WODDI Good Mother Network map of {1}', name), onclick: (e) => { if (e.target === box) close(); } },
     h('button', { class: 'gmview__x', type: 'button', 'aria-label': 'Close', onclick: close }, '×'),
-    h('figure', { class: 'gmview__in' }, h('img', { src: `/assets/goodmother/${code}.webp`, alt: `WODDI Good Mother Network map of ${name}, showing what a Good Mother is called in its regions and languages` }), countryPlaque(code, name)));
+    h('figure', { class: 'gmview__in' }, h('img', { src: `/assets/goodmother/${code}.webp`, alt: tf('WODDI Good Mother Network map of {1}, showing what a Good Mother is called in its regions and languages', name) }), countryPlaque(code, name)));
   document.addEventListener('keydown', esc); document.body.append(box); box.querySelector('button').focus();
 }
 
@@ -124,7 +125,7 @@ function openPoster(code, name) {
 export function goodMotherArt(code, countryName) {
   const g = GOOD_MOTHER[code]; const name = countryName || nameOf(code);
   if (POSTERS.has(code)) return h('div', { class: 'gmc__art' }, h('button', { class: 'gmposter', type: 'button', title: 'Open the map at full size', onclick: () => openPoster(code, name) },
-    h('img', { src: `/assets/goodmother/${code}-s.webp`, width: 480, height: 625, loading: 'lazy', alt: `WODDI Good Mother Network map of ${name}` })));
+    h('img', { src: `/assets/goodmother/${code}-s.webp`, width: 480, height: 625, loading: 'lazy', alt: tf('WODDI Good Mother Network map of {1}', name) })));
   const art = h('div', { class: 'gmc__art' });
   loadShapes().then((M) => {
     const c = M.c[code]; if (!c) return;
@@ -135,7 +136,7 @@ export function goodMotherArt(code, countryName) {
     const lines = g[1]; const longest = Math.max(...lines.map(([p, l]) => p.length + l.length * 0.55 + 3));
     const fit = Math.min(vw / 9, (Math.min(w, vw * 0.8) * 1.7) / longest, ht / (lines.length * 1.9));
     const fs = Math.min((vw * 1.7) / longest, Math.max(fit, vw / 15)); /* a narrow country still gets words large enough to read */ const lh = fs * 1.5; const y0 = c.p[1] - ((lines.length - 1) * lh) / 2;
-    const svg = s('svg', { viewBox: `${vx} ${vy} ${vw} ${vh}`, class: 'gmc__svg', role: 'img', 'aria-label': `Map of ${name}: ` + lines.map(([p, l]) => `${p} (${l})`).join(', ') },
+    const svg = s('svg', { viewBox: `${vx} ${vy} ${vw} ${vh}`, class: 'gmc__svg', role: 'img', 'aria-label': tf('Map of {1}: ', name) + lines.map(([p, l]) => `${p} (${l})`).join(', ') },
       s('path', { d: c.d, fill: '#7CB518', stroke: '#D4006A', 'stroke-width': vw / 160, 'stroke-linejoin': 'round' }));
     lines.forEach(([p, l], i) => { const t = s('text', { x: c.p[0], y: y0 + i * lh, 'text-anchor': 'middle', 'dominant-baseline': 'middle', 'font-size': fs.toFixed(2), 'font-weight': 800, fill: '#12210A', stroke: '#7CB518', 'stroke-width': (fs / 3.2).toFixed(2), 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, p);
       t.append(s('tspan', { 'font-size': (fs * 0.56).toFixed(2), 'font-weight': 600, fill: '#1F3A0C', dx: (fs * 0.35).toFixed(2) }, l)); svg.append(t); });

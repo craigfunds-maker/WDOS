@@ -132,3 +132,7 @@ The tool refuses to run on a database that already holds people, and it cannot b
 
 **What has been proven.** On the test database a backup was restored into a new database, every one of 72 tables matched, sign-in worked on the restored copy and the integrity checks were all zero. It has not yet been rehearsed against the live TiDB database.
 
+
+## Document pack (from v107.0)
+
+`docs/pack/` holds eleven working documents written from the code as built: roles and access matrix, quick guides for HQ, leaders and IT, video scripts, administrator continuity and emergency access, support routing, migration plan, retention and incident plan, acceptance criteria for workflows W01 to W30, and the defect and open-items register. They are drafts for joint review, not approved policy. Blanks marked `TO DECIDE` are management decisions.

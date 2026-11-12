@@ -7,7 +7,7 @@ import { app, refreshUser, go as reload } from '../app.js';
 
 export async function render(root) {
   const u = app.user; const net = NETS[u.network] || NETS.WGMN;
-  root.append(h('section', { class: 'hero' }, avatar(u, 76), h('div', { class: 'grow' }, h('h1', { class: 'display', text: `${greeting()}, ${u.first_name}` }), h('p', { text: net.name }),
+  root.append(h('section', { class: 'hero' }, avatar(u, 76), h('div', { class: 'grow' }, h('h1', { class: 'display', text: tf('{1}, {2}', greeting(), u.first_name) }), h('p', { text: net.name }),
     h('div', { class: 'hero__meta' }, flag(u.country_code), netTag(u.network), u.member_no ? h('span', { class: 'tag num', text: u.member_no }) : null, h('span', { class: 'tag', text: [u.state_region, u.country].filter(Boolean).join(', ') }), h('span', { class: 'tag', text: 'Member since ' + fmtDate(u.created_at, { month: 'short', year: 'numeric' }) }))),
     h('img', { class: 'hero__disc', src: net.disc, alt: '' })));
   if (u.todo && u.todo.activation) root.append(h('section', { class: 'card nudge' }, h('div', { class: 'card__body', style: 'display:flex;gap:16px;align-items:center;flex-wrap:wrap' }, h('div', { class: 'grow' }, h('b', { text: 'My Activation' }), h('p', { class: 'muted', style: 'margin:4px 0 0', text: 'You are being considered for a volunteer leadership position. Continue your activation from where you stopped.' })), h('a', { class: 'btn', href: '#/activation', text: 'Open my activation' }))));
@@ -15,9 +15,9 @@ export async function render(root) {
   const tiles = h('div', { class: 'row row--4' }); root.append(tiles);
   const tile = (ic, label, value, foot, href, ext) => h('a', { class: 'card kpi kpi--link', href, ...(ext ? { target: '_blank', rel: 'noopener' } : {}) }, h('div', { class: 'kpi__label' }, icon(ic, 17), h('span', { text: label })), h('div', { class: 'kpi__value', style: String(value).length > 6 ? 'font-size:21px;line-height:1.25;letter-spacing:0' : '', text: String(value) }), h('div', { class: 'kpi__foot' }, h('span', { text: foot })));
   const jr = u.journey; const paintTiles = (ref) => tiles.replaceChildren(
-    tile('users', 'My chapter', u.chapter ? u.chapter.name : 'Pending', u.chapter ? `${u.chapter.members} women in your chapter` : 'Open to see what is needed', '#/chapter'),
+    tile('users', 'My chapter', u.chapter ? u.chapter.name : 'Pending', u.chapter ? tf('{1} women in your chapter', u.chapter.members) : 'Open to see what is needed', '#/chapter'),
     tile('route', 'Seven-day journey', jr ? (jr.status === 'active' ? 'Active' : `${jr.done}/${jr.total}`) : 'Active', jr ? (jr.status === 'active' ? 'You completed your seven days' : 'Steps completed') : 'Member before the journey began', '#/journey'),
-    tile('send', 'Referral progress', ref ? `${ref.registered}/${ref.target}` : '0/3', ref ? `${ref.verified} completed their seven days` : 'Invite three women', '#/invite'),
+    tile('send', 'Referral progress', ref ? `${ref.registered}/${ref.target}` : '0/3', ref ? tf('{1} completed their seven days', ref.verified) : 'Invite three women', '#/invite'),
     tile('book', 'Learning', 'Institute', 'Courses and the volunteer pathway', '#/institute'));
   root.append(h('a', { class: 'card nudge', href: '#/community', style: 'text-decoration:none;color:inherit' }, h('div', { class: 'card__body', style: 'display:flex;gap:14px;align-items:center' }, h('div', { class: 'nrow__ico' }, icon('spark', 18)), h('div', { class: 'grow' }, h('b', { text: 'WODDI Community' }), h('p', { class: 'muted', style: 'margin:2px 0 0', text: 'Your chapter, your network at every level, topic circles and events.' })))));
   paintTiles(null); api('/my/referrals').then((d) => paintTiles(d.referrals)).catch(() => {});

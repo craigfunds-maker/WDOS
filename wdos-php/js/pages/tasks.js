@@ -11,7 +11,7 @@ export const taskTag = (s) => h('span', { class: 'tag' + (TASK_ST[s]?.[1] ? ' ta
 
 export function taskRow(t, showWho = 'assignee') {
   return h('a', { class: 'list__link', href: '#/tasks/' + t.id }, avatar(t.assignee, 38),
-    h('div', { class: 'grow' }, h('b', { text: t.title }), h('small', {}, `${t.ref} · ${t.scope} · `, showWho === 'by' ? `assigned by ${t.by.name}` : `owner ${t.assignee.first_name} ${t.assignee.last_name}`, t.due_on ? ` · ${t.overdue ? 'overdue since' : 'due'} ${fmtDate(t.due_on)}` : '', t.items ? ` · ${t.items_done}/${t.items} checked` : '')),
+    h('div', { class: 'grow' }, h('b', { text: t.title }), h('small', {}, `${t.ref} · ${t.scope} · `, showWho === 'by' ? tf('assigned by {1}', t.by.name) : tf('owner {1} {2}', t.assignee.first_name, t.assignee.last_name), t.due_on ? ` · ${t.overdue ? 'overdue since' : 'due'} ${fmtDate(t.due_on)}` : '', t.items ? ` · ${t.items_done}/${t.items} checked` : '')),
     h('div', { class: 'tagrow' }, t.priority === 'high' || t.priority === 'urgent' ? h('span', { class: 'tag tag--bad', text: PRI[t.priority] }) : null, t.overdue ? h('span', { class: 'tag tag--bad', text: 'Overdue' }) : null, t.requires_approval && t.status !== 'completed' ? h('span', { class: 'tag', text: 'Approval required' }) : null, t.evidence ? h('span', { class: 'tag tag--wnnn', text: 'Evidence' }) : null, taskTag(t.status)));
 }
 
@@ -36,8 +36,8 @@ export async function render(root, params) {
     const c = r.counts;
     kpis.replaceChildren(kpi('tasks', 'My open tasks', c.mine, [h('span', { text: 'Assigned to you' })]), kpi('clock', 'My overdue tasks', c.overdue, [h('span', { text: 'Past the due date' })]),
       kpi('inbox', 'Tasks awaiting your review', c.to_approve, [h('span', { text: 'Submitted by the people you assigned' })]), kpi('send', 'Open tasks I assigned', c.sent, [h('span', { text: 'Still with the assignee' })]));
-    extra.replaceChildren(h('span', { class: 'tag', text: `${fmt(r.total)} in this view` }), h('span', { class: 'tag', text: `${fmt(r.chapter_scoped)} chapter-scoped` }), h('span', { class: 'tag' + (r.escalations ? ' tag--bad' : ''), text: `${fmt(r.escalations)} past due (escalations)` }));
-    list.replaceChildren(r.items.length ? h('div', { class: 'list reveal' }, r.items.map((t) => taskRow(t, scope === '' ? 'by' : 'assignee')), r.total > r.items.length ? h('p', { class: 'faint', style: 'padding:12px 4px', text: `Showing the first ${r.items.length} of ${fmt(r.total)} tasks. Use the filters to narrow.` }) : null)
+    extra.replaceChildren(h('span', { class: 'tag', text: tf('{1} in this view', fmt(r.total)) }), h('span', { class: 'tag', text: tf('{1} chapter-scoped', fmt(r.chapter_scoped)) }), h('span', { class: 'tag' + (r.escalations ? ' tag--bad' : ''), text: tf('{1} past due (escalations)', fmt(r.escalations)) }));
+    list.replaceChildren(r.items.length ? h('div', { class: 'list reveal' }, r.items.map((t) => taskRow(t, scope === '' ? 'by' : 'assignee')), r.total > r.items.length ? h('p', { class: 'faint', style: 'padding:12px 4px', text: tf('Showing the first {1} of {2} tasks. Use the filters to narrow.', r.items.length, fmt(r.total)) }) : null)
       : empty('tasks', 'No tasks here', scope === 'assigned' ? 'Tasks you assign to other leaders are tracked here.' : 'Tasks in this view will appear as they are created.'));
   }
   load();
@@ -72,7 +72,7 @@ function newForm(leader, done, opts = {}) {
     if (who.value === 'others' && !ids.length) { err.textContent = 'Find recipients first.'; return; }
     save.disabled = true;
     try { const r = await api('/tasks', { title: title.value, details: details.value, priority: pri.value, due_on: due.value, requires_approval: approval.checked, assignees: ids, checklist: checklist.value.split('\n'), chapter_id: Number(chap.value) || 0, parent_id: opts.parent || 0 });
-      toast(r.created > 1 ? `Task assigned to ${r.created} leaders` : 'Task created', '', 'ok'); done(); }
+      toast(r.created > 1 ? tf('Task assigned to {1} leaders', r.created) : 'Task created', '', 'ok'); done(); }
     catch (e) { err.textContent = e.message; save.disabled = false; } } }, 'Create task');
   if (opts.parent && leader) { who.value = 'others'; who.dispatchEvent(new Event('change')); }
   return card(opts.parent ? 'Delegate part of this task' : 'New task', opts.parent ? 'The new task stays linked to this one. Each task has one person accountable for it.' : null, h('div', { style: 'display:grid;gap:14px' }, field('Task title', title), field('Details', details), h('div', { class: 'grid2' }, field('Priority', pri), field('Due date (optional)', due), field('Assign to', who), leader ? field('Chapter', chap) : null), pickWrap, apprWrap, field('Checklist (optional)', checklist), err, h('div', {}, save)));

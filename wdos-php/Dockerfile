@@ -8,7 +8,7 @@ RUN printf '%s\n' \
  '  AllowOverride None' \
  '  Require all granted' \
  '  RewriteEngine On' \
- '  RewriteRule ^(lib|migrations)(/|$) - [F,L]' \
+ '  RewriteRule ^(lib|migrations|docs)(/|$) - [F,L]' \
  '  RewriteRule ^(config\.local\.php|config\.sample\.php|Dockerfile|README-DEPLOY\.md)$ - [F,L]' \
  '  RewriteRule ^api(/.*)?$ api/index.php [QSA,L]' \
  '  <FilesMatch "^(sw\.js|index\.html)$">' \

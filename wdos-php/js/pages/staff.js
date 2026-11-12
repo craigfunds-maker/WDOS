@@ -39,7 +39,7 @@ export async function render(root) {
       h('tbody', {}, list.slice(0, 300).map((l) => h('tr', { style: 'cursor:default' }, h('td', {}, h('div', { class: 'who' }, h('div', {}, h('b', {}, h('a', { href: '#/members/' + l.id, text: l.name })), h('small', { text: l.member_no || '' })))), h('td', {}, h('div', {}, netTag(l.network), ' ', h('span', { text: l.title })), h('small', { class: 'muted', text: l.area })),
         h('td', {}, h('b', { style: 'overflow-wrap:anywhere', text: l.signs_in_with || 'Not recorded' }), h('small', { class: 'muted', style: 'display:block', text: l.kind + (l.fingerprint ? ' · fingerprint added' : '') })), h('td', {}, h('small', { text: l.password })), h('td', {}, h('small', { text: l.last_seen_at ? ago(l.last_seen_at) : 'Never' })),
         h('td', {}, confirmBtn('New temporary password', () => reset(l)))))))) : empty('users', q ? 'No leader matches' : 'No leader holds a seat yet', ''),
-      ...(list.length > 300 ? [h('small', { class: 'faint', text: `Showing 300 of ${fmt(list.length)}. Type in the box to narrow the list.` })] : [])); };
+      ...(list.length > 300 ? [h('small', { class: 'faint', text: tf('Showing 300 of {1}. Type in the box to narrow the list.', fmt(list.length)) })] : [])); };
   find.addEventListener('input', paint);
   loadStaff(); api('/hq/leader-logins').then((d) => { leaderRows = d.items; paint(); }).catch((e) => leaders.replaceChildren(empty('x', 'The list did not load', e.message)));
 }

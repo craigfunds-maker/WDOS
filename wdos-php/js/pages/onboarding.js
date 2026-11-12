@@ -28,7 +28,7 @@ function stepCard(s, n, of, done) {
   const next = h('button', { class: 'btn', type: 'button', disabled: true }, 'Next'); const hint = h('p', { class: 'muted', style: 'margin:0;font-size:14px' }); const note = h('textarea', { class: 'input', rows: 3, placeholder: 'For example: none' });
   const secs = () => Math.round((Date.now() - started) / 1000); const ready = () => reached && opened && (s.mode === 'declare' || secs() >= min);
   const refresh = () => { const left = Math.max(0, min - secs()); next.disabled = !ready();
-    next.textContent = ready() ? 'Next' : !opened ? 'Open the page first' : !reached ? 'Read to the end first' : `Next (${left || 1}s)`;
+    next.textContent = ready() ? 'Next' : !opened ? 'Open the page first' : !reached ? 'Read to the end first' : tf('Next ({1}s)', left || 1);
     hint.textContent = s.mode === 'read' ? (reached ? 'You have reached the end. You can continue.' : 'Scroll to the end of the document to continue.') : s.mode === 'visit' ? (opened ? 'Page opened. You can continue.' : 'Open the page, look at it, then come back here to continue.') : 'Complete the declaration, then continue.'; };
   const tick = setInterval(() => { if (!next.isConnected) clearInterval(tick); else refresh(); }, 1000);
   let viewer;
@@ -38,7 +38,7 @@ function stepCard(s, n, of, done) {
   next.addEventListener('click', async () => { next.disabled = true;
     try { await api('/onboarding/' + s.code, { seconds: secs(), reached_end: reached, note: note.value }); clearInterval(tick); toast('Finished: ' + s.title, '', 'ok'); done(); } catch (e) { toast('Not saved', e.message, 'bad'); refresh(); } });
   setTimeout(refresh, 30);
-  return h('section', { class: 'card' }, h('div', { class: 'card__body', style: 'display:grid;gap:14px' }, h('span', { class: 'tag', style: 'justify-self:start', text: `Step ${n} of ${of}` }), h('h2', { style: 'margin:0', text: s.title }), s.detail ? h('p', { class: 'muted', style: 'margin:0', text: s.detail }) : null, viewer, hint, h('div', {}, next)));
+  return h('section', { class: 'card' }, h('div', { class: 'card__body', style: 'display:grid;gap:14px' }, h('span', { class: 'tag', style: 'justify-self:start', text: tf('Step {1} of {2}', n, of) }), h('h2', { style: 'margin:0', text: s.title }), s.detail ? h('p', { class: 'muted', style: 'margin:0', text: s.detail }) : null, viewer, hint, h('div', {}, next)));
 }
 
 /* -------------------------------------------------------------- appointment -- */
@@ -47,12 +47,12 @@ async function appointment(root) {
   let d; try { d = await api('/appointment'); } catch (e) { box.replaceChildren(empty('x', 'This page did not load', e.message)); return; }
   const s = d.seat;
   if (!s || !['pending', 'declined', 'accepted'].includes(s.acceptance)) { box.replaceChildren(empty('award', 'No appointment is waiting', 'When WODDI HQ appoints you to a leadership seat, the Volunteer Leadership Agreement opens here for you to read and accept.', h('a', { class: 'btn btn--quiet btn--s', href: '#/', text: 'Go to my dashboard' }))); return; }
-  if (s.acceptance === 'accepted') { box.replaceChildren(empty('check', 'Agreement accepted', `You accepted the Volunteer Leadership Agreement on ${fmtDate(s.accepted_at)} as ${s.title}.`, h('a', { class: 'btn btn--s', href: '#/onboarding', text: 'Continue my onboarding' }))); return; }
+  if (s.acceptance === 'accepted') { box.replaceChildren(empty('check', 'Agreement accepted', tf('You accepted the Volunteer Leadership Agreement on {1} as {2}.', fmtDate(s.accepted_at), s.title), h('a', { class: 'btn btn--s', href: '#/onboarding', text: 'Continue my onboarding' }))); return; }
   let reached = false; const accept = h('button', { class: 'btn', type: 'button', disabled: true }, 'I Accept'); const hint = h('p', { class: 'muted', style: 'margin:0;font-size:14px', text: 'Scroll to the end of the document to continue.' });
   const answer = async (yes) => { if (!yes && !confirm('Decline the Volunteer Leadership Agreement?')) return;
     try { await api('/appointment', { accept: yes }); await refreshUser(); toast(yes ? 'Agreement accepted' : 'You declined the Agreement', yes ? '' : 'Your appointment pauses here. Speak with HQ when you are ready.', yes ? 'ok' : 'bad'); go(yes ? '#/onboarding' : '#/'); } catch (e) { toast('Not saved', e.message, 'bad'); } };
   accept.addEventListener('click', () => answer(true));
-  box.replaceChildren(h('div', { class: 'card__body', style: 'display:grid;gap:14px' }, h('h2', { class: 'display', style: 'font-size:24px;margin:0', text: 'Volunteer Leadership Agreement' }), h('p', { class: 'muted', style: 'margin:0', text: `You have been appointed ${s.title} (${s.network}). Read the Agreement to the end, then accept it to take up your seat.` }),
+  box.replaceChildren(h('div', { class: 'card__body', style: 'display:grid;gap:14px' }, h('h2', { class: 'display', style: 'font-size:24px;margin:0', text: 'Volunteer Leadership Agreement' }), h('p', { class: 'muted', style: 'margin:0', text: tf('You have been appointed {1} ({2}). Read the Agreement to the end, then accept it to take up your seat.', s.title, s.network) }),
     s.acceptance === 'declined' ? h('p', { class: 'err', text: 'You declined the Agreement. Your appointment pauses here. You can still accept it below, or speak with HQ.' }) : null,
     docReader(d.doc, () => { reached = true; accept.disabled = false; hint.textContent = 'You have reached the end. You can continue.'; }, 'Volunteer Leadership Agreement'), hint,
     h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' }, accept, s.acceptance === 'pending' ? h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => answer(false) }, 'Decline') : null)));

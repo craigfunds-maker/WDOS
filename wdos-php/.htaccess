@@ -2,7 +2,7 @@
 Options -Indexes
 RewriteEngine On
 # private folders and files are never served
-RewriteRule ^(lib|migrations)(/|$) - [F,L]
+RewriteRule ^(lib|migrations|docs)(/|$) - [F,L]
 RewriteRule ^(config\.local\.php|config\.sample\.php|Dockerfile|README-DEPLOY\.md)$ - [F,L]
 # every /api/... request goes to the one PHP entry point
 RewriteRule ^api(/.*)?$ api/index.php [QSA,L]

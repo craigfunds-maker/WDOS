@@ -33,7 +33,7 @@ export function lineChart(host, { labels, series, height = 250 }) {
       svg.append(s('line', { class: 'grid', x1: L, x2: W - R, y1: yy, y2: yy }), s('text', { class: 'axis', x: L - 8, y: yy + 4, 'text-anchor': 'end' }, document.createTextNode(Number.isInteger(v) ? fmt(v) : '')));
     }
     const every = Math.max(1, Math.ceil(labels.length / Math.max(2, Math.floor((W - L - R) / 74))));
-    labels.forEach((d, i) => { if (i % every === 0 || i === labels.length - 1) { if (i !== labels.length - 1 && labels.length - 1 - i < every) return; svg.append(s('text', { class: 'axis', x: x(i), y: H - 6, 'text-anchor': i === 0 ? 'start' : i === labels.length - 1 ? 'end' : 'middle' }, document.createTextNode(new Date(d + 'T00:00:00Z').toLocaleDateString(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' })))); } });
+    labels.forEach((d, i) => { if (i % every === 0 || i === labels.length - 1) { if (i !== labels.length - 1 && labels.length - 1 - i < every) return; svg.append(s('text', { class: 'axis', x: x(i), y: H - 6, 'text-anchor': i === 0 ? 'start' : i === labels.length - 1 ? 'end' : 'middle' }, document.createTextNode(new Date(d + 'T00:00:00Z').toLocaleDateString(loc(), { day: 'numeric', month: 'short', timeZone: 'UTC' })))); } });
     const defs = s('defs'); svg.append(defs);
     series.forEach((q, si) => {
       const pts = q.values.map((v, i) => [x(i), y(v)]);
@@ -62,7 +62,7 @@ export function lineChart(host, { labels, series, height = 250 }) {
       at = Math.max(0, Math.min(labels.length - 1, i));
       cross.setAttribute('x1', x(at)); cross.setAttribute('x2', x(at)); cross.style.opacity = 1;
       series.forEach((q, k) => { dots[k].setAttribute('cx', x(at)); dots[k].setAttribute('cy', y(q.values[at])); dots[k].setAttribute('opacity', 1); });
-      tip.replaceChildren(h('b', { text: new Date(labels[at] + 'T00:00:00Z').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }) }),
+      tip.replaceChildren(h('b', { text: new Date(labels[at] + 'T00:00:00Z').toLocaleDateString(loc(), { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }) }),
         ...series.map((q) => h('div', {}, h('span', { style: 'display:inline-flex;align-items:center;gap:7px' }, h('i', { class: 'key', style: `background:${q.color}` }), q.name), h('span', { text: fmt(q.values[at]) }))));
       const px = (x(at) / W) * host.clientWidth; tip.classList.add('is-on');
       tip.style.left = Math.min(host.clientWidth - tip.offsetWidth - 4, Math.max(4, px + (px > host.clientWidth * 0.6 ? -tip.offsetWidth - 14 : 14))) + 'px'; tip.style.top = '8px';

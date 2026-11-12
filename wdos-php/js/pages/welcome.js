@@ -155,22 +155,22 @@ export async function render(root, params) {
     const n = NETS[chosen]; const other = chosen === 'WGMN' ? 'WNNN' : 'WGMN';
     const err = h('p', { class: 'err', role: 'alert' });
     said(err);                                                                      // every message shown here is said in her language
-    const tf = (s, vars) => t(s).replace(/\{(\w+)\}/g, (m, k) => vars[k] ?? m); let volRoleBox = null; F.vol = null; F.volRole = null;
+    let volRoleBox = null; F.vol = null; F.volRole = null;
     const ageNote = h('small', {});
-    const submit = h('button', { class: 'btn btn--block', type: 'submit', text: complete ? `Finish joining ${chosen}` : candidate ? 'Create my account and begin my Referral Activation' : 'Create my account' });
+    const submit = h('button', { class: 'btn btn--block', type: 'submit', text: complete ? tf('Finish joining {1}', chosen) : candidate ? 'Create my account and begin my Referral Activation' : 'Create my account' });
     const consent = F.consent || (F.consent = h('input', { type: 'checkbox', id: 'f-consent' }));
     let refBlock = null;
     if (candidate && refMeta) {
       F.position = F.position || h('select', { class: 'input', id: 'f-position' }); F.refCat = F.refCat || h('select', { class: 'input', id: 'f-refcat' }, h('option', { value: '', text: 'Choose' }), Object.entries(refMeta.categories).map(([v, l]) => h('option', { value: v, text: l }))); F.refName = F.refName || h('input', { class: 'input', id: 'f-refname', maxlength: 160 });
       const keep = F.position.value; F.position.replaceChildren(h('option', { value: '', text: 'Choose the position' }), ...refMeta.positions.map((p) => h('option', { value: p.code, text: chosen === 'WNNN' ? p.title_wnnn : p.title_wgmn }))); F.position.value = keep;
       refBlock = h('fieldset', {}, h('legend', { text: 'The position and where you will serve' }),
-        link ? h('p', { class: 'muted', style: 'margin:0 0 12px', text: `You have been referred by ${link.owner} for consideration as ${link.role}${link.place ? ', ' + link.place : ''}.` })
+        link ? h('p', { class: 'muted', style: 'margin:0 0 12px', text: tf('You have been referred by {1} for consideration as {2}.', link.owner, link.role + (link.place ? ', ' + link.place : '')) })
           : h('div', { class: 'grid2' }, h('label', { class: 'field', for: 'f-position' }, h('span', { text: 'Position being considered for' }), F.position), h('label', { class: 'field', for: 'f-refcat' }, h('span', { text: 'Who referred you?' }), F.refCat), h('label', { class: 'field', for: 'f-refname' }, h('span', { text: 'Name of the person who referred you' }), F.refName)),
         h('p', { class: 'notice', text: refMeta.notice }));
     }
     const form = h('form', { class: 'jform reveal', novalidate: true },
-      h('div', { class: 'jform__head' }, h('img', { src: n.disc, alt: '' }), h('div', {}, h('h2', { text: complete ? 'Finish your profile' : `Join ${chosen}` }), h('p', { class: 'muted', text: `${n.name}. ${n.age}.` }))),
-      !complete && app.config.google ? h('div', { style: 'margin-top:18px' }, h('a', { class: 'gbtn', href: '/api/auth/google/start?network=' + chosen }, googleMark(), `Continue with Google as ${chosen}`), h('div', { class: 'or', text: 'or fill in the form' })) : null,
+      h('div', { class: 'jform__head' }, h('img', { src: n.disc, alt: '' }), h('div', {}, h('h2', { text: complete ? 'Finish your profile' : tf('Join {1}', chosen) }), h('p', { class: 'muted', text: `${n.name}. ${n.age}.` }))),
+      !complete && app.config.google ? h('div', { style: 'margin-top:18px' }, h('a', { class: 'gbtn', href: '/api/auth/google/start?network=' + chosen }, googleMark(), tf('Continue with Google as {1}', chosen)), h('div', { class: 'or', text: 'or fill in the form' })) : null,
       h('fieldset', { 'data-eyebrow': 'Simple details' }, h('legend', { text: 'Your details' }), h('p', { class: 'muted', style: 'margin:0 0 12px', text: 'Only the essential details now. No OTP and no long registration form.' }), h('div', { class: 'grid2' },
         field('first_name', 'First name', { required: true, maxlength: 80, autocomplete: 'given-name', value: u?.first_name || saved.first_name || '' }),
         field('last_name', 'Surname', { required: true, maxlength: 80, autocomplete: 'family-name', value: u?.last_name || saved.last_name || '' }),
@@ -178,7 +178,7 @@ export async function render(root, params) {
         complete ? field('contact', 'Phone or WhatsApp number', { type: 'tel', required: true, maxlength: 24, autocomplete: 'tel', placeholder: '+234 801 234 5678' }, 'Include the country code.')
           : h('div', { class: 'grid2', style: 'grid-column:1/-1' }, field('email', 'Email address (optional)', { type: 'email', inputmode: 'email', autocapitalize: 'none', maxlength: 190, autocomplete: 'email', placeholder: 'name@example.com', value: saved.email || (String(saved.contact || '').includes('@') ? saved.contact : '') }, 'No email? Leave this empty and sign in with your phone number.'),
               field('contact', 'Phone number', { type: 'tel', inputmode: 'tel', required: true, maxlength: 24, autocomplete: 'tel', placeholder: '+234 801 234 5678', value: String(saved.contact || '').includes('@') ? '' : saved.contact || '' }, 'With the country code. If you have no email, you sign in with this number.')))),
-      h('fieldset', { 'data-eyebrow': 'Find your community' }, h('legend', { text: 'Your location' }), h('p', { class: 'muted', style: 'margin:0 0 12px', text: `Your location helps WDOS place you in a suitable ${chosen} chapter. No woman is turned away because her chapter is full.` }), h('div', { class: 'grid2' },
+      h('fieldset', { 'data-eyebrow': 'Find your community' }, h('legend', { text: 'Your location' }), h('p', { class: 'muted', style: 'margin:0 0 12px', text: tf('Your location helps WDOS place you in a suitable {1} chapter. No woman is turned away because her chapter is full.', chosen) }), h('div', { class: 'grid2' },
         h('label', { class: 'field', for: 'f-country' }, h('span', { text: 'Country' }), F.country), stateSlot,
         lgaSlot, field('community', 'Community or ward', { maxlength: 120, value: saved.community || '', list: 'f-clusters' }), clusterList, field('ward', 'Official ward (optional)', { maxlength: 120, value: saved.ward || '' }, 'Only if it is different from your community.')), h('p', { class: 'notice', style: 'margin-top:14px', text: 'Official ward and WODDI community cluster are separate records. A neighbourhood name is not assumed to be an official government ward.' })),
       refBlock,
@@ -224,7 +224,7 @@ export async function render(root, params) {
       submit.disabled = true; const label = submit.textContent; submit.textContent = 'Creating your membership…';
       try {
         const r = await api(complete ? '/auth/complete-profile' : '/auth/register', body);
-        toast(`Welcome to ${chosen}`, `Your membership number is ${r.user.member_no}.`, 'ok');
+        toast(tf('Welcome to {1}', chosen), tf('Your membership number is {1}.', r.user.member_no), 'ok');
         draft.clear();
         if (complete) { await refreshUser(); }
         signedIn(r.user);
@@ -268,7 +268,7 @@ export async function render(root, params) {
       if (F.paintMap) F.paintMap();
       stepNo = Math.max(0, Math.min(steps.length - 1, i)); steps.forEach((fs, k) => { fs.hidden = k !== stepNo; });
       const lead = complete ? 0 : 2, total = steps.length + lead, at = stepNo + lead;            // 01 language and 02 network are already done on this screen
-      bar.replaceChildren(...Array.from({ length: total }, (_, k) => h('span', { class: k < at ? 'is-done' : k === at ? 'is-open' : '' }))); bar.setAttribute('aria-label', `Step ${at + 1} of ${total}`);
+      bar.replaceChildren(...Array.from({ length: total }, (_, k) => h('span', { class: k < at ? 'is-done' : k === at ? 'is-open' : '' }))); bar.setAttribute('aria-label', tf('Step {1} of {2}', at + 1, total));
       stepLabel.className = 'eyebrow'; stepLabel.textContent = `${String(at + 1).padStart(2, '0')} · ${t(steps[stepNo].dataset.eyebrow || steps[stepNo].querySelector('legend').textContent)}`; back.hidden = stepNo === 0 && !plain; next.hidden = stepNo === steps.length - 1; submit.hidden = stepNo !== steps.length - 1; err.textContent = ''; save();
     }
     back.onclick = () => { stopAllListening(); if (stepNo === 0 && plain) setStage('network'); else show(stepNo - 1); };
@@ -302,9 +302,9 @@ export async function render(root, params) {
     document.body.append(dlg); document.addEventListener('keydown', onKey); dlg.querySelector('.iconbtn').focus();
   }
   const startLang = langPicker(setLanguage); startLang.id = 'lang-start'; startLang.classList.add('lpick', 'lpick--card');
-  const stepBar = (at) => h('div', { class: 'jbar jbar--form', role: 'img', 'aria-label': `Step ${at + 1} of 5` }, [0, 1, 2, 3, 4].map((k) => h('span', { class: k < at ? 'is-done' : k === at ? 'is-open' : '' })));
-  const headline = h(plain ? 'h2' : 'h1', { class: 'display' + (plain ? ' join__pick' : ''), text: complete ? 'One more step to join your network' : link ? `You have been invited by ${link.owner}` : leaderForm ? 'Join WODDI leadership consideration' : 'Choose the network you are joining' });
-  const lede = h('p', { class: 'lede' + (plain ? ' lede--c' : ''), text: link ? (link.position ? `To apply for the position of ${link.role} in ${link.place || 'your area'} (${link.network}). A referral records who invited you. Selection and appointment remain with WODDI Headquarters after registration, activation and assessment.` : `To join ${link.network} in ${link.place || 'your area'}.`)
+  const stepBar = (at) => h('div', { class: 'jbar jbar--form', role: 'img', 'aria-label': tf('Step {1} of 5', at + 1) }, [0, 1, 2, 3, 4].map((k) => h('span', { class: k < at ? 'is-done' : k === at ? 'is-open' : '' })));
+  const headline = h(plain ? 'h2' : 'h1', { class: 'display' + (plain ? ' join__pick' : ''), text: complete ? 'One more step to join your network' : link ? tf('You have been invited by {1}', link.owner) : leaderForm ? 'Join WODDI leadership consideration' : 'Choose the network you are joining' });
+  const lede = h('p', { class: 'lede' + (plain ? ' lede--c' : ''), text: link ? (link.position ? tf('To apply for the position of {1} in {2} ({3}). A referral records who invited you. Selection and appointment remain with WODDI Headquarters after registration, activation and assessment.', link.role, link.place || tr('your area'), link.network) : tf('To join {1} in {2}.', link.network, link.place || tr('your area')))
     : leaderForm ? 'You have been referred by a WODDI leader for volunteer leadership consideration. Tell us who you are, the position you are being considered for and where you will serve, then create your WDOS account to begin your three day activation.' : complete ? 'Your Google account is connected. Pick your network and tell us where you are, so your leaders can find you.' : 'WODDI has two membership networks designed for different age groups. Select the network that matches your age category to access its membership registration form. Your profile and membership records will automatically be created within your chosen network upon registration.' });
   if (plain) {
     secLang = h('section', { class: 'startcard' }, h('span', { class: 'startcard__pill', text: 'No Woman Is Left Out' }), stepBar(0),

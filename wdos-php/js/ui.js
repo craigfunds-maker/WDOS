@@ -20,6 +20,9 @@ export const i18n = {
   async set(lang) { try { localStorage.setItem('wdos.lang', lang); } catch { /* private mode */ } await this.load(lang); },
 };
 export const t = (s) => { if (!i18n.dict || typeof s !== 'string') return s; const k = s.trim(); const v = k && i18n.dict[k]; return v ? s.replace(k, () => v) : s; };
+/* A sentence with changing parts: tf('{1} of {2} members', a, b). The whole sentence is one dictionary entry, so each language orders the parts its own way. Named parts work too: tf('Age {a}.', { a }). */
+export const tf = (s, ...a) => { const v = a.length === 1 && a[0] && typeof a[0] === 'object' ? a[0] : null; return String(t(s)).replace(/\{(\w+)\}/g, (m, k) => (v ? (v[k] ?? m) : (a[k - 1] ?? ''))); };
+globalThis.tf = tf; globalThis.tr = t;
 const T_ATTR = { placeholder: 1, 'aria-label': 1, title: 1, alt: 1, 'data-tip': 1 };
 export function h(tag, attrs = {}, ...kids) {
   const n = document.createElement(tag);
@@ -111,17 +114,19 @@ export const NETS = {
 
 /* time */
 const parse = (s) => (s ? new Date(String(s).replace(' ', 'T') + 'Z') : null);
+export const loc = () => (i18n.lang === 'en' ? undefined : i18n.lang === 'ar' ? 'ar-u-nu-latn' : i18n.lang);
+globalThis.loc = loc;
 export function ago(s) {
-  const d = parse(s); if (!d) return 'Never';
+  const d = parse(s); if (!d) return t('Never');
   const m = Math.round((Date.now() - d) / 60000);
-  if (m < 1) return 'Just now'; if (m < 60) return m + ' min ago';
-  const hr = Math.round(m / 60); if (hr < 24) return hr + (hr === 1 ? ' hour ago' : ' hours ago');
-  const dy = Math.round(hr / 24); if (dy < 7) return dy + (dy === 1 ? ' day ago' : ' days ago');
-  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
+  if (m < 1) return t('Just now'); if (m < 60) return tf('{1} min ago', m);
+  const hr = Math.round(m / 60); if (hr < 24) return hr === 1 ? tf('{1} hour ago', hr) : tf('{1} hours ago', hr);
+  const dy = Math.round(hr / 24); if (dy < 7) return dy === 1 ? tf('{1} day ago', dy) : tf('{1} days ago', dy);
+  return d.toLocaleDateString(loc(), { day: 'numeric', month: 'short', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
 }
 /** For use mid-sentence: 'seen 3 days ago', but dates keep their capitals. */
-export const agoIn = (s) => { const t = ago(s); return /ago|now/i.test(t) ? t.toLowerCase() : 'on ' + t; };
-export const fmtDate = (s, o = { day: 'numeric', month: 'short', year: 'numeric' }) => { const d = parse(s && s.length === 10 ? s + ' 00:00:00' : s); return d ? d.toLocaleDateString(undefined, { timeZone: 'UTC', ...o }) : ''; };
+export const agoIn = (s) => { const d = parse(s); const x = ago(s); if (!d) return x; return Math.round(Math.round(Math.round((Date.now() - d) / 60000) / 60) / 24) < 7 ? (i18n.lang === 'en' ? x.toLowerCase() : x) : tf('on {1}', x); };
+export const fmtDate = (s, o = { day: 'numeric', month: 'short', year: 'numeric' }) => { const d = parse(s && s.length === 10 ? s + ' 00:00:00' : s); return d ? d.toLocaleDateString(loc(), { timeZone: 'UTC', ...o }) : ''; };
 export const fmt = (n) => Number(n || 0).toLocaleString();
 
 /* toasts */
@@ -148,7 +153,7 @@ export const sk = {
 export function card(title, sub, body, right) {
   return h('section', { class: 'card' }, h('div', { class: 'card__head' }, h('div', { class: 'grow' }, h('h2', { text: title }), sub ? h('p', { text: sub }) : null), right || null), h('div', { class: 'card__body' }, body));
 }
-export const greeting = () => { const hr = new Date().getHours(); return hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening'; };
+export const greeting = () => { const hr = new Date().getHours(); return t(hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening'); };
 export const theme = {
   get: () => document.documentElement.dataset.theme === 'light' ? 'light' : 'dark',
   set(t) { document.documentElement.dataset.theme = t; try { localStorage.setItem('wdos.theme', t); } catch { /* private mode */ } document.querySelector('meta[name=theme-color]')?.setAttribute('content', t === 'light' ? '#FAF4F7' : '#130912'); window.dispatchEvent(new Event('wdos:theme')); },
@@ -280,7 +285,7 @@ export { stopAllListening };
 /* A capacity meter: members against the chapter's capacity, with the minimum marked. */
 export function meter(n, cap, min) {
   const pct = Math.max(0, Math.min(100, Math.round((n / Math.max(1, cap)) * 100)));
-  return h('div', { class: 'meter' + (n >= cap ? ' is-full' : n >= min ? ' is-ok' : ''), role: 'img', 'aria-label': `${n} of ${cap} members` }, h('span', { style: `width:${pct}%` }), min && min < cap ? h('i', { style: `inset-inline-start:${Math.round((min / cap) * 100)}%` }) : null);
+  return h('div', { class: 'meter' + (n >= cap ? ' is-full' : n >= min ? ' is-ok' : ''), role: 'img', 'aria-label': tf('{1} of {2} members', n, cap) }, h('span', { style: `width:${pct}%` }), min && min < cap ? h('i', { style: `inset-inline-start:${Math.round((min / cap) * 100)}%` }) : null);
 }
 export const CH_TAG = { developing: '', eligible: 'tag--wgmn', active: 'tag--wnnn', full: 'tag--bad', merged: '', closed: '' };
 
