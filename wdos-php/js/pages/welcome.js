@@ -261,13 +261,13 @@ export async function render(root, params) {
     form.addEventListener('input', save); form.addEventListener('change', save);
     form.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.tagName === 'INPUT' && stepNo < steps.length - 1) { e.preventDefault(); next.click(); } });
     show(Math.min(stepNo, steps.length - 1));
-    /* The WODDI Good Mother Network map of Africa stands with the WGMN form: beside it on a wide screen, under it on a phone,
-       so the fields always come first. It lights up her country once she has chosen it. */
+    /* The WODDI Good Mother Network map of Africa stands above the WGMN form, centred and small on every screen.
+       It lights up her country once she has chosen it. */
     if (plain && chosen === 'WGMN') {
       const mapSlot = h('aside', { class: 'joinmap__map', 'aria-label': 'WODDI Good Mother Network map of Africa' }); let shown = null;
       const paintMap = () => { const code = countries.find((x) => String(x.id) === F.country.value)?.code || ''; if (code === shown) return; shown = code; import('../goodmother.js').then((m) => mapSlot.replaceChildren(m.africaMap(code || undefined))).catch(() => {}); };
       paintMap(); F.country.addEventListener('change', paintMap); F.paintMap = paintMap;
-      inner.replaceChildren(h('div', { class: 'joinmap' }, form, mapSlot)); wrap.classList.add('formwrap--map'); document.querySelector('main.join')?.classList.add('join--map');
+      inner.replaceChildren(h('div', { class: 'joinmap' }, mapSlot, form)); wrap.classList.add('formwrap--map'); document.querySelector('main.join')?.classList.add('join--map');
     } else { F.paintMap = null; inner.replaceChildren(form); wrap.classList.remove('formwrap--map'); document.querySelector('main.join')?.classList.remove('join--map'); }
     void other;
   }
