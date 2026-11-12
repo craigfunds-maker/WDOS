@@ -258,7 +258,7 @@ export async function render(root, params) {
     const close = () => { v.pause(); dlg.remove(); document.removeEventListener('keydown', onKey); };
     const onKey = (e) => { if (e.key === 'Escape') close(); };
     const dlg = h('div', { class: 'vmodal', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Video guidance', onclick: (e) => { if (e.target === dlg) close(); } },
-      h('div', { class: 'vmodal__box' }, h('div', { style: 'display:flex;align-items:center;gap:10px' }, h('b', { class: 'grow', text: 'Video guidance: how to join' }), h('button', { class: 'iconbtn', type: 'button', 'aria-label': 'Close the video', onclick: close }, icon('x'))),
+      h('div', { class: 'vmodal__box' }, h('div', { style: 'display:flex;align-items:center;gap:10px' }, h('b', { class: 'grow', text: 'How to join the WODDI Digital Operating System' }), h('button', { class: 'iconbtn', type: 'button', 'aria-label': 'Close the video', onclick: close }, icon('x'))),
         v, h('details', {}, h('summary', { text: 'Read the words instead' }), own ? h('ol', { style: 'margin:8px 0 0;padding-inline-start:20px;display:grid;gap:6px' }, GUIDE.map((w) => h('li', { text: w }))) : h('p', { text: guide.transcript || '' }))));
     document.body.append(dlg); document.addEventListener('keydown', onKey); dlg.querySelector('.iconbtn').focus();
   }
