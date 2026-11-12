@@ -60,8 +60,8 @@ function validate_profile_fields(bool $withPassword): array {
   $first = str_in('first_name', 80); $last = str_in('last_name', 80);
   if (mb_strlen($first) < 2 || mb_strlen($last) < 2) fail(422, 'Enter your first name and surname.', 'name');
   $phone = preg_replace('/[^\d+]/', '', str_in('phone', 32));
-  $hasEmail = (bool) filter_var(strtolower(str_in('email', 190)), FILTER_VALIDATE_EMAIL) || !empty(current_user()['email']);
-  if (strlen(ltrim($phone, '+')) < 8) { if ($phone !== '' || !$hasEmail) fail(422, 'Enter your phone number with the country code, or an email address.', 'phone'); $phone = ''; }
+  // Both are compulsory (decision of the IT Lead, 12 November 2026): an email address to sign in with, and a phone number to be reached on.
+  if (strlen(ltrim($phone, '+')) < 8 || strlen(ltrim($phone, '+')) > 15) fail(422, 'Enter your phone number with the country code, for example +234 801 234 5678.', 'phone');
   $dob = str_in('dob', 10); $d = DateTime::createFromFormat('Y-m-d', $dob);
   if (!$d || $d->format('Y-m-d') !== $dob) fail(422, 'Enter your date of birth.', 'dob');
   $age = age_on($dob); $fits = network_for_age($age);
@@ -105,6 +105,7 @@ function finish_signup(int $id, array $f): void {
   $fresh = row('SELECT * FROM users WHERE id=?', [$id]); if ($fresh) chapter_place_user($fresh);
   if (!$aid) mj_start($id);
   try { source_save($id); if (!empty(body()['draft'])) q('DELETE FROM reg_drafts WHERE token_hash=?', [hash('sha256', (string) body()['draft'])]); } catch (PDOException $e) { /* before migration 017 */ }
+  try { volunteer_interest_save($id, (string) (body()['volunteer_interest'] ?? '')); } catch (PDOException $e) { /* before migration 020 */ }
   if (($ward = str_in('ward', 120)) !== '') q('UPDATE users SET ward=? WHERE id=?', [$ward, $id]);      // the official ward, kept apart from the WODDI community
   after_response(fn() => push_drain(20));
 }
@@ -119,9 +120,9 @@ route('POST', '/auth/register', function () {
   // The same request sent again after a lost reply returns the account it already made, not an error and not a second account (T04, T29).
   $idem = (string) (body()['idem'] ?? '');
   if (($again = idem_existing($idem, $f['password']))) { session_start_for((int) $again['id'], 'password'); return ['ok' => true, 'user' => public_user($again), 'resumed' => true]; }
-  // An email address is optional. Without one, the phone number is the sign-in name. No code is sent either way.
-  if ($email === '') { $email = phone_login_name($f['phone']); if (val('SELECT id FROM users WHERE email=?', [$email])) fail(409, 'An account with this phone number already exists. Sign in instead.', 'phone_taken'); }
-  elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) fail(422, 'Enter a valid email address, or leave it empty to sign in with your phone number.', 'email');
+  // An email address is compulsory, and so is a phone number. She signs in with the email. No code is sent to either.
+  if ($email === '') fail(422, 'Enter your email address. You sign in with it.', 'email');
+  if (!filter_var($email, FILTER_VALIDATE_EMAIL)) fail(422, 'That email address is not complete. Check it and try again.', 'email');
   if (val('SELECT id FROM users WHERE email=?', [$email])) fail(409, 'An account with this email already exists. Sign in instead.', 'email_taken');
   throttle_hit('reg:' . client_ip());
   $id = ins('INSERT INTO users (email,password_hash,first_name,last_name,phone,dob,network,country_code,org_unit_id,state_region,lga,community,role,status,signup_method,created_at)

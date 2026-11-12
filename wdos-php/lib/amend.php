@@ -604,13 +604,7 @@ route('POST', '/hq/templates', function () {
 /* A member chooses to volunteer: she is marked as a volunteer and receives her development assignments. Appointment to a seat stays with HQ. */
 route('POST', '/me/volunteer', function () {
   $u = require_user(); if (is_hq($u)) fail(422, 'HQ staff do not use this step.', 'hq');
-  if (!empty($u['volunteer_since'])) return ['ok' => true, 'already' => true];
-  q('UPDATE users SET volunteer_since=? WHERE id=?', [now(), (int) $u['id']]);
-  foreach (VOLUNTEER_ASSIGNMENTS as $i => [$t, $d]) { $tid = task_create((int) $u['id'], (int) $u['id'], $t, $d, 'normal', gmdate('Y-m-d', time() + 14 * 86400), false, 'volunteer:' . ($i + 1), false); if (!empty($u['chapter_id'])) q('UPDATE tasks SET chapter_id=? WHERE id=?', [(int) $u['chapter_id'], $tid]); }
-  log_activity((int) $u['id'], (int) $u['id'], 'volunteer_joined');
-  notify((int) $u['id'], 'task', 'Thank you for volunteering', 'Three development assignments are in your task list. Your chapter leaders can now see you as a volunteer.', '#/tasks');
-  foreach (rows('SELECT user_id FROM seats WHERE chapter_id=? AND ends_at IS NULL AND he_for_she=0', [(int) ($u['chapter_id'] ?? 0)]) as $s) notify((int) $s['user_id'], 'registration', 'A member of your chapter is now a volunteer', trim($u['first_name'] . ' ' . $u['last_name']) . ' has chosen to volunteer and has received her development assignments.', '#/chapter');
-  return ['ok' => true];
+  return volunteer_join($u) ? ['ok' => true] : ['ok' => true, 'already' => true];
 });
 
 /* Integration health: what is connected to WDOS today, said plainly. */

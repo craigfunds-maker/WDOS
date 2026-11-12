@@ -1,7 +1,7 @@
 /* The front door. A newcomer picks her network by its logo, and the form that
  * opens carries that network all the way into her record. The same form
  * finishes a Google sign-up (complete = true). */
-import { h, t, clear, icon, NETS, googleMark, theme, toast, langPills, langPicker, listenBtn, guideBtn, stopAllListening, GUIDE, GUIDE_AUDIO, GUIDE_VIDEO, i18n } from '../ui.js';
+import { h, t, clear, icon, NETS, googleMark, theme, toast, langPills, langPicker, listenBtn, guideBtn, stopAllListening, GUIDE, GUIDE_AUDIO, GUIDE_VIDEO, i18n, choices, said } from '../ui.js';
 import { api } from '../api.js';
 import { app, signedIn, refreshUser, go, signOut, setLanguage } from '../app.js';
 
@@ -77,7 +77,7 @@ export async function render(root, params) {
   /* One screen at a time: 01 language, 02 network, then the form's own steps. */
   let stage = 'lang'; const netErr = h('p', { class: 'err', role: 'alert', style: 'text-align:center' }); let secLang = null, secNet = null;
   function setStage(to) {
-    stage = to; stopAllListening(); if (secLang) secLang.hidden = to !== 'lang'; if (secNet) secNet.hidden = to !== 'network'; wrap.hidden = to !== 'form';
+    stage = to; stopAllListening(); if (secLang) secLang.hidden = to !== 'lang'; if (secNet) secNet.hidden = to !== 'network'; wrap.hidden = to !== 'form'; document.querySelector('main.join')?.classList.toggle('join--map', to === 'form' && wrap.classList.contains('formwrap--map'));
     window.scrollTo({ top: 0, behavior: 'auto' }); const hd = (to === 'lang' ? secLang : to === 'network' ? secNet : wrap)?.querySelector('h1, h2, legend'); if (hd) { hd.setAttribute('tabindex', '-1'); hd.focus({ preventScroll: true }); }
   }
   for (const k of Object.keys(cards)) cards[k].querySelector('.net__pick').replaceChildren(t('Choose ' + k));
@@ -139,6 +139,8 @@ export async function render(root, params) {
   function buildForm() {
     const n = NETS[chosen]; const other = chosen === 'WGMN' ? 'WNNN' : 'WGMN';
     const err = h('p', { class: 'err', role: 'alert' });
+    said(err);                                                                      // every message shown here is said in her language
+    const tf = (s, vars) => t(s).replace(/\{(\w+)\}/g, (m, k) => vars[k] ?? m); let volRoleBox = null; F.vol = null; F.volRole = null;
     const ageNote = h('small', {});
     const submit = h('button', { class: 'btn btn--block', type: 'submit', text: complete ? `Finish joining ${chosen}` : candidate ? 'Create my account and begin my Referral Activation' : 'Create my account' });
     const consent = F.consent || (F.consent = h('input', { type: 'checkbox', id: 'f-consent' }));
@@ -159,7 +161,8 @@ export async function render(root, params) {
         field('last_name', 'Surname', { required: true, maxlength: 80, autocomplete: 'family-name', value: u?.last_name || saved.last_name || '' }),
         h('label', { class: 'field', for: 'f-dob' }, h('span', { text: 'Date of birth' }), F.dob || (F.dob = h('input', { class: 'input', id: 'f-dob', type: 'date', required: true, autocomplete: 'bday', value: saved.dob || '' })), ageNote),
         complete ? field('contact', 'Phone or WhatsApp number', { type: 'tel', required: true, maxlength: 24, autocomplete: 'tel', placeholder: '+234 801 234 5678' }, 'Include the country code.')
-          : field('contact', 'Phone or email', { type: 'text', inputmode: 'email', autocapitalize: 'none', required: true, maxlength: 190, autocomplete: 'tel', placeholder: 'Phone number or email', value: saved.contact || '' }, 'A phone number with the country code, or an email address. This is how you sign in. No code is sent to you.'))),
+          : h('div', { class: 'grid2', style: 'grid-column:1/-1' }, field('email', 'Email address', { type: 'email', inputmode: 'email', autocapitalize: 'none', required: true, maxlength: 190, autocomplete: 'email', placeholder: 'name@example.com', value: saved.email || (String(saved.contact || '').includes('@') ? saved.contact : '') }, 'You sign in with this email. No code is sent to you.'),
+              field('contact', 'Phone number', { type: 'tel', inputmode: 'tel', required: true, maxlength: 24, autocomplete: 'tel', placeholder: '+234 801 234 5678', value: String(saved.contact || '').includes('@') ? '' : saved.contact || '' }, 'With the country code. WODDI reaches you on it.')))),
       h('fieldset', { 'data-eyebrow': 'Find your community' }, h('legend', { text: 'Your location' }), h('p', { class: 'muted', style: 'margin:0 0 12px', text: `Your location helps WDOS place you in a suitable ${chosen} chapter. No woman is turned away because her chapter is full.` }), h('div', { class: 'grid2' },
         h('label', { class: 'field', for: 'f-country' }, h('span', { text: 'Country' }), F.country), stateSlot,
         lgaSlot, field('community', 'Community or ward', { maxlength: 120, value: saved.community || '', list: 'f-clusters' }), clusterList, field('ward', 'Official ward (optional)', { maxlength: 120, value: saved.ward || '' }, 'Only if it is different from your community.')), h('p', { class: 'notice', style: 'margin-top:14px', text: 'Official ward and WODDI community cluster are separate records. A neighbourhood name is not assumed to be an official government ward.' })),
@@ -167,28 +170,32 @@ export async function render(root, params) {
       h('fieldset', { 'data-eyebrow': 'Your agreement' }, h('legend', { text: 'Your agreement' }), h('p', { class: 'muted', style: 'margin:0 0 6px', text: 'A simple summary of membership and privacy information. Press Listen to hear it.' }),
         h('div', { class: 'panel', style: 'margin-bottom:14px' }, h('b', { text: 'Membership summary' }), h('p', { style: 'margin:6px 0 0', text: 'WODDI uses information to manage membership, learning, chapters and approved communications. Participation is voluntary. Unauthorised dues, local accounts and fundraising are not permitted.' }), h('p', { class: 'muted', style: 'margin:6px 0 0;font-size:14px', text: 'WODDI keeps your name, phone number and location so your chapter and your leaders can reach you. WODDI does not sell or share them outside WODDI.' })),
         h('label', { class: 'check' }, consent, h('span', { text: 'I agree to the membership guidance and privacy notice, and to the WODDI Code of Conduct.' })),
+        complete || link || leaderForm ? null : h('div', { class: 'panel', style: 'margin-top:16px;display:grid;gap:12px' }, F.vol = choices('f-vol', 'Would you like to volunteer with WODDI?', [['', 'Not now. I am joining as a member'], ['volunteer', 'Yes, I want to volunteer in my chapter'], ['lead', 'Yes, and I am interested in a leadership role']], (v) => { volRoleBox.hidden = v !== 'lead'; }),
+          volRoleBox = h('label', { class: 'field', for: 'f-volrole', hidden: true }, h('span', { text: 'Which role are you interested in?' }), F.volRole = h('select', { class: 'input', id: 'f-volrole', style: 'font-size:15px' }, h('option', { value: '', text: 'Choose a role' })), h('small', { class: 'muted', text: 'This records your interest. WODDI Headquarters appoints leaders after you are an active member.' }))),
         complete || link ? null : h('label', { class: 'field', for: 'f-source', style: 'margin-top:16px' }, h('span', { text: 'How did you hear about WODDI? (optional)' }), F.source = h('select', { class: 'input', id: 'f-source' }, h('option', { value: '', text: 'Choose one' }))),
         complete ? null : h('div', { style: 'margin-top:16px' }, field('password', 'Choose your password or PIN', { type: 'password', required: true, minlength: 6, autocomplete: 'new-password' }, 'At least 6 letters or numbers. Choose one you will remember. No code is sent to you.'))),
       err, submit,
       complete ? h('p', { class: 'muted', style: 'margin-top:12px;font-size:14px' }, 'Signed in as ' + (u?.email || '') + '. ', h('a', { href: '#', onclick: (e) => { e.preventDefault(); signOut(); }, text: 'Use a different account' })) : null);
     const checkAge = () => {
       const a = F.dob.value ? ageOf(F.dob.value) : null; ageNote.replaceChildren(); ageNote.style.color = '';
-      if (a === null) { ageNote.textContent = chosen === 'WNNN' ? 'WNNN is for ages 18 to 29.' : 'WGMN is for ages 30 and above.'; return true; }
-      if (a < 18) { ageNote.style.color = 'var(--bad)'; ageNote.textContent = 'WODDI networks are open to women aged 18 and above.'; return false; }
+      if (a === null) { ageNote.textContent = t(chosen === 'WNNN' ? 'WNNN is for ages 18 to 29.' : 'WGMN is for ages 30 and above.'); return true; }
+      if (a < 18) { ageNote.style.color = 'var(--bad)'; ageNote.textContent = t('WODDI networks are open to women aged 18 and above.'); return false; }
       const fits = a <= 29 ? 'WNNN' : 'WGMN';
-      if (fits !== chosen && link) { ageNote.style.color = 'var(--bad)'; ageNote.textContent = `This link is for ${chosen}. From your date of birth you belong to ${fits}. Ask your referrer for the correct link.`; return false; }
-      if (fits !== chosen) { ageNote.style.color = 'var(--bad)'; ageNote.append(`At ${a}, your network is ${fits}. `, h('a', { href: '#', onclick: (e) => { e.preventDefault(); choose(fits, false); }, text: `Switch to ${fits}` })); return false; }
-      ageNote.textContent = `Age ${a}. This matches ${chosen}.`; return true;
+      if (fits !== chosen && link) { ageNote.style.color = 'var(--bad)'; ageNote.textContent = tf('This link is for {c}. From your date of birth you belong to {n}. Ask your referrer for the correct link.', { c: chosen, n: fits }); return false; }
+      if (fits !== chosen) { ageNote.style.color = 'var(--bad)'; ageNote.append(tf('At {a}, your network is {n}.', { a, n: fits }) + ' ', h('a', { href: '#', onclick: (e) => { e.preventDefault(); choose(fits, false); } }, tf('Switch to {n}', { n: fits }))); return false; }
+      ageNote.textContent = tf('Age {a}. This matches {n}.', { a, n: chosen }); return true;
     };
     F.dob.onchange = checkAge; F.dob.oninput = checkAge; checkAge();
+    const calm = (e) => { if (!err.textContent && !form.querySelector('.err--field')) return; err.textContent = ''; form.querySelectorAll('.err--field').forEach((x) => x.remove()); e.target.removeAttribute?.('aria-invalid'); };
+    form.addEventListener('input', calm); form.addEventListener('change', calm);      // a message about a field goes away once she starts to correct it
     form.addEventListener('submit', async (e) => {
       e.preventDefault(); err.textContent = '';
       if (!checkAge()) { err.textContent = 'Your date of birth does not match this network. Use the switch link under the date.'; F.dob.focus(); return; }
-      const body = { network: chosen, first_name: F.first_name.value, last_name: F.last_name.value, dob: F.dob.value, phone: F.contact.value.includes('@') ? '' : F.contact.value, country_id: Number(F.country.value) || 0,
+      const body = { network: chosen, first_name: F.first_name.value, last_name: F.last_name.value, dob: F.dob.value, phone: F.contact.value, country_id: Number(F.country.value) || 0,
         state_id: stateMode === 'select' ? Number(F.state.value) || 0 : 0, state_region: stateMode === 'select' ? '' : stateName(), lga: lgaMode === 'select' ? F.lgaSel.value : F.lga.value, community: F.community.value, ward: diaspora() ? '' : F.ward.value, consent: consent.checked };
       if (stateMode === 'list' && !body.state_region && !diaspora()) { err.textContent = 'Choose your state or region.'; F.state.focus(); return; }
       if (lgaMode === 'select' && !body.lga) { err.textContent = 'Choose your LGA.'; F.lgaSel.focus(); return; }
-      if (!complete) { body.email = F.contact.value.includes('@') ? F.contact.value.trim() : ''; body.password = F.password.value; const last = checkStep(steps[steps.length - 1]); if (last) { err.textContent = last; return; } if (!consent.checked) { err.textContent = 'Please review and accept the membership guidance.'; consent.focus(); return; } }
+      if (!complete) { body.email = F.email.value.trim(); body.password = F.password.value; if (F.vol) body.volunteer_interest = F.vol.value === 'lead' ? F.volRole.value : F.vol.value; const last = checkStep(steps[steps.length - 1]); if (last) { err.textContent = last; return; } if (!consent.checked) { err.textContent = 'Please review and accept the membership guidance.'; consent.focus(); return; } }
       body.lang = i18n.lang; if (!complete) { body.idem = draft.key(); body.draft = draft.ref().t; }
       if (F.source && F.source.value) body.source = F.source.value;
       { const c = new URLSearchParams(location.search).get('c'); if (c) body.campaign = c.slice(0, 40); }
@@ -213,7 +220,7 @@ export async function render(root, params) {
           window.addEventListener('online', () => { if (form.isConnected) form.requestSubmit(); }, { once: true }); return;
         }
         submit.disabled = false; submit.textContent = label;
-        const map = { name: 'first_name', phone: 'contact', phone_taken: 'contact', dob: 'dob', age: 'dob', age_network: 'dob', country: 'country', email: 'contact', email_taken: 'contact', password: 'password', consent: 'consent', state: stateMode === 'text' ? 'stateText' : 'state' };
+        const map = { name: 'first_name', phone: 'contact', phone_taken: 'contact', dob: 'dob', age: 'dob', age_network: 'dob', country: 'country', email: complete ? 'contact' : 'email', email_taken: complete ? 'contact' : 'email', password: 'password', consent: 'consent', state: stateMode === 'text' ? 'stateText' : 'state' };
         const bad = F[map[ex.code]]; if (bad) { const fs = bad.closest('fieldset'); const i = steps.indexOf(fs); if (i >= 0) show(i); }
         // The reason is shown AFTER the screen changes (changing screen clears the old message), both under the field and above the buttons.
         const taken = ex.code === 'email_taken' || ex.code === 'phone_taken';
@@ -224,6 +231,7 @@ export async function render(root, params) {
         else err.scrollIntoView({ block: 'center', behavior: 'smooth' });
       }
     });
+    if (F.vol) { F.vol.value = saved.vol || ''; api('/public/volunteer-roles').then((r) => { F.volRole.append(...r.roles.map((p) => h('option', { value: p.code, text: chosen === 'WNNN' ? p.title_wnnn : p.title_wgmn }))); if (saved.vol_role) F.volRole.value = saved.vol_role; volRoleBox.hidden = F.vol.value !== 'lead'; }).catch(() => {}); }
     if (F.source) api('/public/sources').then((r) => { F.source.append(...Object.entries(r.sources).map(([k, l]) => h('option', { value: k, text: l }))); if (saved.source) F.source.value = saved.source; }).catch(() => {});
     const steps = [...form.querySelectorAll(':scope > fieldset')]; const bar = h('div', { class: 'jbar jbar--form', role: 'img' }); const stepLabel = h('small', { class: 'faint' });
     const back = h('button', { class: 'btn btn--ghost', type: 'button', text: 'Back' }); const next = h('button', { class: 'btn', type: 'button', text: 'Continue' });
@@ -233,14 +241,16 @@ export async function render(root, params) {
     /* what must be right before she can leave a screen: said in plain words, on that screen */
     const checkStep = (fs) => {
       const has = (el) => fs.contains(el);
-      if (has(F.first_name)) { if (F.first_name.value.trim().length < 2 || F.last_name.value.trim().length < 2) { F.first_name.focus(); return 'Enter your first name and surname.'; } if (!F.dob.value) { F.dob.focus(); return 'Enter your date of birth.'; } if (!checkAge()) { F.dob.focus(); return 'Your date of birth does not match this network. Use the switch link under the date.'; } const ct = F.contact.value.trim(); if (ct.includes('@') ? !/^\S+@\S+\.\S+$/.test(ct) : ct.replace(/[^\d]/g, '').length < 8) { F.contact.focus(); return ct.includes('@') ? 'That email address is not complete.' : 'Enter your phone number with the country code, or an email address.'; } }
+      if (has(F.first_name)) { if (F.first_name.value.trim().length < 2 || F.last_name.value.trim().length < 2) { F.first_name.focus(); return 'Enter your first name and surname.'; } if (!F.dob.value) { F.dob.focus(); return 'Enter your date of birth.'; } if (!checkAge()) { F.dob.focus(); return 'Your date of birth does not match this network. Use the switch link under the date.'; } if (F.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(F.email.value.trim())) { F.email.focus(); return F.email.value.trim() ? 'That email address is not complete.' : 'Enter your email address. You sign in with it.'; } const digits = F.contact.value.replace(/[^\d]/g, '').length; if (digits < 8 || digits > 15) { F.contact.focus(); return 'Enter your phone number with the country code, for example +234 801 234 5678.'; } }
       if (has(F.country)) { if (!F.country.value) { F.country.focus(); return 'Choose your country.'; } if (!diaspora() && !stateName() && !(stateMode === 'select' && F.state.value)) { (stateMode === 'text' ? F.stateText : F.state).focus(); return 'Choose your state or region.'; } }
+      if (F.vol && has(F.vol) && F.vol.value === 'lead' && !F.volRole.value) { F.volRole.focus(); return 'Choose the leadership role you are interested in.'; }
       if (F.password && has(F.password)) { if (F.password.value.length < 6) { F.password.focus(); return 'Choose a password or PIN of at least 6 letters or numbers.'; } }
       if (F.position && has(F.position) && !link) { if (!F.position.value) return 'Choose the position you are being considered for.'; if (!F.refCat.value) return 'Please tell us who referred you.'; if (!F.refName.value.trim()) return 'Please type the name of the person who referred you.'; }
       return '';
     };
-    const save = () => { if (complete) return; draft.set({ network: chosen, step: stepNo, first_name: F.first_name.value, last_name: F.last_name.value, dob: F.dob.value, contact: F.contact.value, country_id: F.country.value, state: stateName(), lga: lgaMode === 'select' ? F.lgaSel.value : F.lga.value, community: F.community.value, ward: F.ward ? F.ward.value : '', source: F.source ? F.source.value : '' }); };
+    const save = () => { if (complete) return; draft.set({ network: chosen, step: stepNo, first_name: F.first_name.value, last_name: F.last_name.value, dob: F.dob.value, email: F.email ? F.email.value : '', contact: F.contact.value, vol: F.vol ? F.vol.value : '', vol_role: F.volRole ? F.volRole.value : '', country_id: F.country.value, state: stateName(), lga: lgaMode === 'select' ? F.lgaSel.value : F.lga.value, community: F.community.value, ward: F.ward ? F.ward.value : '', source: F.source ? F.source.value : '' }); };
     function show(i) {
+      if (F.paintMap) F.paintMap();
       stepNo = Math.max(0, Math.min(steps.length - 1, i)); steps.forEach((fs, k) => { fs.hidden = k !== stepNo; });
       const lead = complete ? 0 : 2, total = steps.length + lead, at = stepNo + lead;            // 01 language and 02 network are already done on this screen
       bar.replaceChildren(...Array.from({ length: total }, (_, k) => h('span', { class: k < at ? 'is-done' : k === at ? 'is-open' : '' }))); bar.setAttribute('aria-label', `Step ${at + 1} of ${total}`);
@@ -251,7 +261,14 @@ export async function render(root, params) {
     form.addEventListener('input', save); form.addEventListener('change', save);
     form.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.tagName === 'INPUT' && stepNo < steps.length - 1) { e.preventDefault(); next.click(); } });
     show(Math.min(stepNo, steps.length - 1));
-    inner.replaceChildren(form);
+    /* The WODDI Good Mother Network map of Africa stands with the WGMN form: beside it on a wide screen, under it on a phone,
+       so the fields always come first. It lights up her country once she has chosen it. */
+    if (plain && chosen === 'WGMN') {
+      const mapSlot = h('aside', { class: 'joinmap__map', 'aria-label': 'WODDI Good Mother Network map of Africa' }); let shown = null;
+      const paintMap = () => { const code = countries.find((x) => String(x.id) === F.country.value)?.code || ''; if (code === shown) return; shown = code; import('../goodmother.js').then((m) => mapSlot.replaceChildren(m.africaMap(code || undefined))).catch(() => {}); };
+      paintMap(); F.country.addEventListener('change', paintMap); F.paintMap = paintMap;
+      inner.replaceChildren(h('div', { class: 'joinmap' }, form, mapSlot)); wrap.classList.add('formwrap--map'); document.querySelector('main.join')?.classList.add('join--map');
+    } else { F.paintMap = null; inner.replaceChildren(form); wrap.classList.remove('formwrap--map'); document.querySelector('main.join')?.classList.remove('join--map'); }
     void other;
   }
 

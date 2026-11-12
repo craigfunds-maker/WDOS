@@ -104,7 +104,7 @@ route('GET', '/me/export', function () { $u = require_user(); throttle('exp:' . 
 route('POST', '/public/draft', function () {
   throttle('draft:' . client_ip(), 240, 3600); throttle_hit('draft:' . client_ip());
   $tok = (string) (body()['token'] ?? ''); $d = body()['data'] ?? null; if (!is_array($d)) fail(422, 'Nothing to keep.', 'data');
-  $keep = []; foreach (['network', 'step', 'first_name', 'last_name', 'dob', 'contact', 'country_id', 'state', 'lga', 'community', 'ward', 'source'] as $k) if (isset($d[$k]) && is_scalar($d[$k])) $keep[$k] = mb_substr((string) $d[$k], 0, 160);
+  $keep = []; foreach (['network', 'step', 'first_name', 'last_name', 'dob', 'email', 'contact', 'vol', 'vol_role', 'country_id', 'state', 'lga', 'community', 'ward', 'source'] as $k) if (isset($d[$k]) && is_scalar($d[$k])) $keep[$k] = mb_substr((string) $d[$k], 0, 160);
   $json = json_encode($keep, JSON_UNESCAPED_UNICODE); $exp = gmdate('Y-m-d H:i:s', time() + 2 * 86400);
   if (strlen($tok) >= 32 && val('SELECT 1 FROM reg_drafts WHERE token_hash=?', [hash('sha256', $tok)])) q('UPDATE reg_drafts SET data=?, expires_at=? WHERE token_hash=?', [$json, $exp, hash('sha256', $tok)]);
   else { $tok = token(32); q('INSERT INTO reg_drafts (token_hash,data,created_at,expires_at) VALUES (?,?,?,?)', [hash('sha256', $tok), $json, now(), $exp]); }
@@ -227,3 +227,14 @@ route('GET', '/hq/health', function () {
 
 /* ------------------------------------------------ the handoff register (HQ only: it lists what is not yet built) -- */
 route('GET', '/hq/handoff', function () { require_hq(); $r = json_decode((string) @file_get_contents(__DIR__ . '/handoff_register.json'), true); if (!is_array($r)) fail(500, 'The register file is missing.', 'missing'); return $r + ['decisions' => decisions_state()]; });
+
+/* ------------------------------------------------ the volunteering choice -- */
+route('GET', '/public/volunteer-roles', fn() => ['roles' => rows("SELECT code, title_wgmn, title_wnnn, level FROM positions WHERE level IN ('chapter','community','lga','city') OR code='campus_ambassador' ORDER BY rank_no DESC")]);
+route('POST', '/me/volunteer-role', function () { $u = require_user(); $c = volunteer_interest_save((int) $u['id'], (string) (body()['choice'] ?? '')); return ['ok' => true, 'choice' => $c]; });
+route('GET', '/hq/volunteers', function () {
+  require_hq();
+  $list = rows("SELECT u.id, u.first_name, u.last_name, u.member_no, u.network, u.country_code, u.state_region, u.lga, u.volunteer_interest, u.volunteer_since, c.name chapter, p.title_wgmn, p.title_wnnn
+                FROM users u LEFT JOIN chapters c ON c.id=u.chapter_id LEFT JOIN positions p ON p.code=u.volunteer_interest WHERE (u.volunteer_since IS NOT NULL OR u.volunteer_interest<>'') AND u.status='active' ORDER BY u.volunteer_since DESC LIMIT 2000");
+  return ['as_of' => now(), 'total' => count($list), 'items' => array_map(fn($r) => ['id' => (int) $r['id'], 'name' => trim($r['first_name'] . ' ' . $r['last_name']), 'member_no' => $r['member_no'], 'network' => $r['network'], 'country' => country_name((string) $r['country_code']), 'place' => trim($r['lga'] . ', ' . $r['state_region'], ', '), 'chapter' => (string) $r['chapter'],
+    'interest' => in_array($r['volunteer_interest'], ['', 'volunteer'], true) ? 'Volunteer in the chapter' : (string) ($r['network'] === 'WNNN' ? $r['title_wnnn'] : $r['title_wgmn']), 'leadership' => !in_array($r['volunteer_interest'], ['', 'volunteer'], true), 'since' => $r['volunteer_since']], $list)];
+});

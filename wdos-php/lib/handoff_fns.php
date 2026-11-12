@@ -104,6 +104,21 @@ function member_export(array $u): array {
   ];
 }
 
+/* ---- the volunteering choice (Q05, Q10): member, volunteer, or interested in a leadership position. It records interest only: WODDI HQ appoints leaders. */
+function volunteer_interest_save(int $userId, string $choice): string {
+  $choice = trim($choice); $u = row('SELECT * FROM users WHERE id=?', [$userId]); if (!$u) return '';
+  if ($choice !== '' && $choice !== 'volunteer' && !val("SELECT 1 FROM positions WHERE code=? AND (level IN ('chapter','community','lga','city') OR code='campus_ambassador')", [$choice])) $choice = 'volunteer';   // only the roles offered on the form
+  if ($choice === '' && !empty($u['volunteer_since'])) $choice = 'volunteer';                 // she is a volunteer already: an empty choice only clears a leadership interest
+  if ($choice === (string) ($u['volunteer_interest'] ?? '') && ($choice === '' || !empty($u['volunteer_since']))) return $choice;
+  q('UPDATE users SET volunteer_interest=? WHERE id=?', [$choice, $userId]);
+  if ($choice !== '') { volunteer_join($u); log_activity($userId, $userId, 'volunteer_interest', $choice); }
+  return $choice;
+}
+function volunteer_interest_label(array $u): string {
+  $c = (string) ($u['volunteer_interest'] ?? ''); if ($c === '' || $c === 'volunteer') return ($c !== '' || !empty($u['volunteer_since'])) ? 'Volunteer in the chapter' : '';
+  $p = row('SELECT title_wgmn, title_wnnn FROM positions WHERE code=?', [$c]); return $p ? 'Interested in: ' . ($u['network'] === 'WNNN' ? $p['title_wnnn'] : $p['title_wgmn']) : '';
+}
+
 /* ---- where members heard of WODDI (Q31) ------------------------------------------------ */
 const SOURCES = ['friend' => 'A friend or relative', 'leader' => 'A WODDI leader', 'event' => 'A WODDI event', 'religious' => 'My place of worship', 'school' => 'My school or campus', 'social' => 'Social media', 'radio_tv' => 'Radio or television', 'website' => 'The WODDI website', 'other' => 'Another way'];
 function source_save(int $userId): void {
@@ -249,6 +264,6 @@ function handoff_automations(array &$done): void {
 }
 /** Lifecycle and pause state for the app shell. Safe before the migration has run. */
 function handoff_brief(array $u): array {
-  try { [$k, $t] = lifecycle_of($u); return ['lifecycle' => $k, 'lifecycle_text' => $t, 'paused' => !empty($u['paused_at']), 'source' => $u['source'] ?? '']; }
+  try { [$k, $t] = lifecycle_of($u); return ['lifecycle' => $k, 'lifecycle_text' => $t, 'paused' => !empty($u['paused_at']), 'source' => $u['source'] ?? '', 'volunteer_interest' => $u['volunteer_interest'] ?? '', 'volunteer_interest_label' => volunteer_interest_label($u)]; }
   catch (Throwable $e) { return ['lifecycle' => 'active', 'lifecycle_text' => 'Active', 'paused' => false]; }
 }

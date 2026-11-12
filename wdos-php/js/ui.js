@@ -1,3 +1,9 @@
+/* The browser prints null, undefined and false as words when they are handed to append() and its relatives.
+   Pages often pass "condition ? element : null", so those empty values are dropped here, once, for every page. */
+for (const P of [Element.prototype, DocumentFragment.prototype]) for (const m of ['append', 'prepend', 'replaceChildren', 'after', 'before', 'replaceWith']) {
+  const native = P[m]; if (typeof native !== 'function' || native.wdosGuard) continue;
+  P[m] = function (...a) { return native.apply(this, a.flat(Infinity).filter((x) => x !== null && x !== undefined && x !== false)); }; P[m].wdosGuard = true;
+}
 /* Small DOM toolkit: elements, icons, avatars, toasts, skeletons, empty states. No framework. */
 /* Languages. The dictionary is keyed by the English sentence, so a sentence with no translation yet simply stays in English. */
 /* Alphabetical by the English name of the language: Arabic, English, French, Hausa, Igbo, Portuguese, Swahili, Yoruba. */
@@ -240,9 +246,9 @@ export function listenBtn(getText, label = 'Listen') {
 export const GUIDE = [
   'Welcome to the WODDI Digital Operating System. First, choose your language from the list. You can change it at any time. Then press Continue.',
   'Now choose your network. The WODDI Good Mother Network is for women aged thirty and above. The WODDI Nurture NextGen Network is for women aged eighteen to twenty-nine. Touch the network that matches your age, then press Continue.',
-  'Type your first name and your surname. Choose your date of birth. Then type your phone number or your email address. You will use it to sign in. Then press Continue.',
+  'Type your first name and your surname. Choose your date of birth. Then type your email address and your phone number. Both are needed. You sign in with your email address. Then press Continue.',
   'Choose your country, then your state or region, then your local government area or city. Type the name of your community. This helps WDOS place you in a chapter near you. Then press Continue.',
-  'Read the short agreement and tick the box to agree. Then choose a PIN or password of at least six letters or numbers. Choose one you will remember. No code is sent to your phone. Then press Create my account.',
+  'Read the short agreement and tick the box to agree. Tell WODDI if you would like to volunteer. Then choose a PIN or password of at least six letters or numbers. Choose one you will remember. No code is sent to your phone. Then press Create my account.',
   'Your membership is created at once, and you receive your membership number. Your seven-day journey opens. Do one small step each day. If you miss a day, nothing is lost.',
   'If you forget your PIN, choose Forgot password on the sign-in page, or open Help. No woman is left out.',
 ];
@@ -284,4 +290,22 @@ export const soundOn = () => { try { return localStorage.getItem('wdos.sound') !
 export function chime(force = false) {
   if (!force && (!soundOn() || Date.now() - chimeAt < 4000)) return; chimeAt = Date.now();
   try { chimeEl = chimeEl || new Audio('/assets/audio/wdos-notify.mp3'); chimeEl.volume = 0.9; chimeEl.currentTime = 0; chimeEl.play().catch(() => { /* the browser allows sound only after the first touch */ }); } catch { /* no audio on this device */ }
+}
+
+/* A short list of choices as large touch rows (radio buttons), for questions where a drop-down would cut the words short on a phone.
+   The returned element has .value like a select, and tells onchange when the choice moves. */
+export function choices(id, question, options, onchange) {
+  const box = h('div', { class: 'choices', id, role: 'radiogroup', 'aria-labelledby': id + '-q' }, h('span', { class: 'choices__q', id: id + '-q', text: question }),
+    options.filter(Boolean).map(([v, label], i) => h('label', { class: 'choice' }, h('input', { type: 'radio', name: id, value: v, id: `${id}-${i}`, onchange: () => onchange && onchange(box.value) }), h('span', { text: label }))));
+  Object.defineProperty(box, 'value', { get: () => box.querySelector('input:checked')?.value ?? '', set: (v) => { box.querySelectorAll('input').forEach((r) => { r.checked = r.value === String(v ?? ''); }); } });
+  box.focus = () => (box.querySelector('input:checked') || box.querySelector('input'))?.focus();
+  return box;
+}
+
+/* A message line whose text is always said in the chosen language, even when the words come from the server.
+   Use on the element once; after that, el.textContent = 'English sentence' shows its translation. */
+export function said(el) {
+  const d = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent');
+  Object.defineProperty(el, 'textContent', { get() { return d.get.call(this); }, set(v) { d.set.call(this, v ? t(String(v)) : ''); } });
+  return el;
 }

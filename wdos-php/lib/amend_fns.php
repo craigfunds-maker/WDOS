@@ -520,3 +520,17 @@ const VOLUNTEER_ASSIGNMENTS = [
   ['Read the Volunteer Leadership Manual', 'Open the Document library and read the Volunteer Leadership Manual.'],
   ['Begin the volunteer pathway at the WODDI Institute', 'Open the Institute page in WDOS and start the volunteer pathway: service and teamwork.'],
 ];
+
+/* A member becomes a volunteer, once: the date is kept, her three development assignments are created, and her chapter leaders are told.
+   Used by the Institute page, the registration form and the home screen. Returns false when she was a volunteer already. */
+function volunteer_join(array $u): bool {
+  if (!empty($u['volunteer_since']) || is_hq($u)) return false;
+  $uid = (int) $u['id'];
+  if (!val('SELECT 1 FROM users WHERE id=? AND volunteer_since IS NULL', [$uid])) return false;
+  q('UPDATE users SET volunteer_since=? WHERE id=? AND volunteer_since IS NULL', [now(), $uid]);
+  foreach (VOLUNTEER_ASSIGNMENTS as $i => [$t, $d]) { $tid = task_create($uid, $uid, $t, $d, 'normal', gmdate('Y-m-d', time() + 14 * 86400), false, 'volunteer:' . ($i + 1), false); if (!empty($u['chapter_id'])) q('UPDATE tasks SET chapter_id=? WHERE id=?', [(int) $u['chapter_id'], $tid]); }
+  log_activity($uid, $uid, 'volunteer_joined');
+  notify($uid, 'task', 'Thank you for volunteering', 'Three development assignments are in your task list. Your chapter leaders can now see you as a volunteer.', '#/tasks');
+  foreach (rows('SELECT user_id FROM seats WHERE chapter_id=? AND ends_at IS NULL AND he_for_she=0', [(int) ($u['chapter_id'] ?? 0)]) as $s) notify((int) $s['user_id'], 'registration', 'A member of your chapter is now a volunteer', trim($u['first_name'] . ' ' . $u['last_name']) . ' has chosen to volunteer and has received the development assignments.', '#/chapter');
+  return true;
+}

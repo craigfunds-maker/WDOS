@@ -438,3 +438,12 @@ html{-webkit-tap-highlight-color:transparent} body{overscroll-behavior-y:none}
 .pubbar img{height:58px;width:58px;border-radius:50%;padding:0;background:none} @media (max-width:760px){.pubbar img{height:48px;width:48px}}
 .recrow{display:grid;gap:10px;padding:14px 0;border-bottom:1px solid var(--line-soft)} .recrow p{margin:0;font-size:16px;line-height:1.5} .recbtn.is-rec{background:#c81e1e;border-color:#c81e1e;color:#fff}
 .input[aria-invalid="true"]{border-color:#e5484d;box-shadow:0 0 0 3px rgba(229,72,77,.18)} .err--field{font-weight:600}
+/* choice rows: a question with two or three large answers, used for the volunteering choice */
+.choices{display:grid;gap:8px}.choices__q{font-weight:600;font-size:14.5px;color:var(--ink-2)}
+.choice{display:flex;gap:12px;align-items:center;min-height:52px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2,transparent);cursor:pointer;font-size:15.5px;line-height:1.35}
+.choice input{width:22px;height:22px;flex:none;accent-color:var(--brand)}.choice:has(input:checked){border-color:var(--brand);box-shadow:0 0 0 1px var(--brand) inset}.choice:focus-within{outline:2px solid var(--brand);outline-offset:2px}
+/* Join WGMN: the Good Mother map of Africa with the form. Under the form on phones and tablets; beside it, staying in view, on a wide screen. */
+.joinmap{display:grid;gap:22px;align-items:start} .joinmap>*{min-width:0} .joinmap .jform{margin-top:26px} .joinmap__map .gm{margin:0}
+@media (min-width:1180px){ main.join.join--map{width:min(1380px,100%)} .joinmap{grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);gap:26px}
+  .joinmap__map{position:sticky;top:18px;margin-top:26px} .joinmap__map .gm__body{grid-template-columns:1fr} .joinmap__map .gm__title{font-size:clamp(15px,1.5vw,21px)} .joinmap__map .gm__svg{max-height:min(560px,58vh)} .joinmap__map .gm__plaque{padding:12px 16px} .joinmap__map .gm__plaque p{font-size:14.5px;line-height:1.4} .joinmap__map .gm__plaque span{display:none} }
+.formwrap--map.is-open>div{overflow:visible}
