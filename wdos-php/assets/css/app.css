@@ -419,3 +419,12 @@ html{-webkit-tap-highlight-color:transparent} body{overscroll-behavior-y:none}
 .lpick__wrap{display:inline-flex;align-items:center;gap:8px;color:var(--s-wgmn)} .lpick__wrap .ico{flex:none}
 .langpick.lpick{min-height:44px;height:44px;max-width:none;min-width:168px;font-size:16px;font-weight:650;border:1.5px solid var(--s-wgmn);border-radius:99px;padding-inline:16px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* v101.3: the homepage starts like the Founder's prototype: one card, language first, then Listen and Video guidance. */
+.startcard{max-width:820px;margin:10px auto 34px;padding:clamp(20px,4vw,38px);border-radius:24px;border:1px solid var(--line);background:var(--surface);display:grid;gap:18px;text-align:start}
+.startcard__pill{justify-self:start;padding:8px 14px;border-radius:99px;background:color-mix(in srgb,var(--lime) 18%,transparent);border:1px solid color-mix(in srgb,var(--lime) 45%,transparent);color:var(--ink);font-weight:700;font-size:14px}
+.join h1.startcard__title{font-family:var(--font);font-weight:800;letter-spacing:-.02em;font-size:clamp(26px,4.4vw,42px);line-height:1.12;max-width:none;margin:0;text-align:start}
+.startcard__lead{margin:0;color:var(--ink-2);font-size:clamp(15px,1.8vw,18px)} .startcard__lead b{color:var(--s-wgmn);font-weight:750}
+.startcard__sub{margin:0;color:var(--ink-2)} .startcard .jbar{margin:0}
+.langpick.lpick--card{width:100%;max-width:none;height:56px;min-height:56px;border-radius:14px;font-size:18px;border:1px solid var(--line)}
+.vmodal{position:fixed;inset:0;z-index:200;background:rgba(10,4,8,.78);display:grid;place-items:center;padding:16px}
+.vmodal__box{width:min(520px,100%);max-height:94vh;overflow:auto;display:grid;gap:12px;padding:16px;border-radius:20px;background:var(--raised);border:1px solid var(--line)} .vmodal details{font-size:14.5px;color:var(--ink-2)} .vmodal summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:650}
