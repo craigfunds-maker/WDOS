@@ -17,13 +17,14 @@ const POLICY_DEFS = [
   'journey_required_referrals' => ['Member journey: registered referrals needed', 'int', 0, 10],
   'wnnn_country_title' => ['WNNN country leader title in Africa', 'choice', ['Country Lead' => 'Country Lead (African structure document)', 'Country Representative' => 'Country Representative (diaspora document)']],
   'recovery_by_leader' => ['Account recovery: a chapter leader may give a member a temporary PIN in person', 'choice', ['off' => 'Off. Recovery is by fingerprint, by email link, or by HQ', 'on' => 'On. Every use is logged and HQ is told']],
+  'age_transition' => ['WNNN member reaching 30', 'choice', ['hq' => 'She is told and listed. WODDI HQ moves her', 'auto' => 'She is told 30 days before, then moved to WGMN automatically. HQ reviews any WNNN seat']],
   'community_blocked_words' => ['Community: words that hold a post for review (separate with commas)', 'text'],
   'welcome_video_url' => ['Welcome screen: link to WODDI\'s own short video file (optional)', 'text'],
   'welcome_audio_url' => ['Welcome screen: link to WODDI\'s own recorded audio file (optional)', 'text'],
   'welcome_transcript' => ['Welcome screen: the words spoken in the video or audio', 'text'],
 ];
 const POLICY_FALLBACK = ['chapter_min_active' => '30', 'chapter_plan_next' => '40', 'chapter_capacity' => '50', 'chapter_auto_activate' => 'eligible', 'chapter_auto_create' => 'off',
-  'journey_days' => '7', 'journey_unlock' => 'daily', 'journey_extension_days' => '7', 'journey_required_referrals' => '0', 'wnnn_country_title' => 'Country Lead', 'recovery_by_leader' => 'off', 'community_blocked_words' => '', 'welcome_video_url' => '', 'welcome_audio_url' => '', 'welcome_transcript' => ''];
+  'journey_days' => '7', 'journey_unlock' => 'daily', 'journey_extension_days' => '7', 'journey_required_referrals' => '0', 'wnnn_country_title' => 'Country Lead', 'recovery_by_leader' => 'off', 'age_transition' => 'hq', 'community_blocked_words' => '', 'welcome_video_url' => '', 'welcome_audio_url' => '', 'welcome_transcript' => ''];
 /* The six items the amendments document lists as needing a recorded management choice. */
 const POLICY_DECISIONS = [
   ['wnnn_country_title', 'African WNNN country title', 'Country Lead (African structure document) or Country Representative (diaspora document). Both sources are kept; WDOS shows the one chosen here.'],

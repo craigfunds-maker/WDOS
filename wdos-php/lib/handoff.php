@@ -76,11 +76,7 @@ route('POST', '/hq/age-transition/(\d+)', function ($id) {
   if (age_on($u['dob']) < 30) fail(422, 'She has not reached 30 yet.', 'age');
   $seat = current_seat((int) $id);
   if ($seat && empty(body()['confirm_seat'])) fail(409, 'She holds the WNNN seat ' . seat_title($seat) . '. Her seat will become vacant. Confirm to continue.', 'seat');
-  q("UPDATE seats SET ends_at=?, end_reason='age_transition' WHERE user_id=? AND ends_at IS NULL", [now(), (int) $id]);
-  q("UPDATE users SET network='WGMN' WHERE id=?", [(int) $id]);
-  chapter_replace_after_change((int) $id);
-  log_activity((int) $me['id'], (int) $id, 'age_transition', 'WNNN to WGMN at 30');
-  notify((int) $id, 'account', 'Welcome to WGMN, ' . $u['first_name'], 'You have moved from WNNN to the WODDI Good Mother Network. Your Person ID, your records and your history came with you.', '#/');
+  age_move($u, (int) $me['id'], true);
   after_response(fn() => push_drain(5));
   return ['ok' => true];
 });

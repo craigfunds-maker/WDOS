@@ -15,7 +15,7 @@ const DECISIONS = [
   'D05' => ['Account recovery without OTP on shared or lost devices', 'Fingerprint or face (passkey) where the phone supports it, an email link where the member gave an email, and reset by HQ. A leader-assisted reset is built behind a switch and should stay off until approved.', 'Production sign-up and sign-in', 'recovery_by_leader', 'off'],
   'D06' => ['Governance of exceptional safeguarding and security cases', 'A separate confidential lane that only HQ case handlers see. A person named in a case never sees it. Nothing is sanctioned automatically.', 'Incident protocol', ''],
   'D07' => ['Is completing three referrals enforced?', 'A growth milestone. Nobody is excluded or held back for not reaching it.', 'Activation condition', 'journey_required_referrals', '0'],
-  'D08' => ['WNNN member turning 30', 'The Person ID and every record stay. WDOS tells the member and lists her for HQ. Nothing changes network by itself and no WGMN role is ever given automatically.', 'Age transition engine', ''],
+  'D08' => ['WNNN member turning 30', 'The Person ID and every record stay. WDOS tells the member and lists her for HQ. Nothing changes network by itself and no WGMN role is ever given automatically.', 'Age transition engine', 'age_transition', 'hq'],
   'D09' => ['The ordinary seven-day screening criteria', 'Short, objective, non-invasive questions with equal text and audio routes and an open retry. No staff step.', 'Automatic activation rules', ''],
   'D10' => ['Approval of all five languages, audio and video', 'Arabic, English, French, Portuguese and Swahili are present as working versions. None is approved until a human reviewer signs each one.', 'Launch', ''],
   'D11' => ['Country geography and ward to cluster mappings', 'Official wards are stored apart from WODDI Community Clusters. A cluster is not called a ward.', 'Country onboarding', ''],
@@ -186,6 +186,17 @@ function calendar_where(array $u): array {
   return ["(network='ALL' OR network=?) AND (country_code='' OR country_code=?)", [(string) $u['network'], (string) $u['country_code']]];
 }
 
+/** Move a WNNN member who has reached 30 to WGMN. The Person ID, membership number, history and referrals stay. No WGMN role is given.
+ *  $endSeat: HQ ends her WNNN seat when moving her by hand; the automatic move leaves the seat for HQ to review and hand over. */
+function age_move(array $u, ?int $by, bool $endSeat): void {
+  $id = (int) $u['id'];
+  if ($endSeat) q("UPDATE seats SET ends_at=?, end_reason='age_transition' WHERE user_id=? AND ends_at IS NULL", [now(), $id]);
+  q("UPDATE users SET network='WGMN' WHERE id=?", [$id]);
+  chapter_replace_after_change($id);
+  log_activity($by, $id, 'age_transition', 'WNNN to WGMN at 30' . ($by ? '' : ' (automatic)'));
+  notify($id, 'account', 'Welcome to WGMN, ' . $u['first_name'], 'You have moved from WNNN to the WODDI Good Mother Network. Your Person ID, your records and your history came with you.', '#/');
+}
+
 /* ---- daily automatic work added by the handoff ------------------------------------------ */
 function handoff_automations(array &$done): void {
   try {
@@ -206,6 +217,13 @@ function handoff_automations(array &$done): void {
         notify((int) $u['id'], 'account', 'You are reaching 30, ' . $u['first_name'], 'WNNN is for women aged 18 to 29 and WGMN is for women aged 30 and above. Your Person ID, your records and your history stay with you. WODDI HQ will guide you on the next step. Nothing changes until then.', '#/help');
         q('UPDATE users SET age_notice_at=? WHERE id=?', [now(), (int) $u['id']]); $n++;
       }
+      // Approved D08: thirty days after she was told, and once she is 30, she moves by herself. A WNNN seat is never ended automatically: HQ reviews it.
+      $moved = 0; $seats = 0;
+      if (policy('age_transition') === 'auto') foreach (rows("SELECT * FROM users WHERE status='active' AND network='WNNN' AND participant_class='member' AND dob IS NOT NULL AND DATE_ADD(dob, INTERVAL 30 YEAR) <= CURDATE() AND age_notice_at IS NOT NULL AND age_notice_at <= ? LIMIT 100", [gmdate('Y-m-d H:i:s', time() - 30 * 86400)]) as $u) {
+        age_move($u, null, false); $moved++;
+        if (val('SELECT 1 FROM seats WHERE user_id=? AND ends_at IS NULL', [(int) $u['id']])) { $seats++; notify_hq('appointment', 'A WNNN leader has moved to WGMN at 30', trim($u['first_name'] . ' ' . $u['last_name']) . ' still holds her WNNN seat. Review it and arrange the handover.', '#/members/' . (int) $u['id']); }
+      }
+      if ($moved) return "$n told, $moved moved, $seats seats to review";
       if ($n) notify_hq('registration', "$n WNNN " . ($n === 1 ? 'member is' : 'members are') . ' reaching 30', 'They have been told. Open the age transition list to see them. No one is moved automatically.', '#/cases');
       return "$n told";
     });
