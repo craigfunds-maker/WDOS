@@ -437,3 +437,4 @@ html{-webkit-tap-highlight-color:transparent} body{overscroll-behavior-y:none}
 /* v102.1: the WODDI logo is round wherever it stands for WDOS */
 .pubbar img{height:58px;width:58px;border-radius:50%;padding:0;background:none} @media (max-width:760px){.pubbar img{height:48px;width:48px}}
 .recrow{display:grid;gap:10px;padding:14px 0;border-bottom:1px solid var(--line-soft)} .recrow p{margin:0;font-size:16px;line-height:1.5} .recbtn.is-rec{background:#c81e1e;border-color:#c81e1e;color:#fff}
+.input[aria-invalid="true"]{border-color:#e5484d;box-shadow:0 0 0 3px rgba(229,72,77,.18)} .err--field{font-weight:600}

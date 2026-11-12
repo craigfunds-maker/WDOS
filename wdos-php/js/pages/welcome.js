@@ -212,9 +212,16 @@ export async function render(root, params) {
           err.textContent = 'No connection. Keep this page open. WDOS will send your details by itself when the connection returns, and you will not be registered twice.'; submit.disabled = false; submit.textContent = label;
           window.addEventListener('online', () => { if (form.isConnected) form.requestSubmit(); }, { once: true }); return;
         }
-        err.textContent = ex.message; submit.disabled = false; submit.textContent = label;
+        submit.disabled = false; submit.textContent = label;
         const map = { name: 'first_name', phone: 'contact', phone_taken: 'contact', dob: 'dob', age: 'dob', age_network: 'dob', country: 'country', email: 'contact', email_taken: 'contact', password: 'password', consent: 'consent', state: stateMode === 'text' ? 'stateText' : 'state' };
-        const bad = F[map[ex.code]]; if (bad) { const fs = bad.closest('fieldset'); const i = steps.indexOf(fs); if (i >= 0) show(i); bad.focus(); }
+        const bad = F[map[ex.code]]; if (bad) { const fs = bad.closest('fieldset'); const i = steps.indexOf(fs); if (i >= 0) show(i); }
+        // The reason is shown AFTER the screen changes (changing screen clears the old message), both under the field and above the buttons.
+        const taken = ex.code === 'email_taken' || ex.code === 'phone_taken';
+        const say = taken ? [h('span', { text: ex.message }), ' ', h('a', { class: 'btn btn--s', href: '#/login', style: 'margin:8px 8px 0 0', text: 'Sign in' }), h('small', { class: 'muted', style: 'display:block;margin-top:6px', text: 'If you do not remember your password, choose Forgot password on the sign-in page.' })] : [h('span', { text: ex.message })];
+        err.replaceChildren(...say);
+        form.querySelectorAll('.err--field').forEach((x) => x.remove());
+        if (bad) { const note = h('p', { class: 'err err--field', role: 'alert', style: 'margin:6px 0 0', text: ex.message }); (bad.closest('label, .field') || bad).after(note); bad.setAttribute('aria-invalid', 'true'); bad.addEventListener('input', () => { note.remove(); bad.removeAttribute('aria-invalid'); }, { once: true }); bad.focus({ preventScroll: true }); note.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+        else err.scrollIntoView({ block: 'center', behavior: 'smooth' });
       }
     });
     if (F.source) api('/public/sources').then((r) => { F.source.append(...Object.entries(r.sources).map(([k, l]) => h('option', { value: k, text: l }))); if (saved.source) F.source.value = saved.source; }).catch(() => {});
