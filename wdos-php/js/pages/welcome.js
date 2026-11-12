@@ -1,7 +1,7 @@
 /* The front door. A newcomer picks her network by its logo, and the form that
  * opens carries that network all the way into her record. The same form
  * finishes a Google sign-up (complete = true). */
-import { h, t, clear, icon, NETS, googleMark, theme, toast, langPills, langPicker, listenBtn, guideBtn, stopAllListening, GUIDE, GUIDE_AUDIO, i18n } from '../ui.js';
+import { h, t, clear, icon, NETS, googleMark, theme, toast, langPills, langPicker, listenBtn, guideBtn, stopAllListening, GUIDE, GUIDE_AUDIO, GUIDE_VIDEO, i18n } from '../ui.js';
 import { api } from '../api.js';
 import { app, signedIn, refreshUser, go, signOut, setLanguage } from '../app.js';
 
@@ -253,7 +253,7 @@ export async function render(root, params) {
   let guide = { video_url: '', transcript: '' };
   if (plain) api('/public/welcome').then((m) => { guide = m; }).catch(() => {});
   function openVideo() {
-    const vl = GUIDE_AUDIO.includes(i18n.lang) ? i18n.lang : 'en'; const src = guide.video_url || `/assets/video/wdos-join-guide-${vl}.mp4`; const own = !guide.video_url; stopAllListening();
+    const vl = GUIDE_VIDEO.includes(i18n.lang) ? i18n.lang : 'en'; const src = guide.video_url || `/assets/video/wdos-join-guide-${vl}.mp4`; const own = !guide.video_url; stopAllListening();
     const v = h('video', { src, controls: true, autoplay: true, playsinline: true, preload: 'metadata', poster: own ? `/assets/video/wdos-join-guide-${vl}.jpg` : null, style: 'width:100%;max-height:70vh;border-radius:14px;background:#000' });
     const close = () => { v.pause(); dlg.remove(); document.removeEventListener('keydown', onKey); };
     const onKey = (e) => { if (e.key === 'Escape') close(); };

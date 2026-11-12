@@ -1,5 +1,5 @@
 {
- "build": "v101.4",
+ "build": "v102.0",
  "questions": [
   {
    "id": "Q01",
@@ -236,8 +236,8 @@
    "id": "Q34",
    "title": "Meetings across time zones",
    "status": "Partial",
-   "evidence": "Meetings by network and level including chapter, shown in each person's local time, replies (yes, maybe, no), attendance, agenda, minutes, follow-up tasks.",
-   "gap": "No recording consent and no statement of translation availability."
+   "evidence": "HQ and leaders schedule meetings for leaders or members, by network and country, with a meeting link (Google Meet or any other), agenda, live countdown, replies (yes, maybe, no), a record of who opened the link, attendance, minutes and follow-up tasks. Everyone invited is told at once, reminded the day before, one hour before and as it starts, and sent the minutes, in the app and by phone notification, and by email when email is on. HQ sees it all on its dashboard.",
+   "gap": "Email is switched off on the server. WDOS cannot create the Google Meet link itself or read attendance from Google Meet: the link is pasted in and attendance is marked in WDOS. No recording consent."
   },
   {
    "id": "Q35",
@@ -357,15 +357,15 @@
    "id": "A03",
    "title": "Language-first five languages",
    "status": "Partial",
-   "evidence": "Language is the first control on the first screen: Arabic, English, French, Portuguese, Swahili, in that order, with native names, and it stays in the top bar.",
-   "gap": "All four translations are working versions awaiting review (D10)."
+   "evidence": "Language is the first control on the first screen and stays in the top bar. Eight languages can be chosen, in alphabetical order with native names: Arabic, English, French, Hausa, Igbo, Portuguese, Swahili, Yoruba.",
+   "gap": "Every translation is a working version awaiting native review (D10). Hausa, Igbo and Yoruba cover the joining screens only; the screens after joining are still in English for them. Twenty more languages are listed as being prepared."
   },
   {
    "id": "A04",
    "title": "Audio/video accessible",
    "status": "Partial",
-   "evidence": "Listen buttons, a narrated, captioned video guide to joining in English, French and Portuguese made from the real WDOS screens, the same guide spoken step by step on each screen, a place for WODDI's own film, and the same words in text.",
-   "gap": "The voice is synthetic, not a recorded person, and has not been checked by a native speaker. Arabic and Swahili have no recorded voice: they use the phone's own voice where it has one, and the English video."
+   "evidence": "A step-by-step guide to joining, spoken on each screen and as a video made from the real WDOS screens, with the same words in text. Narrated in Arabic, English, French, Portuguese and Swahili; captioned only in Hausa, Igbo and Yoruba. A unique WDOS notification sound plays when something new arrives while WDOS is open.",
+   "gap": "Every voice is synthetic and unchecked by a native speaker. Hausa, Igbo and Yoruba have no voice: a person must record them. When WDOS is closed the phone plays its own notification sound."
   },
   {
    "id": "A05",

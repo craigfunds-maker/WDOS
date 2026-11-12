@@ -1,5 +1,5 @@
 /* WDOS front end entry: session, router, shell (collapsible sidebar, top bar, notification bell). */
-import { h, clear, icon, avatar, toast, ago, theme, empty, i18n, t, langPicker } from './ui.js';
+import { h, clear, icon, avatar, toast, ago, theme, empty, i18n, t, langPicker, chime } from './ui.js';
 import { pushSync } from './api.js';
 import { api } from './api.js';
 
@@ -182,6 +182,7 @@ async function pulse(announce = true) {
     const r = await api('/notifications/pulse?after=' + app.latest);
     setUnread(r.unread);
     if (announce && app.latest) r.fresh.slice().reverse().forEach((n) => toast(n.title, n.body, 'info', () => go(n.url || '#/notifications')));
+    if (announce && app.latest && r.fresh.length) chime();
     if (r.fresh.length) window.dispatchEvent(new CustomEvent('wdos:notified', { detail: r.fresh }));
     app.latest = Math.max(app.latest, r.latest);
   } catch { /* offline or signed out: the next tick tries again */ }

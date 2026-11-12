@@ -155,7 +155,7 @@ function meeting_shape(array $m): array {
     'status' => $m['status'], 'minutes' => (string) $m['minutes'], 'link' => preg_match('#https?://\S+#i', $m['location'], $lk) ? rtrim($lk[0], '.,)') : '', 'is_link' => (bool) preg_match('#^https?://\S+$#i', trim($m['location']))];
 }
 function meeting_audiences(array $u): array {
-  if (is_hq($u)) return ['leaders:ALL' => 'All volunteer leaders, both networks', 'leaders:WGMN' => 'WGMN leadership', 'leaders:WNNN' => 'WNNN leadership', 'hq_team:ALL' => 'WODDI HQ team'];
+  if (is_hq($u)) return ['leaders:ALL' => 'All volunteer leaders, both networks', 'leaders:WGMN' => 'WGMN leadership', 'leaders:WNNN' => 'WNNN leadership', 'members:ALL' => 'All members, both networks', 'members:WGMN' => 'All WGMN members', 'members:WNNN' => 'All WNNN members', 'hq_team:ALL' => 'WODDI HQ team'];
   $seat = work_seat($u); if (!$seat) return [];
   return ['leaders:' . $seat['network'] => 'My leadership team', 'members:' . $seat['network'] => 'Members in my area'];
 }
@@ -177,11 +177,14 @@ route('POST', '/meetings', function () {
   $mode = isset(MEETING_MODES[str_in('mode', 12)]) ? str_in('mode', 12) : 'virtual'; $loc = str_in('location', 400);
   if ($loc === '') fail(422, $mode === 'in_person' ? 'Give the address of the meeting.' : 'Paste the meeting link here.', 'location');
   [$audience, $net] = explode(':', $pick); $seat = work_seat($u);
+  // HQ may keep a meeting to one country
+  $only = is_hq($u) && $audience !== 'hq_team' && (int) (body()['country_id'] ?? 0) ? row("SELECT id, name, path FROM org_units WHERE level='country' AND id=?", [(int) body()['country_id']]) : null;
+  if ($only) $seat = ['org_unit_id' => (int) $only['id'], 'unit_path' => $only['path'], 'position_level' => '', 'area_label' => '', '_label' => $aud[$pick] . ', ' . $only['name']];
   $mid = ins('INSERT INTO meetings (title,mode,location,starts_at,ends_at,agenda,host_id,audience,network,org_unit_id,unit_path,scope_level,scope_area,scope_label,status,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
     [$title, $mode, $loc, gmdate('Y-m-d H:i:s', $s), gmdate('Y-m-d H:i:s', $e), str_in('agenda', 6000), (int) $u['id'], $audience, $net, $seat ? (int) $seat['org_unit_id'] : null, $seat ? $seat['unit_path'] : '',
-     $seat ? $seat['position_level'] : '', $seat ? (string) $seat['area_label'] : '', $seat ? seat_title($seat) : $aud[$pick], 'scheduled', now()]);
+     $seat ? $seat['position_level'] : '', $seat ? (string) $seat['area_label'] : '', $seat ? ($seat['_label'] ?? seat_title($seat)) : $aud[$pick], 'scheduled', now()]);
   $m = meeting_get($mid); [$w, $p] = meeting_invited_sql($m);
-  $join = $audience === 'members' ? "u.id IN (SELECT u.id FROM (SELECT u.id FROM users u JOIN org_units ou ON ou.id=u.org_unit_id WHERE $w) u)" : $w;
+  $join = meeting_join_sql($m, $w);
   $n = notify_many("u.id<>? AND $join", array_merge([(int) $u['id']], $p), 'meeting', 'Meeting: ' . mb_substr($title, 0, 120), 'Called by ' . work_name($u) . ' for ' . gmdate('j M Y, H:i', $s) . ' GMT. Tap to open the agenda and the ' . ($mode === 'in_person' ? 'address' : 'meeting link') . '.', '#/meetings/' . $mid);
   // e-mail to everyone invited, with the link or address in it (queued, then sent a few at a time)
   $mailed = 0;
@@ -205,11 +208,12 @@ route('GET', '/meetings/(\d+)', function ($id) {
   if ($host) {
     [$w, $p] = meeting_invited_sql($m);
     $total = (int) val("SELECT COUNT(*) FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND ($w)", $p);
-    $people = rows("SELECT u.id, u.first_name, u.last_name, u.has_photo, u.state_region, u.country_code, ma.status mark FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id
-                    LEFT JOIN meeting_attendance ma ON ma.meeting_id=? AND ma.user_id=u.id WHERE u.status='active' AND ($w) ORDER BY u.first_name, u.last_name LIMIT 300", array_merge([(int) $id], $p));
+    $people = rows("SELECT u.id, u.first_name, u.last_name, u.has_photo, u.state_region, u.country_code, ma.status mark, mr.answer rsvp, mj.joined_at joined FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id
+                    LEFT JOIN meeting_attendance ma ON ma.meeting_id=? AND ma.user_id=u.id LEFT JOIN meeting_rsvps mr ON mr.meeting_id=? AND mr.user_id=u.id LEFT JOIN meeting_joins mj ON mj.meeting_id=? AND mj.user_id=u.id
+                    WHERE u.status='active' AND ($w) ORDER BY (mj.joined_at IS NULL), (mr.answer IS NULL), u.first_name, u.last_name LIMIT 300", array_merge([(int) $id, (int) $id, (int) $id], $p));
   }
   $c = row("SELECT COALESCE(SUM(status='present'),0) present, COALESCE(SUM(status='absent'),0) absent FROM meeting_attendance WHERE meeting_id=?", [(int) $id]);
-  return ['meeting' => meeting_shape($m), 'host' => $host, 'people' => $people, 'invited' => $total, 'present' => (int) $c['present'], 'absent' => (int) $c['absent'],
+  return ['meeting' => meeting_shape($m), 'host' => $host, 'people' => $people, 'invited' => $total, 'opened_link' => (int) val('SELECT COUNT(*) FROM meeting_joins WHERE meeting_id=?', [(int) $id]), 'now' => now(), 'present' => (int) $c['present'], 'absent' => (int) $c['absent'],
     'my_mark' => val('SELECT status FROM meeting_attendance WHERE meeting_id=? AND user_id=?', [(int) $id, (int) $u['id']]),
     'tasks' => array_map('task_shape', rows(TASK_SELECT . ' WHERE t.source=? ORDER BY t.id', ['meeting:' . (int) $id]))];
 });
@@ -241,7 +245,11 @@ route('POST', '/meetings/(\d+)/close', function ($id) {
   }
   q("UPDATE meetings SET status='completed', minutes=?, closed_at=? WHERE id=?", [$minutes, now(), (int) $id]);
   log_activity((int) $u['id'], null, 'meeting_closed', $m['title']);
-  after_response(fn() => push_drain(30));
+  // the minutes go to everyone who was invited: in the app, by push, and by email when email is on
+  $m['status'] = 'completed';
+  meeting_broadcast($m, 'Minutes are ready: ' . mb_substr($m['title'], 0, 110), 'The minutes of this meeting have been recorded. Open WDOS to read them' . ($made ? " and the $made action" . ($made === 1 ? '' : 's') . ' that followed.' : '.'), false,
+    '<p style="margin-top:14px"><b>Minutes</b></p><p style="white-space:pre-wrap">' . nl2br(htmlspecialchars(mb_substr($minutes, 0, 6000))) . '</p>');
+  after_response(fn() => push_drain(80)); after_response(fn() => mail_drain(15));
   return ['ok' => true, 'tasks' => $made];
 });
 route('POST', '/meetings/(\d+)/cancel', function ($id) {
@@ -252,4 +260,26 @@ route('POST', '/meetings/(\d+)/cancel', function ($id) {
   $join = $m['audience'] === 'members' ? "u.id IN (SELECT u.id FROM (SELECT u.id FROM users u JOIN org_units ou ON ou.id=u.org_unit_id WHERE $w) u)" : $w;
   notify_many("u.id<>? AND $join", array_merge([(int) $u['id']], $p), 'meeting', 'Cancelled: ' . mb_substr($m['title'], 0, 120), 'This meeting will not hold. ' . work_name($u) . ' cancelled it.', '#/meetings/' . $id);
   after_response(fn() => push_drain(80));
+});
+
+/* She pressed Join meeting in WDOS. Recorded as "opened the link", which the host can use when marking attendance. It is not proof she attended. */
+route('POST', '/meetings/(\d+)/join', function ($id) {
+  $u = require_user(); $m = meeting_get((int) $id);
+  if (!is_hq($u) && !meeting_is_invited($u, $m)) fail(403, 'This meeting is for another unit.', 'forbidden');
+  try { q('INSERT INTO meeting_joins (meeting_id,user_id,joined_at) VALUES (?,?,?)', [(int) $id, (int) $u['id'], now()]); } catch (PDOException $e) { /* already recorded */ }
+  return ['ok' => true];
+});
+/* HQ dashboard: the meetings coming up and the ones just held, with replies, link opens and attendance. */
+route('GET', '/hq/meetings/summary', function () {
+  require_hq(); $out = [];
+  $list = array_merge(rows("SELECT m.*, h.first_name h_first, h.last_name h_last FROM meetings m JOIN users h ON h.id=m.host_id WHERE m.status='scheduled' AND m.ends_at>=? ORDER BY m.starts_at LIMIT 6", [now()]),
+                      rows("SELECT m.*, h.first_name h_first, h.last_name h_last FROM meetings m JOIN users h ON h.id=m.host_id WHERE m.status='completed' OR (m.status='scheduled' AND m.ends_at<?) ORDER BY m.starts_at DESC LIMIT 6", [now()]));
+  foreach ($list as $m) {
+    [$w, $p] = meeting_invited_sql($m); $id = (int) $m['id'];
+    $rs = ['yes' => 0, 'no' => 0, 'maybe' => 0]; foreach (rows('SELECT answer, COUNT(*) n FROM meeting_rsvps WHERE meeting_id=? GROUP BY answer', [$id]) as $r) $rs[$r['answer']] = (int) $r['n'];
+    $c = row("SELECT COALESCE(SUM(status='present'),0) present, COALESCE(SUM(status='absent'),0) absent FROM meeting_attendance WHERE meeting_id=?", [$id]);
+    $out[] = meeting_shape($m) + ['invited' => (int) val("SELECT COUNT(*) FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND ($w)", $p), 'rsvp' => $rs,
+      'opened_link' => (int) val('SELECT COUNT(*) FROM meeting_joins WHERE meeting_id=?', [$id]), 'present' => (int) $c['present'], 'absent' => (int) $c['absent'], 'upcoming' => $m['status'] === 'scheduled' && $m['ends_at'] >= now()];
+  }
+  return ['items' => $out, 'now' => now(), 'mail_on' => mail_configured()];
 });

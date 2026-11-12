@@ -1,8 +1,8 @@
 /* Small DOM toolkit: elements, icons, avatars, toasts, skeletons, empty states. No framework. */
 /* Languages. The dictionary is keyed by the English sentence, so a sentence with no translation yet simply stays in English. */
-/* Alphabetical by the English name of the language: Arabic, English, French, Portuguese, Swahili. */
-export const LANGS = { ar: 'العربية', en: 'English', fr: 'Français', pt: 'Português', sw: 'Kiswahili' };
-export const LANG_NAMES = { ar: 'Arabic', en: 'English', fr: 'French', pt: 'Portuguese', sw: 'Swahili' };
+/* Alphabetical by the English name of the language: Arabic, English, French, Hausa, Igbo, Portuguese, Swahili, Yoruba. */
+export const LANGS = { ar: 'العربية', en: 'English', fr: 'Français', ha: 'Hausa', ig: 'Igbo', pt: 'Português', sw: 'Kiswahili', yo: 'Yorùbá' };
+export const LANG_NAMES = { ar: 'Arabic', en: 'English', fr: 'French', ha: 'Hausa', ig: 'Igbo', pt: 'Portuguese', sw: 'Swahili', yo: 'Yoruba' };
 export const i18n = {
   lang: 'en', dict: null,
   saved() { try { const l = localStorage.getItem('wdos.lang'); return LANGS[l] ? l : 'en'; } catch { return 'en'; } },
@@ -50,7 +50,7 @@ const I = {
   up: ['M7 17L17 7', 'M7 7h10v10'], down: ['M7 7l10 10', 'M17 7v10H7'], flat: ['M5 12h14'],
   chevdown: ['M6 9l6 6 6-6'],
   eye: ['M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z', 'c:12,12,3'],
-  check: ['M20 6L9 17l-5-5'], chevright: ['M9 6l6 6-6 6'], x: ['M18 6L6 18', 'M6 6l12 12'], plus: ['M12 5v14', 'M5 12h14'],
+  check: ['M20 6L9 17l-5-5'], play: ['M6 4l14 8-14 8V4z'], chevright: ['M9 6l6 6-6 6'], x: ['M18 6L6 18', 'M6 6l12 12'], plus: ['M12 5v14', 'M5 12h14'],
   shield: ['M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'],
   pin: ['M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z', 'c:12,10,3'],
   key: ['c:7.5,15.5,5.5', 'M21 2l-9.6 9.6', 'M15.5 7.5l3 3L22 7l-3-3'],
@@ -193,9 +193,9 @@ export function langPicker(onPick) {
   s.value = i18n.lang; s.addEventListener('change', () => onPick(s.value)); return s;
 }
 /* Language pills for the public pages. Languages still being prepared are listed but cannot be chosen yet. */
-export const LANGS_SOON = ['Afrikaans', 'Amharic', 'Bambara', 'Chichewa', 'Fulfulde', 'Hausa', 'Igbo', 'Kinyarwanda', 'Kirundi', 'Lingala', 'Luganda', 'Malagasy', 'Oromo', 'Sesotho', 'Setswana', 'Shona', 'Somali', 'Tigrinya', 'Twi', 'Wolof', 'Xhosa', 'Yorùbá', 'Zulu'];
+export const LANGS_SOON = ['Afrikaans', 'Amharic', 'Bambara', 'Chichewa', 'Fulfulde', 'Kinyarwanda', 'Kirundi', 'Lingala', 'Luganda', 'Malagasy', 'Oromo', 'Sesotho', 'Setswana', 'Shona', 'Somali', 'Tigrinya', 'Twi', 'Wolof', 'Xhosa', 'Zulu'];
 export function langPills(onPick) {
-  const order = ['ar', 'en', 'fr', 'pt', 'sw'];
+  const order = Object.keys(LANGS);
   /* The handoff asks for a dropdown, first on the screen, in alphabetical order with each language's own name.
    * Languages still being prepared are listed under it and cannot be chosen yet. */
   const sel = h('select', { class: 'input langpick lpick', id: 'lang-first', 'aria-label': 'Language' }, order.map((code) => { const o = document.createElement('option'); o.value = code; o.lang = code; o.textContent = LANGS[code]; return o; }));
@@ -213,7 +213,7 @@ export function linkify(text) {
 
 /* Listen: the device reads the words aloud in the chosen language. It is optional help, uses no mobile data, and is the
  * device's own voice, not a recorded WODDI voice. Where a device has no voice, the button is not shown. */
-const VOICE = { ar: 'ar-SA', en: 'en-GB', fr: 'fr-FR', pt: 'pt-PT', sw: 'sw-KE' };
+const VOICE = { ar: 'ar-SA', en: 'en-GB', fr: 'fr-FR', ha: 'ha-NG', ig: 'ig-NG', pt: 'pt-PT', sw: 'sw-KE', yo: 'yo-NG' };
 /* Listening. A language the phone has no voice for is never read out in the wrong language: she is told, and the words stay on the screen. */
 const voiceFor = (lang) => { const vs = speechSynthesis.getVoices(); if (!vs.length) return undefined; return vs.find((v) => v.lang.toLowerCase().startsWith(lang)) || null; };
 let guideAudio = null;
@@ -246,7 +246,8 @@ export const GUIDE = [
   'Your membership is created at once, and you receive your membership number. Your seven-day journey opens. Do one small step each day. If you miss a day, nothing is lost.',
   'If you forget your PIN, choose Forgot password on the sign-in page, or open Help. No woman is left out.',
 ];
-export const GUIDE_AUDIO = ['en', 'fr', 'pt'];
+export const GUIDE_AUDIO = ['ar', 'en', 'fr', 'pt', 'sw'];          // a recorded synthetic voice exists for these
+export const GUIDE_VIDEO = ['ar', 'en', 'fr', 'ha', 'ig', 'pt', 'sw', 'yo'];      // Hausa, Igbo and Yoruba have captions and no voice yet
 export function guideBtn(getStep, label = 'Listen') {
   const b = h('button', { class: 'btn btn--quiet btn--s listen', type: 'button', 'aria-pressed': 'false', 'data-label': label }, icon('volume', 18), h('span', { text: label }));
   const stop = () => { b.setAttribute('aria-pressed', 'false'); b.lastChild.textContent = t(label); };
@@ -265,3 +266,11 @@ export function meter(n, cap, min) {
   return h('div', { class: 'meter' + (n >= cap ? ' is-full' : n >= min ? ' is-ok' : ''), role: 'img', 'aria-label': `${n} of ${cap} members` }, h('span', { style: `width:${pct}%` }), min && min < cap ? h('i', { style: `inset-inline-start:${Math.round((min / cap) * 100)}%` }) : null);
 }
 export const CH_TAG = { developing: '', eligible: 'tag--wgmn', active: 'tag--wnnn', full: 'tag--bad', merged: '', closed: '' };
+
+/* The WDOS notification sound. One short chime, at a steady volume, when something new arrives while the app is open. */
+let chimeEl = null, chimeAt = 0;
+export const soundOn = () => { try { return localStorage.getItem('wdos.sound') !== 'off'; } catch { return true; } };
+export function chime(force = false) {
+  if (!force && (!soundOn() || Date.now() - chimeAt < 4000)) return; chimeAt = Date.now();
+  try { chimeEl = chimeEl || new Audio('/assets/audio/wdos-notify.mp3'); chimeEl.volume = 0.9; chimeEl.currentTime = 0; chimeEl.play().catch(() => { /* the browser allows sound only after the first touch */ }); } catch { /* no audio on this device */ }
+}

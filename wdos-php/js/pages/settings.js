@@ -1,5 +1,5 @@
 /* Settings: profile and photograph, password, fingerprint devices, notifications on this device and per type, theme. */
-import { h, icon, avatar, card, sk, toast, agoIn, theme, langPicker } from '../ui.js';
+import { h, icon, avatar, card, sk, toast, agoIn, theme, langPicker, chime, soundOn } from '../ui.js';
 import { api, squarePhoto, fingerprintSupported, fingerprintEnroll, deviceLabel, pushState, pushEnable, pushDisable } from '../api.js';
 import { app, refreshUser, setLanguage } from '../app.js';
 import { sendTest } from '../pushnudge.js';
@@ -50,9 +50,11 @@ export async function render(root) {
       r.push_configured ? null : h('p', { class: 'faint', style: 'font-size:13px;margin-top:10px', text: 'Push keys are not set on the server yet, so only in-app notifications are being delivered.' })); };
 
   /* appearance */
+  const soundBox = h('input', { type: 'checkbox', id: 's-sound' }); soundBox.checked = soundOn(); soundBox.addEventListener('change', () => { try { localStorage.setItem('wdos.sound', soundBox.checked ? 'on' : 'off'); } catch { /* private mode */ } if (soundBox.checked) chime(true); });
+  const soundRow = h('div', { style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap' }, h('label', { class: 'check', for: 's-sound', style: 'flex:1;min-width:220px' }, soundBox, h('span', { text: 'Play the WDOS sound when something new arrives while WDOS is open' })), h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: () => chime(true) }, icon('volume', 16), 'Hear it'));
   const themeSeg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Theme' }, [['dark', 'Dark', 'moon'], ['light', 'Light', 'sun']].map(([v, l, ic]) => h('button', { type: 'button', 'aria-pressed': String(theme.get() === v), style: 'display:inline-flex;gap:8px;align-items:center', onclick: (e) => { theme.set(v); themeSeg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget))); } }, icon(ic, 16), l)));
 
   root.append(h('div', { class: 'setgrid' }, card('Your profile', u.member_no ? 'Membership number ' + u.member_no : null, pForm), card('Sign-in and security', null, security),
-    card('Notifications', 'Choose what reaches you, and where', h('div', { style: 'display:grid;gap:16px' }, devRow, prefs)), card('Appearance', 'Saved on this device', h('div', { style: 'display:grid;gap:16px' }, themeSeg, h('label', { class: 'field' }, h('span', { text: 'Language' }), langPicker(setLanguage), h('small', { text: 'Menus, page titles, the joining pages and common buttons are translated. Other text stays in English for now.' }))))));
+    card('Notifications', 'Choose what reaches you, and where', h('div', { style: 'display:grid;gap:16px' }, devRow, soundRow, prefs)), card('Appearance', 'Saved on this device', h('div', { style: 'display:grid;gap:16px' }, themeSeg, h('label', { class: 'field' }, h('span', { text: 'Language' }), langPicker(setLanguage), h('small', { text: 'Menus, page titles, the joining pages and common buttons are translated. Other text stays in English for now.' }))))));
   loadFp(); paintDevice(); loadPrefs();
 }

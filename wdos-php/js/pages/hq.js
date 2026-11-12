@@ -25,6 +25,13 @@ export function peopleList(items, hrefFor) {
 const ACTION = { registered: 'joined', appointed: 'was appointed', seat_closed: 'left a leadership seat', password_reset: 'had a password reset by HQ', suspended: 'was suspended', reinstated: 'was reinstated', hq_access_given: 'was given HQ access', hq_access_removed: 'had HQ access removed', announcement: 'HQ sent an announcement', report_submitted: 'submitted a report', details_corrected: 'had details corrected by HQ', import: 'Accounts were brought across' };
 
 export async function render(root) {
+  const meet = h('div', {}, sk.rows(2));
+  import('./meetings.js').then(({ countdown }) => api('/hq/meetings/summary').then((r) => { const row = (m) => h('a', { class: 'list__link', href: '#/meetings/' + m.id, style: 'flex-wrap:wrap' }, h('div', { class: 'nrow__ico' }, icon('calendar', 18)),
+      h('div', { class: 'grow', style: 'min-width:220px' }, h('b', { text: m.title }), h('small', { text: new Date(m.starts_at.replace(' ', 'T') + 'Z').toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + ' · ' + m.scope_label }), m.upcoming ? countdown(m) : null),
+      h('div', { class: 'tagrow' }, h('span', { class: 'tag', text: `${fmt(m.invited)} invited` }), m.upcoming ? h('span', { class: 'tag tag--wnnn', text: `${m.rsvp.yes} yes · ${m.rsvp.maybe} maybe · ${m.rsvp.no} no` }) : h('span', { class: 'tag ' + (m.present ? 'tag--wnnn' : 'tag--wgmn'), text: m.present + m.absent ? `${m.present} present · ${m.absent} absent` : 'Attendance not marked' }), h('span', { class: 'tag', text: `${fmt(m.opened_link)} opened the link` })));
+    const up = r.items.filter((m) => m.upcoming), past = r.items.filter((m) => !m.upcoming);
+    meet.replaceChildren(r.items.length ? h('div', { style: 'display:grid;gap:14px' }, up.length ? h('div', { class: 'list list--stack' }, up.map(row)) : h('p', { class: 'muted', style: 'margin:0', text: 'No meeting is scheduled.' }), past.length ? h('div', {}, h('small', { class: 'eyebrow', text: 'Just held' }), h('div', { class: 'list list--stack' }, past.map(row))) : null, r.mail_on ? null : h('small', { class: 'faint', text: 'Email is switched off on the server, so invitations, reminders and minutes go in the app and by phone notification only.' }))
+      : empty('calendar', 'No meetings yet', 'Schedule one and everyone invited is told and reminded automatically.')); })).catch((e) => meet.replaceChildren(empty('x', 'Meetings did not load', e.message)));
   let days = Number(sessionStorage.getItem('wdos.days')) || 30;
   const u = app.user;
   const seg = h('div');
@@ -34,6 +41,7 @@ export async function render(root) {
   const trend = h('div'), split = h('div'), countries = h('div'), seats = h('div'), recent = h('div'), feed = h('div');
   root.append(hero, pushNudge(), kpis,
     h('div', { class: 'row row--2-1' }, card('New members', 'Registrations per day, by network', trend, legend([{ name: 'WGMN', color: seriesColor.WGMN }, { name: 'WNNN', color: seriesColor.WNNN }])), card('Network split', 'All members to date', split)),
+    card('Meetings', 'Coming up and just held: who was invited, who replied, who opened the link and who attended', meet, h('a', { class: 'btn btn--ghost btn--s', href: '#/meetings', text: 'Schedule or open meetings' })),
     h('div', { class: 'row row--2' }, card('Members by country', 'The eight largest', countries), card('Volunteer leaders seated', 'Open seats by level', seats)),
     h('div', { class: 'row row--2' }, card('Newest members', null, recent, h('a', { class: 'btn btn--ghost btn--s', href: '#/members', text: 'All members' })), card('Recent activity', null, feed)));
 
