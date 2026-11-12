@@ -43,7 +43,7 @@ function resolve(path) {
     case 'journey': return sh('journey', 'My seven-day journey');
     case 'community': return sh('community', 'WODDI Community', { tab: seg[1] });
     case 'chapter': return sh('chapter', seg[1] ? 'Chapter' : 'My chapter', { id: seg[1] });
-    case 'chapters': return (u.is_hq || u.is_leader) ? sh('chapters', 'Chapters') : sh('chapter', 'My chapter', {});
+    case 'chapters': return (u.is_hq || u.is_leader || u.zone_supervisor) ? sh('chapters', 'Chapters') : sh('chapter', 'My chapter', {});
     case 'rules': return u.is_hq ? sh('rules', 'System rules') : sh('home', 'Home');
     case 'tasks': return sh('tasks', 'Tasks', { tab: seg[1] });
     case 'meetings': return sh('meetings', 'Meetings', { tab: seg[1] });
@@ -90,7 +90,7 @@ function navItems() {
   const u = app.user; const comm = [['Communication'], ['#/community', 'spark', 'WODDI Community'], ['#/messages', 'send', u.is_hq ? 'Messages' : 'Messages with HQ'], ['#/announcements', 'megaphone', 'Announcements'], ['#/library', 'book', 'Document library'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
   if (u.is_hq) return [['Overview'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/leaders', 'eye', 'Leader dashboards'], ['#/structure', 'tree', 'Leadership structure'], ['#/chapters', 'grid', 'Chapters'], ['#/referrals', 'route', 'Referral and activation'], ['#/rules', 'sliders', 'System rules'], ['Work'], ['#/reporting', 'chart', 'Reporting'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ['Communication'], ['#/inspiration', 'award', 'Inspiration messages'], ...comm.slice(1)];
   if (u.is_leader) return [['My leadership'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'My members'], ['#/chapters', 'grid', 'Chapters'], u.chapter || (u.seat && u.seat.level === 'chapter') ? ['#/chapter', 'users', 'My chapter'] : null, ['#/structure', 'tree', 'Leadership structure'], ['#/referrals', 'route', 'Referral links'], ['#/onboarding', 'book', 'Onboarding'], ['Work'], ['#/reporting', 'chart', 'Reporting'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ...comm].filter(Boolean);
-  return [['My network'], ['#/', 'grid', 'Home'], u.journey ? ['#/journey', 'route', 'My seven-day journey'] : null, ['#/chapter', 'users', 'My chapter'], u.todo && u.todo.activation ? ['#/activation', 'route', 'My Activation'] : null, ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ...comm].filter(Boolean);
+  return [['My network'], ['#/', 'grid', 'Home'], u.journey ? ['#/journey', 'route', 'My seven-day journey'] : null, ['#/chapter', 'users', 'My chapter'], u.zone_supervisor ? ['#/chapters', 'grid', 'My zone chapters'] : null, u.todo && u.todo.activation ? ['#/activation', 'route', 'My Activation'] : null, ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ...comm].filter(Boolean);
 }
 function markNav(path) {
   const first = '#/' + (path.split('/').filter(Boolean)[0] || '');

@@ -34,10 +34,13 @@ route('POST', '/policy', function () {
 function chapters_where(array $u): array {
   $w = ["c.status NOT IN ('merged','closed')"]; $p = [];
   if (!is_hq($u)) {
-    $seat = current_seat((int) $u['id']); if (!$seat) fail(403, 'The chapter directory is for volunteer leaders and WODDI HQ.', 'forbidden');
-    [$sw, $sp] = chapter_scope_sql($seat); $w[] = "($sw)"; $p = array_merge($p, $sp);
+    $seat = current_seat((int) $u['id']); $zones = array_map('intval', array_column(rows('SELECT id FROM chapter_zones WHERE supervisor_id=? AND ends_at IS NULL', [(int) $u['id']]), 'id'));
+    if (!$seat && !$zones) fail(403, 'The chapter directory is for volunteer leaders and WODDI HQ.', 'forbidden');
+    $parts = []; if ($seat) { [$sw, $sp] = chapter_scope_sql($seat); $parts[] = "($sw)"; $p = array_merge($p, $sp); }
+    if ($zones) $parts[] = 'c.zone_id IN (' . implode(',', $zones) . ')';
+    $w[] = '(' . implode(' OR ', $parts) . ')';
   }
-  foreach (['network' => 'c.network', 'country' => 'c.country_code', 'state' => 'c.state_region', 'lga' => 'c.lga', 'community' => 'c.community', 'status' => 'c.status'] as $g => $col) {
+  foreach (['network' => 'c.network', 'country' => 'c.country_code', 'state' => 'c.state_region', 'lga' => 'c.lga', 'community' => 'c.community', 'status' => 'c.status', 'zone' => 'c.zone_id'] as $g => $col) {
     if (isset($_GET[$g]) && $_GET[$g] !== '') { $w[] = "$col=?"; $p[] = $_GET[$g] === '(none)' ? '' : (string) $_GET[$g]; }
   }
   if (($s = trim((string) ($_GET['q'] ?? ''))) !== '') { $w[] = '(c.name LIKE ? OR c.code LIKE ?)'; $p[] = "%$s%"; $p[] = "%$s%"; }
@@ -53,11 +56,23 @@ route('GET', '/chapters', function () {
   $s = row("SELECT COUNT(*) total, COALESCE(SUM(c.status='developing'),0) developing, COALESCE(SUM(c.status='eligible'),0) eligible, COALESCE(SUM(c.status='active'),0) active, COALESCE(SUM(c.status='full'),0) `full`,
                    COALESCE(SUM(c.members),0) members, COALESCE(SUM(c.members>=? AND c.members<?),0) plan_next
             FROM chapters c WHERE $w", array_merge([policy_int('chapter_plan_next'), policy_int('chapter_capacity')], $p));
+  $s['suspended'] = (int) val("SELECT COUNT(*) FROM chapters c WHERE $w AND c.status='suspended'", $p); $s['exceptions'] = (int) val("SELECT COUNT(*) FROM chapters c WHERE $w AND c.capacity_exception=1", $p);
   $s['no_leader'] = (int) val("SELECT COUNT(*) FROM chapters c WHERE $w AND NOT EXISTS (SELECT 1 FROM seats s WHERE s.chapter_id=c.id AND s.ends_at IS NULL)", $p);
   $out = ['items' => $items, 'total' => $total, 'page' => $page, 'pages' => max(1, (int) ceil($total / $size)), 'summary' => array_map('intval', $s), 'is_hq' => is_hq($u), 'as_of' => now(),
     'rules' => ['minimum' => policy_int('chapter_min_active'), 'plan_next' => policy_int('chapter_plan_next'), 'capacity' => policy_int('chapter_capacity'), 'auto_create' => policy('chapter_auto_create'), 'auto_activate' => policy('chapter_auto_activate')]];
   if (is_hq($u)) {
     $base = "status='active' AND chapter_id IS NULL AND network IS NOT NULL AND participant_class='member' AND role NOT IN ('hq_admin','super_admin')";
+    // every network membership is in exactly one of these, so the totals reconcile for any filter
+    $uw = ["u.network IS NOT NULL", "u.participant_class='member'", "u.role NOT IN ('hq_admin','super_admin')"]; $up = [];
+    foreach (['network' => 'u.network', 'country' => 'u.country_code', 'state' => 'u.state_region', 'lga' => 'u.lga', 'community' => 'u.community'] as $g => $col) if (isset($_GET[$g]) && $_GET[$g] !== '') { $uw[] = "$col=?"; $up[] = $_GET[$g] === '(none)' ? '' : (string) $_GET[$g]; }
+    $uws = implode(' AND ', $uw);
+    $r = row("SELECT COUNT(*) total, COALESCE(SUM(u.status='active' AND u.chapter_id IS NOT NULL),0) assigned, COALESCE(SUM(u.status='active' AND u.chapter_id IS NULL),0) pending, COALESCE(SUM(u.status='suspended'),0) inactive, COALESCE(SUM(u.status NOT IN ('active','suspended')),0) other,
+                     COALESCE(SUM(u.created_at>=?),0) signups_30d FROM users u WHERE $uws", array_merge([gmdate('Y-m-d H:i:s', time() - 30 * 86400)], $up));
+    $out['reconcile'] = array_map('intval', $r) + ['balanced' => (int) $r['total'] === (int) $r['assigned'] + (int) $r['pending'] + (int) $r['inactive'] + (int) $r['other']];
+    $out['transfers_30d'] = (int) val("SELECT COUNT(*) FROM chapter_members m JOIN chapters c ON c.id=m.chapter_id WHERE $w AND m.end_reason IN ('transfer','split','merged','moved') AND m.ended_at>=?", array_merge($p, [gmdate('Y-m-d H:i:s', time() - 30 * 86400)]));
+    $dist = row("SELECT COALESCE(SUM(c.members<10),0) a, COALESCE(SUM(c.members BETWEEN 10 AND 19),0) b, COALESCE(SUM(c.members BETWEEN 20 AND 29),0) c3, COALESCE(SUM(c.members BETWEEN 30 AND 39),0) d, COALESCE(SUM(c.members BETWEEN 40 AND 49),0) e, COALESCE(SUM(c.members>=50),0) f FROM chapters c WHERE $w", $p);
+    $out['distribution'] = [['1 to 9', (int) $dist['a']], ['10 to 19', (int) $dist['b']], ['20 to 29', (int) $dist['c3']], ['30 to 39', (int) $dist['d']], ['40 to 49', (int) $dist['e']], ['50 or more', (int) $dist['f']]];
+    $out['needs'] = rows("SELECT u.network, u.country_code, u.lga, u.community, COUNT(*) waiting FROM users u WHERE $uws AND u.status='active' AND u.chapter_id IS NULL AND (u.lga<>'' OR u.community<>'') GROUP BY u.network, u.country_code, u.lga, u.community ORDER BY waiting DESC LIMIT 8", $up);
     $out['pending'] = ['placeable' => (int) val("SELECT COUNT(*) FROM users WHERE $base AND country_code IS NOT NULL AND (lga<>'' OR community<>'')"), 'no_location' => (int) val("SELECT COUNT(*) FROM users WHERE $base AND (country_code IS NULL OR (lga='' AND community=''))")];
   }
   return $out;
@@ -79,8 +94,12 @@ route('GET', '/chapters/tree', function () {
 route('POST', '/chapters', function () {
   $me = require_hq(); $b = body(); $net = in_array($b['network'] ?? '', ['WGMN', 'WNNN'], true) ? $b['network'] : '';
   $cc = strtoupper(str_in('country', 2)); if ($net === '' || !preg_match('/^[A-Z]{2}$/', $cc)) fail(422, 'Choose the network and the country.', 'network');
+  if (!val("SELECT 1 FROM org_units WHERE level='country' AND country_code=?", [$cc])) fail(422, 'That country is not in the WDOS geography yet. Add the country first.', 'country');      // no orphan chapters
   $lga = str_in('lga', 120); $community = str_in('community', 120);
   if ($lga === '' && $community === '') fail(422, 'Name the LGA, city or community this chapter serves.', 'lga');
+  // warn before opening a second chapter where one of the same network still has room (an overlapping catchment)
+  $room = row('SELECT name, members FROM chapters WHERE network=? AND country_code=? AND state_region=? AND lga=? AND community=? AND status IN ' . CHAPTER_OPEN . ' AND members<COALESCE(target_capacity, ?) ORDER BY seq LIMIT 1', [$net, $cc, str_in('state_region', 120), $lga, $community, chapter_cap($cc)]);
+  if ($room && empty($b['confirm'])) fail(409, $room['name'] . ' serves the same area and still has room (' . (int) $room['members'] . ' members). Open another chapter there anyway?', 'overlap');
   $id = chapter_create($net, $cc, str_in('state_region', 120), $lga, $community, (int) $me['id'], str_in('zone', 120));
   log_activity((int) $me['id'], null, 'chapter_created', (string) val('SELECT name FROM chapters WHERE id=?', [$id]));
   return ['ok' => true, 'id' => $id];
@@ -108,9 +127,10 @@ route('GET', '/chapters/(\d+)', function ($id) {
     'meetings' => rows("SELECT m.id, m.title, m.starts_at, m.mode FROM meetings m WHERE m.starts_at>=? AND m.audience='members' AND m.host_id IN (SELECT s.user_id FROM seats s WHERE s.chapter_id=? AND s.ends_at IS NULL) ORDER BY m.starts_at LIMIT 5", [now(), (int) $id])];
   $out['announcements'] = rows('SELECT id, title, created_at FROM announcements WHERE audience_chapter=? AND sent_at IS NOT NULL ORDER BY id DESC LIMIT 5', [(int) $id]);
   $out['recovery_by_leader'] = policy('recovery_by_leader') === 'on' && $acc === 'leader' && $full;
+  if ($full && !empty($c['zone_id'])) $out['zone'] = row("SELECT z.id, z.name, z.supervisor_id, CONCAT(u.first_name,' ',u.last_name) supervisor FROM chapter_zones z LEFT JOIN users u ON u.id=z.supervisor_id WHERE z.id=?", [(int) $c['zone_id']]);
   if ($full) {
     $out['tasks'] = rows("SELECT t.id, t.title, t.status, t.due_on, CONCAT(u.first_name,' ',u.last_name) owner FROM tasks t JOIN users u ON u.id=t.assignee_id WHERE t.chapter_id=? AND t.status IN ('open','in_progress','submitted') ORDER BY (t.due_on IS NULL), t.due_on LIMIT 8", [(int) $id]);
-    $out['history'] = rows("SELECT u.first_name, u.last_name, m.started_at, m.ended_at, m.end_reason FROM chapter_members m JOIN users u ON u.id=m.user_id WHERE m.chapter_id=? AND m.ended_at IS NOT NULL ORDER BY m.ended_at DESC LIMIT 30", [(int) $id]);
+    $out['history'] = rows("SELECT u.first_name, u.last_name, m.started_at, m.ended_at, m.end_reason, m.placed_by, m.reason FROM chapter_members m JOIN users u ON u.id=m.user_id WHERE m.chapter_id=? AND m.ended_at IS NOT NULL ORDER BY m.ended_at DESC LIMIT 30", [(int) $id]);
     $out['stats'] = ['active_7d' => (int) val('SELECT COUNT(*) FROM users WHERE chapter_id=? AND last_seen_at>=?', [(int) $id, gmdate('Y-m-d H:i:s', time() - 7 * 86400)]),
       'journey_active' => (int) val("SELECT COUNT(*) FROM users u JOIN member_journeys j ON j.user_id=u.id WHERE u.chapter_id=? AND j.status='active'", [(int) $id]),
       'journey_open' => (int) val("SELECT COUNT(*) FROM users u JOIN member_journeys j ON j.user_id=u.id WHERE u.chapter_id=? AND j.status<>'active'", [(int) $id]),
@@ -130,8 +150,10 @@ route('POST', '/chapters/(\d+)/activate', function ($id) {
 });
 route('POST', '/chapters/(\d+)/transfer', function ($id) {
   $me = require_hq(); $uid = (int) (body()['user_id'] ?? 0);
-  chapter_move($uid, (int) $id, 'transfer', 'hq:' . (int) $me['id'], !empty(body()['allow_full']));
-  log_activity((int) $me['id'], $uid, 'chapter_transfer', (string) val('SELECT name FROM chapters WHERE id=?', [(int) $id]));
+  $over = !empty(body()['allow_full']); $why = str_in('reason', 200);
+  if ($over && mb_strlen($why) < 5) fail(422, 'A move into a full chapter needs its reason written down.', 'reason');      // override only with a recorded reason; the chapter then carries a visible exception flag
+  chapter_move($uid, (int) $id, 'transfer', 'hq:' . (int) $me['id'], $over, $why, str_in('approval_ref', 120) ?: 'Approved by ' . $me['first_name'] . ' ' . $me['last_name']);
+  log_activity((int) $me['id'], $uid, $over ? 'capacity_exception' : 'chapter_transfer', (string) val('SELECT name FROM chapters WHERE id=?', [(int) $id]) . ($why !== '' ? ': ' . $why : ''));
   notify($uid, 'account', 'You have moved to a new chapter', 'WODDI HQ moved you to ' . val('SELECT name FROM chapters WHERE id=?', [(int) $id]) . '. Your membership history is kept.', '#/chapter');
   return ['ok' => true];
 });
@@ -394,3 +416,122 @@ if ($METHOD === 'GET' && $PATH === '/integration/person') {
 }
 /* What the welcome screen may offer besides text: WODDI's own short video or audio, with the words written out. */
 route('GET', '/public/welcome', fn() => ['video_url' => policy('welcome_video_url'), 'audio_url' => policy('welcome_audio_url'), 'transcript' => policy('welcome_transcript')]);
+
+/* ============ Chapter and Membership Management Specification v1.0 ============ */
+/* Edit a chapter: its display name, its own target capacity, its catchment note, its operational zone label. The permanent number never changes. */
+route('POST', '/chapters/(\d+)/edit', function ($id) {
+  $me = require_hq(); $c = row('SELECT * FROM chapters WHERE id=?', [(int) $id]); if (!$c) fail(404, 'That chapter was not found.', 'not_found');
+  $name = str_in('name', 190) ?: $c['name']; $cap = trim((string) (body()['target_capacity'] ?? ''));
+  if ($name !== $c['name'] && empty(body()['confirm']) && val('SELECT 1 FROM chapters WHERE name=? AND id<>? AND network=? AND country_code=?', [$name, (int) $id, $c['network'], $c['country_code']])) fail(409, 'Another chapter already has that name. Use it anyway?', 'duplicate');
+  if ($cap !== '' && (!ctype_digit($cap) || ((int) $cap !== 0 && ((int) $cap <= policy_int('chapter_min_active') || (int) $cap > 500)))) fail(422, 'Give a capacity above the minimum of ' . policy_int('chapter_min_active') . ', or leave it empty to use the general figure.', 'target_capacity');
+  q('UPDATE chapters SET name=?, target_capacity=?, catchment=?, zone=? WHERE id=?', [$name, $cap === '' || (int) $cap === 0 ? null : (int) $cap, str_in('catchment', 600), str_in('zone', 120), (int) $id]);
+  chapter_refresh((int) $id); log_activity((int) $me['id'], null, 'chapter_edited', $c['name'] . ($name !== $c['name'] ? ' renamed ' . $name : '') . ($cap !== '' ? ', capacity ' . $cap : ''));
+  return ['ok' => true];
+});
+/* Suspend, reopen or close a chapter. Nothing is deleted. On closing, each member is told and placed again automatically. */
+route('POST', '/chapters/(\d+)/status', function ($id) {
+  $me = require_hq(); $c = row('SELECT * FROM chapters WHERE id=?', [(int) $id]); if (!$c || $c['status'] === 'merged') fail(404, 'That chapter was not found.', 'not_found');
+  $to = (string) (body()['to'] ?? ''); $note = str_in('note', 300);
+  if (!in_array($to, ['suspended', 'open', 'closed'], true)) fail(422, 'Choose suspend, reopen or close.', 'to');
+  if ($to !== 'open' && mb_strlen($note) < 5) fail(422, 'Write the reason. It is kept with the chapter.', 'note');
+  if ($to === 'suspended') q("UPDATE chapters SET status='suspended', status_note=? WHERE id=?", [$note, (int) $id]);
+  elseif ($to === 'open') { q("UPDATE chapters SET status='developing', status_note='', closed_at=NULL WHERE id=?", [(int) $id]); chapter_refresh((int) $id); }
+  else {
+    $ids = array_map('intval', array_column(rows('SELECT user_id FROM chapter_members WHERE chapter_id=? AND ended_at IS NULL', [(int) $id]), 'user_id'));
+    q("UPDATE chapters SET status='closed', status_note=?, closed_at=? WHERE id=?", [$note, now(), (int) $id]);
+    q('UPDATE seats SET chapter_id=NULL WHERE chapter_id=? AND ends_at IS NULL', [(int) $id]);
+    foreach ($ids as $uid) { q("UPDATE chapter_members SET ended_at=?, end_reason='chapter_closed' WHERE user_id=? AND chapter_id=? AND ended_at IS NULL", [now(), $uid, (int) $id]); q('UPDATE users SET chapter_id=NULL WHERE id=?', [$uid]);
+      notify($uid, 'account', 'Your chapter has closed', $c['name'] . ' has closed. WDOS is placing you in another chapter near you. Your membership is not affected.', '#/chapter'); $fresh = row('SELECT * FROM users WHERE id=?', [$uid]); if ($fresh) chapter_place_user($fresh); }
+    q('UPDATE chapters SET members=0 WHERE id=?', [(int) $id]);
+  }
+  log_activity((int) $me['id'], null, 'chapter_' . ($to === 'open' ? 'reopened' : $to), $c['name'] . ($note !== '' ? ': ' . $note : ''));
+  return ['ok' => true];
+});
+/* The pending-assignment queue: every member with no chapter, and why. */
+route('GET', '/chapters/pending', function () {
+  require_hq(); $page = max(1, (int) ($_GET['page'] ?? 1)); $size = 30;
+  $w = "u.status='active' AND u.chapter_id IS NULL AND u.network IS NOT NULL AND u.participant_class='member' AND u.role NOT IN ('hq_admin','super_admin')"; $p = [];
+  if (in_array($_GET['network'] ?? '', ['WGMN', 'WNNN'], true)) { $w .= ' AND u.network=?'; $p[] = $_GET['network']; }
+  if (($_GET['kind'] ?? '') === 'placeable') $w .= " AND u.country_code IS NOT NULL AND (u.lga<>'' OR u.community<>'')"; elseif (($_GET['kind'] ?? '') === 'no_location') $w .= " AND (u.country_code IS NULL OR (u.lga='' AND u.community=''))";
+  $total = (int) val("SELECT COUNT(*) FROM users u WHERE $w", $p);
+  $items = rows("SELECT u.* FROM users u WHERE $w ORDER BY u.id DESC LIMIT $size OFFSET " . (($page - 1) * $size), $p);
+  return ['total' => $total, 'page' => $page, 'pages' => max(1, (int) ceil($total / $size)), 'as_of' => now(),
+    'items' => array_map(fn($u) => ['id' => (int) $u['id'], 'first_name' => $u['first_name'], 'last_name' => $u['last_name'], 'has_photo' => (int) $u['has_photo'], 'member_no' => $u['member_no'], 'network' => $u['network'], 'country_code' => $u['country_code'],
+      'place' => implode(', ', array_filter([$u['community'], $u['lga'], $u['state_region'], country_name($u['country_code'])])), 'reason' => chapter_pending_reason($u), 'placeable' => $u['country_code'] && ($u['lga'] !== '' || $u['community'] !== ''), 'created_at' => $u['created_at']], $items)];
+});
+route('POST', '/chapters/place/(\d+)', function ($uid) {
+  $me = require_hq(); $u = row('SELECT * FROM users WHERE id=?', [(int) $uid]); if (!$u) fail(404, 'That member was not found.', 'not_found');
+  $cid = chapter_place_user($u, 'hq:' . (int) $me['id']);
+  if (!$cid) fail(422, chapter_pending_reason($u), 'pending');
+  return ['ok' => true, 'chapter' => (string) val('SELECT name FROM chapters WHERE id=?', [$cid])];
+});
+/* A member's chapter assignment history: every chapter, with dates, reason and who approved the move. */
+route('GET', '/members/(\d+)/chapters', function ($id) {
+  $u = require_user(); if (!is_hq($u) && (int) $u['id'] !== (int) $id) fail(403, 'You can see your own chapter history only.', 'forbidden');
+  return ['items' => rows("SELECT m.id, c.id chapter_id, c.name, c.code, c.network, m.started_at, m.ended_at, m.end_reason, m.reason, m.approval_ref, m.placed_by FROM chapter_members m JOIN chapters c ON c.id=m.chapter_id WHERE m.user_id=? ORDER BY m.id DESC LIMIT 50", [(int) $id])];
+});
+/* The chapter roster as a file. Only for those who may see contact details, and every export is logged. */
+if ($METHOD === 'GET' && preg_match('#^/chapters/(\d+)/export$#', $PATH, $mm)) {
+  $u = require_user(); $c = row('SELECT * FROM chapters WHERE id=?', [(int) $mm[1]]); if (!$c) fail(404, 'That chapter was not found.', 'not_found');
+  $acc = chapter_access($u, $c); $seat = current_seat((int) $u['id']);
+  if (!($acc === 'hq' || ($acc === 'leader' && empty($seat['he_for_she'])))) fail(403, 'This export is for the chapter\'s leaders and WODDI HQ.', 'forbidden');
+  log_activity((int) $u['id'], null, 'roster_exported', $c['name']);
+  header('Content-Type: text/csv; charset=utf-8'); header('Content-Disposition: attachment; filename="' . preg_replace('/[^A-Za-z0-9-]+/', '-', $c['code']) . '-roster.csv"');
+  $o = fopen('php://output', 'w'); fwrite($o, "\xEF\xBB\xBF"); fputcsv($o, ['Chapter', 'Code', 'Membership no.', 'First name', 'Surname', 'Phone', 'In chapter since']);
+  foreach (rows('SELECT u.member_no, u.first_name, u.last_name, u.phone, m.started_at FROM chapter_members m JOIN users u ON u.id=m.user_id WHERE m.chapter_id=? AND m.ended_at IS NULL ORDER BY u.first_name, u.last_name', [(int) $c['id']]) as $r) fputcsv($o, [$c['name'], $c['code'], $r['member_no'], $r['first_name'], $r['last_name'], $r['phone'], $r['started_at']]);
+  exit;
+}
+route('POST', '/reports/exported', function () { $u = require_user(); log_activity((int) $u['id'], null, 'report_exported', str_in('what', 160)); return ['ok' => true]; });
+
+/* ---- Community Clusters: master data, so a cluster is chosen from a list and not retyped ---- */
+route('GET', '/geo/clusters', function () {
+  $cc = strtoupper((string) ($_GET['country'] ?? '')); if (!preg_match('/^[A-Z]{2}$/', $cc)) return ['clusters' => []];
+  $w = 'country_code=? AND active=1'; $p = [$cc]; if (($l = trim((string) ($_GET['lga'] ?? ''))) !== '') { $w .= ' AND lga=?'; $p[] = $l; }
+  return ['clusters' => array_column(rows("SELECT DISTINCT name FROM clusters WHERE $w ORDER BY name LIMIT 300", $p), 'name')];
+});
+route('GET', '/clusters', function () {
+  require_hq(); $w = '1=1'; $p = [];
+  if (preg_match('/^[A-Z]{2}$/', (string) ($_GET['country'] ?? ''))) { $w .= ' AND k.country_code=?'; $p[] = $_GET['country']; }
+  if (($s = trim((string) ($_GET['q'] ?? ''))) !== '') { $w .= ' AND (k.name LIKE ? OR k.lga LIKE ?)'; $p[] = "%$s%"; $p[] = "%$s%"; }
+  $items = rows("SELECT k.*, (SELECT COUNT(*) FROM chapters c WHERE c.country_code=k.country_code AND c.lga=k.lga AND c.community=k.name AND c.status NOT IN ('merged','closed')) chapters,
+                        (SELECT COALESCE(SUM(c.members),0) FROM chapters c WHERE c.country_code=k.country_code AND c.lga=k.lga AND c.community=k.name AND c.status NOT IN ('merged','closed')) members
+                 FROM clusters k WHERE $w ORDER BY k.country_code, k.state_region, k.lga, k.name LIMIT 200", $p);
+  foreach ($items as &$i) { $i['country'] = country_name($i['country_code']); foreach (['id', 'active', 'chapters', 'members'] as $n) $i[$n] = (int) $i[$n]; } unset($i);
+  return ['items' => $items];
+});
+route('POST', '/clusters', function () {
+  $me = require_hq(); $b = body(); $id = (int) ($b['id'] ?? 0);
+  if ($id) { if (!val('SELECT 1 FROM clusters WHERE id=?', [$id])) fail(404, 'That cluster was not found.', 'not_found');
+    q('UPDATE clusters SET catchment=?, official_ward=?, active=? WHERE id=?', [str_in('catchment', 600), str_in('official_ward', 120), empty($b['inactive']) ? 1 : 0, $id]); log_activity((int) $me['id'], null, 'cluster_edited', (string) val('SELECT name FROM clusters WHERE id=?', [$id])); return ['ok' => true, 'id' => $id]; }
+  $cc = strtoupper(str_in('country', 2)); $name = str_in('name', 120);
+  if (!val("SELECT 1 FROM org_units WHERE level='country' AND country_code=?", [$cc])) fail(422, 'Choose the country.', 'country');
+  if (mb_strlen($name) < 2) fail(422, 'Name the Community Cluster.', 'name');
+  if (val('SELECT 1 FROM clusters WHERE country_code=? AND lga=? AND name=?', [$cc, str_in('lga', 120), $name])) fail(409, 'That Community Cluster already exists there.', 'duplicate');
+  $id = ins('INSERT INTO clusters (country_code,state_region,lga,name,catchment,official_ward,created_by,created_at) VALUES (?,?,?,?,?,?,?,?)', [$cc, str_in('state_region', 120), str_in('lga', 120), $name, str_in('catchment', 600), str_in('official_ward', 120), (int) $me['id'], now()]);
+  log_activity((int) $me['id'], null, 'cluster_created', $name);
+  return ['ok' => true, 'id' => $id];
+});
+
+/* ---- Operational zones: optional grouping of chapters under a supervisor; not a leadership tier ---- */
+route('GET', '/zones', function () {
+  require_hq();
+  return ['items' => rows("SELECT z.id, z.name, z.network, z.country_code, z.starts_at, z.ends_at, z.supervisor_id, CONCAT(u.first_name,' ',u.last_name) supervisor, (SELECT COUNT(*) FROM chapters c WHERE c.zone_id=z.id) chapters FROM chapter_zones z LEFT JOIN users u ON u.id=z.supervisor_id WHERE z.ends_at IS NULL ORDER BY z.id DESC LIMIT 100")];
+});
+route('POST', '/zones', function () {
+  $me = require_hq(); $b = body(); $ids = array_values(array_unique(array_filter(array_map('intval', (array) ($b['chapter_ids'] ?? [])))));
+  $name = str_in('name', 120); if (mb_strlen($name) < 2 || !$ids) fail(422, 'Name the zone and choose its chapters.', 'name');
+  $chs = rows('SELECT id, network, country_code FROM chapters WHERE id IN (' . implode(',', $ids) . ')');
+  if (count(array_unique(array_column($chs, 'network'))) !== 1 || count(array_unique(array_column($chs, 'country_code'))) !== 1) fail(422, 'A zone groups chapters of one network in one country.', 'chapters');
+  $sup = (int) ($b['supervisor_id'] ?? 0) ?: null; if ($sup && !val("SELECT 1 FROM users WHERE id=? AND status='active'", [$sup])) fail(422, 'That supervisor was not found.', 'supervisor');
+  $zid = ins('INSERT INTO chapter_zones (network,country_code,name,supervisor_id,starts_at,created_by) VALUES (?,?,?,?,?,?)', [$chs[0]['network'], $chs[0]['country_code'], $name, $sup, now(), (int) $me['id']]);
+  q('UPDATE chapters SET zone_id=?, zone=? WHERE id IN (' . implode(',', array_map('intval', array_column($chs, 'id'))) . ')', [$zid, $name]);
+  log_activity((int) $me['id'], $sup, 'zone_created', $name . ' (' . count($chs) . ' chapters)');
+  if ($sup) notify($sup, 'appointment', 'You supervise an operational zone', "WODDI HQ asked you to supervise $name. Its chapters are open to you in the chapter directory.", '#/chapters');
+  return ['ok' => true, 'id' => $zid];
+});
+route('POST', '/zones/(\d+)', function ($id) {
+  $me = require_hq(); if (!val('SELECT 1 FROM chapter_zones WHERE id=? AND ends_at IS NULL', [(int) $id])) fail(404, 'That zone was not found.', 'not_found');
+  if (!empty(body()['end'])) { q('UPDATE chapter_zones SET ends_at=? WHERE id=?', [now(), (int) $id]); q("UPDATE chapters SET zone_id=NULL, zone='' WHERE zone_id=?", [(int) $id]); log_activity((int) $me['id'], null, 'zone_ended', (string) $id); return ['ok' => true]; }
+  $sup = (int) (body()['supervisor_id'] ?? 0) ?: null; q('UPDATE chapter_zones SET supervisor_id=? WHERE id=?', [$sup, (int) $id]); log_activity((int) $me['id'], $sup, 'zone_supervisor', (string) $id);
+  return ['ok' => true];
+});

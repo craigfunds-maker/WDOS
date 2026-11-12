@@ -31,6 +31,8 @@ const POLICY_DECISIONS = [
   ['chapter_capacity', 'Whether 50 is the universal maximum', 'One capacity applies everywhere unless a country is given its own on this page. Both ways are built; management chooses.'],
   ['chapter_auto_create', 'Automatic chapter creation and catchment', 'Placement follows network, country, state, LGA or city, and community. Automatic splitting of a full chapter is not built: the next chapter is opened instead.'],
   ['', 'Exceptional security and safeguarding cases', 'Possible duplicate accounts are held in an exceptions list for HQ. They are never removed or sanctioned automatically.'],
+  ['', 'Official WGMN and WNNN eligibility criteria', 'WDOS applies age today: WNNN 18 to 29, WGMN 30 and above. The chapter specification asks management to confirm the official criteria.'],
+  ['', 'Who approves new chapters, activation and transfers', 'Today WODDI HQ activates an eligible chapter, moves members between chapters and records capacity exceptions. Chapters open automatically. Management is asked to confirm the approving roles.'],
   ['recovery_by_leader', 'Account recovery without OTP', 'Built: a member who signs in with her fingerprint or face can choose a new PIN herself; a member with email resets by link; HQ can reset anyone. Also built but switched off until approved: a chapter leader gives a temporary PIN in person.'],
 ];
 
@@ -52,30 +54,63 @@ const AFRICA_CC = ['AO','BF','BI','BJ','BW','CD','CF','CG','CI','CM','CV','DJ','
 function is_diaspora(?string $cc): bool { return $cc !== null && $cc !== '' && !in_array($cc, AFRICA_CC, true); }
 
 /* ---- chapters -------------------------------------------------------------- */
-const CHAPTER_STATUS = ['developing' => 'Developing', 'eligible' => 'Eligible for activation', 'active' => 'Active', 'full' => 'At capacity', 'merged' => 'Merged', 'closed' => 'Closed'];
+const CHAPTER_STATUS = ['developing' => 'Developing', 'eligible' => 'Eligible for activation', 'active' => 'Active', 'full' => 'At capacity', 'suspended' => 'Suspended', 'merged' => 'Merged', 'closed' => 'Closed'];
 const CHAPTER_OPEN = "('developing','eligible','active')";
 
 /** Recount a chapter and set its state from the rules in force. */
+/** A chapter's capacity: its own target when HQ has set one, else the country's, else the general figure. */
+function chapter_capacity_of(array $c): int { $own = (int) ($c['target_capacity'] ?? 0); return $own > 0 ? $own : chapter_cap($c['country_code']); }
+/** A short code part from a place name: initials of several words (Federal Capital Territory, FCT), or the first four letters (Maitama, MAIT). */
+function code_part(string $name): string {
+  if (preg_match('/\(([A-Z]{2,6})\)/', $name, $m)) return $m[1];                 // a name that carries its own short form, as in Abuja Municipal (AMAC)
+  $a = strtoupper(preg_replace('/[^A-Za-z ]/', '', (string) @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name))); $w = array_values(array_filter(explode(' ', $a)));
+  if (!$w) return '';
+  return count($w) > 1 ? substr(implode('', array_map(fn($x) => $x[0], $w)), 0, 5) : substr($w[0], 0, 4);
+}
+/** The readable chapter code, for example WGMN-NG-FCT-AMAC-MAIT-001. The number in the database stays the permanent identifier. */
+function chapter_code(array $c): string {
+  $parts = array_filter([$c['network'], $c['country_code'], code_part($c['state_region']), code_part($c['lga']), code_part($c['community'])], fn($x) => $x !== '');
+  $code = implode('-', $parts) . sprintf('-%03d', (int) $c['seq']);
+  return val('SELECT 1 FROM chapters WHERE code=? AND id<>?', [$code, (int) $c['id']]) ? $code . '-' . (int) $c['id'] : $code;      // two places with the same short form stay distinct
+}
+/** Give the readable code to chapters still carrying the first, shorter form. */
+function chapters_recode(int $limit = 150): int {
+  $n = 0; foreach (rows("SELECT * FROM chapters WHERE code REGEXP '^[A-Z]{4}-[A-Z]{2}-[0-9]{5}$' OR code='' LIMIT " . (int) $limit) as $c) { q('UPDATE chapters SET code=? WHERE id=?', [chapter_code($c), (int) $c['id']]); $n++; }
+  return $n;
+}
+/** Tell HQ and the chapter's own leaders when a chapter crosses a threshold. Silent during bulk placement, where the directory shows the same alerts. */
+function chapter_threshold_alert(array $c, string $from, string $to, int $n): void {
+  if (!empty($GLOBALS['wdos_bulk']) || $from === $to) return;
+  $msg = ['eligible' => ['Chapter ready for activation', "{$c['name']} has reached $n members and can be activated."], 'active' => ['Chapter is now active', "{$c['name']} has reached $n members and is active."], 'full' => ['Chapter at capacity', "{$c['name']} is full with $n members. New members go to the next chapter."]][$to] ?? null;
+  if (!$msg || ($to === 'developing')) return;
+  notify_hq('reminder', $msg[0], $msg[1], '#/chapter/' . (int) $c['id']);
+  foreach (rows('SELECT user_id FROM seats WHERE chapter_id=? AND ends_at IS NULL', [(int) $c['id']]) as $s) notify((int) $s['user_id'], 'reminder', $msg[0], $msg[1], '#/chapter/' . (int) $c['id']);
+}
 function chapter_refresh(int $id): void {
   $c = row('SELECT * FROM chapters WHERE id=?', [$id]); if (!$c || in_array($c['status'], ['merged', 'closed'], true)) return;
   $n = (int) val('SELECT COUNT(*) FROM chapter_members WHERE chapter_id=? AND ended_at IS NULL', [$id]);
-  $min = policy_int('chapter_min_active'); $cap = chapter_cap($c['country_code']); $activated = $c['activated_at'];
+  if ($c['status'] === 'suspended') { q('UPDATE chapters SET members=? WHERE id=?', [$n, $id]); return; }      // a suspended chapter keeps its members and takes no new ones
+  $min = policy_int('chapter_min_active'); $cap = chapter_capacity_of($c); $activated = $c['activated_at'];
   if ($n >= $min && !$activated && policy('chapter_auto_activate') === 'active') $activated = now();
   $status = $n >= $cap ? 'full' : ($n < $min ? 'developing' : ($activated ? 'active' : 'eligible'));
   if ($n >= $cap && !$activated) $activated = now();                       // a full chapter is by definition a working one
-  q('UPDATE chapters SET members=?, status=?, activated_at=? WHERE id=?', [$n, $status, $activated, $id]);
+  q('UPDATE chapters SET members=?, status=?, activated_at=?, capacity_exception=IF(?>?,1,0) WHERE id=?', [$n, $status, $activated, $n, $cap, $id]);
+  chapter_threshold_alert($c, $c['status'], $status, $n);
+  if ($n >= policy_int('chapter_plan_next') && (int) $c['members'] < policy_int('chapter_plan_next') && $n < $cap && empty($GLOBALS['wdos_bulk'])) notify_hq('reminder', 'Plan the next chapter', "{$c['name']} has reached $n members.", '#/chapter/' . $id);
 }
 function chapter_create(string $net, string $cc, string $state, string $lga, string $community, ?int $by, string $zone = ''): int {
   $seq = 1 + (int) val('SELECT COALESCE(MAX(seq),0) FROM chapters WHERE network=? AND country_code=? AND state_region=? AND lga=? AND community=?', [$net, $cc, $state, $lga, $community]);
   $place = $community !== '' ? $community : ($lga !== '' ? $lga : $state);
   $id = ins('INSERT INTO chapters (network,country_code,state_region,lga,community,zone,seq,name,status,members,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,0,?,?)',
     [$net, $cc, $state, $lga, $community, mb_substr($zone, 0, 120), $seq, mb_substr(sprintf('%s %s %03d', $place, $net, $seq), 0, 190), 'developing', $by, now()]);
-  q('UPDATE chapters SET code=? WHERE id=?', [sprintf('%s-%s-%05d', $net, $cc, $id), $id]);
+  q('UPDATE chapters SET code=? WHERE id=?', [chapter_code(row('SELECT * FROM chapters WHERE id=?', [$id])), $id]);
+  // the Community Cluster is master data: it is recorded the first time a chapter is opened in it
+  if ($community !== '' && !val('SELECT 1 FROM clusters WHERE country_code=? AND lga=? AND name=?', [$cc, $lga, $community])) q('INSERT INTO clusters (country_code,state_region,lga,name,created_by,created_at) VALUES (?,?,?,?,?,?)', [$cc, $state, $lga, $community, $by, now()]);
   return $id;
 }
 /** The first chapter of this catchment with room, lowest number first; a new one if the rules allow; otherwise 0. */
 function chapter_with_room(string $net, string $cc, string $state, string $lga, string $community, bool $lock = false): int {
-  $id = (int) val('SELECT id FROM chapters WHERE network=? AND country_code=? AND state_region=? AND lga=? AND community=? AND status IN ' . CHAPTER_OPEN . ' AND members<? ORDER BY seq LIMIT 1' . ($lock ? ' FOR UPDATE' : ''),
+  $id = (int) val('SELECT id FROM chapters WHERE network=? AND country_code=? AND state_region=? AND lga=? AND community=? AND status IN ' . CHAPTER_OPEN . ' AND members<COALESCE(target_capacity, ?) ORDER BY seq LIMIT 1' . ($lock ? ' FOR UPDATE' : ''),
     [$net, $cc, $state, $lga, $community, chapter_cap($cc)]);
   if ($id) return $id;
   return policy('chapter_auto_create') === 'on' ? chapter_create($net, $cc, $state, $lga, $community, null) : 0;
@@ -96,11 +131,16 @@ function chapter_place_user(array $u, string $by = 'auto'): int {
     try {
       $cid = chapter_with_room($u['network'], $u['country_code'], $u['state_region'], $u['lga'], $u['community'], true);
       if ($cid) {
-        q('INSERT INTO chapter_members (chapter_id,user_id,network,placed_by,started_at) VALUES (?,?,?,?,?)', [$cid, (int) $u['id'], $u['network'], $by, now()]);
+        q("INSERT INTO chapter_members (chapter_id,user_id,network,placed_by,reason,started_at) VALUES (?,?,?,?,'Automatic placement by location',?)", [$cid, (int) $u['id'], $u['network'], $by, now()]);
         q('UPDATE users SET chapter_id=? WHERE id=?', [$cid, (int) $u['id']]);
         chapter_refresh($cid);
       }
       if ($own) $pdo->commit();
+      if ($cid) {                                                                // confirmation to the member, and a word to the chapter's leaders
+        $cn = row('SELECT name, members FROM chapters WHERE id=?', [$cid]);
+        notify((int) $u['id'], 'account', 'You have been placed in a chapter', 'Your chapter is ' . $cn['name'] . '. Open it to meet your chapter.', '#/chapter');
+        foreach (rows('SELECT user_id FROM seats WHERE chapter_id=? AND ends_at IS NULL AND he_for_she=0', [$cid]) as $s) notify((int) $s['user_id'], 'registration', 'A new member joined your chapter', trim($u['first_name'] . ' ' . $u['last_name']) . ' was placed in ' . $cn['name'] . '. The chapter now has ' . (int) $cn['members'] . ' members.', '#/chapter/' . $cid);
+      }
       return $cid;
     } catch (Throwable $e) { if ($own && $pdo->inTransaction()) $pdo->rollBack(); throw $e; }
   } catch (Throwable $e) { error_log('[wdos chapter] ' . $e->getMessage()); return 0; }
@@ -113,15 +153,16 @@ function chapter_leave(int $userId, string $reason): void {
   chapter_refresh($cur);
 }
 /** Move a member to a named chapter of her own network. HQ may go past capacity; automatic moves may not. */
-function chapter_move(int $userId, int $toId, string $reason, string $by, bool $allowFull = false): void {
+function chapter_move(int $userId, int $toId, string $reason, string $by, bool $allowFull = false, string $note = '', string $approval = ''): void {
   $u = row('SELECT * FROM users WHERE id=?', [$userId]); $to = row('SELECT * FROM chapters WHERE id=?', [$toId]);
   if (!$u || !$to) fail(404, 'That member or chapter was not found.', 'not_found');
   if ($to['network'] !== $u['network']) fail(422, 'A ' . $u['network'] . ' member cannot be placed in a ' . $to['network'] . ' chapter.', 'network');
   if (in_array($to['status'], ['merged', 'closed'], true)) fail(422, 'That chapter is no longer open.', 'closed');
   if ((int) $u['chapter_id'] === $toId) return;
-  if (!$allowFull && (int) $to['members'] >= chapter_cap($to['country_code'])) fail(422, 'That chapter is at capacity.', 'full');
+  if (in_array($to['status'], ['suspended'], true)) fail(422, 'That chapter is suspended and takes no new members.', 'suspended');
+  if (!$allowFull && (int) $to['members'] >= chapter_capacity_of($to)) fail(422, 'That chapter is at capacity. Choose another chapter, or record a capacity exception with its reason.', 'full');
   chapter_leave($userId, $reason);
-  q('INSERT INTO chapter_members (chapter_id,user_id,network,placed_by,started_at) VALUES (?,?,?,?,?)', [$toId, $userId, $u['network'], $by, now()]);
+  q('INSERT INTO chapter_members (chapter_id,user_id,network,placed_by,reason,approval_ref,started_at) VALUES (?,?,?,?,?,?,?)', [$toId, $userId, $u['network'], $by, mb_substr($note !== '' ? $note : $reason, 0, 200), mb_substr($approval, 0, 120), now()]);
   q('UPDATE users SET chapter_id=? WHERE id=?', [$toId, $userId]);
   chapter_refresh($toId);
 }
@@ -140,7 +181,7 @@ function chapter_replace_after_change(int $userId): void {
 }
 /** Place waiting members in bulk, a catchment at a time. Returns how many were placed. */
 function chapters_backfill(int $maxChapters = 40): int {
-  $placed = 0;
+  $placed = 0; $GLOBALS['wdos_bulk'] = true;
   $groups = rows("SELECT network, country_code, state_region, lga, community, COUNT(*) n FROM users
                   WHERE status='active' AND chapter_id IS NULL AND network IS NOT NULL AND country_code IS NOT NULL AND participant_class='member' AND role NOT IN ('hq_admin','super_admin') AND (lga<>'' OR community<>'')
                   GROUP BY network, country_code, state_region, lga, community ORDER BY n DESC LIMIT 30");
@@ -148,28 +189,31 @@ function chapters_backfill(int $maxChapters = 40): int {
     $left = (int) $g['n'];
     while ($left > 0 && $maxChapters > 0) {
       $cid = chapter_with_room($g['network'], $g['country_code'], $g['state_region'], $g['lga'], $g['community']); if (!$cid) break;
-      $free = chapter_cap($g['country_code']) - (int) val('SELECT members FROM chapters WHERE id=?', [$cid]); if ($free < 1) { chapter_refresh($cid); break; }
+      $cr = row('SELECT * FROM chapters WHERE id=?', [$cid]); $free = chapter_capacity_of($cr) - (int) $cr['members']; if ($free < 1) { chapter_refresh($cid); break; }
       $ids = array_map('intval', array_column(rows("SELECT id FROM users WHERE status='active' AND chapter_id IS NULL AND network=? AND country_code=? AND state_region=? AND lga=? AND community=? AND participant_class='member' AND role NOT IN ('hq_admin','super_admin') ORDER BY id LIMIT " . (int) $free,
         [$g['network'], $g['country_code'], $g['state_region'], $g['lga'], $g['community']]), 'id'));
       if (!$ids) break;
       $in = implode(',', $ids);
-      q("INSERT INTO chapter_members (chapter_id,user_id,network,placed_by,started_at) SELECT ?, id, network, 'auto', ? FROM users WHERE id IN ($in) AND chapter_id IS NULL", [$cid, now()]);
+      q("INSERT INTO chapter_members (chapter_id,user_id,network,placed_by,reason,started_at) SELECT ?, id, network, 'auto', 'Automatic placement by location', ? FROM users WHERE id IN ($in) AND chapter_id IS NULL", [$cid, now()]);
       q("UPDATE users SET chapter_id=? WHERE id IN ($in) AND chapter_id IS NULL", [$cid]);
       chapter_refresh($cid); $placed += count($ids); $left -= count($ids); $maxChapters--;
     }
     if ($maxChapters < 1) break;
   }
+  $GLOBALS['wdos_bulk'] = false;
   return $placed;
 }
 function chapter_shape(array $c): array {
-  $cap = chapter_cap($c['country_code']); $n = (int) $c['members'];
-  return ['id' => (int) $c['id'], 'code' => $c['code'], 'name' => $c['name'], 'network' => $c['network'], 'country_code' => $c['country_code'], 'country' => country_name($c['country_code']),
+  $cap = chapter_capacity_of($c); $n = (int) $c['members'];
+  return ['target_capacity' => !empty($c['target_capacity']) ? (int) $c['target_capacity'] : null, 'capacity_exception' => (int) ($c['capacity_exception'] ?? 0) === 1, 'zone_id' => !empty($c['zone_id']) ? (int) $c['zone_id'] : null, 'status_note' => (string) ($c['status_note'] ?? ''), 'catchment' => (string) ($c['catchment'] ?? ''), 'id' => (int) $c['id'], 'code' => $c['code'], 'name' => $c['name'], 'network' => $c['network'], 'country_code' => $c['country_code'], 'country' => country_name($c['country_code']),
     'state_region' => $c['state_region'], 'lga' => $c['lga'], 'community' => $c['community'], 'zone' => $c['zone'], 'seq' => (int) $c['seq'], 'status' => $c['status'], 'status_label' => CHAPTER_STATUS[$c['status']] ?? $c['status'],
     'members' => $n, 'capacity' => $cap, 'minimum' => policy_int('chapter_min_active'), 'plan_next' => $n >= policy_int('chapter_plan_next') && $n < $cap, 'diaspora' => is_diaspora($c['country_code']), 'created_at' => $c['created_at'], 'activated_at' => $c['activated_at']];
 }
 /** What this person may see of a chapter: 'hq', 'leader' (roster and tools), 'member' (her own chapter), or '' (nothing). */
 function chapter_access(array $u, array $c): string {
   if (is_hq($u)) return 'hq';
+  // an operational zone's supervisor oversees its chapters; this is supervision, not a new leadership tier
+  if (!empty($c['zone_id']) && val('SELECT 1 FROM chapter_zones WHERE id=? AND supervisor_id=? AND ends_at IS NULL', [(int) $c['zone_id'], (int) $u['id']])) return 'leader';
   $seat = current_seat((int) $u['id']);
   if ($seat && $seat['network'] === $c['network']) {
     if ((int) ($seat['chapter_id'] ?? 0) === (int) $c['id']) return 'leader';
@@ -312,6 +356,7 @@ function amend_automations(array &$done): void {
   try {
     $r = cron_once('member_journey', 'mj_daily'); if ($r !== null) $done['member_journey'] = $r;
     $n = chapters_backfill(25); if ($n) $done['chapter_placement'] = "$n placed";
+    $n = chapters_recode(150); if ($n) $done['chapter_codes'] = "$n recoded";
     $n = announcements_due(); if ($n) { $done['scheduled_announcements'] = "$n sent"; push_drain(60); }
   } catch (Throwable $e) { error_log('[wdos amend] ' . $e->getMessage()); }
 }
@@ -322,7 +367,7 @@ function amend_brief(array $u): array {
     $j = row('SELECT status FROM member_journeys WHERE user_id=?', [(int) $u['id']]);
     return ['chapter' => $c ? ['id' => (int) $c['id'], 'name' => $c['name'], 'code' => $c['code'], 'status' => $c['status'], 'members' => (int) $c['members']] : null,
       'journey' => $j ? ['status' => $j['status'], 'done' => (int) val('SELECT COUNT(*) FROM member_journey_steps WHERE user_id=?', [(int) $u['id']]), 'total' => count(MJ_DAYS)] : null,
-      'lang' => $u['lang'] ?? 'en', 'diaspora' => is_diaspora($u['country_code']), 'person_id' => sprintf('WDP-%07d', (int) $u['id']), 'ward' => $u['ward'] ?? ''];
+      'lang' => $u['lang'] ?? 'en', 'diaspora' => is_diaspora($u['country_code']), 'person_id' => sprintf('WDP-%07d', (int) $u['id']), 'ward' => $u['ward'] ?? '', 'zone_supervisor' => (bool) val('SELECT 1 FROM chapter_zones WHERE supervisor_id=? AND ends_at IS NULL LIMIT 1', [(int) $u['id']])];
   } catch (PDOException $e) { return ['chapter' => null, 'journey' => null, 'lang' => 'en', 'diaspora' => false]; }
 }
 

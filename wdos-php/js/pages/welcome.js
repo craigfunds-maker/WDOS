@@ -79,6 +79,9 @@ export async function render(root, params) {
   const paintLga = () => { lgaSlot.replaceChildren(h('label', { class: 'field', for: 'f-lga' }, h('span', { text: diaspora() ? 'City' : 'LGA or district' }), lgaMode === 'select' ? F.lgaSel : F.lga)); const cl = document.querySelector('label[for="f-community"] > span'); if (cl) cl.textContent = diaspora() ? 'Neighbourhood (optional)' : 'Community or ward'; const wl = document.querySelector('label[for="f-ward"]'); if (wl) wl.hidden = diaspora(); const sl = document.querySelector('label[for="f-state"] > span'); if (sl) sl.textContent = diaspora() ? 'State or province (optional)' : 'State or region'; };
   const opt = (value, text) => { const o = document.createElement('option'); o.value = value; o.textContent = text; return o; };
   const stateName = () => (stateMode === 'text' ? F.stateText.value.trim() : F.state.value && F.state.value !== NOT_LISTED ? F.state.selectedOptions[0].textContent : '');
+  /* Community Clusters already known in the chosen LGA or city are offered as she types, so the same cluster is not spelled three ways */
+  const clusterList = h('datalist', { id: 'f-clusters' });
+  const fillClusters = async () => { const c = countries.find((x) => String(x.id) === F.country.value); if (!c) return; const lga = lgaMode === 'select' ? F.lgaSel.value : F.lga.value; try { const r = await api(`/geo/clusters?country=${c.code}&lga=${encodeURIComponent(lga === NOT_LISTED ? '' : lga)}`); clusterList.replaceChildren(...r.clusters.map((n) => opt(n, n))); } catch { /* she can still type it */ } };
   async function fillLgas() {
     const c = countries.find((x) => String(x.id) === F.country.value); lgaMode = 'text';
     if (c && c.code === 'NG' && stateMode !== 'text' && stateName()) {
@@ -88,7 +91,7 @@ export async function render(root, params) {
     paintLga();
   }
   F.state.addEventListener('change', () => { if (F.state.value === NOT_LISTED) { stateMode = 'text'; F.stateText.value = ''; paintState(); F.stateText.focus(); } fillLgas(); });
-  F.lgaSel.addEventListener('change', () => { if (F.lgaSel.value === NOT_LISTED) { lgaMode = 'text'; F.lga.value = ''; paintLga(); F.lga.focus(); } });
+  F.lgaSel.addEventListener('change', () => { if (F.lgaSel.value === NOT_LISTED) { lgaMode = 'text'; F.lga.value = ''; paintLga(); F.lga.focus(); } fillClusters(); }); F.lga.addEventListener('change', fillClusters);
   const onCountry = async () => {
     const c = countries.find((x) => String(x.id) === F.country.value);
     stateMode = 'text'; F.stateText.value = '';
@@ -99,7 +102,7 @@ export async function render(root, params) {
       geoStates = geoStates || await getJson('/assets/geo/states.json'); const list = geoStates[c.code];
       if (list && list.length) { F.state.replaceChildren(h('option', { value: '', text: 'Choose your state or region' }), ...list.map((n) => opt(n, n)), h('option', { value: NOT_LISTED, text: 'My state or region is not listed' })); stateMode = 'list'; }
     }
-    paintState(); await fillLgas();
+    paintState(); await fillLgas(); fillClusters();
   };
   F.country.addEventListener('change', onCountry);
   /* bring back where she had reached: country, then state, then LGA, as each list arrives */
@@ -138,7 +141,7 @@ export async function render(root, params) {
         field('phone', 'Phone or WhatsApp number', { type: 'tel', required: true, maxlength: 24, autocomplete: 'tel', placeholder: '+234 801 234 5678', value: saved.phone || '' }, 'Include the country code.'))),
       h('fieldset', {}, h('legend', { text: 'Where you are' }), h('div', { class: 'grid2' },
         h('label', { class: 'field', for: 'f-country' }, h('span', { text: 'Country' }), F.country), stateSlot,
-        lgaSlot, field('community', 'Community or ward', { maxlength: 120, value: saved.community || '' }), field('ward', 'Official ward (optional)', { maxlength: 120, value: saved.ward || '' }, 'Only if it is different from your community.'))),
+        lgaSlot, field('community', 'Community or ward', { maxlength: 120, value: saved.community || '', list: 'f-clusters' }), clusterList, field('ward', 'Official ward (optional)', { maxlength: 120, value: saved.ward || '' }, 'Only if it is different from your community.'))),
       refBlock,
       complete ? null : h('fieldset', {}, h('legend', { text: 'Your sign-in' }), h('div', { class: 'grid2' },
         field('email', 'Email address (optional)', { type: 'email', maxlength: 190, autocomplete: 'email', value: saved.email || '' }, 'No email? Leave this empty and sign in with your phone number.'),
@@ -181,6 +184,10 @@ export async function render(root, params) {
         signedIn(r.user);
         if (r.user.todo && r.user.todo.activation) go('#/activation'); else if (r.user.journey) go('#/journey');
       } catch (ex) {
+        if (ex.code === 'offline') {                           // no connection: keep everything on this phone and send it by itself when the connection returns
+          err.textContent = 'No connection. Your details are kept on this phone. WDOS will send them by itself when the connection returns, if you keep this page open.'; submit.disabled = false; submit.textContent = label;
+          window.addEventListener('online', () => { if (form.isConnected) form.requestSubmit(); }, { once: true }); return;
+        }
         err.textContent = ex.message; submit.disabled = false; submit.textContent = label;
         const map = { name: 'first_name', phone: 'phone', phone_taken: 'phone', dob: 'dob', age: 'dob', age_network: 'dob', country: 'country', email: 'email', email_taken: 'email', password: 'password', consent: 'consent', state: stateMode === 'text' ? 'stateText' : 'state' };
         const bad = F[map[ex.code]]; if (bad) { const fs = bad.closest('fieldset'); const i = steps.indexOf(fs); if (i >= 0) show(i); bad.focus(); }

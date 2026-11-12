@@ -97,6 +97,8 @@ route('POST', '/hq/members/(\d+)', function ($id) {
     q('UPDATE users SET status=? WHERE id=?', [$b['status'], $id]);
     if ($b['status'] === 'suspended') q('DELETE FROM sessions WHERE user_id=?', [$id]);
     log_activity((int) $me['id'], $id, $b['status'] === 'suspended' ? 'suspended' : 'reinstated');
+    // an inactive member does not hold a seat in her chapter; on reinstatement WDOS places her again. The history is kept both ways.
+    if ($b['status'] === 'suspended') chapter_leave($id, 'inactive'); else { $fresh = row('SELECT * FROM users WHERE id=?', [$id]); if ($fresh) chapter_place_user($fresh); }
   }
   if (isset($b['role']) && in_array($b['role'], ['member', 'hq_admin'], true)) {
     if ($me['role'] !== 'super_admin') fail(403, 'Only a super administrator can give or remove HQ access.', 'forbidden');

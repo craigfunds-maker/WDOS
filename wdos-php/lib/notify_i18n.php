@@ -40,6 +40,11 @@ const NOTE_TEMPLATES = [
     'fr' => ['Vous avez changé de chapitre', 'Le siège de WODDI vous a transférée vers {1}. L\'historique de votre adhésion est conservé.'],
     'pt' => ['Mudou para um novo capítulo', 'A sede da WODDI transferiu-a para {1}. O histórico da sua adesão é mantido.'],
     'sw' => ['Umehamia tawi jipya', 'Makao Makuu ya WODDI yamekuhamishia {1}. Historia ya uanachama wako imehifadhiwa.']]],
+  ['/^You have been placed in a chapter$/u', '/^Your chapter is (.+)\. Open it to meet your chapter\./u', [
+    'ar' => ['تم تعيينك في فرع', 'فرعك هو {1}. افتحيه لتتعرفي على فرعك.'],
+    'fr' => ['Vous avez été placée dans un chapitre', 'Votre chapitre est {1}. Ouvrez-le pour rencontrer votre chapitre.'],
+    'pt' => ['Foi colocada num capítulo', 'O seu capítulo é {1}. Abra-o para conhecer o seu capítulo.'],
+    'sw' => ['Umepangwa kwenye tawi', 'Tawi lako ni {1}. Lifungue ili ukutane na tawi lako.']]],
   ['/^Add your photograph$/u', '/^(.+), your profile still has no photograph\./u', [
     'ar' => ['أضيفي صورتك', '{1}، ملفك ما زال بلا صورة. يستغرق ذلك دقيقة ويساعد قائداتك على التعرّف عليك.'],
     'fr' => ['Ajoutez votre photo', '{1}, votre profil n\'a pas encore de photo. Cela prend une minute et aide vos responsables à vous reconnaître.'],
