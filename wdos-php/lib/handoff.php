@@ -222,7 +222,7 @@ route('GET', '/hq/health', function () {
       'members_in_two_chapters' => $n('SELECT COUNT(*) FROM (SELECT user_id FROM chapter_members WHERE ended_at IS NULL GROUP BY user_id HAVING COUNT(*)>1) x'),
       'cross_network_placements' => $n('SELECT COUNT(*) FROM chapter_members m JOIN chapters c ON c.id=m.chapter_id JOIN users u ON u.id=m.user_id WHERE m.ended_at IS NULL AND u.network<>c.network'),
       'chapters_over_capacity' => $n('SELECT COUNT(*) FROM chapters c WHERE c.capacity_exception=0 AND c.members>COALESCE(c.target_capacity, ?)', [policy_int('chapter_capacity')])],
-    'drafts_held' => $n('SELECT COUNT(*) FROM reg_drafts WHERE expires_at>?', [now()]), 'open_cases' => $n("SELECT COUNT(*) FROM cases WHERE status IN ('received','in_review')")];
+    'migration_error' => (string) (val("SELECT v FROM app_settings WHERE k='migration_error'") ?? ''), 'drafts_held' => $n('SELECT COUNT(*) FROM reg_drafts WHERE expires_at>?', [now()]), 'open_cases' => $n("SELECT COUNT(*) FROM cases WHERE status IN ('received','in_review')")];
 });
 
 /* ------------------------------------------------ the handoff register (HQ only: it lists what is not yet built) -- */

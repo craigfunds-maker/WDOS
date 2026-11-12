@@ -36,5 +36,9 @@ function ensure_migrated(): void {
     if ($since && strtotime($since . ' UTC') > time() - 180) return;      // another request is doing it
     q("UPDATE app_settings SET v=? WHERE k='migrating'", [now()]);          // a stale lock from a crashed run
   }
-  try { run_migrations(); } finally { q("DELETE FROM app_settings WHERE k='migrating'"); }
+  /* A migration that fails must never stop the app from opening for everyone. The error is kept for HQ (System health) and in the
+     server log, the app carries on with the database as it was, and the same migration is tried again on a later load. */
+  try { run_migrations(); q("DELETE FROM app_settings WHERE k='migration_error'"); }
+  catch (Throwable $e) { error_log('[wdos migration] ' . $e->getMessage()); try { q("DELETE FROM app_settings WHERE k='migration_error'"); q("INSERT INTO app_settings (k,v) VALUES ('migration_error',?)", [now() . ' ' . mb_substr($e->getMessage(), 0, 400)]); } catch (Throwable $e2) { /* nothing more to do */ } }
+  finally { try { q("DELETE FROM app_settings WHERE k='migrating'"); } catch (Throwable $e3) { /* the lock expires by itself */ } }
 }
