@@ -12,6 +12,7 @@ require __DIR__ . '/../lib/work_fns.php';
 require __DIR__ . '/../lib/photos.php';
 require __DIR__ . '/../lib/journey_fns.php';
 require __DIR__ . '/../lib/amend_fns.php';
+require __DIR__ . '/../lib/handoff_fns.php';
 
 set_exception_handler(function (Throwable $e) {
   error_log('[wdos] ' . $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine());
@@ -103,6 +104,7 @@ function finish_signup(int $id, array $f): void {
   // automatic from here: a chapter near her, and the seven-day journey. A leadership candidate follows the referral activation instead.
   $fresh = row('SELECT * FROM users WHERE id=?', [$id]); if ($fresh) chapter_place_user($fresh);
   if (!$aid) mj_start($id);
+  try { source_save($id); if (!empty(body()['draft'])) q('DELETE FROM reg_drafts WHERE token_hash=?', [hash('sha256', (string) body()['draft'])]); } catch (PDOException $e) { /* before migration 017 */ }
   if (($ward = str_in('ward', 120)) !== '') q('UPDATE users SET ward=? WHERE id=?', [$ward, $id]);      // the official ward, kept apart from the WODDI community
   after_response(fn() => push_drain(20));
 }
@@ -114,6 +116,9 @@ route('POST', '/auth/register', function () {
   throttle('reg:' . client_ip(), 12, 3600);
   $email = strtolower(str_in('email', 190));
   $f = validate_profile_fields(true);
+  // The same request sent again after a lost reply returns the account it already made, not an error and not a second account (T04, T29).
+  $idem = (string) (body()['idem'] ?? '');
+  if (($again = idem_existing($idem, $f['password']))) { session_start_for((int) $again['id'], 'password'); return ['ok' => true, 'user' => public_user($again), 'resumed' => true]; }
   // An email address is optional. Without one, the phone number is the sign-in name. No code is sent either way.
   if ($email === '') { $email = phone_login_name($f['phone']); if (val('SELECT id FROM users WHERE email=?', [$email])) fail(409, 'An account with this phone number already exists. Sign in instead.', 'phone_taken'); }
   elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) fail(422, 'Enter a valid email address, or leave it empty to sign in with your phone number.', 'email');
@@ -122,6 +127,7 @@ route('POST', '/auth/register', function () {
   $id = ins('INSERT INTO users (email,password_hash,first_name,last_name,phone,dob,network,country_code,org_unit_id,state_region,lga,community,role,status,signup_method,created_at)
              VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
     [$email, password_hash($f['password'], PASSWORD_DEFAULT), $f['first_name'], $f['last_name'], $f['phone'], $f['dob'], $f['network'], $f['country_code'], $f['org_unit_id'], $f['state_region'], $f['lga'], $f['community'], 'member', 'active', 'email', now()]);
+  idem_keep($idem, $id);
   finish_signup($id, $f);
   session_start_for($id, 'password');
   return ['ok' => true, 'user' => public_user(row('SELECT * FROM users WHERE id=?', [$id]))];
@@ -152,6 +158,7 @@ route('POST', '/auth/login', function () {
     fail(401, $u && !$u['password_hash'] ? 'This account was created with Google. Use Continue with Google.' : 'Those sign-in details are not correct.', 'bad_credentials');
   }
   if ($u['status'] === 'suspended') fail(403, 'This account is suspended. Contact WODDI HQ.', 'suspended');
+  if ($u['status'] === 'withdrawn') fail(403, 'This membership was closed at your request. Write to WODDI HQ to come back.', 'withdrawn');
   session_start_for((int) $u['id'], 'password');
   return ['ok' => true, 'user' => public_user($u)];
 });
@@ -200,7 +207,7 @@ if ($METHOD === 'GET' && $PATH === '/auth/google/callback') {
       [$email, $claims['sub'], mb_substr((string) ($claims['given_name'] ?? ''), 0, 80), mb_substr((string) ($claims['family_name'] ?? ''), 0, 80), $c['data'] ?: null, now()]);
     $u = row('SELECT * FROM users WHERE id=?', [$id]);
   }
-  if ($u['status'] === 'suspended') $back('suspended');
+  if (in_array($u['status'], ['suspended', 'withdrawn'], true)) $back('suspended');
   session_start_for((int) $u['id'], 'google');
   header('Location: ' . app_origin() . '/#/');
   exit;
@@ -382,5 +389,6 @@ require __DIR__ . '/../lib/structure.php';
 require __DIR__ . '/../lib/journey.php';
 require __DIR__ . '/../lib/comms.php';
 require __DIR__ . '/../lib/amend.php';
+require __DIR__ . '/../lib/handoff.php';
 
 fail(404, 'No such WDOS endpoint.', 'not_found');

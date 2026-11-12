@@ -1,5 +1,5 @@
 /* Members. HQ sees everyone and can appoint, reset and suspend; a leader sees her own area, read-only. */
-import { h, clear, icon, avatar, flag, netTag, sk, empty, ago, fmt, fmtDate, toast } from '../ui.js';
+import { h, clear, icon, avatar, flag, netTag, sk, empty, ago, fmt, fmtDate, toast, input } from '../ui.js';
 import { api, squarePhoto } from '../api.js';
 import { app, go } from '../app.js';
 
@@ -61,6 +61,14 @@ async function openMember(id, reload) {
     const msg = h('p', { class: 'err', role: 'alert' });
     const act = async (fn, okText) => { msg.textContent = ''; try { const r = await fn(); if (okText) toast(okText, '', 'ok'); await paint(); reload(); return r; } catch (e) { msg.textContent = e.message; } };
 
+    /* the state of the appointment: on leave, suspended, back, resigned, replaced. Access follows the state at once. */
+    const seatStateBox = h('div');
+    api(`/hq/members/${id}/seat-state`).then((ss) => { if (!ss.seat) return; const LAB = { appointed: 'Appointed', acting: 'Acting', pending: 'Candidate', on_leave: 'On leave', suspended: 'Suspended' };
+      const sel = h('select', { class: 'input', style: 'max-width:240px' }, [['appointed', 'Appointed and active'], ['acting', 'Acting'], ['on_leave', 'On leave'], ['suspended', 'Suspended'], ['resigned', 'Resigned (seat becomes vacant)'], ['replaced', 'Replaced (seat becomes vacant)']].map(([v, l]) => h('option', { value: v, text: l }))); sel.value = ss.seat.status;
+      const why = input({ maxlength: 200, placeholder: 'Reason', style: 'max-width:280px' });
+      seatStateBox.replaceChildren(h('div', { class: 'panel' }, h('b', { text: 'Appointment state: ' + (LAB[ss.seat.status] || ss.seat.status) }), ss.seat.status_note ? h('small', { style: 'display:block', text: ss.seat.status_note }) : null, h('small', { class: 'muted', style: 'display:block;margin:4px 0 10px', text: 'On leave or suspended closes the leadership dashboard at once and keeps the appointment on record. Her membership is not affected.' }),
+        h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, sel, why, h('button', { class: 'btn btn--ghost btn--s', onclick: () => act(() => api(`/hq/members/${id}/seat-state`, { state: sel.value, note: why.value }), 'Appointment state recorded') }, 'Record'))));
+    }).catch(() => {});
     /* appoint to a seat */
     const pos = h('select', { class: 'input' }, h('option', { value: '', text: 'Choose a position' }), d.positions.map((p) => h('option', { value: p.code, 'data-level': p.level, text: m.network === 'WNNN' ? p.title_wnnn : p.title_wgmn })));
     const country = h('select', { class: 'input' }, h('option', { value: '', text: 'Country' })); const st = h('select', { class: 'input', hidden: true });
@@ -89,6 +97,7 @@ async function openMember(id, reload) {
           file.addEventListener('change', () => { if (file.files[0]) act(async () => api(`/hq/members/${id}/photo`, { data: await squarePhoto(file.files[0]) }), 'Photograph saved'); });
           return h('span', {}, file, h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: () => file.click() }, m.has_photo && m.has_photo !== '0' ? 'Change photograph' : 'Set photograph')); })()),
       chHist,
+      seatStateBox,
       m.network ? h('div', { class: 'panel' }, h('b', { text: m.seat ? 'Change leadership seat' : 'Appoint to a leadership seat' }), pos, country, st, area, chap, seatStatus, h('label', { class: 'check', for: 'seat-hfs' }, hfs, h('span', { text: 'He-for-She Champion (deputy, assistant or administrative secretary only)' })),
         h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, h('button', { class: 'btn btn--s', onclick: () => act(() => api(`/hq/members/${id}/seat`, { position: pos.value, org_unit_id: Number(st.value || country.value), area_label: area.value, status: seatStatus.value, chapter_id: Number(chap.value) || 0, he_for_she: hfs.checked }), 'Seat recorded. The member has been notified.') }, m.seat ? 'Save new seat' : 'Appoint'),
           m.seat ? h('button', { class: 'btn btn--ghost btn--s', onclick: () => act(() => api(`/hq/members/${id}/seat`, { vacate: true }), 'Seat closed') }, 'Close this seat') : null)) : null,

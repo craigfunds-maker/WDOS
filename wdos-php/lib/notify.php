@@ -32,6 +32,7 @@ function notify_prefs(int $userId): array {
 function notify(int $userId, string $kind, string $title, string $body = '', string $url = '#/notifications'): ?int {
   $p = notify_prefs($userId)[$kind] ?? ['in_app' => true, 'push' => true];
   // in her own language where WDOS has the message in it
+  try { if (!in_array($kind, ['account', 'message', 'welcome'], true) && val('SELECT paused_at FROM users WHERE id=?', [$userId])) return null; } catch (PDOException $e) { /* before the pause column exists */ }
   try { $lang = (string) val('SELECT lang FROM users WHERE id=?', [$userId]); if (($tr = note_in($lang !== '' ? $lang : 'en', $title, $body))) [$title, $body] = $tr; } catch (PDOException $e) { /* before the language column exists */ }
   $id = null;
   if ($p['in_app'] || $kind === 'account') {

@@ -196,12 +196,12 @@ export function langPicker(onPick) {
 export const LANGS_SOON = ['Afrikaans', 'Amharic', 'Bambara', 'Chichewa', 'Fulfulde', 'Hausa', 'Igbo', 'Kinyarwanda', 'Kirundi', 'Lingala', 'Luganda', 'Malagasy', 'Oromo', 'Sesotho', 'Setswana', 'Shona', 'Somali', 'Tigrinya', 'Twi', 'Wolof', 'Xhosa', 'Yorùbá', 'Zulu'];
 export function langPills(onPick) {
   const order = ['ar', 'en', 'fr', 'pt', 'sw'];
-  const more = h('details', { class: 'lpill lpill--more' }, h('summary', {}, h('span', { text: 'Other African Languages' }), icon('chevdown', 16)),
-    h('div', { class: 'lpill__menu' }, LANGS_SOON.map((l) => h('div', { class: 'lpill__soon' }, document.createTextNode(l), h('small', { text: 'Being prepared' })))));
-  document.addEventListener('click', (e) => { if (more.isConnected && !more.contains(e.target)) more.removeAttribute('open'); });
-  return h('nav', { class: 'lpills', 'aria-label': 'Language' }, order.map((code) => { const on = i18n.lang === code; const b = document.createElement('button');
-    b.type = 'button'; b.className = 'lpill' + (on ? ' is-on' : ''); b.setAttribute('aria-pressed', String(on)); b.lang = code; b.title = LANG_NAMES[code]; b.setAttribute('aria-label', LANG_NAMES[code] + ', ' + LANGS[code]); if (on) b.append(icon('globe', 18)); b.append(document.createTextNode(LANGS[code]));
-    b.addEventListener('click', () => { if (!on) onPick(code); }); return b; }), more);
+  /* The handoff asks for a dropdown, first on the screen, in alphabetical order with each language's own name.
+   * Languages still being prepared are listed under it and cannot be chosen yet. */
+  const sel = h('select', { class: 'input langpick lpick', id: 'lang-first', 'aria-label': 'Language' }, order.map((code) => { const o = document.createElement('option'); o.value = code; o.lang = code; o.textContent = LANGS[code]; return o; }));
+  const soon = document.createElement('optgroup'); soon.label = t('Other African Languages') + ' · ' + t('Being prepared'); LANGS_SOON.forEach((l) => { const o = document.createElement('option'); o.disabled = true; o.textContent = l; soon.append(o); }); sel.append(soon);
+  sel.value = i18n.lang; sel.addEventListener('change', () => onPick(sel.value));
+  return h('nav', { class: 'lpills', 'aria-label': 'Language' }, h('label', { class: 'lpick__wrap', for: 'lang-first' }, icon('globe', 20), h('span', { class: 'sr', text: 'Language' }), sel));
 }
 /* Text with any web address in it turned into a link that can be tapped. */
 export function linkify(text) {

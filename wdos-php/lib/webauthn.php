@@ -77,6 +77,6 @@ function wa_login_verify(array $in): array {
   if ($count > 0 && $count <= (int) $cred['sign_count']) fail(401, 'This fingerprint key looks copied. Sign in with your password.', 'wa_counter');
   q('UPDATE webauthn_credentials SET sign_count=?, last_used_at=? WHERE id=?', [$count, now(), (int) $cred['id']]);
   $u = row('SELECT * FROM users WHERE id=?', [(int) $cred['user_id']]);
-  if (!$u || $u['status'] === 'suspended') fail(403, 'This account is suspended. Contact WODDI HQ.', 'suspended');
+  if (!$u || in_array($u['status'], ['suspended', 'withdrawn'], true)) fail(403, 'This account is suspended. Contact WODDI HQ.', 'suspended');
   return $u;
 }

@@ -414,3 +414,8 @@ html{-webkit-tap-highlight-color:transparent} body{overscroll-behavior-y:none}
 @media(max-width:900px){.row--3{grid-template-columns:1fr}} @media(max-width:760px){.top .langpick{max-width:104px;font-size:13px;padding-inline:8px} .jdays{gap:4px} .jdays button small{display:none}}
 .access{max-width:760px;margin:6px auto 0;padding:18px 20px;border-radius:18px;border:1px solid var(--line);background:var(--surface);text-align:center} .jform fieldset legend{font-size:22px}
 .list--wrap small,.list--wrap b{white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+/* v101.0: language is a dropdown and the first choice on every public screen (production handoff, section 2). */
+.pubtop .lpills{justify-content:flex-start;flex-wrap:wrap;overflow:visible;padding-top:10px;padding-bottom:4px}
+.lpick__wrap{display:inline-flex;align-items:center;gap:8px;color:var(--s-wgmn)} .lpick__wrap .ico{flex:none}
+.langpick.lpick{min-height:44px;height:44px;max-width:none;min-width:168px;font-size:16px;font-weight:650;border:1.5px solid var(--s-wgmn);border-radius:99px;padding-inline:16px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}

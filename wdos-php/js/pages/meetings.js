@@ -40,10 +40,16 @@ async function detail(root, id) {
   async function load() {
     let d; try { d = await api('/meetings/' + id); } catch (e) { box.replaceChildren(h('div', { class: 'card' }, empty('x', 'This meeting did not open', e.message))); return; }
     const m = d.meeting; const parts = [];
+    /* Will you attend? One touch. The host sees the totals. */
+    const rsvpBox = h('div', { style: 'display:grid;gap:8px' });
+    const paintRsvp = (r) => rsvpBox.replaceChildren(h('b', { text: 'Will you attend?' }), h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, [['yes', 'Yes'], ['maybe', 'Maybe'], ['no', 'No']].map(([v, l]) => h('button', { class: 'btn btn--s ' + (r.mine === v ? '' : 'btn--ghost'), type: 'button', 'aria-pressed': r.mine === v ? 'true' : 'false', onclick: async () => { try { await api(`/meetings/${id}/rsvp`, { answer: v }); paintRsvp(await api(`/meetings/${id}/rsvp`)); } catch (e) { toast('Not saved', e.message, 'bad'); } } }, l))),
+      h('small', { class: 'muted', text: `Replies so far: ${fmt(r.counts.yes)} yes, ${fmt(r.counts.maybe)} maybe, ${fmt(r.counts.no)} no` }));
+    api(`/meetings/${id}/rsvp`).then(paintRsvp).catch(() => {});
     parts.push(h('section', { class: 'card' }, h('div', { class: 'card__body', style: 'display:grid;gap:14px' }, h('div', { class: 'tagrow' }, mTag(m.status), h('span', { class: 'tag', text: MODES[m.mode] }), m.network !== 'ALL' ? netTag(m.network) : null),
       h('h2', { class: 'display', style: 'font-size:26px;margin:0', text: m.title }),
       h('dl', { class: 'dl' }, [['When', fmtWhen(m.starts_at, m.ends_at)], ['Hosted by', m.host], ['For', m.scope_label], [m.link ? 'Meeting link' : 'Where', m.location]].filter((x) => x[1]).flatMap(([k, v]) => [h('dt', { text: k }), h('dd', {}, k === 'Hosted by' || k === 'When' || k === 'For' ? v : linkify(v))])),
       m.link && m.status === 'scheduled' ? h('div', {}, h('a', { class: 'btn', href: m.link, target: '_blank', rel: 'noopener' }, icon('link', 18), 'Join meeting')) : null,
+      m.status === 'scheduled' ? rsvpBox : null,
       m.agenda ? h('div', {}, h('b', { text: 'Agenda' }), h('p', { style: 'white-space:pre-wrap;margin:6px 0 0' }, linkify(m.agenda))) : null,
       m.minutes ? h('div', {}, h('b', { text: 'Minutes' }), h('p', { style: 'white-space:pre-wrap;margin:6px 0 0' }, linkify(m.minutes))) : null,
       d.my_mark ? h('p', { class: 'muted', text: 'Your attendance: ' + (d.my_mark === 'present' ? 'Present' : 'Absent') }) : null)));

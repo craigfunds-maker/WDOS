@@ -1,0 +1,681 @@
+{
+ "build": "v101.0",
+ "questions": [
+  {
+   "id": "Q01",
+   "title": "Membership discovery and registration",
+   "status": "Partial",
+   "evidence": "Language first, network by age, five short steps, place, agreement, PIN, permanent Person ID, no OTP. An interrupted registration resumes from a draft held on the server; a repeated send never makes a second account. Chapter is given automatically or the member is pending.",
+   "gap": "No QR codes for events; links only. Consent is stored as agreed, without a policy version number."
+  },
+  {
+   "id": "Q02",
+   "title": "Three referrals",
+   "status": "Partial",
+   "evidence": "Each member has her own link. Opened, registered and completed-seven-days are counted apart. Three is a milestone and blocks nothing. A new member cannot refer herself.",
+   "gap": "A dispute goes through the private report lane; there is no dedicated referral dispute screen."
+  },
+  {
+   "id": "Q03",
+   "title": "Seven-day screening and activation",
+   "status": "Implemented",
+   "evidence": "Seven named days, self-screening on day 5, automatic outcome on day 7, more time given automatically. No staff step and no call.",
+   "gap": "Question wording awaits decision D09."
+  },
+  {
+   "id": "Q04",
+   "title": "Membership lifecycle",
+   "status": "Partial",
+   "evidence": "States shown to the member: registered, on her seven days, active, paused, restricted, withdrawn. She can pause, return, close her membership and see her history. HQ can restore.",
+   "gap": "Verification-pending and self-screening are not separate named states. Automated re-engagement messages are not built."
+  },
+  {
+   "id": "Q05",
+   "title": "Membership to leadership",
+   "status": "Partial",
+   "evidence": "Member, volunteer step, leadership candidate through a referral link, appointment by HQ, leader onboarding and scoped dashboard.",
+   "gap": "Commissioning is not recorded as its own step. Role learning depends on the Institute link."
+  },
+  {
+   "id": "Q06",
+   "title": "Separate WGMN/WNNN hierarchies",
+   "status": "Implemented",
+   "evidence": "Six African tiers and the diaspora template, WGMN Coordinator and WNNN Lead titles, Campus Ambassador outside the geography, chapter in the data model.",
+   "gap": "African WNNN country title awaits decision D01. Both titles are kept."
+  },
+  {
+   "id": "Q07",
+   "title": "Individual leadership dashboards",
+   "status": "Partial",
+   "evidence": "One leadership dashboard per leader with role, scope, members, chapters, referrals, activation, tasks, meetings, messages and alerts, with drill-down to her chapters.",
+   "gap": "A person holds one seat at a time, so there is no role switch. Training figures await the Institute link."
+  },
+  {
+   "id": "Q08",
+   "title": "Supervision within jurisdiction",
+   "status": "Partial",
+   "evidence": "Scoped tree, chapter rosters, tasks and delegation, announcements to her own area, meetings, report review, capacity alerts. No sideways visibility.",
+   "gap": "Deputy permissions follow the seat; an explicit, expiring delegation is not built."
+  },
+  {
+   "id": "Q09",
+   "title": "Leadership performance",
+   "status": "Partial",
+   "evidence": "Reporting timeliness and compliance by leader, task completion, chapter and activation counts with the time counted.",
+   "gap": "A balanced scorecard with retention, learning and maturity context is not built. Nothing punitive is automated."
+  },
+  {
+   "id": "Q10",
+   "title": "Volunteer categories",
+   "status": "Partial",
+   "evidence": "Member, volunteer and volunteer leader sit on one Person ID with dates.",
+   "gap": "Event Volunteer is not modelled. Conflict checks between concurrent roles are not built."
+  },
+  {
+   "id": "Q11",
+   "title": "Volunteer development",
+   "status": "Partial",
+   "evidence": "WDOS shows the Institute pathway and holds an endpoint the Institute can call with the Person ID.",
+   "gap": "The Institute is not connected, so there is no enrolment, reminder or progress sync yet."
+  },
+  {
+   "id": "Q12",
+   "title": "Recognition and retention",
+   "status": "Partial",
+   "evidence": "Automatic, with no Send button: welcome, birthday (can be switched off), membership anniversary, weekly and monthly inspiration to leaders, in the member's language where written.",
+   "gap": "Milestone and re-engagement messages are not built. Inspiration goes to leaders, not to every member."
+  },
+  {
+   "id": "Q13",
+   "title": "Task management",
+   "status": "Implemented",
+   "evidence": "Task reference, network, chapter or area scope, parent task, one owner, priority, due date, evidence, approval, log, delegation that keeps the lineage, automatic reminders and escalation.",
+   "gap": ""
+  },
+  {
+   "id": "Q14",
+   "title": "Consolidated reporting",
+   "status": "Partial",
+   "evidence": "Automatic roll-up from membership, chapter and task records down to chapter, with the time counted. Leader reports carry submitted, reviewed and approved apart.",
+   "gap": "Institute and event records are not sources yet. No nightly reconciliation job; live integrity checks run on demand."
+  },
+  {
+   "id": "Q15",
+   "title": "HQ oversight",
+   "status": "Partial",
+   "evidence": "HQ dashboard, chapter coverage, vacancies, referral and activation cohorts, exceptions, delivery report, CSV exports.",
+   "gap": "No separate Founder strategic view and no PDF executive pack."
+  },
+  {
+   "id": "Q16",
+   "title": "Community",
+   "status": "Implemented",
+   "evidence": "One community with WGMN and WNNN spaces down to chapter, opt-in circles, chapter announcements, moderation, reporting and hiding of posts, blocked words held for review.",
+   "gap": "Member-to-member blocking is not built."
+  },
+  {
+   "id": "Q17",
+   "title": "Cross-ecosystem integration",
+   "status": "Partial",
+   "evidence": "One Person ID. WDOS owns membership, leadership, tasks and reports. An authenticated endpoint returns a person by ID for other systems.",
+   "gap": "No system is connected to it yet. No event feed."
+  },
+  {
+   "id": "Q18",
+   "title": "Inclusive continent-scale operation",
+   "status": "Partial",
+   "evidence": "Five languages from the first screen, Arabic right to left, installable low-data app, Listen on key screens, text beside every audio step, no OTP, sign-out clears the phone.",
+   "gap": "Translations are working versions. No WCAG 2.2 AA audit has been done. Audio is the phone's own voice, not a recording."
+  },
+  {
+   "id": "Q19",
+   "title": "Decision authority",
+   "status": "Partial",
+   "evidence": "Appointments, restricted cases and policy changes are HQ actions and are logged. Decisions D01 to D14 are recorded with approver and date. Ordinary onboarding and placement need nobody.",
+   "gap": "There is no versioned delegation-of-authority matrix as its own record."
+  },
+  {
+   "id": "Q20",
+   "title": "Leadership absence/change",
+   "status": "Partial",
+   "evidence": "Seat states: vacant, candidate, appointed, acting, on leave, suspended, resigned, replaced. On leave or suspended closes the leadership view at once on open sessions. History is kept. Assigners are told to reassign open tasks.",
+   "gap": "Open tasks are not reassigned automatically. Deputy delegation has no expiry."
+  },
+  {
+   "id": "Q21",
+   "title": "Data stewardship",
+   "status": "For management",
+   "evidence": "This is an ownership decision for WODDI, not software. WDOS supports it: routine screening and reports need no officer.",
+   "gap": "Named owners are for management to appoint."
+  },
+  {
+   "id": "Q22",
+   "title": "Geography across countries",
+   "status": "Partial",
+   "evidence": "Nigeria carries its states, the FCT and LGAs. Official ward is stored apart from the WODDI Community Cluster. HQ adds clusters and zones without a code change. Diaspora uses city.",
+   "gap": "Other countries have states or regions only. District labels are not configurable per country on screen."
+  },
+  {
+   "id": "Q23",
+   "title": "Vacancy identification/filling",
+   "status": "Partial",
+   "evidence": "Every position is listed whether filled or not; vacancies show by area; candidates come through referral and activation; HQ appoints.",
+   "gap": "No automatic recommendation of candidates."
+  },
+  {
+   "id": "Q24",
+   "title": "Diaspora management",
+   "status": "Implemented",
+   "evidence": "Country, optional state or region, city, chapter, member. Country Representative for both networks. No LGA or ward is asked.",
+   "gap": "The list of 27 diaspora countries was chosen by the developer and needs WODDI's confirmation."
+  },
+  {
+   "id": "Q25",
+   "title": "WNNN turning 30",
+   "status": "Partial",
+   "evidence": "A WNNN member within 30 days of 30 is told once and listed for HQ. HQ moves her; Person ID, records and referrals stay; her WNNN seat ends and no WGMN role is given.",
+   "gap": "The policy itself awaits decision D08. Nothing moves automatically."
+  },
+  {
+   "id": "Q26",
+   "title": "He-for-She roles",
+   "status": "Implemented",
+   "evidence": "He-for-She is its own participant class, appointable only as deputy, assistant or administrative secretary, with rights limited to the appointed scope and no chapter roster by default.",
+   "gap": "Eligibility rules await decision D12."
+  },
+  {
+   "id": "Q27",
+   "title": "Relocation and concurrent roles",
+   "status": "Partial",
+   "evidence": "One Person ID with dated chapter history and seat history. A change of place moves her chapter and keeps the old record. One current chapter per membership.",
+   "gap": "Past addresses are kept in the log, not as a dated location table. Concurrent appointments are not supported."
+  },
+  {
+   "id": "Q28",
+   "title": "Automation failure handling",
+   "status": "Partial",
+   "evidence": "A missed day or a lost connection costs nothing. Registration retries are safe. Phone notifications and email are queued and retried.",
+   "gap": "No dead-letter screen or replay tool."
+  },
+  {
+   "id": "Q29",
+   "title": "Complaints, safeguarding, misconduct",
+   "status": "Implemented",
+   "evidence": "A private report lane for every member. Only HQ handlers see it. The person named never sees it, even if she is HQ. Notices carry the reference only. Nothing is sanctioned automatically.",
+   "gap": "Independent (non-HQ) reviewers are not modelled. Governance awaits decision D06."
+  },
+  {
+   "id": "Q30",
+   "title": "Human override of automated decisions",
+   "status": "Partial",
+   "evidence": "The seven days need no human. Possible duplicates go to an HQ exception list and each action is logged with a reason.",
+   "gap": "No formal appeal record beyond a private report."
+  },
+  {
+   "id": "Q31",
+   "title": "Recruitment channels",
+   "status": "Partial",
+   "evidence": "The member may say how she heard of WODDI; invitation links and campaign links are recorded; HQ sees registrations, placements and completions by source.",
+   "gap": "No QR code generator. No report by chapter yet."
+  },
+  {
+   "id": "Q32",
+   "title": "Incomplete referrals/activation",
+   "status": "Implemented",
+   "evidence": "More time is given automatically, steps can be retried, and nobody is excluded at day 7 for poor connection or for not taking a call. Three referrals block nothing.",
+   "gap": ""
+  },
+  {
+   "id": "Q33",
+   "title": "Retention",
+   "status": "Partial",
+   "evidence": "A member can pause all routine messages and come back. Leaders' reporting is separate from members' voluntary activity.",
+   "gap": "No engagement score."
+  },
+  {
+   "id": "Q34",
+   "title": "Meetings across time zones",
+   "status": "Partial",
+   "evidence": "Meetings by network and level including chapter, shown in each person's local time, replies (yes, maybe, no), attendance, agenda, minutes, follow-up tasks.",
+   "gap": "No recording consent and no statement of translation availability."
+  },
+  {
+   "id": "Q35",
+   "title": "Annual operational calendar",
+   "status": "Implemented",
+   "evidence": "One annual calendar with the programme names, scoped by network and country, with automatic reminders one week and one day before.",
+   "gap": "No dates are entered yet. WODDI HQ must enter the real dates."
+  },
+  {
+   "id": "Q36",
+   "title": "Meeting decisions to tasks",
+   "status": "Implemented",
+   "evidence": "Closing a meeting turns each decision into a task with an owner, a deadline and a link back to the meeting.",
+   "gap": "Draft and approved minutes are not separate versions."
+  },
+  {
+   "id": "Q37",
+   "title": "Communications hierarchy",
+   "status": "Implemented",
+   "evidence": "Announcements to continent, country, state or region, LGA or city, community, chapter and one member, limited to the sender's own area. Scheduled messages go by themselves.",
+   "gap": ""
+  },
+  {
+   "id": "Q38",
+   "title": "Multilingual communications",
+   "status": "Partial",
+   "evidence": "Interface and message templates in five languages with Arabic right to left; HQ edits approved templates per language.",
+   "gap": "No reviewer sign-off workflow. Inner screens are only partly translated."
+  },
+  {
+   "id": "Q39",
+   "title": "Delivery and preferences",
+   "status": "Partial",
+   "evidence": "In-app and phone notifications with per-kind preferences and retries; email is built and switched off. Sent is never shown as read.",
+   "gap": "No SMS, WhatsApp or voice. No quiet hours. No provider delivery receipts."
+  },
+  {
+   "id": "Q40",
+   "title": "Automation inventory",
+   "status": "Partial",
+   "evidence": "Automatic: registration, network by age, seven days, chapter placement, referral counting, greetings, scheduled messages, deadlines, vacancy and capacity alerts, roll-ups. Rules are versioned with effective dates.",
+   "gap": "Institute sync is not connected. No replay or test mode for rules."
+  },
+  {
+   "id": "Q41",
+   "title": "Triggers and escalation",
+   "status": "Partial",
+   "evidence": "Triggers exist for failed sign-in limits, overdue tasks and reports, capacity at 40 and 50, activation retry and private reports.",
+   "gap": "No trigger for an inactive chapter or an integration failure."
+  },
+  {
+   "id": "Q42",
+   "title": "80% digital coverage",
+   "status": "Partial",
+   "evidence": "The workflow catalogue and the calculation are built exactly as section 15 states, with CSV export. Only verified rows earn credit.",
+   "gap": "No weights are agreed and nothing is verified, so no percentage can be claimed."
+  },
+  {
+   "id": "Q43",
+   "title": "Data collection and retention",
+   "status": "Partial",
+   "evidence": "A member can download everything held about her and close her membership; a removal request becomes a privacy case. Nobody under 18 can register.",
+   "gap": "No retention schedule, no consent versions, no country transfer review. Awaits decision D13."
+  },
+  {
+   "id": "Q44",
+   "title": "Unauthorised access",
+   "status": "Partial",
+   "evidence": "Every request is checked on the server by person, seat, network, area and chapter. Sessions are server-side; sign-in is rate-limited; fingerprint sign-in is available.",
+   "gap": "Stronger sign-in is not compulsory for HQ accounts. No periodic permission review. No independent penetration test."
+  },
+  {
+   "id": "Q45",
+   "title": "Outage and disaster recovery",
+   "status": "Missing",
+   "evidence": "WDOS keeps no backups of its own and has no outage notice screen.",
+   "gap": "Backups, restore drills and monitoring depend on the database and hosting plans and have not been tested. Awaits decision D14."
+  },
+  {
+   "id": "Q46",
+   "title": "Legacy migration",
+   "status": "Partial",
+   "evidence": "An importer brings members, seats and units from the current WDOS and keeps the old identifiers.",
+   "gap": "No reconciliation sign-off chapter by chapter. No rehearsed cutover."
+  },
+  {
+   "id": "Q47",
+   "title": "Support and ownership",
+   "status": "For management",
+   "evidence": "An ownership and support decision for WODDI. The code and its history are in WODDI's repository.",
+   "gap": "Service levels, monitoring and support roster are for management."
+  },
+  {
+   "id": "Q48",
+   "title": "Pilot and scaling",
+   "status": "Not verified",
+   "evidence": "On the test copy: 1,000 Maitama WGMN members fill 20 chapters of 50; fifty seats hold under simultaneous arrivals.",
+   "gap": "No pilot with real members, no load test on the live database, no restore test."
+  }
+ ],
+ "amendments": [
+  {
+   "id": "A01",
+   "title": "No OTP",
+   "status": "Implemented",
+   "evidence": "No code is sent at registration, sign-in or onboarding.",
+   "gap": "Recovery method awaits decision D05."
+  },
+  {
+   "id": "A02",
+   "title": "Zero-touch seven day",
+   "status": "Implemented",
+   "evidence": "The seven days run and decide by themselves.",
+   "gap": "Criteria await decision D09."
+  },
+  {
+   "id": "A03",
+   "title": "Language-first five languages",
+   "status": "Partial",
+   "evidence": "Language is the first control on the first screen: Arabic, English, French, Portuguese, Swahili, in that order, with native names, and it stays in the top bar.",
+   "gap": "All four translations are working versions awaiting review (D10)."
+  },
+  {
+   "id": "A04",
+   "title": "Audio/video accessible",
+   "status": "Partial",
+   "evidence": "Listen buttons and a place for WODDI's own video and audio with transcript; text is always equal.",
+   "gap": "No WODDI recording exists yet. Listen uses the phone's voice."
+  },
+  {
+   "id": "A05",
+   "title": "Chapter all levels",
+   "status": "Implemented",
+   "evidence": "Chapter is a scope in dashboards, rosters, tasks, reports, meetings, announcements and community.",
+   "gap": ""
+  },
+  {
+   "id": "A06",
+   "title": "Source-specific hierarchies",
+   "status": "Implemented",
+   "evidence": "Africa and diaspora keep their own titles as written in the two source documents.",
+   "gap": "D01 pending."
+  },
+  {
+   "id": "A07",
+   "title": "He-for-She",
+   "status": "Implemented",
+   "evidence": "He-for-She appointments as deputy, assistant or administrative secretary only.",
+   "gap": "D12 pending."
+  },
+  {
+   "id": "A08",
+   "title": "Community at chapter",
+   "status": "Implemented",
+   "evidence": "Every chapter has its own space; joining a chapter opens it.",
+   "gap": ""
+  },
+  {
+   "id": "A09",
+   "title": "Communications at chapter",
+   "status": "Implemented",
+   "evidence": "Messages can be addressed to one chapter and reach nobody else.",
+   "gap": ""
+  },
+  {
+   "id": "A10",
+   "title": "Automated routine operations",
+   "status": "Partial",
+   "evidence": "Routine operations run without staff.",
+   "gap": "SMS, WhatsApp, voice and Institute sync are not built."
+  },
+  {
+   "id": "A11",
+   "title": "Secure recovery",
+   "status": "Partial",
+   "evidence": "Fingerprint or face, email link, HQ reset; a leader-assisted reset exists behind a switch that is off.",
+   "gap": "No approved recovery for a member with no email, no fingerprint and a lost phone other than HQ. D05 pending. No threat model document."
+  },
+  {
+   "id": "A12",
+   "title": "Institute/Community stable Person ID",
+   "status": "Partial",
+   "evidence": "The Community uses the same Person ID. An endpoint is ready for the Institute.",
+   "gap": "The Institute is not connected."
+  }
+ ],
+ "tests": [
+  {
+   "id": "T01",
+   "title": "First screen shows five alphabetical languages and native names",
+   "status": "Passed",
+   "evidence": "Browser check: the first control lists Arabic, English, French, Portuguese, Swahili with native names (ui101).",
+   "gap": ""
+  },
+  {
+   "id": "T02",
+   "title": "Arabic screen direction, form controls, navigation and translated error messages",
+   "status": "Passed in part",
+   "evidence": "Browser check: Arabic turns the whole page right to left and the Help page shows Arabic text (ui101).",
+   "gap": "No test with Arabic readers. Inner HQ screens are not translated."
+  },
+  {
+   "id": "T03",
+   "title": "Swahili rural first-time user registers without OTP or staff help",
+   "status": "Needs people",
+   "evidence": "Cannot be run by software.",
+   "gap": "Needs a moderated session with a rural Swahili speaker."
+  },
+  {
+   "id": "T04",
+   "title": "Lost connection during sign-up resumes securely without duplicate membership",
+   "status": "Passed",
+   "evidence": "The same registration sent twice returns one account, one journey and one chapter place; the draft sits on the server behind a token and the PIN is never kept (t101).",
+   "gap": ""
+  },
+  {
+   "id": "T05",
+   "title": "Optional video unavailable; text/audio alternative completes step",
+   "status": "Passed in part",
+   "evidence": "The journey completes by text alone; there is no compulsory video (t100).",
+   "gap": "No browser test with media blocked."
+  },
+  {
+   "id": "T06",
+   "title": "Seven-day routine steps and activation finish automatically",
+   "status": "Passed",
+   "evidence": "The journey activates a member with no staff action, and gives more time by itself (t97).",
+   "gap": ""
+  },
+  {
+   "id": "T07",
+   "title": "Missed screening call does not block alternative self-service",
+   "status": "Passed in part",
+   "evidence": "There are no screening calls, so none can be missed.",
+   "gap": "If calls are ever added this must be tested."
+  },
+  {
+   "id": "T08",
+   "title": "3 invitations ≠ 3 verified registrations; no false referral count",
+   "status": "Passed",
+   "evidence": "Opened, registered and completed are separate counts (t97, t100).",
+   "gap": ""
+  },
+  {
+   "id": "T09",
+   "title": "Maitama WGMN assigned only to WGMN chapters",
+   "status": "Passed",
+   "evidence": "Placement puts a WGMN member only in WGMN chapters; 1,000 placements, none in the wrong network (race test, t97).",
+   "gap": ""
+  },
+  {
+   "id": "T10",
+   "title": "Maitama WNNN cannot enter WGMN roster",
+   "status": "Passed",
+   "evidence": "A WNNN member cannot be placed in or read a WGMN chapter (t97, t99).",
+   "gap": ""
+  },
+  {
+   "id": "T11",
+   "title": "Chapter 50 full, concurrent 51st goes elsewhere or pending",
+   "status": "Passed",
+   "evidence": "80 women arriving through 8 processes at once at a chapter of 50: exactly 50 seated, 31 pending, nobody in two chapters (race test).",
+   "gap": "Run on the test database (MariaDB). Not yet repeated on the live database engine (TiDB)."
+  },
+  {
+   "id": "T12",
+   "title": "1,000 active WGMN members reconcile to 20 x 50 chapters",
+   "status": "Passed",
+   "evidence": "1,000 Maitama WGMN members placed by 8 processes at once: 20 chapters, each exactly 50 (race test).",
+   "gap": "Same note as T11."
+  },
+  {
+   "id": "T13",
+   "title": "Under30/30/40–45/50 statuses follow configured policy",
+   "status": "Passed",
+   "evidence": "Developing below 30, eligible or active at 30, alert at 40, at capacity at 50, all from the rules in force (t97, t99).",
+   "gap": ""
+  },
+  {
+   "id": "T14",
+   "title": "Chapter split/merge transfer preserves membership & appointments",
+   "status": "Passed in part",
+   "evidence": "Transfer, merge and split keep the membership history and correct the counts (t99).",
+   "gap": "Appointments through a merge are not tested."
+  },
+  {
+   "id": "T15",
+   "title": "One active chapter assignment per membership",
+   "status": "Passed in part",
+   "evidence": "Checked in code and by the live integrity check; no member holds two chapter places (t101).",
+   "gap": "It is not a database uniqueness constraint."
+  },
+  {
+   "id": "T16",
+   "title": "All Africa tiers incl. chapter show correct WGMN/WNNN titles",
+   "status": "Passed",
+   "evidence": "All six African tiers show the right WGMN and WNNN titles (t100).",
+   "gap": ""
+  },
+  {
+   "id": "T17",
+   "title": "Diaspora Country → optional State → City → Chapter and direct Country → City",
+   "status": "Passed in part",
+   "evidence": "Diaspora members are placed by city with no LGA; the architecture shows country, optional state, city, chapter (t98, t100).",
+   "gap": "The direct country-to-city reporting line is shown, not separately tested."
+  },
+  {
+   "id": "T18",
+   "title": "He-for-She deputy vs admin secretary permissions differ",
+   "status": "Passed in part",
+   "evidence": "A He-for-She appointee is refused the roster and limited to deputy, assistant or secretary seats (t97, t98).",
+   "gap": "Deputy against secretary differences are not tested one by one."
+  },
+  {
+   "id": "T19",
+   "title": "Campus Ambassador not given geography supervisor authority",
+   "status": "Passed",
+   "evidence": "A Campus Ambassador gets no roster and no supervisor authority (t98).",
+   "gap": ""
+  },
+  {
+   "id": "T20",
+   "title": "Chapter leader cannot see other chapter or other network roster",
+   "status": "Passed",
+   "evidence": "A chapter leader is refused another chapter and the other network, including by changing the ID in the address (t97, t99).",
+   "gap": ""
+  },
+  {
+   "id": "T21",
+   "title": "Revoked leader can't use cached session to access records",
+   "status": "Passed",
+   "evidence": "A suspended or on-leave leader loses the leadership view at once on her open session; her membership is untouched (t101).",
+   "gap": ""
+  },
+  {
+   "id": "T22",
+   "title": "HQ/County/State/District/Cluster/Chapter report totals reconcile",
+   "status": "Passed in part",
+   "evidence": "Roll-up rows come from records; the live integrity checks show no mismatch (t98, t101).",
+   "gap": "No automated level-by-level reconciliation from HQ to chapter."
+  },
+  {
+   "id": "T23",
+   "title": "Task delegation keeps accountable owner, chapter and parent link",
+   "status": "Passed",
+   "evidence": "A delegated task keeps its owner, chapter and parent link (t98).",
+   "gap": ""
+  },
+  {
+   "id": "T24",
+   "title": "Weekly inspiration and birthday sent automatically in preferred language",
+   "status": "Passed in part",
+   "evidence": "Birthday, anniversary and inspiration jobs run daily and use the member's language where the text exists.",
+   "gap": "No clock-controlled test. Inspiration is for leaders."
+  },
+  {
+   "id": "T25",
+   "title": "Campaign scoped to exactly one chapter excludes others",
+   "status": "Passed",
+   "evidence": "An announcement to one chapter reaches that chapter only (t97, t98).",
+   "gap": ""
+  },
+  {
+   "id": "T26",
+   "title": "Institute/Community map to same Person ID without duplicate user",
+   "status": "Not run",
+   "evidence": "The Institute is not connected.",
+   "gap": "Needs the Institute link."
+  },
+  {
+   "id": "T27",
+   "title": "Complaint against chapter leader bypasses their visibility",
+   "status": "Passed",
+   "evidence": "A complaint about a chapter leader goes to HQ handlers only; the leader sees and receives nothing; a case about an HQ handler is hidden from that handler; nobody is sanctioned (t101).",
+   "gap": ""
+  },
+  {
+   "id": "T28",
+   "title": "Fake provider delivery receipt rejected",
+   "status": "Not run",
+   "evidence": "WDOS receives no delivery receipts from providers, so there is nothing to forge.",
+   "gap": "Must be tested when SMS, WhatsApp or email receipts are added."
+  },
+  {
+   "id": "T29",
+   "title": "System outage retries without duplicate membership/notification",
+   "status": "Passed in part",
+   "evidence": "A repeated registration makes no duplicate (t101).",
+   "gap": "Notification retries after an outage are not tested for duplicates."
+  },
+  {
+   "id": "T30",
+   "title": "Backups restored; rollback and access audit confirmed",
+   "status": "Needs people",
+   "evidence": "Not run.",
+   "gap": "Needs a restore exercise on a staging copy."
+  },
+  {
+   "id": "T31",
+   "title": "WNNN age transition preserves person/course/referral/history",
+   "status": "Passed in part",
+   "evidence": "A WNNN member moved at 30 keeps her Person ID, number, referrals and history; no WGMN role is given (t101).",
+   "gap": "Course history cannot be tested until the Institute is connected."
+  },
+  {
+   "id": "T32",
+   "title": "Accurate 80% workflow metric with non-digitised workflows retained in denominator",
+   "status": "Passed in part",
+   "evidence": "The calculation keeps undigitised workflows in the denominator and credits only verified rows (t101).",
+   "gap": "Needs agreed weights and an independent QA calculation."
+  },
+  {
+   "id": "T33",
+   "title": "Voice/video scripts complete in 5 languages; optional media",
+   "status": "Not run",
+   "evidence": "No WODDI audio or video has been recorded.",
+   "gap": "Needs approved scripts and recordings in five languages."
+  },
+  {
+   "id": "T34",
+   "title": "Annual calendar/meetings to chapter with tasks and local time zone",
+   "status": "Passed in part",
+   "evidence": "Calendar dates by network, meeting replies, minutes to tasks (t93, t101).",
+   "gap": "Local time display is not tested automatically."
+  },
+  {
+   "id": "T35",
+   "title": "Member on shared phone can sign out and another user cannot read prior data",
+   "status": "Passed",
+   "evidence": "After sign-out the phone holds no session, no draft and no personal details, and protected pages ask for sign-in (ui101).",
+   "gap": "No test on a real shared phone with two members."
+  },
+  {
+   "id": "T36",
+   "title": "Migrated chapter/leadership/member historical totals reconcile",
+   "status": "Not run",
+   "evidence": "No migration rehearsal has been done.",
+   "gap": "Needs a staging migration with sign-off."
+  }
+ ]
+}

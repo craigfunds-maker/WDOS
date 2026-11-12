@@ -14,7 +14,7 @@ route('GET', '/policy', function () {
       ['Scheduled birthdays', 'Automated, in the member\'s language, unless she switches them off'], ['He-for-She access', 'Approved appointment scope only']],
     'audit' => rows("SELECT a.action, a.detail, a.created_at, COALESCE(CONCAT(u.first_name,' ',u.last_name),'WDOS') actor FROM activity_log a LEFT JOIN users u ON u.id=a.actor_id WHERE a.action IN ('policy_changed','chapter_created','chapter_merged','chapter_split','chapter_transfer','chapter_activated','chapter_placement','member_activated','journey_exception_active','journey_exception_restricted','post_hidden','post_restored','pin_reset_by_leader','appointed','seat_closed','announcement','announcement_scheduled') ORDER BY a.id DESC LIMIT 40"),
     'history' => rows("SELECT p.rule_key, p.rule_value, p.effective_from, p.note, p.created_at, COALESCE(CONCAT(u.first_name,' ',u.last_name),'WDOS') changed_by FROM policy_rules p LEFT JOIN users u ON u.id=p.changed_by ORDER BY p.id DESC LIMIT 60"),
-    'decisions' => array_map(fn($d) => ['key' => $d[0], 'title' => $d[1], 'text' => $d[2], 'current' => $d[0] !== '' ? policy($d[0]) : ''], POLICY_DECISIONS)];
+    'decisions' => decisions_state()];
 });
 route('POST', '/policy', function () {
   $me = require_hq(); $k = str_in('key', 60); $v = trim((string) (body()['value'] ?? '')); $d = POLICY_DEFS[$k] ?? null;

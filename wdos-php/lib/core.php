@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Configuration comes from environment variables (Render) or from
  * config.local.php beside index.html (shared hosting / cPanel). */
 
-const WDOS_BUILD = 'v100.0';
+const WDOS_BUILD = 'v101.0';
 
 function cfg(string $key, ?string $default = null): ?string {
   static $local = null;
@@ -130,7 +130,7 @@ function current_user(): ?array {
   $s = row('SELECT user_id FROM sessions WHERE token_hash=? AND expires_at>?', [hash('sha256', $tok), now()]);
   if (!$s) return null;
   $u = row('SELECT * FROM users WHERE id=?', [(int) $s['user_id']]);
-  if ($u && $u['status'] === 'suspended') { $u = null; return null; }
+  if ($u && in_array($u['status'], ['suspended', 'withdrawn'], true)) { $u = null; return null; }
   if ($u && (!$u['last_seen_at'] || strtotime($u['last_seen_at'] . ' UTC') < time() - 600)) {
     q('UPDATE users SET last_seen_at=? WHERE id=?', [now(), (int) $u['id']]);
   }
@@ -162,7 +162,7 @@ function log_activity(?int $actor, ?int $subject, string $action, string $detail
 function current_seat(int $userId): ?array {
   return row('SELECT s.*, p.title_wgmn, p.title_wnnn, p.level AS position_level, p.rank_no, ou.name AS unit_name, ou.path AS unit_path, ou.country_code AS unit_country
               FROM seats s JOIN positions p ON p.code=s.position_code JOIN org_units ou ON ou.id=s.org_unit_id
-              WHERE s.user_id=? AND s.ends_at IS NULL ORDER BY p.rank_no LIMIT 1', [$userId]);
+              WHERE s.user_id=? AND s.ends_at IS NULL AND s.status NOT IN (\'on_leave\',\'suspended\') ORDER BY p.rank_no LIMIT 1', [$userId]);
 }
 function seat_title(array $seat): string {
   $t = $seat['network'] === 'WNNN' ? $seat['title_wnnn'] : $seat['title_wgmn'];
@@ -186,7 +186,7 @@ function public_user(array $u): array {
     'is_hq' => is_hq($u), 'is_leader' => (bool) $seat,
     'seat' => $seat ? ['position' => $seat['position_code'], 'title' => seat_title($seat), 'status' => $seat['status'], 'network' => $seat['network'], 'level' => $seat['position_level'], 'acceptance' => $seat['acceptance'] ?? ''] : null, 'todo' => $todo,
     'created_at' => $u['created_at'], 'email_is_phone' => str_ends_with((string) $u['email'], '@phone.wdos.invalid'),
-  ] + (function_exists('amend_brief') ? amend_brief($u) : []) + ['he_for_she' => $seat ? (int) ($seat['he_for_she'] ?? 0) === 1 : false];
+  ] + (function_exists('amend_brief') ? amend_brief($u) : []) + ['he_for_she' => $seat ? (int) ($seat['he_for_she'] ?? 0) === 1 : false] + (function_exists('handoff_brief') ? handoff_brief($u) : []);
 }
 function age_on(string $dob, ?int $at = null): int {
   $d = new DateTimeImmutable($dob, new DateTimeZone('UTC'));

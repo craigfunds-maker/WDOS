@@ -8,7 +8,7 @@ import { app, signedIn, refreshUser, go, signOut, setLanguage } from '../app.js'
 
 export function pubBar(right) {
   const tb = h('button', { class: 'iconbtn', type: 'button', 'aria-label': 'Switch between dark and light', onclick: () => { theme.toggle(); tb.replaceChildren(icon(theme.get() === 'light' ? 'moon' : 'sun')); } }, icon(theme.get() === 'light' ? 'moon' : 'sun'));
-  return h('div', { class: 'pubtop' }, h('header', { class: 'pubbar' }, h('a', { href: '#/', 'aria-label': 'WODDI home' }, h('img', { src: '/assets/logos/woddi.png', alt: 'WODDI, The Nurturer' })), h('div', { class: 'grow' }), tb, right || null), langPills(setLanguage));
+  return h('div', { class: 'pubtop' }, langPills(setLanguage), h('header', { class: 'pubbar' }, h('a', { href: '#/', 'aria-label': 'WODDI home' }, h('img', { src: '/assets/logos/woddi.png', alt: 'WODDI, The Nurturer' })), h('div', { class: 'grow' }), tb, right || null));
 }
 export const pubFoot = () => h('footer', { class: 'pubfoot' }, h('span', { text: 'WODDI Digital Operating System' }), h('span', { text: 'No Woman Is Left Out' }), h('span', { class: 'num', text: 'Build ' + (app.config.build || '') }));
 
@@ -17,9 +17,24 @@ const NET_ABOUT = {
   WNNN: ['For Women Aged 18 to 29', 'A network for young women to build a strong identity, discover purpose, develop leadership skills and become ready for greater influence.'],
 };
 const AFRICA = 'AO BF BI BJ BW CD CF CG CI CM CV DJ DZ EG EH ER ET GA GH GM GN GQ GW KE KM LR LS LY MA MG ML MR MU MW MZ NA NE NG RW SC SD SL SN SO SS ST SZ TD TG TN TZ UG ZA ZM ZW'.split(' ');
-/* A registration that was interrupted can be picked up again on the same phone. The password is never kept. */
+/* A registration that was interrupted can be picked up again on the same phone. The phone keeps only a random token:
+ * the details wait on the WDOS server for two days and are removed when the membership is made. The PIN is never kept anywhere. */
 const DRAFT = 'wdos.join';
-const draft = { get() { try { return JSON.parse(localStorage.getItem(DRAFT) || 'null') || {}; } catch { return {}; } }, set(d) { try { localStorage.setItem(DRAFT, JSON.stringify(d)); } catch { /* private mode */ } }, clear() { try { localStorage.removeItem(DRAFT); } catch { /* ignore */ } } };
+const draft = {
+  ref() { try { const r = JSON.parse(localStorage.getItem(DRAFT) || 'null') || {}; return { t: typeof r.t === 'string' ? r.t : '', k: typeof r.k === 'string' ? r.k : '', old: r.t ? null : r }; } catch { return { t: '', k: '', old: null }; } },
+  keep(t, k) { try { localStorage.setItem(DRAFT, JSON.stringify({ t, k })); } catch { /* private mode */ } },
+  key() { const r = this.ref(); if (r.k) return r.k; const k = [...crypto.getRandomValues(new Uint8Array(18))].map((b) => b.toString(16).padStart(2, '0')).join(''); this.keep(r.t, k); return k; },
+  async load() {
+    const r = this.ref();
+    if (r.old && r.old.first_name !== undefined) { this.keep('', ''); return r.old; }      // a draft from an earlier version, kept on the phone: use it once and take it off the phone
+    if (!r.t) return {};
+    try { const d = await api('/public/draft/read', { token: r.t }); return d.data || {}; } catch { return {}; }
+  },
+  timer: 0, last: '',
+  set(d) { const j = JSON.stringify(d); if (j === this.last) return; this.last = j; clearTimeout(this.timer);
+    this.timer = setTimeout(async () => { try { const r = this.ref(); const x = await api('/public/draft', { token: r.t, data: d }); if (x.token) this.keep(x.token, this.ref().k); } catch { /* offline: the page still holds what was typed */ } }, 900); },
+  clear() { clearTimeout(this.timer); const r = this.ref(); try { localStorage.removeItem(DRAFT); } catch { /* ignore */ } if (r.t) api('/public/draft/forget', { token: r.t }).catch(() => {}); },
+};
 const ageOf = (dob) => { const d = new Date(dob + 'T00:00:00Z'); if (isNaN(d)) return null; const n = new Date(); let a = n.getUTCFullYear() - d.getUTCFullYear(); if (n.getUTCMonth() < d.getUTCMonth() || (n.getUTCMonth() === d.getUTCMonth() && n.getUTCDate() < d.getUTCDate())) a--; return a; };
 
 export async function render(root, params) {
@@ -32,7 +47,7 @@ export async function render(root, params) {
   }
   const candidate = leaderForm || (link && link.position);
   if (candidate) refMeta = await api('/positions').catch(() => null);
-  const saved = complete ? {} : draft.get();
+  const saved = complete ? {} : await draft.load();
   let chosen = ['WGMN', 'WNNN'].includes(String(params.network).toUpperCase()) ? String(params.network).toUpperCase() : (!link && !leaderForm && saved.network) || '';
   let stepNo = Number(saved.step) || 0;
   const nets = h('div', { class: 'nets', role: 'radiogroup', 'aria-label': 'Choose your network' });
@@ -147,6 +162,7 @@ export async function render(root, params) {
       h('fieldset', { 'data-eyebrow': 'Your agreement' }, h('legend', { text: 'Your agreement' }), h('p', { class: 'muted', style: 'margin:0 0 6px', text: 'A simple summary of membership and privacy information. Press Listen to hear it.' }),
         h('div', { class: 'panel', style: 'margin-bottom:14px' }, h('b', { text: 'Membership summary' }), h('p', { style: 'margin:6px 0 0', text: 'WODDI uses information to manage membership, learning, chapters and approved communications. Participation is voluntary. Unauthorised dues, local accounts and fundraising are not permitted.' }), h('p', { class: 'muted', style: 'margin:6px 0 0;font-size:14px', text: 'WODDI keeps your name, phone number and location so your chapter and your leaders can reach you. WODDI does not sell or share them outside WODDI.' })),
         h('label', { class: 'check' }, consent, h('span', { text: 'I agree to the membership guidance and privacy notice, and to the WODDI Code of Conduct.' })),
+        complete || link ? null : h('label', { class: 'field', for: 'f-source', style: 'margin-top:16px' }, h('span', { text: 'How did you hear about WODDI? (optional)' }), F.source = h('select', { class: 'input', id: 'f-source' }, h('option', { value: '', text: 'Choose one' }))),
         complete ? null : h('div', { style: 'margin-top:16px' }, field('password', 'Choose your password or PIN', { type: 'password', required: true, minlength: 6, autocomplete: 'new-password' }, 'At least 6 letters or numbers. Choose one you will remember. No code is sent to you.'))),
       err, submit,
       complete ? h('p', { class: 'muted', style: 'margin-top:12px;font-size:14px' }, 'Signed in as ' + (u?.email || '') + '. ', h('a', { href: '#', onclick: (e) => { e.preventDefault(); signOut(); }, text: 'Use a different account' })) : null);
@@ -168,7 +184,9 @@ export async function render(root, params) {
       if (stateMode === 'list' && !body.state_region && !diaspora()) { err.textContent = 'Choose your state or region.'; F.state.focus(); return; }
       if (lgaMode === 'select' && !body.lga) { err.textContent = 'Choose your LGA.'; F.lgaSel.focus(); return; }
       if (!complete) { body.email = F.contact.value.includes('@') ? F.contact.value.trim() : ''; body.password = F.password.value; const last = checkStep(steps[steps.length - 1]); if (last) { err.textContent = last; return; } if (!consent.checked) { err.textContent = 'Please review and accept the membership guidance.'; consent.focus(); return; } }
-      body.lang = i18n.lang;
+      body.lang = i18n.lang; if (!complete) { body.idem = draft.key(); body.draft = draft.ref().t; }
+      if (F.source && F.source.value) body.source = F.source.value;
+      { const c = new URLSearchParams(location.search).get('c'); if (c) body.campaign = c.slice(0, 40); }
       if (link) body.referral = { code: link.code };
       else if (candidate) {
         if (!F.position.value) { err.textContent = 'Choose the position you are being considered for.'; F.position.focus(); return; }
@@ -186,7 +204,7 @@ export async function render(root, params) {
         if (r.user.todo && r.user.todo.activation) go('#/activation'); else if (r.user.journey) go('#/journey');
       } catch (ex) {
         if (ex.code === 'offline') {                           // no connection: keep everything on this phone and send it by itself when the connection returns
-          err.textContent = 'No connection. Your details are kept on this phone. WDOS will send them by itself when the connection returns, if you keep this page open.'; submit.disabled = false; submit.textContent = label;
+          err.textContent = 'No connection. Keep this page open. WDOS will send your details by itself when the connection returns, and you will not be registered twice.'; submit.disabled = false; submit.textContent = label;
           window.addEventListener('online', () => { if (form.isConnected) form.requestSubmit(); }, { once: true }); return;
         }
         err.textContent = ex.message; submit.disabled = false; submit.textContent = label;
@@ -194,6 +212,7 @@ export async function render(root, params) {
         const bad = F[map[ex.code]]; if (bad) { const fs = bad.closest('fieldset'); const i = steps.indexOf(fs); if (i >= 0) show(i); bad.focus(); }
       }
     });
+    if (F.source) api('/public/sources').then((r) => { F.source.append(...Object.entries(r.sources).map(([k, l]) => h('option', { value: k, text: l }))); if (saved.source) F.source.value = saved.source; }).catch(() => {});
     const steps = [...form.querySelectorAll(':scope > fieldset')]; const bar = h('div', { class: 'jbar jbar--form', role: 'img' }); const stepLabel = h('small', { class: 'faint' });
     const back = h('button', { class: 'btn btn--ghost', type: 'button', text: 'Back' }); const next = h('button', { class: 'btn', type: 'button', text: 'Continue' });
     const listen = listenBtn(() => { const fs = steps[stepNo]; return [fs.querySelector('legend')?.textContent, ...[...fs.querySelectorAll('label > span, p, small')].map((x) => x.textContent)]; });
@@ -209,7 +228,7 @@ export async function render(root, params) {
       if (F.position && has(F.position) && !link) { if (!F.position.value) return 'Choose the position you are being considered for.'; if (!F.refCat.value) return 'Please tell us who referred you.'; if (!F.refName.value.trim()) return 'Please type the name of the person who referred you.'; }
       return '';
     };
-    const save = () => { if (complete) return; draft.set({ network: chosen, step: stepNo, first_name: F.first_name.value, last_name: F.last_name.value, dob: F.dob.value, contact: F.contact.value, country_id: F.country.value, state: stateName(), lga: lgaMode === 'select' ? F.lgaSel.value : F.lga.value, community: F.community.value, ward: F.ward ? F.ward.value : '' }); };
+    const save = () => { if (complete) return; draft.set({ network: chosen, step: stepNo, first_name: F.first_name.value, last_name: F.last_name.value, dob: F.dob.value, contact: F.contact.value, country_id: F.country.value, state: stateName(), lga: lgaMode === 'select' ? F.lgaSel.value : F.lga.value, community: F.community.value, ward: F.ward ? F.ward.value : '', source: F.source ? F.source.value : '' }); };
     function show(i) {
       stepNo = Math.max(0, Math.min(steps.length - 1, i)); steps.forEach((fs, k) => { fs.hidden = k !== stepNo; });
       const lead = complete ? 0 : 2, total = steps.length + lead, at = stepNo + lead;            // 01 language and 02 network are already done on this screen

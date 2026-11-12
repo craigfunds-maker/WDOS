@@ -22,7 +22,7 @@ const POLICY_DEFS = [
   'welcome_audio_url' => ['Welcome screen: link to WODDI\'s own recorded audio file (optional)', 'text'],
   'welcome_transcript' => ['Welcome screen: the words spoken in the video or audio', 'text'],
 ];
-const POLICY_FALLBACK = ['chapter_min_active' => '30', 'chapter_plan_next' => '40', 'chapter_capacity' => '50', 'chapter_auto_activate' => 'eligible', 'chapter_auto_create' => 'on',
+const POLICY_FALLBACK = ['chapter_min_active' => '30', 'chapter_plan_next' => '40', 'chapter_capacity' => '50', 'chapter_auto_activate' => 'eligible', 'chapter_auto_create' => 'off',
   'journey_days' => '7', 'journey_unlock' => 'daily', 'journey_extension_days' => '7', 'journey_required_referrals' => '0', 'wnnn_country_title' => 'Country Lead', 'recovery_by_leader' => 'off', 'community_blocked_words' => '', 'welcome_video_url' => '', 'welcome_audio_url' => '', 'welcome_transcript' => ''];
 /* The six items the amendments document lists as needing a recorded management choice. */
 const POLICY_DECISIONS = [
@@ -367,6 +367,7 @@ function amend_automations(array &$done): void {
     $n = chapters_backfill(25); if ($n) $done['chapter_placement'] = "$n placed";
     $n = chapters_recode(150); if ($n) $done['chapter_codes'] = "$n recoded";
     $n = announcements_due(); if ($n) { $done['scheduled_announcements'] = "$n sent"; push_drain(60); }
+    if (function_exists('handoff_automations')) handoff_automations($done);
   } catch (Throwable $e) { error_log('[wdos amend] ' . $e->getMessage()); }
 }
 /** Short facts about a person's chapter and journey for the app shell. Safe before the migration has run. */

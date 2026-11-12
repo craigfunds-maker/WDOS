@@ -1,0 +1,20 @@
+/* HQ: the confidential lane. Cases are separate from the seven-day journey and nothing here is automatic. */
+import { h, card, sk, empty, fmtDate, toast, input } from '../ui.js';
+import { api } from '../api.js';
+
+export async function render(root) {
+  const list = h('div', {}, sk.rows(4)), ages = h('div', {}, sk.rows(2));
+  root.append(card('Confidential cases', 'Only HQ case handlers see this list. A case about you, or one you filed, is not shown to you. Nothing is sanctioned automatically.', list), card('WNNN members reaching 30', 'Each has been told. Nobody is moved automatically and no WGMN role is ever given by WDOS. Decision D08 is with management.', ages));
+  async function load() {
+    let d; try { d = await api('/hq/cases'); } catch (e) { list.replaceChildren(empty('x', 'The cases did not load', e.message)); return; }
+    list.replaceChildren(d.items.length ? h('div', { class: 'list list--stack list--wrap' }, d.items.map((c) => { const st = h('select', { class: 'input', style: 'max-width:200px' }, Object.entries(d.statuses).map(([k, l]) => h('option', { value: k, text: l }))); st.value = c.status;
+      const outcome = input({ maxlength: 1000, placeholder: 'Outcome the member will read', style: 'min-width:240px;flex:2' }); outcome.value = c.outcome; const note = input({ maxlength: 2000, placeholder: 'Handler note (not shown to the member)', style: 'min-width:220px;flex:2' });
+      return h('div', { class: 'list__link', style: 'display:grid;gap:10px' }, h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap;align-items:center' }, h('b', { text: c.ref }), h('span', { class: 'tag ' + (c.category_key === 'safeguarding' ? 'tag--bad' : ''), text: c.category }), h('span', { class: 'tag ' + (c.status === 'received' ? 'tag--wgmn' : c.status === 'in_review' ? '' : 'tag--wnnn'), text: c.status_text }), h('small', { class: 'faint', text: fmtDate(c.created_at, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) })),
+        h('small', { text: `From ${c.reporter} (${c.member_no || 'no number'}, ${c.network || ''})` + (c.about ? ` · About: ${c.about}` + (c.about_matched ? ' (matched to a WDOS account, who cannot see this case)' : ' (not matched to an account)') : '') + (c.handler ? ` · Last handled by ${c.handler}` : '') }),
+        h('p', { style: 'margin:0;white-space:pre-wrap', text: c.body }), c.notes.length ? h('div', { class: 'list' }, c.notes.map((n) => h('div', {}, h('div', { class: 'grow' }, h('small', { text: n.note })), h('small', { class: 'faint', text: n.author + ' · ' + fmtDate(n.created_at) })))) : null,
+        h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' }, st, outcome, note, h('button', { class: 'btn btn--s', type: 'button', onclick: async () => { try { await api('/hq/cases/' + c.id, { status: st.value, outcome: outcome.value, note: note.value }); toast('Case updated', c.ref, 'ok'); load(); } catch (e) { toast('Not saved', e.message, 'bad'); } } }, 'Save'))); })) : empty('check', 'No confidential cases', 'Members send them from Help.'));
+    ages.replaceChildren(d.age_transition.length ? h('div', { class: 'list list--wrap' }, d.age_transition.map((a) => h('div', {}, h('div', { class: 'grow' }, h('b', { text: a.name }), h('small', { text: [a.member_no, a.country, 'Turns 30 on ' + fmtDate(a.turns_30_on), a.told ? 'Told' : 'Will be told today', a.leader ? 'Holds a WNNN seat' : ''].filter(Boolean).join(' · ') })),
+      new Date(a.turns_30_on) <= new Date() ? h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: async () => { const go = async (confirmSeat) => { try { await api('/hq/age-transition/' + a.id, { confirm_seat: confirmSeat }); toast('Moved to WGMN', 'Her Person ID and history are kept.', 'ok'); load(); } catch (e) { if (e.code === 'seat' && !confirmSeat) { toast('She holds a WNNN seat', 'Press the button again to confirm. The seat becomes vacant.', 'bad'); a._c = true; } else toast('Not moved', e.message, 'bad'); } }; go(!!a._c); } }, 'Move to WGMN') : h('span', { class: 'tag', text: 'Not yet 30' })))) : empty('check', 'Nobody is within 30 days of turning 30', ''));
+  }
+  load();
+}
