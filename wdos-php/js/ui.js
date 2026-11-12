@@ -214,19 +214,51 @@ export function linkify(text) {
 /* Listen: the device reads the words aloud in the chosen language. It is optional help, uses no mobile data, and is the
  * device's own voice, not a recorded WODDI voice. Where a device has no voice, the button is not shown. */
 const VOICE = { ar: 'ar-SA', en: 'en-GB', fr: 'fr-FR', pt: 'pt-PT', sw: 'sw-KE' };
+/* Listening. A language the phone has no voice for is never read out in the wrong language: she is told, and the words stay on the screen. */
+const voiceFor = (lang) => { const vs = speechSynthesis.getVoices(); if (!vs.length) return undefined; return vs.find((v) => v.lang.toLowerCase().startsWith(lang)) || null; };
+let guideAudio = null;
+const stopAllListening = () => { try { speechSynthesis.cancel(); } catch { /* no voice engine */ } if (guideAudio) { guideAudio.pause(); guideAudio = null; }
+  document.querySelectorAll('.listen[aria-pressed="true"]').forEach((x) => { x.setAttribute('aria-pressed', 'false'); x.lastChild.textContent = t(x.dataset.label || 'Listen'); }); };
+function speak(b, raw, stop) {
+  if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') { toast('This phone cannot read aloud', 'The words are on the screen.'); return false; }
+  const text = (Array.isArray(raw) ? raw : [raw]).filter(Boolean).map((x) => t(String(x))).join('. ');
+  const v = voiceFor(i18n.lang);
+  if (v === null && i18n.lang !== 'en') { toast(t('This phone has no voice for') + ' ' + LANGS[i18n.lang], 'The words are on the screen.'); return false; }
+  const u = new SpeechSynthesisUtterance(text); u.lang = VOICE[i18n.lang] || 'en-GB'; if (v) u.voice = v; u.rate = 0.92; u.onend = stop; u.onerror = stop; speechSynthesis.speak(u); return true;
+}
 export function listenBtn(getText, label = 'Listen') {
-  if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') return null;
-  const b = h('button', { class: 'btn btn--quiet btn--s listen', type: 'button', 'aria-pressed': 'false' }, icon('volume', 18), h('span', { text: label }));
+  const b = h('button', { class: 'btn btn--quiet btn--s listen', type: 'button', 'aria-pressed': 'false', 'data-label': label }, icon('volume', 18), h('span', { text: label }));
   const stop = () => { b.setAttribute('aria-pressed', 'false'); b.lastChild.textContent = t(label); };
   b.addEventListener('click', () => {
-    const on = b.getAttribute('aria-pressed') === 'true'; speechSynthesis.cancel(); document.querySelectorAll('.listen[aria-pressed="true"]').forEach((x) => { x.setAttribute('aria-pressed', 'false'); x.lastChild.textContent = t('Listen'); });
-    if (on) return;
-    const raw = typeof getText === 'function' ? getText() : getText; const text = (Array.isArray(raw) ? raw : [raw]).filter(Boolean).map((x) => t(String(x))).join('. ');
-    const u = new SpeechSynthesisUtterance(text); u.lang = VOICE[i18n.lang] || 'en-GB'; u.rate = 0.92; u.onend = stop; u.onerror = stop;
-    b.setAttribute('aria-pressed', 'true'); b.lastChild.textContent = t('Stop'); speechSynthesis.speak(u);
+    const on = b.getAttribute('aria-pressed') === 'true'; stopAllListening(); if (on) return;
+    if (speak(b, typeof getText === 'function' ? getText() : getText, stop)) { b.setAttribute('aria-pressed', 'true'); b.lastChild.textContent = t('Stop'); }
   });
   return b;
 }
+/* The step-by-step guide to joining, spoken. English, French and Portuguese play a recorded synthetic voice that ships with WDOS,
+ * so they sound the same on every phone. Arabic and Swahili use the phone's own voice where it has one. */
+export const GUIDE = [
+  'Welcome to the WODDI Digital Operating System. First, choose your language from the list. You can change it at any time. Then press Continue.',
+  'Now choose your network. The WODDI Good Mother Network is for women aged thirty and above. The WODDI Nurture NextGen Network is for women aged eighteen to twenty-nine. Touch the network that matches your age, then press Continue.',
+  'Type your first name and your surname. Choose your date of birth. Then type your phone number or your email address. You will use it to sign in. Then press Continue.',
+  'Choose your country, then your state or region, then your local government area or city. Type the name of your community. This helps WDOS place you in a chapter near you. Then press Continue.',
+  'Read the short agreement and tick the box to agree. Then choose a PIN or password of at least six letters or numbers. Choose one you will remember. No code is sent to your phone. Then press Create my account.',
+  'Your membership is created at once, and you receive your membership number. Your seven-day journey opens. Do one small step each day. If you miss a day, nothing is lost.',
+  'If you forget your PIN, choose Forgot password on the sign-in page, or open Help. No woman is left out.',
+];
+export const GUIDE_AUDIO = ['en', 'fr', 'pt'];
+export function guideBtn(getStep, label = 'Listen') {
+  const b = h('button', { class: 'btn btn--quiet btn--s listen', type: 'button', 'aria-pressed': 'false', 'data-label': label }, icon('volume', 18), h('span', { text: label }));
+  const stop = () => { b.setAttribute('aria-pressed', 'false'); b.lastChild.textContent = t(label); };
+  b.addEventListener('click', () => {
+    const on = b.getAttribute('aria-pressed') === 'true'; stopAllListening(); if (on) return;
+    const n = typeof getStep === 'function' ? getStep() : getStep; const started = () => { b.setAttribute('aria-pressed', 'true'); b.lastChild.textContent = t('Stop'); };
+    if (GUIDE_AUDIO.includes(i18n.lang)) { const a = new Audio(`/assets/audio/guide/${i18n.lang}-${n + 1}.mp3`); guideAudio = a; a.onended = stop; a.onerror = () => { guideAudio = null; if (!speak(b, GUIDE[n], stop)) stop(); }; a.play().then(started).catch(() => { guideAudio = null; if (speak(b, GUIDE[n], stop)) started(); }); }
+    else if (speak(b, GUIDE[n], stop)) started();
+  });
+  return b;
+}
+export { stopAllListening };
 /* A capacity meter: members against the chapter's capacity, with the minimum marked. */
 export function meter(n, cap, min) {
   const pct = Math.max(0, Math.min(100, Math.round((n / Math.max(1, cap)) * 100)));

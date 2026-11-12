@@ -428,3 +428,7 @@ html{-webkit-tap-highlight-color:transparent} body{overscroll-behavior-y:none}
 .langpick.lpick--card{width:100%;max-width:none;height:56px;min-height:56px;border-radius:14px;font-size:18px;border:1px solid var(--line)}
 .vmodal{position:fixed;inset:0;z-index:200;background:rgba(10,4,8,.78);display:grid;place-items:center;padding:16px}
 .vmodal__box{width:min(520px,100%);max-height:94vh;overflow:auto;display:grid;gap:12px;padding:16px;border-radius:20px;background:var(--raised);border:1px solid var(--line)} .vmodal details{font-size:14.5px;color:var(--ink-2)} .vmodal summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:650}
+/* v101.4: one screen at a time. Language, then network, then the form. */
+.stage{max-width:1100px;margin:6px auto 0;display:grid;gap:8px} .stage[hidden],.startcard[hidden],.formwrap[hidden]{display:none!important} .stage__head{display:grid;gap:12px;max-width:820px;width:100%;margin:0 auto 6px}
+.stagenav{display:flex;gap:12px;align-items:center;margin-top:10px} .stage .stagenav{max-width:820px;width:100%;margin:18px auto 0} .stagenav .btn{min-height:48px;padding-inline:22px}
+.stage .nets{margin-top:20px}

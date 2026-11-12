@@ -1,5 +1,5 @@
 {
- "build": "v101.3",
+ "build": "v101.4",
  "questions": [
   {
    "id": "Q01",
@@ -364,8 +364,8 @@
    "id": "A04",
    "title": "Audio/video accessible",
    "status": "Partial",
-   "evidence": "Listen buttons, a one-minute captioned video guide to joining made from the real WDOS screens, a place for WODDI's own film, and the same words in text.",
-   "gap": "The guide is silent and in English only. No WODDI voice recording exists yet. Listen uses the phone's voice."
+   "evidence": "Listen buttons, a narrated, captioned video guide to joining in English, French and Portuguese made from the real WDOS screens, the same guide spoken step by step on each screen, a place for WODDI's own film, and the same words in text.",
+   "gap": "The voice is synthetic, not a recorded person, and has not been checked by a native speaker. Arabic and Swahili have no recorded voice: they use the phone's own voice where it has one, and the English video."
   },
   {
    "id": "A05",

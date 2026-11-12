@@ -1,7 +1,7 @@
 /* The front door. A newcomer picks her network by its logo, and the form that
  * opens carries that network all the way into her record. The same form
  * finishes a Google sign-up (complete = true). */
-import { h, t, clear, icon, NETS, googleMark, theme, toast, langPills, langPicker, listenBtn, i18n } from '../ui.js';
+import { h, t, clear, icon, NETS, googleMark, theme, toast, langPills, langPicker, listenBtn, guideBtn, stopAllListening, GUIDE, GUIDE_AUDIO, i18n } from '../ui.js';
 import { api } from '../api.js';
 import { app, signedIn, refreshUser, go, signOut, setLanguage } from '../app.js';
 
@@ -68,12 +68,19 @@ export async function render(root, params) {
     chosen = code; nets.classList.add('has-choice');
     for (const k of Object.keys(cards)) {
       const on = k === code; cards[k].classList.toggle('is-on', on); cards[k].querySelector('input').checked = on;
-      cards[k].querySelector('.net__pick').replaceChildren(...(on ? [icon('check', 16), 'Selected'] : ['Choose ' + k]));
+      cards[k].querySelector('.net__pick').replaceChildren(...(on ? [icon('check', 16), t('Selected')] : [t('Choose ' + k)]));
     }
+    if (plain && stage !== 'form') { netErr.textContent = ''; return; }           // everything follows in order: the form opens only after Continue
     buildForm(); wrap.classList.add('is-open');
     if (scroll) setTimeout(() => (inner.firstElementChild || inner).scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
   }
-  for (const k of Object.keys(cards)) cards[k].querySelector('.net__pick').replaceChildren('Choose ' + k);
+  /* One screen at a time: 01 language, 02 network, then the form's own steps. */
+  let stage = 'lang'; const netErr = h('p', { class: 'err', role: 'alert', style: 'text-align:center' }); let secLang = null, secNet = null;
+  function setStage(to) {
+    stage = to; stopAllListening(); if (secLang) secLang.hidden = to !== 'lang'; if (secNet) secNet.hidden = to !== 'network'; wrap.hidden = to !== 'form';
+    window.scrollTo({ top: 0, behavior: 'auto' }); const hd = (to === 'lang' ? secLang : to === 'network' ? secNet : wrap)?.querySelector('h1, h2, legend'); if (hd) { hd.setAttribute('tabindex', '-1'); hd.focus({ preventScroll: true }); }
+  }
+  for (const k of Object.keys(cards)) cards[k].querySelector('.net__pick').replaceChildren(t('Choose ' + k));
 
   /* fields live outside buildForm so switching network keeps what she typed */
   const F = {};
@@ -213,10 +220,9 @@ export async function render(root, params) {
     if (F.source) api('/public/sources').then((r) => { F.source.append(...Object.entries(r.sources).map(([k, l]) => h('option', { value: k, text: l }))); if (saved.source) F.source.value = saved.source; }).catch(() => {});
     const steps = [...form.querySelectorAll(':scope > fieldset')]; const bar = h('div', { class: 'jbar jbar--form', role: 'img' }); const stepLabel = h('small', { class: 'faint' });
     const back = h('button', { class: 'btn btn--ghost', type: 'button', text: 'Back' }); const next = h('button', { class: 'btn', type: 'button', text: 'Continue' });
-    const listen = listenBtn(() => { const fs = steps[stepNo]; return [fs.querySelector('legend')?.textContent, ...[...fs.querySelectorAll('label > span, p, small')].map((x) => x.textContent)]; });
+    const listen = plain ? guideBtn(() => stepNo + 2) : listenBtn(() => { const fs = steps[stepNo]; return [fs.querySelector('legend')?.textContent, ...[...fs.querySelectorAll('label > span, p, small')].map((x) => x.textContent)]; });
     const navRow = h('div', { class: 'stepnav' }, back, h('div', { class: 'grow' }), next); submit.remove(); navRow.append(submit);
     form.insertBefore(h('div', { class: 'stephead' }, bar, h('div', { style: 'display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap' }, stepLabel, listen)), steps[0]); form.insertBefore(navRow, err.nextSibling);
-    if (!complete) form.append(h('p', { style: 'text-align:center;margin:16px 0 0' }, h('a', { class: 'btn btn--ghost btn--s', href: '#/login', text: 'Open my dashboard' })));
     /* what must be right before she can leave a screen: said in plain words, on that screen */
     const checkStep = (fs) => {
       const has = (el) => fs.contains(el);
@@ -231,10 +237,10 @@ export async function render(root, params) {
       stepNo = Math.max(0, Math.min(steps.length - 1, i)); steps.forEach((fs, k) => { fs.hidden = k !== stepNo; });
       const lead = complete ? 0 : 2, total = steps.length + lead, at = stepNo + lead;            // 01 language and 02 network are already done on this screen
       bar.replaceChildren(...Array.from({ length: total }, (_, k) => h('span', { class: k < at ? 'is-done' : k === at ? 'is-open' : '' }))); bar.setAttribute('aria-label', `Step ${at + 1} of ${total}`);
-      stepLabel.className = 'eyebrow'; stepLabel.textContent = `${String(at + 1).padStart(2, '0')} · ${t(steps[stepNo].dataset.eyebrow || steps[stepNo].querySelector('legend').textContent)}`; back.hidden = stepNo === 0; next.hidden = stepNo === steps.length - 1; submit.hidden = stepNo !== steps.length - 1; err.textContent = ''; save();
+      stepLabel.className = 'eyebrow'; stepLabel.textContent = `${String(at + 1).padStart(2, '0')} · ${t(steps[stepNo].dataset.eyebrow || steps[stepNo].querySelector('legend').textContent)}`; back.hidden = stepNo === 0 && !plain; next.hidden = stepNo === steps.length - 1; submit.hidden = stepNo !== steps.length - 1; err.textContent = ''; save();
     }
-    back.onclick = () => show(stepNo - 1);
-    next.onclick = () => { const problem = checkStep(steps[stepNo]); if (problem) { err.textContent = problem; return; } show(stepNo + 1); form.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+    back.onclick = () => { stopAllListening(); if (stepNo === 0 && plain) setStage('network'); else show(stepNo - 1); };
+    next.onclick = () => { const problem = checkStep(steps[stepNo]); if (problem) { err.textContent = problem; return; } stopAllListening(); show(stepNo + 1); if (plain) window.scrollTo({ top: 0, behavior: 'auto' }); else form.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
     form.addEventListener('input', save); form.addEventListener('change', save);
     form.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.tagName === 'INPUT' && stepNo < steps.length - 1) { e.preventDefault(); next.click(); } });
     show(Math.min(stepNo, steps.length - 1));
@@ -243,39 +249,45 @@ export async function render(root, params) {
   }
 
   const plain = !complete && !link && !leaderForm;
-  const welcomeListen = listenBtn(['Welcome to WODDI Digital Operating System', 'Join a growing network of women across Africa and the diaspora committed to personal growth, leadership, service and lasting generational impact.', 'WODDI has two membership networks designed for different age groups. Select the network that matches your age category to access its membership registration form.', 'WODDI Good Mother Network is for women aged 30 and above.', 'WODDI Nurture NextGen Network is for women aged 18 to 29.'], 'Listen to the welcome');
   /* Video guidance: WODDI's own film when HQ has linked one, otherwise the short captioned guide that ships with WDOS. Nothing loads until she asks. */
   let guide = { video_url: '', transcript: '' };
   if (plain) api('/public/welcome').then((m) => { guide = m; }).catch(() => {});
-  const GUIDE_WORDS = ['Choose your language. You can change it at any time.', 'Choose your network. WGMN is for women aged 30 and above. WNNN is for women aged 18 to 29.', 'Type your name, your date of birth, and your phone number or email.', 'Choose your country, your state, your area and your community. WDOS uses this to place you in a chapter near you.', 'Read the short agreement and tick the box. Choose a PIN of at least six letters or numbers. No code is sent to you.', 'Your membership is created at once. You receive your membership number.', 'Your seven-day journey opens. Do one small step each day. If you miss a day, nothing is lost.', 'If you forget your PIN, choose Forgot password on the sign-in page, or open Help.'];
   function openVideo() {
-    const src = guide.video_url || '/assets/video/wdos-join-guide.mp4'; const own = !guide.video_url;
-    const v = h('video', { src, controls: true, autoplay: true, playsinline: true, preload: 'metadata', poster: own ? '/assets/video/wdos-join-guide.jpg' : null, style: 'width:100%;max-height:70vh;border-radius:14px;background:#000' });
+    const vl = GUIDE_AUDIO.includes(i18n.lang) ? i18n.lang : 'en'; const src = guide.video_url || `/assets/video/wdos-join-guide-${vl}.mp4`; const own = !guide.video_url; stopAllListening();
+    const v = h('video', { src, controls: true, autoplay: true, playsinline: true, preload: 'metadata', poster: own ? `/assets/video/wdos-join-guide-${vl}.jpg` : null, style: 'width:100%;max-height:70vh;border-radius:14px;background:#000' });
     const close = () => { v.pause(); dlg.remove(); document.removeEventListener('keydown', onKey); };
     const onKey = (e) => { if (e.key === 'Escape') close(); };
     const dlg = h('div', { class: 'vmodal', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Video guidance', onclick: (e) => { if (e.target === dlg) close(); } },
       h('div', { class: 'vmodal__box' }, h('div', { style: 'display:flex;align-items:center;gap:10px' }, h('b', { class: 'grow', text: 'Video guidance: how to join' }), h('button', { class: 'iconbtn', type: 'button', 'aria-label': 'Close the video', onclick: close }, icon('x'))),
-        v, h('details', {}, h('summary', { text: 'Read the words instead' }), own ? h('ol', { style: 'margin:8px 0 0;padding-inline-start:20px;display:grid;gap:6px' }, GUIDE_WORDS.map((w) => h('li', { text: w }))) : h('p', { text: guide.transcript || '' }))));
+        v, h('details', {}, h('summary', { text: 'Read the words instead' }), own ? h('ol', { style: 'margin:8px 0 0;padding-inline-start:20px;display:grid;gap:6px' }, GUIDE.map((w) => h('li', { text: w }))) : h('p', { text: guide.transcript || '' }))));
     document.body.append(dlg); document.addEventListener('keydown', onKey); dlg.querySelector('.iconbtn').focus();
   }
   const startLang = langPicker(setLanguage); startLang.id = 'lang-start'; startLang.classList.add('lpick', 'lpick--card');
+  const stepBar = (at) => h('div', { class: 'jbar jbar--form', role: 'img', 'aria-label': `Step ${at + 1} of 5` }, [0, 1, 2, 3, 4].map((k) => h('span', { class: k < at ? 'is-done' : k === at ? 'is-open' : '' })));
+  const headline = h(plain ? 'h2' : 'h1', { class: 'display' + (plain ? ' join__pick' : ''), text: complete ? 'One more step to join your network' : link ? `You have been invited by ${link.owner}` : leaderForm ? 'Join WODDI leadership consideration' : 'Choose the network you are joining' });
+  const lede = h('p', { class: 'lede' + (plain ? ' lede--c' : ''), text: link ? (link.position ? `To apply for the position of ${link.role} in ${link.place || 'your area'} (${link.network}). A referral records who invited you. Selection and appointment remain with WODDI Headquarters after registration, activation and assessment.` : `To join ${link.network} in ${link.place || 'your area'}.`)
+    : leaderForm ? 'You have been referred by a WODDI leader for volunteer leadership consideration. Tell us who you are, the position you are being considered for and where you will serve, then create your WDOS account to begin your three day activation.' : complete ? 'Your Google account is connected. Pick your network and tell us where you are, so your leaders can find you.' : 'WODDI has two membership networks designed for different age groups. Select the network that matches your age category to access its membership registration form. Your profile and membership records will automatically be created within your chosen network upon registration.' });
+  if (plain) {
+    secLang = h('section', { class: 'startcard' }, h('span', { class: 'startcard__pill', text: 'No Woman Is Left Out' }), stepBar(0),
+      h('h1', { class: 'startcard__title', text: 'Welcome to WODDI Digital Operating System (WDOS)' }),
+      h('p', { class: 'startcard__lead' }, h('span', { text: 'Join a growing network of women across Africa and the diaspora committed to' }), ' ', h('b', { text: 'personal growth, leadership, service and lasting generational impact.' })),
+      h('p', { class: 'startcard__sub', text: 'Choose a language before you register. You can change it at any time.' }),
+      h('label', { class: 'field', for: 'lang-start' }, h('span', { text: 'Choose your language' }), startLang),
+      h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' }, guideBtn(0), h('button', { class: 'btn btn--quiet', type: 'button', id: 'video-guide', onclick: openVideo }, icon('play', 18), 'Video guidance')),
+      h('div', { class: 'stagenav' }, h('div', { class: 'grow' }), h('button', { class: 'btn', type: 'button', id: 'start-continue', onclick: () => setStage('network') }, 'Continue', icon('chevright', 18))));
+    secNet = h('section', { class: 'stage', hidden: true }, h('div', { class: 'stage__head' }, stepBar(1), h('div', { style: 'display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap' }, h('span', { class: 'eyebrow', text: '02 · Choose network' }), guideBtn(1))),
+      headline, lede, nets, netErr,
+      h('div', { class: 'stagenav' }, h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => setStage('lang') }, 'Back'), h('div', { class: 'grow' }),
+        h('button', { class: 'btn', type: 'button', id: 'net-continue', onclick: () => { if (!chosen) { netErr.textContent = t('Touch your network first, then press Continue.'); return; } stage = 'form'; buildForm(); wrap.classList.add('is-open'); setStage('form'); } }, 'Continue', icon('chevright', 18))));
+    wrap.hidden = true;
+  }
   root.append(h('div', { class: 'public' },
     pubBar(complete ? null : h('a', { class: 'btn btn--quiet', href: '#/login', text: 'Sign in' })),
-    h('main', { class: 'join' },
-      plain ? h('section', { class: 'startcard' }, h('span', { class: 'startcard__pill', text: 'No Woman Is Left Out' }), h('div', { class: 'jbar jbar--form', role: 'img', 'aria-label': 'Step 1 of 5' }, [0, 1, 2, 3, 4].map((k) => h('span', { class: k === 0 ? 'is-open' : '' }))),
-        h('h1', { class: 'startcard__title', text: 'Welcome to WODDI Digital Operating System (WDOS)' }),
-        h('p', { class: 'startcard__lead' }, h('span', { text: 'Join a growing network of women across Africa and the diaspora committed to' }), ' ', h('b', { text: 'personal growth, leadership, service and lasting generational impact.' })),
-        h('p', { class: 'startcard__sub', text: 'Choose a language before you register. You can change it at any time.' }),
-        h('label', { class: 'field', for: 'lang-start' }, h('span', { text: 'Choose your language' }), startLang),
-        h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' }, welcomeListen, h('button', { class: 'btn btn--quiet', type: 'button', id: 'video-guide', onclick: openVideo }, icon('play', 18), 'Video guidance')),
-        h('div', { style: 'display:flex;justify-content:flex-end' }, h('button', { class: 'btn', type: 'button', onclick: () => document.querySelector('.join__pick')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }, 'Continue', icon('chevright', 18)))) : null,
-      plain ? h('span', { class: 'eyebrow', style: 'display:block;text-align:center;margin-top:22px', text: '02 · Choose network' }) : null,
-      h(plain ? 'h2' : 'h1', { class: 'display' + (plain ? ' join__pick' : ''), text: complete ? 'One more step to join your network' : link ? `You have been invited by ${link.owner}` : leaderForm ? 'Join WODDI leadership consideration' : 'Choose the network you are joining' }),
-      h('p', { class: 'lede' + (plain ? ' lede--c' : ''), text: link ? (link.position ? `To apply for the position of ${link.role} in ${link.place || 'your area'} (${link.network}). A referral records who invited you. Selection and appointment remain with WODDI Headquarters after registration, activation and assessment.` : `To join ${link.network} in ${link.place || 'your area'}.`)
-        : leaderForm ? 'You have been referred by a WODDI leader for volunteer leadership consideration. Tell us who you are, the position you are being considered for and where you will serve, then create your WDOS account to begin your three day activation.' : complete ? 'Your Google account is connected. Pick your network and tell us where you are, so your leaders can find you.' : 'WODDI has two membership networks designed for different age groups. Select the network that matches your age category to access its membership registration form. Your profile and membership records will automatically be created within your chosen network upon registration.' }),
-      nets, wrap),
+    h('main', { class: 'join' }, ...(plain ? [secLang, secNet, wrap] : [headline, lede, nets, wrap])),
     pubFoot()));
-  if (chosen) choose(chosen, false);
+  if (plain && chosen && saved.first_name) { choose(chosen, false); stage = 'form'; buildForm(); wrap.classList.add('is-open'); setStage('form'); }     // an interrupted registration opens where she stopped
+  else if (plain) { if (chosen) choose(chosen, false); }
+  else if (chosen) choose(chosen, false);
   if (link) { const otherCard = cards[link.network === 'WGMN' ? 'WNNN' : 'WGMN']; otherCard.hidden = true; otherCard.querySelector('input').disabled = true; }
 }
 export { go };
