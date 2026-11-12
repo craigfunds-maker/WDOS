@@ -8,6 +8,10 @@ route('GET', '/policy', function () {
   foreach (POLICY_DEFS as $k => $d) $rules[] = ['key' => $k, 'label' => $d[0], 'type' => $d[1], 'choices' => $d[1] === 'choice' ? $d[2] : null, 'min' => $d[1] === 'int' ? $d[2] : null, 'max' => $d[1] === 'int' ? $d[3] : null, 'value' => policy($k)];
   $own = []; foreach (rows("SELECT DISTINCT rule_key FROM policy_rules WHERE rule_key LIKE 'chapter_capacity@%'") as $r) { $cc = substr($r['rule_key'], -2); if ((int) policy($r['rule_key']) > 0) $own[] = ['country_code' => $cc, 'country' => country_name($cc), 'capacity' => (int) policy($r['rule_key'])]; }
   return ['rules' => $rules, 'capacity_by_country' => $own,
+    // what is fixed by the amendments and not a setting, with what WDOS does about it
+    'fixed' => [['OTP required', 'No. Sign-in is by phone number or email with a PIN or password, by fingerprint, or by Google.'], ['Seven-day ordinary screening', 'Fully automated. No staff step.'], ['Five entry languages', 'Arabic, English, French, Portuguese, Swahili'],
+      ['Normal chapter size', policy('chapter_min_active') . ' to ' . policy('chapter_capacity')], ['Chapter at capacity', policy('chapter_capacity') . ' active assigned members'], ['Chapter hierarchy', 'Mandatory everywhere applicable'],
+      ['Scheduled birthdays', 'Automated, in the member\'s language, unless she switches them off'], ['He-for-She access', 'Approved appointment scope only']],
     'audit' => rows("SELECT a.action, a.detail, a.created_at, COALESCE(CONCAT(u.first_name,' ',u.last_name),'WDOS') actor FROM activity_log a LEFT JOIN users u ON u.id=a.actor_id WHERE a.action IN ('policy_changed','chapter_created','chapter_merged','chapter_split','chapter_transfer','chapter_activated','chapter_placement','member_activated','journey_exception_active','journey_exception_restricted','post_hidden','post_restored','pin_reset_by_leader','appointed','seat_closed','announcement','announcement_scheduled') ORDER BY a.id DESC LIMIT 40"),
     'history' => rows("SELECT p.rule_key, p.rule_value, p.effective_from, p.note, p.created_at, COALESCE(CONCAT(u.first_name,' ',u.last_name),'WDOS') changed_by FROM policy_rules p LEFT JOIN users u ON u.id=p.changed_by ORDER BY p.id DESC LIMIT 60"),
     'decisions' => array_map(fn($d) => ['key' => $d[0], 'title' => $d[1], 'text' => $d[2], 'current' => $d[0] !== '' ? policy($d[0]) : ''], POLICY_DECISIONS)];
@@ -112,7 +116,9 @@ route('GET', '/my/chapter', function () {
   $u = require_user();
   if (!$u['chapter_id'] && !is_hq($u)) { chapter_place_user($u); $u = row('SELECT * FROM users WHERE id=?', [(int) $u['id']]); }
   $c = $u['chapter_id'] ? row('SELECT * FROM chapters WHERE id=?', [(int) $u['chapter_id']]) : null; $seat = current_seat((int) $u['id']);
-  return ['chapter' => $c ? chapter_shape($c) : null, 'pending' => $c ? '' : chapter_pending_reason($u), 'leads' => $seat && !empty($seat['chapter_id']) ? (int) $seat['chapter_id'] : 0];
+  // the other chapters of her own network in the same community: names and sizes only, never a roster
+  $sib = $u['network'] && $u['country_code'] && ($u['lga'] !== '' || $u['community'] !== '') ? array_map('chapter_shape', rows("SELECT * FROM chapters WHERE network=? AND country_code=? AND state_region=? AND lga=? AND community=? AND status NOT IN ('merged','closed') ORDER BY seq LIMIT 40", [$u['network'], $u['country_code'], $u['state_region'], $u['lga'], $u['community']])) : [];
+  return ['siblings' => $sib, 'chapter' => $c ? chapter_shape($c) : null, 'pending' => $c ? '' : chapter_pending_reason($u), 'leads' => $seat && !empty($seat['chapter_id']) ? (int) $seat['chapter_id'] : 0];
 });
 route('GET', '/chapters/(\d+)', function ($id) {
   $u = require_user(); $c = row('SELECT * FROM chapters WHERE id=?', [(int) $id]); if (!$c) fail(404, 'That chapter was not found.', 'not_found');
@@ -234,7 +240,7 @@ route('POST', '/journey/(\d+)', function ($day) {
   $answers = null;
   if ($day === 5) {
     $a = (array) (body()['answers'] ?? []); $clean = [];
-    foreach (MJ_QUESTIONS as $k => $qq) { if (!in_array($a[$k] ?? '', ['yes', 'no'], true)) fail(422, 'Please answer every question.', 'answers'); $clean[$k] = $a[$k]; }
+    foreach (MJ_QUESTIONS as $k => $qq) { if (!in_array($a[$k] ?? '', array_keys($qq[3] ?? ['yes' => 1, 'no' => 1]), true)) fail(422, 'Please answer every question.', 'answers'); $clean[$k] = $a[$k]; }
     $answers = json_encode($clean);
   }
   q('DELETE FROM member_journey_steps WHERE user_id=? AND day_no=?', [(int) $u['id'], $day]);
@@ -382,7 +388,14 @@ route('GET', '/reports/auto', function () {
       + array_map(fn($f) => (int) ($r[$f] ?? 0), ['members' => 'members', 'pending' => 'pending', 'active_7d' => 'active_7d', 'activated' => 'activated', 'on_journey' => 'on_journey', 'referrals' => 'referrals', 'leaders' => 'leaders', 'attended' => 'attended', 'tasks_open' => 'tasks_open']);
   }
   usort($rowsOut, fn($a, $b) => $b['members'] <=> $a['members']);
-  return ['level' => $next, 'rows' => array_slice($rowsOut, 0, 400), 'as_of' => now(), 'source' => 'Counted by WDOS from membership, journey, referral, seat, attendance and task records.', 'course_progress' => 'Not connected: course progress is held by the WODDI Institute.'];
+  // the whole view in four groups, as the prototype's network distribution shows it
+  $dw = str_replace("u.status='active'", '1=1', $ws);
+  $d = row("SELECT COUNT(*) total, COALESCE(SUM(u.status='active' AND u.chapter_id IS NOT NULL AND (j.status IS NULL OR j.status='active')),0) active, COALESCE(SUM(u.status='active' AND j.status IS NOT NULL AND j.status<>'active'),0) onboarding,
+                   COALESCE(SUM(u.status='active' AND u.chapter_id IS NULL AND (j.status IS NULL OR j.status='active')),0) pending, COALESCE(SUM(u.status<>'active'),0) inactive
+            FROM users u LEFT JOIN member_journeys j ON j.user_id=u.id WHERE $dw", $p);
+  $rs = []; try { $rw = is_hq($u) ? '1=1' : 'r.network=? AND o.path LIKE ?'; $rp = is_hq($u) ? [] : [$seat['network'], $seat['unit_path'] . '%'];
+    foreach (rows("SELECT r.status, COUNT(*) n FROM report_instances r JOIN org_units o ON o.id=r.org_unit_id WHERE $rw GROUP BY r.status", $rp) as $x) $rs[$x['status']] = (int) $x['n']; } catch (PDOException $e) { /* reporting not set up */ }
+  return ['distribution' => array_map('intval', $d), 'report_status' => $rs, 'level' => $next, 'rows' => array_slice($rowsOut, 0, 400), 'as_of' => now(), 'source' => 'Counted by WDOS from membership, journey, referral, seat, attendance and task records.', 'course_progress' => 'Not connected: course progress is held by the WODDI Institute.'];
 });
 
 /* ---------------------------------------- recovery in person, by a chapter leader -- */
@@ -411,6 +424,7 @@ if ($METHOD === 'GET' && $PATH === '/integration/person') {
   elseif (!empty($_GET['person_id'])) $u = row('SELECT * FROM users WHERE id=?', [(int) preg_replace('/\D/', '', (string) $_GET['person_id'])]);
   if (!$u) fail(404, 'No person with those details.', 'no_person');
   $c = $u['chapter_id'] ? row('SELECT code, name FROM chapters WHERE id=?', [(int) $u['chapter_id']]) : null;
+  set_setting('integration_last', now());
   out(['person_id' => sprintf('WDP-%07d', (int) $u['id']), 'member_no' => $u['member_no'], 'first_name' => $u['first_name'], 'last_name' => $u['last_name'], 'network' => $u['network'], 'country_code' => $u['country_code'],
     'status' => $u['status'], 'language' => $u['lang'], 'chapter' => $c, 'journey' => (string) val('SELECT status FROM member_journeys WHERE user_id=?', [(int) $u['id']])]);
 }
@@ -534,4 +548,80 @@ route('POST', '/zones/(\d+)', function ($id) {
   if (!empty(body()['end'])) { q('UPDATE chapter_zones SET ends_at=? WHERE id=?', [now(), (int) $id]); q("UPDATE chapters SET zone_id=NULL, zone='' WHERE zone_id=?", [(int) $id]); log_activity((int) $me['id'], null, 'zone_ended', (string) $id); return ['ok' => true]; }
   $sup = (int) (body()['supervisor_id'] ?? 0) ?: null; q('UPDATE chapter_zones SET supervisor_id=? WHERE id=?', [$sup, (int) $id]); log_activity((int) $me['id'], $sup, 'zone_supervisor', (string) $id);
   return ['ok' => true];
+});
+
+/* ================= UI/UX prototype and implementation handoff ================= */
+/* My 3 referrals: a member's own link and what came of it. */
+route('GET', '/my/referrals', function () { $u = require_user(); return ['referrals' => mj_referrals($u), 'invited' => mj_invited((int) $u['id'])]; });
+
+/* Leadership and jurisdiction architecture, with the titles WDOS holds for each network. */
+route('GET', '/leadership/architecture', function () {
+  require_user(); $t = []; foreach (rows('SELECT code, title_wgmn, title_wnnn FROM positions') as $p) $t[$p['code']] = [$p['title_wgmn'], $p['title_wnnn']];
+  $pair = fn($a, $b) => ['WGMN' => trim(($t[$a][0] ?? '') . ' / ' . ($t[$b][0] ?? ''), ' /'), 'WNNN' => trim(($t[$a][1] ?? '') . ' / ' . ($t[$b][1] ?? ''), ' /')];
+  $hq = ['WGMN' => 'Continental coordination / HQ oversight', 'WNNN' => 'Continental coordination / HQ oversight'];
+  return ['africa' => [['Continental', $hq], ['Country', $pair('country_rep', 'deputy_country_rep')], ['State / Region', $pair('state_coordinator', 'assistant_state_coordinator')], ['LGA / District', $pair('district_coordinator', 'assistant_district_coordinator')],
+      ['Ward / Community / Cluster', $pair('cluster_coordinator', 'assistant_cluster_coordinator')], ['Chapter', $pair('chapter_lead', 'assistant_chapter_lead')]],
+    'diaspora' => [['Country', ['WGMN' => 'Country Representative / Deputy Country Representative', 'WNNN' => 'Country Representative / Deputy Country Representative']], ['State / Province / Region (optional)', $pair('state_coordinator', 'assistant_state_coordinator')],
+      ['City', $pair('city_coordinator', 'assistant_city_coordinator')], ['Chapter', ['WGMN' => $t['chapter_lead'][0] ?? 'Chapter Coordinator', 'WNNN' => $t['chapter_lead'][1] ?? 'Chapter Lead']]],
+    'wnnn_country_title' => policy('wnnn_country_title'),
+    'extra' => [['He-for-She Champion', 'Deputy or Administrative Secretary, where approved', 'Scoped'], ['WNNN Campus Ambassador', 'Outreach role linked to a tertiary institution; not an added geographic tier', 'Functional'], ['Acting or delegated officer', 'Effective dates and explicit permissions', 'Conditional']],
+    'example' => ['USA Country Representative', 'Texas State Coordinator / Lead', 'Houston City Coordinator / Lead', 'Houston Chapter Coordinator / Lead', 'Individual members'],
+    'counts' => ['seats' => (int) val('SELECT COUNT(*) FROM seats WHERE ends_at IS NULL'), 'he_for_she' => (int) val('SELECT COUNT(*) FROM seats WHERE ends_at IS NULL AND he_for_she=1'), 'acting' => (int) val("SELECT COUNT(*) FROM seats WHERE ends_at IS NULL AND status='acting'"), 'campus' => (int) val("SELECT COUNT(*) FROM seats WHERE ends_at IS NULL AND position_code='campus_ambassador'")]];
+});
+
+/* Placement check: where would the next member from this place go? Nothing is changed. */
+route('GET', '/chapters/preview', function () {
+  $u = require_user(); if (!is_hq($u) && !current_seat((int) $u['id'])) fail(403, 'For volunteer leaders and WODDI HQ.', 'forbidden');
+  $net = in_array($_GET['network'] ?? '', ['WGMN', 'WNNN'], true) ? $_GET['network'] : ''; $cc = strtoupper((string) ($_GET['country'] ?? ''));
+  if ($net === '' || !preg_match('/^[A-Z]{2}$/', $cc)) fail(422, 'Choose the network and the country.', 'network');
+  $st = trim((string) ($_GET['state'] ?? '')); $lga = trim((string) ($_GET['lga'] ?? '')); $cm = trim((string) ($_GET['community'] ?? ''));
+  if ($lga === '' && $cm === '') return ['full' => [], 'next' => null, 'outcome' => 'Pending placement: without an LGA, city or community WDOS cannot choose a chapter. The member is registered and asked to add it.'];
+  $all = array_map('chapter_shape', rows("SELECT * FROM chapters WHERE network=? AND country_code=? AND state_region=? AND lga=? AND community=? AND status NOT IN ('merged','closed') ORDER BY seq", [$net, $cc, $st, $lga, $cm]));
+  $open = array_values(array_filter($all, fn($c) => in_array($c['status'], ['developing', 'eligible', 'active'], true) && $c['members'] < $c['capacity']));
+  $full = array_values(array_filter($all, fn($c) => $c['status'] === 'full' || $c['members'] >= $c['capacity']));
+  $outcome = $open ? 'Placed in ' . $open[0]['name'] . ' (' . $open[0]['members'] . ' of ' . $open[0]['capacity'] . ').' : (policy('chapter_auto_create') === 'on' ? 'WDOS opens the next chapter here and places the member in it.' : 'Pending placement until a chapter opens. The registration is kept.');
+  return ['full' => $full, 'next' => $open[0] ?? null, 'all' => $all, 'outcome' => $outcome, 'other_network' => (int) val('SELECT COUNT(*) FROM chapters WHERE network<>? AND country_code=? AND lga=? AND community=?', [$net, $cc, $lga, $cm])];
+});
+
+/* Approved message templates: the automatic messages, in every language, as WODDI HQ wants them worded. */
+route('GET', '/hq/templates', function () {
+  require_hq(); $ov = note_overrides(); $out = [];
+  foreach (NOTE_META as $i => $m) { $langs = ['en' => ['title' => $m[2], 'body' => $m[3], 'own' => false]];
+    foreach (NOTE_LANGS as $l) $langs[$l] = ['title' => NOTE_TEMPLATES[$i][2][$l][0] ?? '', 'body' => NOTE_TEMPLATES[$i][2][$l][1] ?? '', 'own' => false];
+    foreach ($ov[$m[0]] ?? [] as $l => $t) $langs[$l] = ['title' => $t[0], 'body' => $t[1], 'own' => true];
+    $out[] = ['key' => $m[0], 'name' => $m[1], 'placeholders' => $m[4], 'langs' => $langs]; }
+  return ['templates' => $out, 'changes' => rows("SELECT a.detail, a.created_at, CONCAT(u.first_name,' ',u.last_name) actor FROM activity_log a JOIN users u ON u.id=a.actor_id WHERE a.action='template_changed' ORDER BY a.id DESC LIMIT 15")];
+});
+route('POST', '/hq/templates', function () {
+  $me = require_hq(); $k = str_in('key', 40); $l = str_in('lang', 5); $title = trim(str_in('title', 160)); $text = trim(str_in('body', 600));
+  if (!in_array($k, array_column(NOTE_META, 0), true) || !in_array($l, array_merge(['en'], NOTE_LANGS), true)) fail(422, 'That template was not found.', 'key');
+  q('DELETE FROM message_templates WHERE tkey=? AND lang=?', [$k, $l]);
+  if ($title !== '' && $text !== '') q('INSERT INTO message_templates (tkey,lang,title,body,updated_by,updated_at) VALUES (?,?,?,?,?,?)', [$k, $l, $title, $text, (int) $me['id'], now()]);
+  log_activity((int) $me['id'], null, 'template_changed', "$k ($l)" . ($title === '' ? ': back to the built-in wording' : ''));
+  return ['ok' => true];
+});
+
+/* A member chooses to volunteer: she is marked as a volunteer and receives her development assignments. Appointment to a seat stays with HQ. */
+route('POST', '/me/volunteer', function () {
+  $u = require_user(); if (is_hq($u)) fail(422, 'HQ staff do not use this step.', 'hq');
+  if (!empty($u['volunteer_since'])) return ['ok' => true, 'already' => true];
+  q('UPDATE users SET volunteer_since=? WHERE id=?', [now(), (int) $u['id']]);
+  foreach (VOLUNTEER_ASSIGNMENTS as $i => [$t, $d]) { $tid = task_create((int) $u['id'], (int) $u['id'], $t, $d, 'normal', gmdate('Y-m-d', time() + 14 * 86400), false, 'volunteer:' . ($i + 1), false); if (!empty($u['chapter_id'])) q('UPDATE tasks SET chapter_id=? WHERE id=?', [(int) $u['chapter_id'], $tid]); }
+  log_activity((int) $u['id'], (int) $u['id'], 'volunteer_joined');
+  notify((int) $u['id'], 'task', 'Thank you for volunteering', 'Three development assignments are in your task list. Your chapter leaders can now see you as a volunteer.', '#/tasks');
+  foreach (rows('SELECT user_id FROM seats WHERE chapter_id=? AND ends_at IS NULL AND he_for_she=0', [(int) ($u['chapter_id'] ?? 0)]) as $s) notify((int) $s['user_id'], 'registration', 'A member of your chapter is now a volunteer', trim($u['first_name'] . ' ' . $u['last_name']) . ' has chosen to volunteer and has received her development assignments.', '#/chapter');
+  return ['ok' => true];
+});
+
+/* Integration health: what is connected to WDOS today, said plainly. */
+route('GET', '/hq/integrations', function () {
+  require_hq(); $last = (string) setting('integration_last', '');
+  return ['as_of' => now(), 'person_ids' => (int) val('SELECT COUNT(*) FROM users'), 'systems' => [
+    ['WGMN', 'Membership and leadership', 'In WDOS', (int) val("SELECT COUNT(*) FROM users WHERE network='WGMN'") . ' memberships'],
+    ['WNNN', 'Membership and leadership', 'In WDOS', (int) val("SELECT COUNT(*) FROM users WHERE network='WNNN'") . ' memberships'],
+    ['WODDI Community', 'Chapter spaces and engagement', 'In WDOS', (int) val('SELECT COUNT(*) FROM chapter_posts') + (int) val('SELECT COUNT(*) FROM space_posts') . ' posts, same Person ID'],
+    ['WODDI Institute', 'Learning and certification', cfg('INTEGRATION_KEY') ? ($last !== '' ? 'Connected' : 'Ready, not yet called') : 'Not connected', cfg('INTEGRATION_KEY') ? ($last !== '' ? 'The Institute last asked WDOS for a Person ID on ' . $last . ' (GMT).' : 'The key is set. The Institute has not asked WDOS for a Person ID yet.') : 'WDOS can answer who a person is. The Institute must be changed to ask, and INTEGRATION_KEY must be set in Render.'],
+    ['WIWS / WHI / WESAP', 'Events and programme summaries', 'Not connected', 'No link exists yet. The same Person ID endpoint is available to them.'],
+    ['YES / SNARP / TTT / HH', 'Restricted relevant programme data', 'Not connected', 'No link exists yet. These need their own data-sharing rules before any link.']],
+    'services' => [['Phone notifications', push_configured() ? 'On' : 'Off: the push keys are not set'], ['Email', mail_configured() ? 'On' : 'Off: BREVO_API_KEY and MAIL_FROM are not set in Render'], ['Google sign-in', cfg('GOOGLE_CLIENT_ID') ? 'On' : 'Off'], ['Person ID endpoint', cfg('INTEGRATION_KEY') ? 'On' : 'Off: INTEGRATION_KEY is not set in Render']]];
 });

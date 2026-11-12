@@ -7,10 +7,10 @@ import { kpi } from './hq.js';
 
 export async function render(root, params) {
   const box = h('div', { style: 'display:grid;gap:18px' }, h('div', { class: 'card' }, sk.rows(5))); root.append(box);
-  let id = params.id;
+  let id = params.id, sibs0 = [];
   if (!id) {
     let m; try { m = await api('/my/chapter'); } catch (e) { box.replaceChildren(h('div', { class: 'card' }, empty('x', 'Your chapter did not load', e.message))); return; }
-    id = m.chapter ? m.chapter.id : m.leads;
+    id = m.chapter ? m.chapter.id : m.leads; sibs0 = m.siblings || [];
     if (!id) { box.replaceChildren(card('My chapter', null, h('div', { style: 'display:grid;gap:12px' }, h('div', { class: 'notice' }, h('b', { text: app.user.is_hq ? 'HQ staff are not placed in a chapter' : 'Your chapter placement is pending' }), h('p', { style: 'margin:6px 0 0', text: app.user.is_hq ? 'Open the chapter directory to see every chapter.' : m.pending })), h('div', {}, h('a', { class: 'btn btn--quiet', href: app.user.is_hq || app.user.is_leader ? '#/chapters' : '#/settings', text: app.user.is_hq || app.user.is_leader ? 'Open the chapter directory' : 'Open Settings' }))))); return; }
   }
   async function load() {
@@ -59,6 +59,7 @@ export async function render(root, params) {
           c.status === 'suspended' ? setStatus('open', 'Reopen this chapter', false) : setStatus('suspended', 'Suspend', true), setStatus('closed', 'Close this chapter', true))));
       if (d.history && d.history.length) parts.push(card('Membership history', 'Women who were in this chapter before', h('div', { class: 'list' }, d.history.map((x) => h('div', {}, h('div', { class: 'grow' }, h('b', { text: `${x.first_name} ${x.last_name}` }), h('small', { text: [`${fmtDate(x.started_at)} to ${fmtDate(x.ended_at)}`, x.end_reason || 'left', x.reason].filter(Boolean).join(' · ') })))))));
     }
+    if (!params.id && sibs0.length) parts.push(card('Chapters in my community', 'Your network\'s chapters where you live. Sizes only; each chapter\'s members are seen by that chapter alone.', h('div', { class: 'list list--stack' }, sibs0.map((x) => h('div', { class: 'list__link' }, h('div', { class: 'nrow__ico' }, icon('users', 18)), h('div', { class: 'grow' }, h('b', { text: x.name + (x.id === c.id ? ' (yours)' : '') }), h('div', { style: 'max-width:240px;margin-top:6px' }, meter(x.members, x.capacity, x.minimum))), h('div', { class: 'tagrow' }, h('span', { class: 'tag ' + CH_TAG[x.status], text: x.status_label }), h('span', { class: 'tag num', text: `${x.members}/${x.capacity}` })))))));
     if (d.access === 'member') { const hb = h('div', {}, sk.rows(1)); parts.push(card('My chapter history', 'Every chapter you have been in', hb)); api(`/members/${app.user.id}/chapters`).then((r) => hb.replaceChildren(h('div', { class: 'list' }, r.items.map((x) => h('div', {}, h('div', { class: 'grow' }, h('b', { text: x.name }), h('small', { text: [fmtDate(x.started_at) + (x.ended_at ? ' to ' + fmtDate(x.ended_at) : ' to today'), x.reason].filter(Boolean).join(' · ') }))))))).catch(() => hb.replaceChildren()); }
     parts.push(h('small', { class: 'faint', text: 'Figures as of ' + fmtDate(d.as_of, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + ' (GMT), counted from membership records.' }));
     box.replaceChildren(...parts);

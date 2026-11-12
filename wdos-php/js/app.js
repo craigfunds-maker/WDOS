@@ -1,5 +1,5 @@
 /* WDOS front end entry: session, router, shell (collapsible sidebar, top bar, notification bell). */
-import { h, clear, icon, avatar, toast, ago, theme, empty, i18n, t } from './ui.js';
+import { h, clear, icon, avatar, toast, ago, theme, empty, i18n, t, langPicker } from './ui.js';
 import { pushSync } from './api.js';
 import { api } from './api.js';
 
@@ -16,7 +16,7 @@ const pages = {
   hq: () => import('./pages/hq.js'), members: () => import('./pages/members.js'), announcements: () => import('./pages/announcements.js'),
   leader: () => import('./pages/leader.js'), home: () => import('./pages/home.js'),
   reporting: () => import('./pages/reporting.js'), tasks: () => import('./pages/tasks.js'), meetings: () => import('./pages/meetings.js'), structure: () => import('./pages/structure.js'),
-  onboarding: () => import('./pages/onboarding.js'), referrals: () => import('./pages/referrals.js'), activation: () => import('./pages/activation.js'), inspiration: () => import('./pages/inspiration.js'), messages: () => import('./pages/messages.js'), journey: () => import('./pages/journey.js'), community: () => import('./pages/community.js'), chapter: () => import('./pages/chapter.js'), chapters: () => import('./pages/chapters.js'), rules: () => import('./pages/rules.js'), library: () => import('./pages/library.js'),
+  onboarding: () => import('./pages/onboarding.js'), referrals: () => import('./pages/referrals.js'), activation: () => import('./pages/activation.js'), inspiration: () => import('./pages/inspiration.js'), messages: () => import('./pages/messages.js'), journey: () => import('./pages/journey.js'), community: () => import('./pages/community.js'), leadership: () => import('./pages/leadership.js'), reports: () => import('./pages/reports.js'), communications: () => import('./pages/communications.js'), institute: () => import('./pages/institute.js'), integrations: () => import('./pages/integrations.js'), invite: () => import('./pages/invite.js'), chapter: () => import('./pages/chapter.js'), chapters: () => import('./pages/chapters.js'), rules: () => import('./pages/rules.js'), library: () => import('./pages/library.js'),
   notifications: () => import('./pages/notifications.js'), settings: () => import('./pages/settings.js'),
 };
 function resolve(path) {
@@ -42,6 +42,12 @@ function resolve(path) {
     case 'library': return sh('library', 'Document library');
     case 'journey': return sh('journey', 'My seven-day journey');
     case 'community': return sh('community', 'WODDI Community', { tab: seg[1] });
+    case 'leadership': return sh('leadership', 'Leadership', { tab: seg[1] });
+    case 'reports': return (u.is_hq || (u.is_leader && !u.he_for_she)) ? sh('reports', 'Reports') : sh('home', 'Home');
+    case 'communications': return u.is_hq ? sh('communications', 'Communications') : sh('announcements', 'Announcements', {});
+    case 'institute': return sh('institute', 'Institute');
+    case 'integrations': return u.is_hq ? sh('integrations', 'Integrations') : sh('home', 'Home');
+    case 'invite': return sh('invite', 'My 3 referrals');
     case 'chapter': return sh('chapter', seg[1] ? 'Chapter' : 'My chapter', { id: seg[1] });
     case 'chapters': return (u.is_hq || u.is_leader || u.zone_supervisor) ? sh('chapters', 'Chapters') : sh('chapter', 'My chapter', {});
     case 'rules': return u.is_hq ? sh('rules', 'System rules') : sh('home', 'Home');
@@ -87,10 +93,10 @@ export function signedIn(user) { app.user = user; shellEls = null; startPulse();
 
 /* ----------------------------------------------------------------- shell -- */
 function navItems() {
-  const u = app.user; const comm = [['Communication'], ['#/community', 'spark', 'WODDI Community'], ['#/messages', 'send', u.is_hq ? 'Messages' : 'Messages with HQ'], ['#/announcements', 'megaphone', 'Announcements'], ['#/library', 'book', 'Document library'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
-  if (u.is_hq) return [['Overview'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/leaders', 'eye', 'Leader dashboards'], ['#/structure', 'tree', 'Leadership structure'], ['#/chapters', 'grid', 'Chapters'], ['#/referrals', 'route', 'Referral and activation'], ['#/rules', 'sliders', 'System rules'], ['Work'], ['#/reporting', 'chart', 'Reporting'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ['Communication'], ['#/inspiration', 'award', 'Inspiration messages'], ...comm.slice(1)];
-  if (u.is_leader) return [['My leadership'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'My members'], ['#/chapters', 'grid', 'Chapters'], u.chapter || (u.seat && u.seat.level === 'chapter') ? ['#/chapter', 'users', 'My chapter'] : null, ['#/structure', 'tree', 'Leadership structure'], ['#/referrals', 'route', 'Referral links'], ['#/onboarding', 'book', 'Onboarding'], ['Work'], ['#/reporting', 'chart', 'Reporting'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ...comm].filter(Boolean);
-  return [['My network'], ['#/', 'grid', 'Home'], u.journey ? ['#/journey', 'route', 'My seven-day journey'] : null, ['#/chapter', 'users', 'My chapter'], u.zone_supervisor ? ['#/chapters', 'grid', 'My zone chapters'] : null, u.todo && u.todo.activation ? ['#/activation', 'route', 'My Activation'] : null, ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ...comm].filter(Boolean);
+  const u = app.user; const comm = [['Communication'], ['#/community', 'spark', 'WODDI Community'], ['#/institute', 'award', 'Institute'], ['#/messages', 'send', u.is_hq ? 'Messages' : 'Messages with HQ'], ['#/announcements', 'megaphone', 'Announcements'], ['#/library', 'book', 'Document library'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/settings', 'sliders', 'Settings']];
+  if (u.is_hq) return [['Overview'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/leaders', 'eye', 'Leader dashboards'], ['#/leadership', 'tree', 'Leadership'], ['#/structure', 'users', 'Who holds each seat'], ['#/chapters', 'grid', 'Chapters'], ['#/referrals', 'route', 'Referral and activation'], ['Work'], ['#/reports', 'chart', 'Reports'], ['#/reporting', 'book', 'Leader reports'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ['Communication'], ['#/communications', 'megaphone', 'Communications'], ['#/inspiration', 'award', 'Inspiration messages'], ...comm.slice(1, -2), ['Administration'], ['#/rules', 'sliders', 'System rules'], ['#/integrations', 'link', 'Integrations'], ...comm.slice(-2)];
+  if (u.is_leader) return [['My leadership'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'My members'], ['#/chapters', 'grid', 'Chapters'], u.chapter || (u.seat && u.seat.level === 'chapter') ? ['#/chapter', 'users', 'My chapter'] : null, ['#/leadership', 'tree', 'Leadership'], ['#/structure', 'users', 'Who holds each seat'], ['#/referrals', 'route', 'Referral links'], ['#/onboarding', 'book', 'Onboarding'], ['Work'], u.he_for_she ? null : ['#/reports', 'chart', 'Reports'], ['#/reporting', 'book', 'My reports'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ...comm].filter(Boolean);
+  return [['My network'], ['#/', 'grid', 'Home'], u.journey ? ['#/journey', 'route', 'My seven-day journey'] : null, ['#/chapter', 'users', 'My chapter'], ['#/invite', 'send', 'My 3 referrals'], ['#/leadership', 'tree', 'Leadership'], u.zone_supervisor ? ['#/chapters', 'grid', 'My zone chapters'] : null, u.todo && u.todo.activation ? ['#/activation', 'route', 'My Activation'] : null, ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ...comm].filter(Boolean);
 }
 function markNav(path) {
   const first = '#/' + (path.split('/').filter(Boolean)[0] || '');
@@ -107,6 +113,7 @@ function buildShell() {
   const side = h('aside', { class: 'side', id: 'side' },
     h('div', { class: 'side__brand' }, h('img', { class: 'side__mark', src: u.is_hq ? '/assets/icons/icon-192.png' : disc, alt: '' }), h('div', { class: 'side__word' }, h('b', { text: 'WDOS' }), h('span', { text: u.is_hq ? 'WODDI Headquarters' : (u.network || '') + ' network' }))),
     nav,
+    h('div', { class: 'side__motto' }, h('b', { text: 'No Woman Is Left Out' }), h('span', { text: 'Low-data · Chapter-first · Automated support' })),
     h('div', { class: 'side__foot' }, h('a', { class: 'side__me', href: '#/settings', style: 'color:inherit;text-decoration:none' }, avatar(u, 38), h('div', {}, h('b', { text: `${u.first_name} ${u.last_name}` }), h('small', { text: u.seat ? u.seat.title : u.is_hq ? 'HQ administrator' : u.member_no || '' }))), toggle));
   const title = h('h1', {});
   const badge = h('i', { class: 'badge', hidden: true, 'data-unread': '' });
@@ -118,7 +125,7 @@ function buildShell() {
   const themeBtn = h('button', { class: 'iconbtn', type: 'button', 'aria-label': 'Switch between dark and light', onclick: () => { theme.toggle(); themeBtn.replaceChildren(icon(theme.get() === 'light' ? 'moon' : 'sun')); } }, icon(theme.get() === 'light' ? 'moon' : 'sun'));
   const page = h('div', { class: 'page', id: 'page' });
   const main = h('div', { class: 'main' },
-    h('header', { class: 'top' }, h('button', { class: 'iconbtn top__menu', type: 'button', 'aria-label': 'Open the menu', 'aria-controls': 'side', onclick: () => shell.classList.add('nav-open') }, icon('menu')), title, h('div', { class: 'grow' }), themeBtn, bellWrap, meWrap),
+    h('header', { class: 'top' }, h('button', { class: 'iconbtn top__menu', type: 'button', 'aria-label': 'Open the menu', 'aria-controls': 'side', onclick: () => shell.classList.add('nav-open') }, icon('menu')), title, h('div', { class: 'grow' }), langPicker(setLanguage), themeBtn, bellWrap, meWrap),
     h('main', {}, page));
   /* On a phone the main destinations sit in a bar at the bottom, as in a native app. "More" opens the full menu. */
   const tabs = u.is_hq ? [['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/reporting', 'chart', 'Reporting'], ['#/notifications', 'bell', 'Alerts']]

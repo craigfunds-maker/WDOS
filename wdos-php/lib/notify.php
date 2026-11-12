@@ -32,7 +32,7 @@ function notify_prefs(int $userId): array {
 function notify(int $userId, string $kind, string $title, string $body = '', string $url = '#/notifications'): ?int {
   $p = notify_prefs($userId)[$kind] ?? ['in_app' => true, 'push' => true];
   // in her own language where WDOS has the message in it
-  try { $lang = (string) val('SELECT lang FROM users WHERE id=?', [$userId]); if ($lang !== '' && $lang !== 'en' && ($tr = note_in($lang, $title, $body))) [$title, $body] = $tr; } catch (PDOException $e) { /* before the language column exists */ }
+  try { $lang = (string) val('SELECT lang FROM users WHERE id=?', [$userId]); if (($tr = note_in($lang !== '' ? $lang : 'en', $title, $body))) [$title, $body] = $tr; } catch (PDOException $e) { /* before the language column exists */ }
   $id = null;
   if ($p['in_app'] || $kind === 'account') {
     $id = ins('INSERT INTO notifications (user_id,kind,title,body,url,created_at) VALUES (?,?,?,?,?,?)',
@@ -47,7 +47,7 @@ function notify(int $userId, string $kind, string $title, string $body = '', str
 /** File the same notification for many members with two statements, not thousands. */
 function notify_many(string $whereSql, array $params, string $kind, string $title, string $body, string $url, ?array $texts = null): int {
   // $texts: the same message in other languages, [lang => [title, body]]. Each member gets the one in her language; the rest get the main one.
-  if ($texts === null) { $texts = []; foreach (NOTE_LANGS as $l) if ($tr = note_in($l, $title, $body)) $texts[$l] = $tr; }
+  if ($texts === null) { $texts = []; foreach (NOTE_LANGS as $l) if ($tr = note_in($l, $title, $body)) $texts[$l] = $tr; if ($en = note_in('en', $title, $body)) [$title, $body] = $en; }
   if ($texts) {
     $n = 0; $langs = array_keys($texts);
     foreach ($texts as $l => [$lt, $lb]) $n += notify_many("($whereSql) AND u.lang=?", array_merge($params, [$l]), $kind, $lt, $lb, $url, []);

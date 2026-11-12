@@ -33,6 +33,7 @@ const POLICY_DECISIONS = [
   ['', 'Exceptional security and safeguarding cases', 'Possible duplicate accounts are held in an exceptions list for HQ. They are never removed or sanctioned automatically.'],
   ['', 'Official WGMN and WNNN eligibility criteria', 'WDOS applies age today: WNNN 18 to 29, WGMN 30 and above. The chapter specification asks management to confirm the official criteria.'],
   ['', 'Who approves new chapters, activation and transfers', 'Today WODDI HQ activates an eligible chapter, moves members between chapters and records capacity exceptions. Chapters open automatically. Management is asked to confirm the approving roles.'],
+  ['', 'Approved translations, audio and accessibility review', 'Every translation, the journey wording and the Listen voice are working versions. The prototype asks for professional approval of language, source audio and video, and an accessibility review before launch.'],
   ['recovery_by_leader', 'Account recovery without OTP', 'Built: a member who signs in with her fingerprint or face can choose a new PIN herself; a member with email resets by link; HQ can reset anyone. Also built but switched off until approved: a chapter leader gives a temporary PIN in person.'],
 ];
 
@@ -245,20 +246,23 @@ function chapter_scope_sql(array $seat): array {
 /* ---- the seven-day member journey ------------------------------------------- */
 /* Day titles and what each day does follow the table in section 3 of the amendments document.
  * The sentences a member reads are working text: they need the Founder's approval and reviewed translations. */
+/* Day names and the one-line summary of each day are the Founder's, from the UI/UX prototype. The longer guidance under each is working text. */
 const MJ_DAYS = [
-  1 => ['Welcome to WODDI', 'auto', 'Your account is created and your membership number is ready. Your seven days start today. Each day there is one short step. You can read it or press Listen.'],
-  2 => ['Know WODDI', 'read', 'WODDI brings women together to grow, lead and serve, so that no woman is left out. Your network is your home in WODDI. Today, read or listen to this short introduction, then press Done.'],
-  3 => ['Invite three women', 'referral', 'WODDI grows when each woman brings three more. Share your own link with three women you know. You can see here how many opened your link, how many registered, and how many completed their seven days.'],
-  4 => ['Meet your chapter', 'chapter', 'A chapter is your local WODDI family of 30 to 50 women in your own network. WDOS places you in a chapter near you by itself. Today, see your chapter and its space.'],
-  5 => ['A few questions', 'screening', 'Answer these short questions yourself. There is no phone call and nobody needs to approve you. If an answer needs correcting, WDOS tells you what to do and you can answer again.'],
-  6 => ['Learn and serve', 'read', 'The WODDI Institute offers learning for every member, and volunteers help their chapter and community. Today, read or listen to how you can learn and serve, and finish any step you missed.'],
-  7 => ['Your result', 'final', 'WDOS checks your seven days by itself. If everything is complete you become an active member straight away. If something is missing, WDOS shows you exactly what, and you can finish it and check again.'],
+  1 => ['Welcome and account', 'auto', 'Your account is created and your membership number is ready. Your seven days start today. Each day there is one short step. You can read it or press Listen.', 'Create a membership record and begin onboarding without an OTP.'],
+  2 => ['Mission and values', 'read', 'WODDI brings women together to grow, lead and serve, so that no woman is left out. Your network is your home in WODDI. Today, read or listen to this short introduction, then press Done.', 'Explore WODDI\'s mission and the values of your selected network.'],
+  3 => ['Three referrals', 'referral', 'WODDI grows when each woman brings three more. Share your own link with three women you know. You can see here how many opened your link, how many registered, and how many completed their seven days.', 'Share your personal link; invitations, registrations and verified referrals are tracked separately.'],
+  4 => ['Community and chapter', 'chapter', 'A chapter is your local WODDI family of 30 to 50 women in your own network. WDOS places you in a chapter near you by itself. Today, see your chapter and its space.', 'See your allocated chapter or a visible developing or pending status.'],
+  5 => ['Self-service screening', 'screening', 'Answer these short questions yourself. There is no phone call and nobody needs to approve you. If an answer needs correcting, WDOS tells you what to do and you can answer again.', 'Complete short plain-language questions with text or audio support.'],
+  6 => ['Institute introduction', 'read', 'The WODDI Institute offers learning for every member, and volunteers help their chapter and community. Today, read or listen to how you can learn and serve, and finish any step you missed.', 'Find volunteer development courses and complete outstanding requirements.'],
+  7 => ['Automatic activation', 'final', 'WDOS checks your seven days by itself. If everything is complete you become an active member straight away. If something is missing, WDOS shows you exactly what, and you can finish it and check again.', 'WDOS applies the approved mandatory rules automatically and explains any unfinished requirements.'],
 ];
 const MJ_QUESTIONS = [
   'own_name' => ['Is the name on your profile your own name?', 'yes', 'Open Settings, correct your name, then answer again.'],
   'location' => ['Is the place on your profile where you live now?', 'yes', 'Open Settings, correct your LGA, city or community, then answer again.'],
   'conduct' => ['Do you agree to follow the WODDI Code of Conduct?', 'yes', 'You can read the Code of Conduct in the Document library. Membership needs your agreement to it.'],
   'only_account' => ['Is this your only WDOS account?', 'yes', 'Please sign in to your first account instead of this one. If you cannot, send a message to WODDI HQ.'],
+  // from the prototype: a question with one right answer, so the member shows she knows what WODDI expects
+  'expect' => ['What does WODDI expect of volunteers?', 'service', 'WODDI volunteers serve responsibly and follow approved guidelines. Nobody may collect compulsory local dues. Choose the answer again.', ['service' => 'Serve responsibly and follow approved guidelines', 'dues' => 'Collect compulsory local dues']],
 ];
 
 function mj_start(int $userId): void {
@@ -281,6 +285,11 @@ function mj_referrals(array $u): array {
     'opened' => (int) val('SELECT COUNT(*) FROM referral_visits v JOIN referral_links l ON l.id=v.link_id WHERE l.owner_id=?', [(int) $u['id']]),
     'registered' => (int) val('SELECT COUNT(*) FROM referrals WHERE referrer_id=?', [(int) $u['id']]),
     'verified' => (int) val("SELECT COUNT(*) FROM referrals r JOIN member_journeys j ON j.user_id=r.user_id WHERE r.referrer_id=? AND j.status='active'", [(int) $u['id']])];
+}
+/** The women who registered through this person's link: first name, surname initial, and whether they finished their seven days. */
+function mj_invited(int $userId): array {
+  return array_map(fn($r) => ['name' => $r['first_name'] . ' ' . mb_substr($r['last_name'], 0, 1) . '.', 'joined' => $r['created_at'], 'status' => $r['st'] === 'active' ? 'Completed seven days' : ($r['st'] ? 'On her seven days' : 'Registered')],
+    rows('SELECT u.first_name, u.last_name, r.created_at, j.status st FROM referrals r JOIN users u ON u.id=r.user_id LEFT JOIN member_journeys j ON j.user_id=r.user_id WHERE r.referrer_id=? ORDER BY r.created_at DESC LIMIT 50', [$userId]));
 }
 function mj_open_days(array $j): int {
   $total = count(MJ_DAYS);
@@ -322,12 +331,12 @@ function mj_state(array $u): array {
   if (!$j) return ['journey' => null];
   $done = []; foreach (rows('SELECT day_no, answers, done_at FROM member_journey_steps WHERE user_id=?', [(int) $u['id']]) as $s) $done[(int) $s['day_no']] = $s;
   $open = mj_open_days($j); $days = [];
-  foreach (MJ_DAYS as $n => $d) $days[] = ['day' => $n, 'title' => $d[0], 'kind' => $d[1], 'text' => $d[2], 'done' => isset($done[$n]), 'done_at' => $done[$n]['done_at'] ?? null, 'open' => $n <= $open,
+  foreach (MJ_DAYS as $n => $d) $days[] = ['day' => $n, 'title' => $d[0], 'kind' => $d[1], 'text' => $d[2], 'summary' => $d[3], 'done' => isset($done[$n]), 'done_at' => $done[$n]['done_at'] ?? null, 'open' => $n <= $open,
     'opens_on' => gmdate('Y-m-d', strtotime($j['started_at'] . ' UTC') + ($n - 1) * 86400), 'answers' => $n === 5 && isset($done[5]) ? (json_decode((string) $done[5]['answers'], true) ?: null) : null];
   $ch = $u['chapter_id'] ? row('SELECT * FROM chapters WHERE id=?', [(int) $u['chapter_id']]) : null;
   return ['journey' => ['status' => $j['status'], 'started_at' => $j['started_at'], 'deadline' => $j['deadline'], 'extensions' => (int) $j['extensions'], 'attempts' => (int) $j['attempts'], 'reasons' => json_decode((string) $j['reasons'], true) ?: [],
       'done' => count($done), 'total' => count(MJ_DAYS), 'open_days' => $open],
-    'days' => $days, 'questions' => array_map(fn($k, $v) => ['key' => $k, 'text' => $v[0]], array_keys(MJ_QUESTIONS), MJ_QUESTIONS),
+    'days' => $days, 'questions' => array_map(fn($k, $v) => ['key' => $k, 'text' => $v[0], 'options' => $v[3] ?? ['yes' => 'Yes', 'no' => 'No']], array_keys(MJ_QUESTIONS), MJ_QUESTIONS),
     'referrals' => mj_referrals($u), 'chapter' => $ch ? chapter_shape($ch) : null, 'chapter_pending' => $ch ? '' : chapter_pending_reason($u)];
 }
 /** Daily: one reminder for unfinished open steps, the automatic final check, and the automatic extension. Nothing waits for a person. */
@@ -367,7 +376,7 @@ function amend_brief(array $u): array {
     $j = row('SELECT status FROM member_journeys WHERE user_id=?', [(int) $u['id']]);
     return ['chapter' => $c ? ['id' => (int) $c['id'], 'name' => $c['name'], 'code' => $c['code'], 'status' => $c['status'], 'members' => (int) $c['members']] : null,
       'journey' => $j ? ['status' => $j['status'], 'done' => (int) val('SELECT COUNT(*) FROM member_journey_steps WHERE user_id=?', [(int) $u['id']]), 'total' => count(MJ_DAYS)] : null,
-      'lang' => $u['lang'] ?? 'en', 'diaspora' => is_diaspora($u['country_code']), 'person_id' => sprintf('WDP-%07d', (int) $u['id']), 'ward' => $u['ward'] ?? '', 'zone_supervisor' => (bool) val('SELECT 1 FROM chapter_zones WHERE supervisor_id=? AND ends_at IS NULL LIMIT 1', [(int) $u['id']])];
+      'lang' => $u['lang'] ?? 'en', 'diaspora' => is_diaspora($u['country_code']), 'person_id' => sprintf('WDP-%07d', (int) $u['id']), 'ward' => $u['ward'] ?? '', 'zone_supervisor' => (bool) val('SELECT 1 FROM chapter_zones WHERE supervisor_id=? AND ends_at IS NULL LIMIT 1', [(int) $u['id']]), 'volunteer' => !empty($u['volunteer_since'])];
   } catch (PDOException $e) { return ['chapter' => null, 'journey' => null, 'lang' => 'en', 'diaspora' => false]; }
 }
 
@@ -401,10 +410,14 @@ function audience_from_request(array $me): array {
   if ($a['community'] !== '') { $w[] = 'u.community=?'; $p[] = $a['community']; }
   if ($a['chapter']) { $w[] = 'u.chapter_id=?'; $p[] = $a['chapter']; }
   if ($a['lang'] !== '') { $w[] = 'u.lang=?'; $p[] = $a['lang']; }
+  // one named member: the narrowest scope of all (HQ only)
+  $a['user'] = $hq && (int) ($b['member'] ?? 0) ? (int) $b['member'] : null;
+  if ($a['user']) { $w = ["u.status='active'", 'u.id=?']; $p = [$a['user']]; }
   return [$a, implode(' AND ', $w), $p];
 }
 /** The audience of a stored announcement as SQL on users u. */
 function audience_where(array $a): array {
+  if (!empty($a['audience_user'])) return ["u.status='active' AND u.id=?", [(int) $a['audience_user']]];
   $w = ["u.status='active'"]; $p = [];
   if ($a['audience_network'] !== 'ALL') { $w[] = 'u.network=?'; $p[] = $a['audience_network']; }
   if ($a['audience_role'] === 'leaders') $w[] = 'EXISTS (SELECT 1 FROM seats s WHERE s.user_id=u.id AND s.ends_at IS NULL)';
@@ -430,8 +443,8 @@ function announcement_send(array $me): array {
   $tone = in_array(body()['tone'] ?? '', ['celebration', 'gratitude', 'courage', 'calm', 'growth', 'purpose'], true) ? body()['tone'] : '';
   $when = null; $raw = trim((string) (body()['scheduled_at'] ?? ''));
   if ($raw !== '') { $ts = strtotime($raw); if (!$ts || $ts < time() - 60) fail(422, 'Choose a time in the future, or leave it empty to send now.', 'scheduled_at'); if ($ts > time() + 60) $when = gmdate('Y-m-d H:i:s', $ts); }
-  $id = ins('INSERT INTO announcements (author_id,title,body,audience_network,audience_role,audience_country,audience_state,audience_lga,audience_community,audience_chapter,audience_lang,tone,scheduled_at,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-    [(int) $me['id'], $title, $text, $a['network'], $a['role'], $a['country'], $a['state'], $a['lga'], $a['community'], $a['chapter'], $a['lang'], $tone, $when, now()]);
+  $id = ins('INSERT INTO announcements (author_id,title,body,audience_network,audience_role,audience_country,audience_state,audience_lga,audience_community,audience_chapter,audience_lang,audience_user,tone,scheduled_at,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+    [(int) $me['id'], $title, $text, $a['network'], $a['role'], $a['country'], $a['state'], $a['lga'], $a['community'], $a['chapter'], $a['lang'], $a['user'], $tone, $when, now()]);
   foreach ((array) (body()['texts'] ?? []) as $l => $t) {
     if (!in_array($l, NOTE_LANGS, true) || !is_array($t)) continue; $lt = mb_substr(trim((string) ($t['title'] ?? '')), 0, 160); $lb = mb_substr(trim((string) ($t['body'] ?? '')), 0, 4000);
     if ($lt !== '' && $lb !== '') q('INSERT INTO announcement_texts (announcement_id,lang,title,body) VALUES (?,?,?,?)', [$id, $l, $lt, $lb]);
@@ -485,3 +498,23 @@ function announcements_due(): int {
   $n = 0; foreach (rows('SELECT id FROM announcements WHERE sent_at IS NULL AND scheduled_at IS NOT NULL AND scheduled_at<=? ORDER BY scheduled_at LIMIT 10', [now()]) as $a) { announcement_deliver((int) $a['id']); $n++; }
   return $n;
 }
+
+/* ---- UI/UX prototype and handoff ---------------------------------------------- */
+/** The leader's workspace figures from the prototype: active chapters, open tasks and the share of reports submitted, all within her own scope. */
+function leader_workspace(array $u, array $seat): array {
+  try {
+    [$cw, $cp] = chapter_scope_sql($seat);
+    $ch = row("SELECT COUNT(*) total, COALESCE(SUM(c.status='full'),0) at_capacity, COALESCE(SUM(c.status='developing'),0) developing FROM chapters c WHERE c.status NOT IN ('merged','closed') AND ($cw)", $cp);
+    $tasks = row("SELECT COUNT(*) open_tasks, COALESCE(SUM(t.due_on<?),0) overdue FROM tasks t WHERE t.status IN ('open','in_progress','submitted') AND (t.assignee_id=? OR t.assigned_by=?)", [gmdate('Y-m-d'), (int) $seat['user_id'], (int) $seat['user_id']]);
+    $rep = row("SELECT COUNT(*) due, COALESCE(SUM(r.submitted_at IS NOT NULL),0) submitted FROM report_instances r JOIN org_units o ON o.id=r.org_unit_id WHERE r.network=? AND o.path LIKE ? AND r.due_on IS NOT NULL AND r.due_on>=? AND r.due_on<=?", [$seat['network'], $seat['unit_path'] . '%', gmdate('Y-m-d', time() - 90 * 86400), gmdate('Y-m-d')]);
+    return ['chapters' => (int) $ch['total'], 'at_capacity' => (int) $ch['at_capacity'], 'developing' => (int) $ch['developing'], 'open_tasks' => (int) $tasks['open_tasks'], 'overdue' => (int) $tasks['overdue'],
+      'reports_due' => (int) $rep['due'], 'reports_submitted' => (int) $rep['submitted'], 'reports_rate' => (int) $rep['due'] ? (int) round(100 * (int) $rep['submitted'] / (int) $rep['due']) : null,
+      'scope' => seat_title($seat), 'he_for_she' => (int) ($seat['he_for_she'] ?? 0) === 1, 'campus' => $seat['position_code'] === 'campus_ambassador', 'acting' => $seat['status'] === 'acting', 'since' => $seat['starts_at'], 'as_of' => now()];
+  } catch (PDOException $e) { return ['chapters' => 0, 'open_tasks' => 0, 'overdue' => 0, 'reports_rate' => null, 'scope' => seat_title($seat)]; }
+}
+/** The development assignments a new volunteer receives. Titles point at real WDOS documents and the Institute. */
+const VOLUNTEER_ASSIGNMENTS = [
+  ['Read the WODDI Code of Conduct', 'Open the Document library and read the Code of Conduct.'],
+  ['Read the Volunteer Leadership Manual', 'Open the Document library and read the Volunteer Leadership Manual.'],
+  ['Begin the volunteer pathway at the WODDI Institute', 'Open the Institute page in WDOS and start the volunteer pathway: service and teamwork.'],
+];

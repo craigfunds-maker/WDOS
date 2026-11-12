@@ -45,19 +45,44 @@ const NOTE_TEMPLATES = [
     'fr' => ['Vous avez été placée dans un chapitre', 'Votre chapitre est {1}. Ouvrez-le pour rencontrer votre chapitre.'],
     'pt' => ['Foi colocada num capítulo', 'O seu capítulo é {1}. Abra-o para conhecer o seu capítulo.'],
     'sw' => ['Umepangwa kwenye tawi', 'Tawi lako ni {1}. Lifungue ili ukutane na tawi lako.']]],
+  ['/^Due today: (.+)$/u', '/^This task is due today\./u', [
+    'ar' => ['مستحقة اليوم: {1}', 'هذه المهمة مستحقة اليوم.'],
+    'fr' => ['À faire aujourd\'hui : {1}', 'Cette tâche est à rendre aujourd\'hui.'],
+    'pt' => ['Vence hoje: {1}', 'Esta tarefa vence hoje.'],
+    'sw' => ['Inatakiwa leo: {1}', 'Kazi hii inatakiwa kukamilika leo.']]],
   ['/^Add your photograph$/u', '/^(.+), your profile still has no photograph\./u', [
     'ar' => ['أضيفي صورتك', '{1}، ملفك ما زال بلا صورة. يستغرق ذلك دقيقة ويساعد قائداتك على التعرّف عليك.'],
     'fr' => ['Ajoutez votre photo', '{1}, votre profil n\'a pas encore de photo. Cela prend une minute et aide vos responsables à vous reconnaître.'],
     'pt' => ['Adicione a sua fotografia', '{1}, o seu perfil ainda não tem fotografia. Demora um minuto e ajuda as suas líderes a reconhecê-la.'],
     'sw' => ['Ongeza picha yako', '{1}, wasifu wako bado hauna picha. Inachukua dakika moja na huwasaidia viongozi wako kukutambua.']]],
 ];
-/** The message in one language, or null when there is no translation for it. */
+/* One entry per template above, in the same order: its key, its name on the Communications page, the English wording,
+ * and what {1} and {2} stand for. WODDI HQ can replace any wording in any language; the change is logged. */
+const NOTE_META = [
+  ['birthday', 'Birthday greeting', 'Happy birthday, {1}', 'Everyone at WODDI HQ is celebrating you today. Thank you for all you give to your network.', '{1} is the first name.'],
+  ['journey_reminder', 'Onboarding reminder', 'Your next WODDI step is ready', '{1}, one short step is waiting in your seven-day journey. You can read it or listen to it.', '{1} is the first name.'],
+  ['journey_extension', 'Onboarding: more time given', 'You have more time for your seven days', '{1}, WDOS has given you {2} more days by itself. Open your journey and continue where you stopped.', '{1} is the first name, {2} the number of days.'],
+  ['activation', 'Activation: now an active member', 'You are now an active WODDI member', 'You finished your seven days, {1}. Welcome. Your chapter and your network are open to you.', '{1} is the first name.'],
+  ['referral_verified', 'Referral completed the seven days', '{1} completed the seven days', 'A woman you invited is now an active member. This counts as a verified referral.', '{1} is the invited woman\'s first name.'],
+  ['welcome', 'Welcome on registration', 'Welcome to {1}, {2}', 'Your membership number is {1}. Add your photograph and switch on notifications to finish setting up.', 'Title: {1} is the network, {2} the first name. Message: {1} is the membership number.'],
+  ['chapter_moved', 'Moved to another chapter', 'You have moved to a new chapter', 'WODDI HQ moved you to {1}. Your membership history is kept.', '{1} is the chapter.'],
+  ['chapter_placed', 'Chapter placement confirmation', 'You have been placed in a chapter', 'Your chapter is {1}. Open it to meet your chapter.', '{1} is the chapter.'],
+  ['task_due', 'Task deadline notification', 'Due today: {1}', 'This task is due today.', '{1} is the task.'],
+  ['photo_nudge', 'Photograph reminder', 'Add your photograph', '{1}, your profile still has no photograph. It takes a minute and helps your leaders recognise you.', '{1} is the first name.'],
+];
+/** Wordings WODDI HQ has approved in place of the built-in ones: [key][lang] = [title, body]. */
+function note_overrides(): array {
+  static $o = null;
+  if ($o === null) { $o = []; try { foreach (rows('SELECT tkey, lang, title, body FROM message_templates') as $r) $o[$r['tkey']][$r['lang']] = [$r['title'], $r['body']]; } catch (PDOException $e) { /* before the table exists */ } }
+  return $o;
+}
+/** The message in one language (English included when HQ has changed the English wording), or null to send it as written. */
 function note_in(string $lang, string $title, string $body): ?array {
-  if (!in_array($lang, NOTE_LANGS, true)) return null;
-  foreach (NOTE_TEMPLATES as [$rt, $rb, $tr]) {
+  foreach (NOTE_TEMPLATES as $i => [$rt, $rb, $tr]) {
     if (!preg_match($rt, $title, $mt) || !preg_match($rb, $body, $mb)) continue;
     $fill = fn(string $s, array $m) => preg_replace_callback('/\{(\d)\}/', fn($x) => $m[(int) $x[1]] ?? '', $s);
-    return [$fill($tr[$lang][0], $mt), $fill($tr[$lang][1], $mb)];
+    $own = note_overrides()[NOTE_META[$i][0]][$lang] ?? null; $use = $own ?? ($tr[$lang] ?? null);
+    return $use ? [$fill($use[0], $mt), $fill($use[1], $mb)] : null;
   }
   return null;
 }

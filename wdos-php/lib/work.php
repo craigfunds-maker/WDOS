@@ -5,7 +5,8 @@ declare(strict_types=1);
 /* ------------------------------------------------------------------ tasks -- */
 const TASK_SELECT = "SELECT t.*, a.first_name a_first, a.last_name a_last, a.has_photo a_photo, b.first_name b_first, b.last_name b_last,
     (SELECT COUNT(*) FROM task_items i WHERE i.task_id=t.id) items, (SELECT COUNT(*) FROM task_items i WHERE i.task_id=t.id AND i.done=1) items_done,
-    (SELECT COUNT(*) FROM task_comments c WHERE c.task_id=t.id) comments
+    (SELECT COUNT(*) FROM task_comments c WHERE c.task_id=t.id) comments, (SELECT COUNT(*) FROM task_comments c WHERE c.task_id=t.id AND c.kind='evidence') evidence,
+    (SELECT c.name FROM chapters c WHERE c.id=t.chapter_id) ch_name, (SELECT o.name FROM org_units o WHERE o.id=t.org_unit_id) unit_name
   FROM tasks t JOIN users a ON a.id=t.assignee_id JOIN users b ON b.id=t.assigned_by";
 
 function task_shape(array $t): array {
@@ -16,6 +17,7 @@ function task_shape(array $t): array {
     'by' => ['id' => (int) $t['assigned_by'], 'name' => trim($t['b_first'] . ' ' . $t['b_last'])], 'from_report' => str_starts_with((string) $t['source'], 'report:') ? (int) substr($t['source'], 7) : null,
     'from_meeting' => str_starts_with((string) $t['source'], 'meeting:') ? (int) substr($t['source'], 8) : null,
     'items' => (int) $t['items'], 'items_done' => (int) $t['items_done'], 'comments' => (int) $t['comments'], 'created_at' => $t['created_at'], 'completed_at' => $t['completed_at'],
+    'ref' => sprintf('WDOS-TASK-%05d', (int) $t['id']), 'scope' => !empty($t['ch_name']) ? 'Chapter: ' . $t['ch_name'] : (!empty($t['unit_name']) ? $t['unit_name'] : 'Personal'), 'evidence' => (int) ($t['evidence'] ?? 0),
     'network' => $t['network'], 'chapter_id' => !empty($t['chapter_id']) ? (int) $t['chapter_id'] : null, 'parent_id' => !empty($t['parent_id']) ? (int) $t['parent_id'] : null];
 }
 function task_get(int $id): array { $t = row(TASK_SELECT . ' WHERE t.id=?', [$id]); if (!$t) fail(404, 'That task was not found.', 'not_found'); return $t; }
@@ -47,7 +49,8 @@ route('GET', '/tasks', function () {
   $c = row("SELECT COALESCE(SUM(assignee_id=? AND status IN " . TASK_OPEN . "),0) mine, COALESCE(SUM(assignee_id=? AND status IN " . TASK_OPEN . " AND due_on<?),0) overdue,
                    COALESCE(SUM(assigned_by=? AND assignee_id<>? AND status='submitted'),0) to_approve, COALESCE(SUM(assigned_by=? AND assignee_id<>? AND status IN " . TASK_OPEN . "),0) sent
             FROM tasks WHERE assignee_id=? OR assigned_by=?", [$id, $id, work_today(), $id, $id, $id, $id, $id, $id]);
-  return ['items' => array_map('task_shape', $list), 'total' => $total, 'counts' => array_map('intval', $c), 'can_assign' => is_hq($u) || (bool) work_seat($u), 'priorities' => TASK_PRIORITIES];
+  return ['items' => array_map('task_shape', $list), 'total' => $total, 'counts' => array_map('intval', $c), 'chapter_scoped' => (int) val("SELECT COUNT(*) FROM tasks t WHERE $w AND t.chapter_id IS NOT NULL", $p),
+    'escalations' => (int) val("SELECT COUNT(*) FROM tasks t WHERE $w AND t.status IN " . TASK_OPEN . " AND t.due_on<?", array_merge($p, [work_today()])), 'can_assign' => is_hq($u) || (bool) work_seat($u), 'priorities' => TASK_PRIORITIES];
 });
 route('GET', '/tasks/people', function () {
   $u = require_user(); [$w, $p] = work_people_sql($u);
@@ -86,7 +89,7 @@ route('GET', '/tasks/(\d+)', function ($id) {
   $u = require_user(); $t = task_get((int) $id); $rights = task_rights($u, $t);
   return ['task' => task_shape($t), 'rights' => $rights,
     'items' => rows('SELECT id, label, done FROM task_items WHERE task_id=? ORDER BY id', [(int) $id]),
-    'comments' => rows('SELECT c.id, c.body, c.created_at, c.user_id, u.first_name, u.last_name, u.has_photo FROM task_comments c JOIN users u ON u.id=c.user_id WHERE c.task_id=? ORDER BY c.id', [(int) $id])];
+    'comments' => rows('SELECT c.id, c.body, c.kind, c.url, c.created_at, c.user_id, u.first_name, u.last_name, u.has_photo FROM task_comments c JOIN users u ON u.id=c.user_id WHERE c.task_id=? ORDER BY c.id', [(int) $id])];
 });
 route('POST', '/tasks/(\d+)/status', function ($id) {
   $u = require_user(); $t = task_get((int) $id); $r = task_rights($u, $t); $to = str_in('to', 12); $from = $t['status']; $note = str_in('note', 1000);
@@ -110,6 +113,17 @@ route('POST', '/tasks/(\d+)/status', function ($id) {
     notify($other, 'task', $msg[0], $msg[1], $url); after_response(fn() => push_drain(10));
   }
   return ['ok' => true, 'status' => $to];
+});
+/* Evidence: what shows the work was done. A short note, with a link to a document or photograph where there is one. */
+route('POST', '/tasks/(\d+)/evidence', function ($id) {
+  $u = require_user(); $t = task_get((int) $id); $r = task_rights($u, $t); $note = str_in('note', 1500); $url = trim(str_in('url', 500));
+  if (!$r['mine'] && !$r['manage']) fail(403, 'This task is outside your area.', 'forbidden');
+  if (mb_strlen($note) < 3) fail(422, 'Say what was done.', 'note');
+  if ($url !== '' && !preg_match('#^https://#', $url)) fail(422, 'Give a link that starts with https://', 'url');
+  q("INSERT INTO task_comments (task_id,user_id,body,kind,url,created_at) VALUES (?,?,?,'evidence',?,?)", [(int) $id, (int) $u['id'], $note, $url, now()]);
+  if ((int) $t['assigned_by'] !== (int) $u['id']) notify((int) $t['assigned_by'], 'task', 'Evidence added: ' . mb_substr($t['title'], 0, 100), mb_substr($note, 0, 200), '#/tasks/' . $id);
+  after_response(fn() => push_drain(10));
+  return ['ok' => true];
 });
 route('POST', '/tasks/(\d+)/comment', function ($id) {
   $u = require_user(); $t = task_get((int) $id); task_rights($u, $t); $body = str_in('body', 1500);

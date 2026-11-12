@@ -178,7 +178,7 @@ route('POST', '/hq/announcements', function () { return announcement_send(requir
 route('GET', '/announcements', function () {
   $u = require_user(); $leader = current_seat((int) $u['id']) ? 1 : 0;
   $w = is_hq($u) ? '1=1' : "(a.audience_network='ALL' OR a.audience_network=?) AND (a.audience_role='all' OR ?=1) AND (a.audience_country IS NULL OR a.audience_country=?)
-        AND (a.audience_state='' OR a.audience_state=?) AND (a.audience_lga='' OR a.audience_lga=?) AND (a.audience_community='' OR a.audience_community=?) AND (a.audience_chapter IS NULL OR a.audience_chapter=?) AND (a.audience_lang='' OR a.audience_lang=?)";
+        AND (a.audience_state='' OR a.audience_state=?) AND (a.audience_lga='' OR a.audience_lga=?) AND (a.audience_community='' OR a.audience_community=?) AND (a.audience_chapter IS NULL OR a.audience_chapter=?) AND (a.audience_lang='' OR a.audience_lang=?) AND (a.audience_user IS NULL OR a.audience_user=" . (int) $u['id'] . ")";
   $lang = (string) ($u['lang'] ?? 'en');                     // her own language where that version was written
   return ['items' => rows("SELECT a.id, COALESCE(t.title, a.title) title, COALESCE(t.body, a.body) body, a.audience_network, a.audience_role, a.audience_chapter, a.tone, COALESCE(a.sent_at, a.created_at) created_at,
                                   EXISTS (SELECT 1 FROM announcement_acks k WHERE k.announcement_id=a.id AND k.user_id=?) acked
@@ -232,7 +232,7 @@ route('GET', '/leader/dashboard', function () {
     'breakdown_label' => $seat['position_level'] === 'country' ? 'State or region' : ($seat['position_level'] === 'state_region' ? 'LGA or district' : 'Community'),
     'breakdown' => rows("SELECT COALESCE(NULLIF($col,''),'Not stated') label, COUNT(*) total FROM users u JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND $w GROUP BY label ORDER BY total DESC, label LIMIT 8", $p),
     'recent' => people_brief($w, $p, 7),
-    'team' => $team, 'reports_to' => $above,
+    'team' => $team, 'reports_to' => $above, 'workspace' => leader_workspace($u, $seat),
     'person' => ['id' => (int) $who['id'], 'first_name' => $who['first_name'], 'last_name' => $who['last_name'], 'has_photo' => (int) $who['has_photo'], 'member_no' => $who['member_no'], 'network' => $seat['network'],
       'country_code' => $who['country_code'], 'country' => country_name((string) $who['country_code']), 'seat' => ['title' => seat_title($seat), 'network' => $seat['network']]], 'viewing' => (int) $who['id'] !== (int) $u['id'],
   ];

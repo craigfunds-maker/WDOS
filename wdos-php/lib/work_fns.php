@@ -31,6 +31,7 @@ function work_people_sql(array $u): array {
 }
 function work_may_assign(array $by, int $assignee): bool {
   if ($assignee === (int) $by['id']) return true;
+  if (is_hq($by)) return (bool) val("SELECT 1 FROM users WHERE id=? AND status='active'", [$assignee]);      // HQ may give a task to any active member, for example a volunteer's assignment
   // a chapter's leader may give work to the members of that chapter
   try { $seat = current_seat((int) $by['id']); if ($seat && !empty($seat['chapter_id']) && empty($seat['he_for_she']) && (int) val("SELECT chapter_id FROM users WHERE id=? AND status='active'", [$assignee]) === (int) $seat['chapter_id']) return true; } catch (PDOException $e) { /* before chapters exist */ }
   [$w, $p] = work_people_sql($by);

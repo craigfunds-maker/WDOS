@@ -15,7 +15,7 @@ export function delta(now, prev, days) {
   return h('span', { class: 'delta delta--' + (p > 0 ? 'up' : p < 0 ? 'down' : 'flat') }, icon(p > 0 ? 'up' : p < 0 ? 'down' : 'flat', 14), (p > 0 ? '+' : '') + p + '%');
 }
 export function kpi(ic, label, value, foot) {
-  const v = h('div', { class: 'kpi__value', text: '0' }); countUp(v, value);
+  const v = h('div', { class: 'kpi__value', text: '0' }); if (typeof value === 'string' && isNaN(Number(value))) { v.textContent = value; if (value.length > 6) v.style.cssText = 'font-size:24px;line-height:1.3;letter-spacing:0'; } else countUp(v, value);
   return h('div', { class: 'card kpi reveal' }, h('div', { class: 'kpi__label' }, icon(ic, 17), label), v, h('div', { class: 'kpi__foot' }, foot));
 }
 export function peopleList(items, hrefFor) {

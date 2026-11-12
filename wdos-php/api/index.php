@@ -59,7 +59,8 @@ function validate_profile_fields(bool $withPassword): array {
   $first = str_in('first_name', 80); $last = str_in('last_name', 80);
   if (mb_strlen($first) < 2 || mb_strlen($last) < 2) fail(422, 'Enter your first name and surname.', 'name');
   $phone = preg_replace('/[^\d+]/', '', str_in('phone', 32));
-  if (strlen(ltrim($phone, '+')) < 8) fail(422, 'Enter a phone number we can reach you on, with the country code.', 'phone');
+  $hasEmail = (bool) filter_var(strtolower(str_in('email', 190)), FILTER_VALIDATE_EMAIL) || !empty(current_user()['email']);
+  if (strlen(ltrim($phone, '+')) < 8) { if ($phone !== '' || !$hasEmail) fail(422, 'Enter your phone number with the country code, or an email address.', 'phone'); $phone = ''; }
   $dob = str_in('dob', 10); $d = DateTime::createFromFormat('Y-m-d', $dob);
   if (!$d || $d->format('Y-m-d') !== $dob) fail(422, 'Enter your date of birth.', 'dob');
   $age = age_on($dob); $fits = network_for_age($age);

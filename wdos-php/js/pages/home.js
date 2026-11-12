@@ -17,11 +17,18 @@ export async function render(root) {
   const jr = u.journey; const paintTiles = (ref) => tiles.replaceChildren(
     tile('users', 'My chapter', u.chapter ? u.chapter.name : 'Pending', u.chapter ? `${u.chapter.members} women in your chapter` : 'Open to see what is needed', '#/chapter'),
     tile('route', 'Seven-day journey', jr ? (jr.status === 'active' ? 'Active' : `${jr.done}/${jr.total}`) : 'Active', jr ? (jr.status === 'active' ? 'You completed your seven days' : 'Steps completed') : 'Member before the journey began', '#/journey'),
-    tile('send', 'Referral progress', ref ? `${ref.registered}/${ref.target}` : '0/3', ref ? `${ref.verified} completed their seven days` : 'Invite three women', '#/journey'),
-    tile('book', 'Learning', 'Institute', 'Courses at the WODDI Institute', 'https://woddiinstitute.com', true));
+    tile('send', 'Referral progress', ref ? `${ref.registered}/${ref.target}` : '0/3', ref ? `${ref.verified} completed their seven days` : 'Invite three women', '#/invite'),
+    tile('book', 'Learning', 'Institute', 'Courses and the volunteer pathway', '#/institute'));
   root.append(h('a', { class: 'card nudge', href: '#/community', style: 'text-decoration:none;color:inherit' }, h('div', { class: 'card__body', style: 'display:flex;gap:14px;align-items:center' }, h('div', { class: 'nrow__ico' }, icon('spark', 18)), h('div', { class: 'grow' }, h('b', { text: 'WODDI Community' }), h('p', { class: 'muted', style: 'margin:2px 0 0', text: 'Your chapter, your network at every level, topic circles and events.' })))));
-  paintTiles(null); if (jr) api('/journey').then((d) => paintTiles(d.referrals)).catch(() => {});
+  paintTiles(null); api('/my/referrals').then((d) => paintTiles(d.referrals)).catch(() => {});
   if (jr && jr.status !== 'active') root.append(h('section', { class: 'card nudge' }, h('div', { class: 'card__body', style: 'display:flex;gap:16px;align-items:center;flex-wrap:wrap' }, h('div', { class: 'grow' }, h('b', { text: 'Your next step is ready' }), h('p', { class: 'muted', style: 'margin:4px 0 0', text: 'One short step each day for seven days. You can read it or listen to it.' })), h('a', { class: 'btn', href: '#/journey', text: 'Continue my seven days' }))));
+  const LN = { ar: 'Arabic', en: 'English', fr: 'French', pt: 'Portuguese', sw: 'Swahili' };
+  const go = (label, href, done) => h('a', { class: 'list__link', href }, h('span', { class: 'step__dot' + (done ? ' is-done' : ''), style: done ? 'background:var(--lime);color:#12210A;border-color:transparent' : '' }, done ? icon('check', 15) : null), h('div', { class: 'grow' }, h('b', { text: label })), h('span', { class: 'btn btn--ghost btn--s', text: 'Open' }));
+  root.append(h('div', { class: 'row row--2' },
+    card('Your next steps', null, h('div', { class: 'list' }, go('Continue your seven-day journey', '#/journey', jr ? jr.status === 'active' : true), go('Invite three friends to join WODDI', '#/invite', false), go('Visit your chapter community', '#/community', false)), h('span', { class: 'tag tag--wgmn', text: 'Priority' })),
+    h('div', { style: 'display:grid;gap:18px;align-content:start' },
+      card('My membership', null, h('div', { class: 'kv' }, [['Network', u.network], ['Role', u.seat ? u.seat.title : u.volunteer ? 'Member and volunteer' : 'Member'], ['Chapter', u.chapter ? u.chapter.name : 'Pending placement'], ['Language', LN[u.lang] || 'English'], ['Status', jr && jr.status !== 'active' ? 'On your seven days' : 'Active'], ['Person ID', u.person_id]].map(([a, b]) => h('div', {}, h('span', { text: a }), h('b', { text: b || '' }))))),
+      card('Quick links', null, h('div', { class: 'list' }, go('WODDI Institute', '#/institute', false), go('WODDI Community', '#/community', false), go('Chapters in my community', '#/chapter', false), go('Need help? Write to WODDI HQ', '#/messages/new', false))))));
   root.append(pushNudge());
   if (u.network === 'WGMN' && u.country_code) root.append(goodMotherCard(u.country_code, u.country));
   const today = h('div', { hidden: true }); root.append(today);

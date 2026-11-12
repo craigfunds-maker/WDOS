@@ -1,7 +1,7 @@
 /* The front door. A newcomer picks her network by its logo, and the form that
  * opens carries that network all the way into her record. The same form
  * finishes a Google sign-up (complete = true). */
-import { h, clear, icon, NETS, googleMark, theme, toast, langPills, listenBtn, i18n } from '../ui.js';
+import { h, t, clear, icon, NETS, googleMark, theme, toast, langPills, listenBtn, i18n } from '../ui.js';
 import { africaMap } from '../goodmother.js';
 import { api } from '../api.js';
 import { app, signedIn, refreshUser, go, signOut, setLanguage } from '../app.js';
@@ -120,7 +120,7 @@ export async function render(root, params) {
     const n = NETS[chosen]; const other = chosen === 'WGMN' ? 'WNNN' : 'WGMN';
     const err = h('p', { class: 'err', role: 'alert' });
     const ageNote = h('small', {});
-    const submit = h('button', { class: 'btn btn--block', type: 'submit', text: complete ? `Finish joining ${chosen}` : candidate ? 'Create my account and begin my Referral Activation' : `Join ${chosen}` });
+    const submit = h('button', { class: 'btn btn--block', type: 'submit', text: complete ? `Finish joining ${chosen}` : candidate ? 'Create my account and begin my Referral Activation' : 'Create my account' });
     const consent = F.consent || (F.consent = h('input', { type: 'checkbox', id: 'f-consent' }));
     let refBlock = null;
     if (candidate && refMeta) {
@@ -134,19 +134,20 @@ export async function render(root, params) {
     const form = h('form', { class: 'jform reveal', novalidate: true },
       h('div', { class: 'jform__head' }, h('img', { src: n.disc, alt: '' }), h('div', {}, h('h2', { text: complete ? 'Finish your profile' : `Join ${chosen}` }), h('p', { class: 'muted', text: `${n.name}. ${n.age}.` }))),
       !complete && app.config.google ? h('div', { style: 'margin-top:18px' }, h('a', { class: 'gbtn', href: '/api/auth/google/start?network=' + chosen }, googleMark(), `Continue with Google as ${chosen}`), h('div', { class: 'or', text: 'or fill in the form' })) : null,
-      h('fieldset', {}, h('legend', { text: 'About you' }), h('div', { class: 'grid2' },
+      h('fieldset', { 'data-eyebrow': 'Simple details' }, h('legend', { text: 'Your details' }), h('p', { class: 'muted', style: 'margin:0 0 12px', text: 'Only the essential details now. No OTP and no long registration form.' }), h('div', { class: 'grid2' },
         field('first_name', 'First name', { required: true, maxlength: 80, autocomplete: 'given-name', value: u?.first_name || saved.first_name || '' }),
         field('last_name', 'Surname', { required: true, maxlength: 80, autocomplete: 'family-name', value: u?.last_name || saved.last_name || '' }),
         h('label', { class: 'field', for: 'f-dob' }, h('span', { text: 'Date of birth' }), F.dob || (F.dob = h('input', { class: 'input', id: 'f-dob', type: 'date', required: true, autocomplete: 'bday', value: saved.dob || '' })), ageNote),
-        field('phone', 'Phone or WhatsApp number', { type: 'tel', required: true, maxlength: 24, autocomplete: 'tel', placeholder: '+234 801 234 5678', value: saved.phone || '' }, 'Include the country code.'))),
-      h('fieldset', {}, h('legend', { text: 'Where you are' }), h('div', { class: 'grid2' },
+        complete ? field('contact', 'Phone or WhatsApp number', { type: 'tel', required: true, maxlength: 24, autocomplete: 'tel', placeholder: '+234 801 234 5678' }, 'Include the country code.')
+          : field('contact', 'Phone or email', { type: 'text', inputmode: 'email', autocapitalize: 'none', required: true, maxlength: 190, autocomplete: 'tel', placeholder: 'Phone number or email', value: saved.contact || '' }, 'A phone number with the country code, or an email address. This is how you sign in. No code is sent to you.'))),
+      h('fieldset', { 'data-eyebrow': 'Find your community' }, h('legend', { text: 'Your location' }), h('p', { class: 'muted', style: 'margin:0 0 12px', text: `Your location helps WDOS place you in a suitable ${chosen} chapter. No woman is turned away because her chapter is full.` }), h('div', { class: 'grid2' },
         h('label', { class: 'field', for: 'f-country' }, h('span', { text: 'Country' }), F.country), stateSlot,
-        lgaSlot, field('community', 'Community or ward', { maxlength: 120, value: saved.community || '', list: 'f-clusters' }), clusterList, field('ward', 'Official ward (optional)', { maxlength: 120, value: saved.ward || '' }, 'Only if it is different from your community.'))),
+        lgaSlot, field('community', 'Community or ward', { maxlength: 120, value: saved.community || '', list: 'f-clusters' }), clusterList, field('ward', 'Official ward (optional)', { maxlength: 120, value: saved.ward || '' }, 'Only if it is different from your community.')), h('p', { class: 'notice', style: 'margin-top:14px', text: 'Official ward and WODDI community cluster are separate records. A neighbourhood name is not assumed to be an official government ward.' })),
       refBlock,
-      complete ? null : h('fieldset', {}, h('legend', { text: 'Your sign-in' }), h('div', { class: 'grid2' },
-        field('email', 'Email address (optional)', { type: 'email', maxlength: 190, autocomplete: 'email', value: saved.email || '' }, 'No email? Leave this empty and sign in with your phone number.'),
-        field('password', 'Password or PIN', { type: 'password', required: true, minlength: 6, autocomplete: 'new-password' }, 'At least 6 letters or numbers. Choose one you will remember. No code is sent to you.'))),
-      h('fieldset', {}, h('legend', { text: 'Your agreement' }), h('p', { class: 'muted', style: 'margin:0 0 12px', text: 'WODDI keeps your name, phone number and location so your chapter and your leaders can reach you. WODDI does not sell or share them outside WODDI.' }), h('label', { class: 'check' }, consent, h('span', { text: 'I agree to the WODDI Code of Conduct and to WODDI HQ contacting me about my network.' }))),
+      h('fieldset', { 'data-eyebrow': 'Your agreement' }, h('legend', { text: 'Your agreement' }), h('p', { class: 'muted', style: 'margin:0 0 6px', text: 'A simple summary of membership and privacy information. Press Listen to hear it.' }),
+        h('div', { class: 'panel', style: 'margin-bottom:14px' }, h('b', { text: 'Membership summary' }), h('p', { style: 'margin:6px 0 0', text: 'WODDI uses information to manage membership, learning, chapters and approved communications. Participation is voluntary. Unauthorised dues, local accounts and fundraising are not permitted.' }), h('p', { class: 'muted', style: 'margin:6px 0 0;font-size:14px', text: 'WODDI keeps your name, phone number and location so your chapter and your leaders can reach you. WODDI does not sell or share them outside WODDI.' })),
+        h('label', { class: 'check' }, consent, h('span', { text: 'I agree to the membership guidance and privacy notice, and to the WODDI Code of Conduct.' })),
+        complete ? null : h('div', { style: 'margin-top:16px' }, field('password', 'Choose your password or PIN', { type: 'password', required: true, minlength: 6, autocomplete: 'new-password' }, 'At least 6 letters or numbers. Choose one you will remember. No code is sent to you.'))),
       err, submit,
       complete ? h('p', { class: 'muted', style: 'margin-top:12px;font-size:14px' }, 'Signed in as ' + (u?.email || '') + '. ', h('a', { href: '#', onclick: (e) => { e.preventDefault(); signOut(); }, text: 'Use a different account' })) : null);
     const checkAge = () => {
@@ -162,11 +163,11 @@ export async function render(root, params) {
     form.addEventListener('submit', async (e) => {
       e.preventDefault(); err.textContent = '';
       if (!checkAge()) { err.textContent = 'Your date of birth does not match this network. Use the switch link under the date.'; F.dob.focus(); return; }
-      const body = { network: chosen, first_name: F.first_name.value, last_name: F.last_name.value, dob: F.dob.value, phone: F.phone.value, country_id: Number(F.country.value) || 0,
+      const body = { network: chosen, first_name: F.first_name.value, last_name: F.last_name.value, dob: F.dob.value, phone: F.contact.value.includes('@') ? '' : F.contact.value, country_id: Number(F.country.value) || 0,
         state_id: stateMode === 'select' ? Number(F.state.value) || 0 : 0, state_region: stateMode === 'select' ? '' : stateName(), lga: lgaMode === 'select' ? F.lgaSel.value : F.lga.value, community: F.community.value, ward: diaspora() ? '' : F.ward.value, consent: consent.checked };
       if (stateMode === 'list' && !body.state_region && !diaspora()) { err.textContent = 'Choose your state or region.'; F.state.focus(); return; }
       if (lgaMode === 'select' && !body.lga) { err.textContent = 'Choose your LGA.'; F.lgaSel.focus(); return; }
-      if (!complete) { body.email = F.email.value.trim(); body.password = F.password.value; }
+      if (!complete) { body.email = F.contact.value.includes('@') ? F.contact.value.trim() : ''; body.password = F.password.value; const last = checkStep(steps[steps.length - 1]); if (last) { err.textContent = last; return; } if (!consent.checked) { err.textContent = 'Please review and accept the membership guidance.'; consent.focus(); return; } }
       body.lang = i18n.lang;
       if (link) body.referral = { code: link.code };
       else if (candidate) {
@@ -189,7 +190,7 @@ export async function render(root, params) {
           window.addEventListener('online', () => { if (form.isConnected) form.requestSubmit(); }, { once: true }); return;
         }
         err.textContent = ex.message; submit.disabled = false; submit.textContent = label;
-        const map = { name: 'first_name', phone: 'phone', phone_taken: 'phone', dob: 'dob', age: 'dob', age_network: 'dob', country: 'country', email: 'email', email_taken: 'email', password: 'password', consent: 'consent', state: stateMode === 'text' ? 'stateText' : 'state' };
+        const map = { name: 'first_name', phone: 'contact', phone_taken: 'contact', dob: 'dob', age: 'dob', age_network: 'dob', country: 'country', email: 'contact', email_taken: 'contact', password: 'password', consent: 'consent', state: stateMode === 'text' ? 'stateText' : 'state' };
         const bad = F[map[ex.code]]; if (bad) { const fs = bad.closest('fieldset'); const i = steps.indexOf(fs); if (i >= 0) show(i); bad.focus(); }
       }
     });
@@ -198,20 +199,22 @@ export async function render(root, params) {
     const listen = listenBtn(() => { const fs = steps[stepNo]; return [fs.querySelector('legend')?.textContent, ...[...fs.querySelectorAll('label > span, p, small')].map((x) => x.textContent)]; });
     const navRow = h('div', { class: 'stepnav' }, back, h('div', { class: 'grow' }), next); submit.remove(); navRow.append(submit);
     form.insertBefore(h('div', { class: 'stephead' }, bar, h('div', { style: 'display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap' }, stepLabel, listen)), steps[0]); form.insertBefore(navRow, err.nextSibling);
+    if (!complete) form.append(h('p', { style: 'text-align:center;margin:16px 0 0' }, h('a', { class: 'btn btn--ghost btn--s', href: '#/login', text: 'Open my dashboard' })));
     /* what must be right before she can leave a screen: said in plain words, on that screen */
     const checkStep = (fs) => {
       const has = (el) => fs.contains(el);
-      if (has(F.first_name)) { if (F.first_name.value.trim().length < 2 || F.last_name.value.trim().length < 2) { F.first_name.focus(); return 'Enter your first name and surname.'; } if (!F.dob.value) { F.dob.focus(); return 'Enter your date of birth.'; } if (!checkAge()) { F.dob.focus(); return 'Your date of birth does not match this network. Use the switch link under the date.'; } if (F.phone.value.replace(/[^\d]/g, '').length < 8) { F.phone.focus(); return 'Enter your phone number with the country code.'; } }
+      if (has(F.first_name)) { if (F.first_name.value.trim().length < 2 || F.last_name.value.trim().length < 2) { F.first_name.focus(); return 'Enter your first name and surname.'; } if (!F.dob.value) { F.dob.focus(); return 'Enter your date of birth.'; } if (!checkAge()) { F.dob.focus(); return 'Your date of birth does not match this network. Use the switch link under the date.'; } const ct = F.contact.value.trim(); if (ct.includes('@') ? !/^\S+@\S+\.\S+$/.test(ct) : ct.replace(/[^\d]/g, '').length < 8) { F.contact.focus(); return ct.includes('@') ? 'That email address is not complete.' : 'Enter your phone number with the country code, or an email address.'; } }
       if (has(F.country)) { if (!F.country.value) { F.country.focus(); return 'Choose your country.'; } if (!diaspora() && !stateName() && !(stateMode === 'select' && F.state.value)) { (stateMode === 'text' ? F.stateText : F.state).focus(); return 'Choose your state or region.'; } }
-      if (F.password && has(F.password)) { if (F.email.value.trim() && !/^\S+@\S+\.\S+$/.test(F.email.value.trim())) { F.email.focus(); return 'That email address is not complete. You can also leave it empty.'; } if (F.password.value.length < 6) { F.password.focus(); return 'Choose a password or PIN of at least 6 letters or numbers.'; } }
+      if (F.password && has(F.password)) { if (F.password.value.length < 6) { F.password.focus(); return 'Choose a password or PIN of at least 6 letters or numbers.'; } }
       if (F.position && has(F.position) && !link) { if (!F.position.value) return 'Choose the position you are being considered for.'; if (!F.refCat.value) return 'Please tell us who referred you.'; if (!F.refName.value.trim()) return 'Please type the name of the person who referred you.'; }
       return '';
     };
-    const save = () => { if (complete) return; draft.set({ network: chosen, step: stepNo, first_name: F.first_name.value, last_name: F.last_name.value, dob: F.dob.value, phone: F.phone.value, country_id: F.country.value, state: stateName(), lga: lgaMode === 'select' ? F.lgaSel.value : F.lga.value, community: F.community.value, ward: F.ward ? F.ward.value : '', email: F.email ? F.email.value : '' }); };
+    const save = () => { if (complete) return; draft.set({ network: chosen, step: stepNo, first_name: F.first_name.value, last_name: F.last_name.value, dob: F.dob.value, contact: F.contact.value, country_id: F.country.value, state: stateName(), lga: lgaMode === 'select' ? F.lgaSel.value : F.lga.value, community: F.community.value, ward: F.ward ? F.ward.value : '' }); };
     function show(i) {
       stepNo = Math.max(0, Math.min(steps.length - 1, i)); steps.forEach((fs, k) => { fs.hidden = k !== stepNo; });
-      bar.replaceChildren(...steps.map((_, k) => h('span', { class: k < stepNo ? 'is-done' : k === stepNo ? 'is-open' : '' }))); bar.setAttribute('aria-label', `Step ${stepNo + 1} of ${steps.length}`);
-      stepLabel.textContent = `${stepNo + 1} / ${steps.length}`; back.hidden = stepNo === 0; next.hidden = stepNo === steps.length - 1; submit.hidden = stepNo !== steps.length - 1; err.textContent = ''; save();
+      const lead = complete ? 0 : 2, total = steps.length + lead, at = stepNo + lead;            // 01 language and 02 network are already done on this screen
+      bar.replaceChildren(...Array.from({ length: total }, (_, k) => h('span', { class: k < at ? 'is-done' : k === at ? 'is-open' : '' }))); bar.setAttribute('aria-label', `Step ${at + 1} of ${total}`);
+      stepLabel.className = 'eyebrow'; stepLabel.textContent = `${String(at + 1).padStart(2, '0')} · ${t(steps[stepNo].dataset.eyebrow || steps[stepNo].querySelector('legend').textContent)}`; back.hidden = stepNo === 0; next.hidden = stepNo === steps.length - 1; submit.hidden = stepNo !== steps.length - 1; err.textContent = ''; save();
     }
     back.onclick = () => show(stepNo - 1);
     next.onclick = () => { const problem = checkStep(steps[stepNo]); if (problem) { err.textContent = problem; return; } show(stepNo + 1); form.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
@@ -223,6 +226,7 @@ export async function render(root, params) {
   }
 
   const plain = !complete && !link && !leaderForm;
+  const welcomeListen = listenBtn(['Welcome to WODDI Digital Operating System', 'Join a growing network of women across Africa and the diaspora committed to personal growth, leadership, service and lasting generational impact.', 'WODDI has two membership networks designed for different age groups. Select the network that matches your age category to access its membership registration form.', 'WODDI Good Mother Network is for women aged 30 and above.', 'WODDI Nurture NextGen Network is for women aged 18 to 29.'], 'Listen to the welcome');
   /* optional: WODDI's own short video or recorded audio, never loaded until she presses play, with the words written out */
   const media = h('div', { class: 'wmedia', hidden: true });
   if (plain) api('/public/welcome').then((m) => { if (!m.video_url && !m.audio_url) return; media.hidden = false; media.append(m.video_url ? h('video', { src: m.video_url, controls: true, preload: 'none', playsinline: true }) : null, m.audio_url ? h('audio', { src: m.audio_url, controls: true, preload: 'none' }) : null, m.transcript ? h('details', {}, h('summary', { text: 'Read the words instead' }), h('p', { text: m.transcript })) : null); }).catch(() => {});
@@ -231,10 +235,13 @@ export async function render(root, params) {
     h('main', { class: 'join' },
       plain ? h('section', { class: 'welcome' }, h('h1', { class: 'welcome__title' }, h('span', { text: 'Welcome to' }), h('span', { text: 'WODDI Digital Operating System (WDOS)' })),
         h('p', { class: 'welcome__sub' }, h('span', { text: 'Join a growing network of women across Africa and the diaspora committed to' }), h('b', { text: 'personal growth, leadership, service and lasting generational impact.' }))) : null,
+      plain ? h('section', { class: 'access' }, h('span', { class: 'eyebrow', text: '01 · Accessibility first' }), h('p', { style: 'margin:6px 0 10px', text: 'No Woman Is Left Out. Choose your language at the top of this page before you register. You can change it at any time.' }),
+        h('div', { class: 'tagrow', style: 'max-width:none;justify-content:center' }, ['Short instructions', 'No OTP', 'No compulsory video', 'Large buttons', 'Save and continue later'].map((x) => h('span', { class: 'tag', text: x }))),
+        h('div', { style: 'display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px' }, welcomeListen, h('button', { class: 'btn btn--quiet btn--s', type: 'button', onclick: () => { if (media.hidden) toast('Video guidance', 'WODDI has not added its own welcome video yet. Everything here can be read or listened to.'); else media.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }, 'Video guidance'))) : null,
+      plain ? h('span', { class: 'eyebrow', style: 'display:block;text-align:center;margin-top:22px', text: '02 · Choose network' }) : null,
       h(plain ? 'h2' : 'h1', { class: 'display' + (plain ? ' join__pick' : ''), text: complete ? 'One more step to join your network' : link ? `You have been invited by ${link.owner}` : leaderForm ? 'Join WODDI leadership consideration' : 'Choose the network you are joining' }),
       h('p', { class: 'lede' + (plain ? ' lede--c' : ''), text: link ? (link.position ? `To apply for the position of ${link.role} in ${link.place || 'your area'} (${link.network}). A referral records who invited you. Selection and appointment remain with WODDI Headquarters after registration, activation and assessment.` : `To join ${link.network} in ${link.place || 'your area'}.`)
         : leaderForm ? 'You have been referred by a WODDI leader for volunteer leadership consideration. Tell us who you are, the position you are being considered for and where you will serve, then create your WDOS account to begin your three day activation.' : complete ? 'Your Google account is connected. Pick your network and tell us where you are, so your leaders can find you.' : 'WODDI has two membership networks designed for different age groups. Select the network that matches your age category to access its membership registration form. Your profile and membership records will automatically be created within your chosen network upon registration.' }),
-      plain ? h('div', { style: 'display:flex;justify-content:center;margin:-6px 0 14px' }, listenBtn(['Welcome to WODDI Digital Operating System', 'Join a growing network of women across Africa and the diaspora committed to personal growth, leadership, service and lasting generational impact.', 'WODDI has two membership networks designed for different age groups. Select the network that matches your age category to access its membership registration form.', 'WODDI Good Mother Network is for women aged 30 and above.', 'WODDI Nurture NextGen Network is for women aged 18 to 29.'], 'Listen to the welcome')) : null,
       plain ? media : null,
       nets, plain ? h('p', { class: 'muted', style: 'text-align:center;font-size:14px;margin:14px auto 0;max-width:62ch', text: 'He-for-She Champions do not register here. They serve through an approved appointment as a deputy or an administrative secretary, made by WODDI HQ.' }) : null, wrap),
     pubFoot()));
