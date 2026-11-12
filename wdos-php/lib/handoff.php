@@ -193,7 +193,7 @@ route('POST', '/calendar/(\d+)/delete', function ($id) { $me = require_hq(); $t 
 route('GET', '/hq/workflows', function () {
   require_hq(); workflow_seed_once();
   $items = rows('SELECT * FROM workflow_catalogue ORDER BY workflow_id');
-  return ['items' => $items, 'score' => workflow_score($items), 'as_of' => now()];
+  return ['items' => $items, 'score' => workflow_score($items), 'as_of' => now(), 'estimates_on' => setting('workflow_estimates', '')];
 });
 route('POST', '/hq/workflows', function () {
   $me = require_hq(); $b = body(); $wid = strtoupper(preg_replace('/[^A-Za-z0-9-]/', '', (string) ($b['workflow_id'] ?? '')));

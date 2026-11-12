@@ -174,10 +174,23 @@ const WORKFLOW_SEED = [
   ['W29', 'Governance', 'Backups, restore and monitoring', 'Not built in WDOS. Depends on the database and hosting services', '', '', 'no', 'no', 'T30'],
   ['W30', 'Programmes', 'Programme beneficiary records (WHI, WESAP, YES, SNARP and others)', 'Not built. Only calendar dates are held', '', '', 'no', 'no', ''],
 ];
+/* A starting estimate for the 80 percent instrument, proposed on 12 Nov 2026 at the IT Lead's request so the figure can be worked out at all:
+   how often each workflow happens, the minutes one occurrence takes by hand, and its weight (1 to 10) in routine workload.
+   They are estimates, not measurements. HQ changes any of them on the Digital coverage page; nothing here marks a workflow as verified. */
+const WORKFLOW_ESTIMATES = ['W01' => ['Daily', 15, 10], 'W02' => ['Daily', 5, 3], 'W03' => ['Daily', 60, 10], 'W04' => ['Daily', 10, 3], 'W05' => ['Weekly', 15, 2], 'W06' => ['Monthly', 20, 1], 'W07' => ['Daily', 20, 8], 'W08' => ['Weekly', 15, 3], 'W09' => ['Monthly', 30, 3], 'W10' => ['Weekly', 30, 5], 'W11' => ['Monthly', 30, 3], 'W12' => ['Weekly', 30, 3], 'W13' => ['Daily', 15, 6], 'W14' => ['Daily', 10, 5], 'W15' => ['Monthly', 45, 6], 'W16' => ['Monthly', 60, 4], 'W17' => ['Weekly', 30, 6], 'W18' => ['Weekly', 45, 5], 'W19' => ['Monthly', 30, 2], 'W20' => ['Weekly', 30, 7], 'W21' => ['Daily', 20, 4], 'W22' => ['Daily', 15, 5], 'W23' => ['Daily', 20, 6], 'W24' => ['Weekly', 20, 3], 'W25' => ['Weekly', 30, 5], 'W26' => ['Monthly', 45, 2], 'W27' => ['Weekly', 15, 3], 'W28' => ['Monthly', 30, 1], 'W29' => ['Weekly', 60, 2], 'W30' => ['Monthly', 30, 4]];
+function workflow_estimates_once(): void {
+  try {
+    if (setting('workflow_estimates', '') !== '') return;
+    foreach (WORKFLOW_ESTIMATES as $id => [$freq, $mins, $wt]) q("UPDATE workflow_catalogue SET frequency=?, manual_minutes_baseline=?, eligible_weight=?, updated_at=? WHERE workflow_id=? AND eligible_weight IS NULL AND manual_minutes_baseline IS NULL", [$freq, $mins, $wt, now(), $id]);
+    q("UPDATE workflow_catalogue SET digitally_executable='part', updated_at=? WHERE workflow_id='W29' AND digitally_executable='no'", [now()]);      // a backup and a restore tool now exist; monitoring does not
+    set_setting('workflow_estimates', now());
+  } catch (PDOException $e) { /* before migration 017 */ }
+}
 function workflow_seed_once(): void {
   try {
-    if ((int) val('SELECT COUNT(*) FROM workflow_catalogue') > 0) return;
+    if ((int) val('SELECT COUNT(*) FROM workflow_catalogue') === 0)
     foreach (WORKFLOW_SEED as $w) q('INSERT INTO workflow_catalogue (workflow_id,area,workflow_name,steps,trigger_text,outcome,digitally_executable,exception_coverage,test_id,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)', array_merge($w, [now()]));
+    workflow_estimates_once();
   } catch (PDOException $e) { /* before migration 017 */ }
 }
 /** The score, exactly as section 15 defines it. Null until weights exist. Only verified, fully digital workflows are credited. */

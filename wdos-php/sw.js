@@ -1,6 +1,6 @@
 /* WDOS service worker: installable offline shell + push notifications.
  * Bump BUILD with every release. The page reloads itself once per build. */
-const BUILD = 'v105.2';
+const BUILD = 'v106.0';
 const CACHE = 'wdos-' + BUILD;
 const SHELL = ['/', '/index.html', '/manifest.json', '/assets/css/app.css', '/assets/favicon.svg',
   '/assets/fonts/inter-latin-wght-normal.woff2', '/assets/fonts/fraunces-latin-wght-normal.woff2',

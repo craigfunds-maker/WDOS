@@ -109,7 +109,6 @@
 "Ended": "Ya ƙare",
 "This guide shows you how to join the WODDI Digital Operating System, step by step.": "Wannan jagorar tana nuna miki yadda ake shiga Tsarin Aiki na Dijital na WODDI, mataki-mataki.",
 "the voice has not been recorded yet": "ba a ɗauki muryar ba tukuna",
-"Type your first name and your surname. Choose your date of birth. Then type your email address and your phone number. Both are needed. You sign in with your email address. Then press Continue.": "Rubuta sunanki na farko da sunan iyalinki. Zaɓi ranar haihuwarki. Sannan ki rubuta adireshin imel ɗinki da lambar wayarki. Ana buƙatar duka biyun. Da imel ɗinki ne za ki shiga. Sannan ki danna Ci gaba.",
 "Read the short agreement and tick the box to agree. Tell WODDI if you would like to volunteer. Then choose a PIN or password of at least six letters or numbers. Choose one you will remember. No code is sent to your phone. Then press Create my account.": "Karanta gajeriyar yarjejeniyar, ki sa alama a akwatin don yarda. Ki gaya wa WODDI idan kina son yin aikin sa-kai. Sannan ki zaɓi PIN ko kalmar sirri mai aƙalla haruffa ko lambobi shida. Zaɓi wanda za ki tuna. Ba a aika wata lamba zuwa wayarki. Sannan ki danna Ƙirƙiri asusuna.",
 "Phone number": "Lambar waya",
 "Email address": "Adireshin imel",
@@ -204,5 +203,8 @@
 "Choose your LGA or district": "Zaɓi ƙaramar hukumarki ko gundumarki",
 "My LGA or district is not listed": "Ƙaramar hukumata ba ta cikin jerin",
 "Choose your community": "Zaɓi unguwarki",
-"My community is not listed": "Unguwata ba ta cikin jerin"
+"My community is not listed": "Unguwata ba ta cikin jerin",
+"Type your first name and your surname. Choose your date of birth. Then type your phone number. If you have an email address, type it too. If you have no email, you sign in with your phone number. Then press Continue.": "Rubuta sunanki na farko da sunan iyalinki. Zaɓi ranar haihuwarki. Sannan ki rubuta lambar wayarki. Idan kina da adireshin imel, ki rubuta shi ma. Idan ba ki da imel, da lambar wayarki ne za ki shiga. Sannan ki danna Ci gaba.",
+"With the country code. If you have no email, you sign in with this number.": "Tare da lambar ƙasa. Idan ba ki da imel, da wannan lambar za ki shiga.",
+"This phone number already signs in a member. Sign in instead, or add your own email address to join with the same phone.": "Wannan lambar tana shigar da wata mamba tuni. Ki shiga, ko ki ƙara adireshin imel ɗinki don shiga da wayar ɗaya."
 }

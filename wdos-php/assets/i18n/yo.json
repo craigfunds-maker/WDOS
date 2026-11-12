@@ -109,7 +109,6 @@
 "Ended": "Ó ti parí",
 "This guide shows you how to join the WODDI Digital Operating System, step by step.": "Ìtọ́sọ́nà yìí fi bí a ṣe ń darapọ̀ mọ́ Ètò Iṣẹ́ Oní-nọ́ńbà WODDI hàn ọ́, ní ìgbésẹ̀ kọ̀ọ̀kan.",
 "the voice has not been recorded yet": "a kò tíì gba ohùn náà sílẹ̀",
-"Type your first name and your surname. Choose your date of birth. Then type your email address and your phone number. Both are needed. You sign in with your email address. Then press Continue.": "Tẹ orúkọ àkọ́kọ́ rẹ àti orúkọ ìdílé rẹ. Yan ọjọ́ ìbí rẹ. Lẹ́yìn náà tẹ àdírẹ́sì ímeèlì rẹ àti nọ́ńbà fóònù rẹ. Méjèèjì ni a nílò. Ímeèlì rẹ ni o máa fi wọlé. Lẹ́yìn náà tẹ Tẹ̀síwájú.",
 "Read the short agreement and tick the box to agree. Tell WODDI if you would like to volunteer. Then choose a PIN or password of at least six letters or numbers. Choose one you will remember. No code is sent to your phone. Then press Create my account.": "Ka àdéhùn kúkúrú náà, kí o sì fi àmì sí àpótí láti gbà. Sọ fún WODDI bí o bá fẹ́ yọ̀ǹda ara rẹ láti ṣiṣẹ́. Lẹ́yìn náà yan PIN tàbí ọ̀rọ̀ aṣínà tí ó ní lẹ́tà tàbí nọ́ńbà mẹ́fà ó kéré tán. Yan èyí tí o máa rántí. A kì í fi kóòdù ránṣẹ́ sí fóònù rẹ. Lẹ́yìn náà tẹ Ṣẹ̀dá àkáǹtì mi.",
 "Phone number": "Nọ́ńbà fóònù",
 "Email address": "Àdírẹ́sì ímeèlì",
@@ -204,5 +203,8 @@
 "Choose your LGA or district": "Yan ìjọba ìbílẹ̀ tàbí agbègbè rẹ",
 "My LGA or district is not listed": "Ìjọba ìbílẹ̀ mi kò sí nínú àtòjọ",
 "Choose your community": "Yan àdúgbò rẹ",
-"My community is not listed": "Àdúgbò mi kò sí nínú àtòjọ"
+"My community is not listed": "Àdúgbò mi kò sí nínú àtòjọ",
+"Type your first name and your surname. Choose your date of birth. Then type your phone number. If you have an email address, type it too. If you have no email, you sign in with your phone number. Then press Continue.": "Tẹ orúkọ àkọ́kọ́ rẹ àti orúkọ ìdílé rẹ. Yan ọjọ́ ìbí rẹ. Lẹ́yìn náà tẹ nọ́ńbà fóònù rẹ. Bí o bá ní àdírẹ́sì ímeèlì, tẹ òun náà. Bí o kò bá ní ímeèlì, nọ́ńbà fóònù rẹ ni o máa fi wọlé. Lẹ́yìn náà tẹ Tẹ̀síwájú.",
+"With the country code. If you have no email, you sign in with this number.": "Pẹ̀lú kóòdù orílẹ̀-èdè. Bí o kò bá ní ímeèlì, nọ́ńbà yìí ni o máa fi wọlé.",
+"This phone number already signs in a member. Sign in instead, or add your own email address to join with the same phone.": "Nọ́ńbà yìí ti jẹ́ ti ọmọ ẹgbẹ́ kan fún ìwọlé. Wọlé, tàbí fi ímeèlì tirẹ kún un láti darapọ̀ pẹ̀lú fóònù kan náà."
 }

@@ -109,7 +109,6 @@
 "Ended": "Agwụla",
 "This guide shows you how to join the WODDI Digital Operating System, step by step.": "Ntuziaka a na-egosi gị otu esi abanye na Usoro Ọrụ Dijitalụ nke WODDI, nzọụkwụ site na nzọụkwụ.",
 "the voice has not been recorded yet": "edekọbeghị olu a",
-"Type your first name and your surname. Choose your date of birth. Then type your email address and your phone number. Both are needed. You sign in with your email address. Then press Continue.": "Dee aha mbụ gị na aha nna gị. Họrọ ụbọchị ọmụmụ gị. Mgbe ahụ dee adreesị email gị na nọmba ekwentị gị. A chọrọ ha abụọ. Ị ga-eji email gị banye. Mgbe ahụ pịa Gaa n'ihu.",
 "Read the short agreement and tick the box to agree. Tell WODDI if you would like to volunteer. Then choose a PIN or password of at least six letters or numbers. Choose one you will remember. No code is sent to your phone. Then press Create my account.": "Gụọ nkwekọrịta dị mkpirikpi ahụ ma kaa akara n'igbe iji kwenye. Gwa WODDI ma ị chọrọ ịwepụta onwe gị inye aka. Mgbe ahụ họrọ PIN ma ọ bụ okwuntughe nwere opekata mpe mkpụrụ edemede ma ọ bụ ọnụọgụ isii. Họrọ nke ị ga-echeta. A naghị eziga koodu na ekwentị gị. Mgbe ahụ pịa Mepụta akaụntụ m.",
 "Phone number": "Nọmba ekwentị",
 "Email address": "Adreesị email",
@@ -204,5 +203,8 @@
 "Choose your LGA or district": "Họrọ okpuru ọchịchị ma ọ bụ distrikti gị",
 "My LGA or district is not listed": "Okpuru ọchịchị m adịghị na ndepụta",
 "Choose your community": "Họrọ obodo nta gị",
-"My community is not listed": "Obodo nta m adịghị na ndepụta"
+"My community is not listed": "Obodo nta m adịghị na ndepụta",
+"Type your first name and your surname. Choose your date of birth. Then type your phone number. If you have an email address, type it too. If you have no email, you sign in with your phone number. Then press Continue.": "Dee aha mbụ gị na aha nna gị. Họrọ ụbọchị ọmụmụ gị. Mgbe ahụ dee nọmba ekwentị gị. Ọ bụrụ na i nwere adreesị email, dee ya kwa. Ọ bụrụ na i nweghị email, ị ga-eji nọmba ekwentị gị banye. Mgbe ahụ pịa Gaa n'ihu.",
+"With the country code. If you have no email, you sign in with this number.": "Ya na koodu mba. Ọ bụrụ na i nweghị email, ị ga-eji nọmba a banye.",
+"This phone number already signs in a member. Sign in instead, or add your own email address to join with the same phone.": "Nọmba a na-abanyerịrị onye otu. Banye, ma ọ bụ tinye email nke gị ka i jiri otu ekwentị sonye."
 }

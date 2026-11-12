@@ -121,14 +121,20 @@ route('POST', '/auth/register', function () {
   // The same request sent again after a lost reply returns the account it already made, not an error and not a second account (T04, T29).
   $idem = (string) (body()['idem'] ?? '');
   if (($again = idem_existing($idem, $f['password']))) { session_start_for((int) $again['id'], 'password'); return ['ok' => true, 'user' => public_user($again), 'resumed' => true]; }
-  // An email address is compulsory, and so is a phone number. She signs in with the email. No code is sent to either.
-  if ($email === '') fail(422, 'Enter your email address. You sign in with it.', 'email');
-  if (!filter_var($email, FILTER_VALIDATE_EMAIL)) fail(422, 'That email address is not complete. Check it and try again.', 'email');
-  if (val('SELECT id FROM users WHERE email=?', [$email])) fail(409, 'An account with this email already exists. Sign in instead.', 'email_taken');
+  // A phone number is compulsory. An email address is asked for, but a woman who has none joins with her phone number alone and signs in
+  // with it (No Woman Is Left Out). No code is sent to either.
+  $method = 'email';
+  if ($email === '') {
+    $method = 'phone'; $email = phone_login_name(preg_replace('/[^\d+]/', '', $f['phone']));
+    if (val('SELECT id FROM users WHERE email=?', [$email])) fail(409, 'This phone number already signs in a member. Sign in instead, or add your own email address to join with the same phone.', 'phone_taken');
+  } else {
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) fail(422, 'That email address is not complete. Check it and try again.', 'email');
+    if (val('SELECT id FROM users WHERE email=?', [$email])) fail(409, 'An account with this email already exists. Sign in instead.', 'email_taken');
+  }
   throttle_hit('reg:' . client_ip());
   $id = ins('INSERT INTO users (email,password_hash,first_name,last_name,phone,dob,network,country_code,org_unit_id,state_region,lga,community,role,status,signup_method,created_at)
              VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-    [$email, password_hash($f['password'], PASSWORD_DEFAULT), $f['first_name'], $f['last_name'], $f['phone'], $f['dob'], $f['network'], $f['country_code'], $f['org_unit_id'], $f['state_region'], $f['lga'], $f['community'], 'member', 'active', 'email', now()]);
+    [$email, password_hash($f['password'], PASSWORD_DEFAULT), $f['first_name'], $f['last_name'], $f['phone'], $f['dob'], $f['network'], $f['country_code'], $f['org_unit_id'], $f['state_region'], $f['lga'], $f['community'], 'member', 'active', $method, now()]);
   idem_keep($idem, $id);
   finish_signup($id, $f);
   session_start_for($id, 'password');

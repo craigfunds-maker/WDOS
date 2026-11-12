@@ -246,7 +246,7 @@ export function listenBtn(getText, label = 'Listen') {
 export const GUIDE = [
   'Welcome to the WODDI Digital Operating System. First, choose your language from the list. You can change it at any time. Then press Continue.',
   'Now choose your network. The WODDI Good Mother Network is for women aged thirty and above. The WODDI Nurture NextGen Network is for women aged eighteen to twenty-nine. Touch the network that matches your age, then press Continue.',
-  'Type your first name and your surname. Choose your date of birth. Then type your email address and your phone number. Both are needed. You sign in with your email address. Then press Continue.',
+  'Type your first name and your surname. Choose your date of birth. Then type your phone number. If you have an email address, type it too. If you have no email, you sign in with your phone number. Then press Continue.',
   'Choose your country, then your state or region, then your local government area or city. Type the name of your community. This helps WDOS place you in a chapter near you. Then press Continue.',
   'Read the short agreement and tick the box to agree. Tell WODDI if you would like to volunteer. Then choose a PIN or password of at least six letters or numbers. Choose one you will remember. No code is sent to your phone. Then press Create my account.',
   'Your membership is created at once, and you receive your membership number. Your seven-day journey opens. Do one small step each day. If you miss a day, nothing is lost.',
