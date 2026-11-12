@@ -2,7 +2,7 @@
  * The phrases are taken from the Founder's map artwork exactly as written there. The language named beside each
  * phrase is our reading of it and is shown small, so it can be corrected without touching the phrase.
  * Country shapes come from public geography data (assets/geo/africa.json). */
-import { h } from './ui.js';
+import { h, t, i18n } from './ui.js';
 
 export const GOOD_MOTHER = {
   MA: ['Morocco', [['Umm mzyana', 'Arabic'], ['Yemma yelhan', 'Tamazight']]],
@@ -88,19 +88,35 @@ export function africaMap(highlight) {
 }
 
 /** The member's own country, for the dashboard: its shape, with what a Good Mother is called in its major languages written inside it. */
-export function goodMotherCard(code, countryName) {
-  const g = GOOD_MOTHER[code] || POSTERS.has(code); const name = countryName || nameOf(code); const art = goodMotherArt(code, countryName);
+export function goodMotherCard(code, givenName) {
+  const g = GOOD_MOTHER[code] || POSTERS.has(code); const name = countryName(code, givenName); const art = goodMotherArt(code, givenName);
   return h('section', { class: 'card gmc' + (g ? '' : ' gmc--africa') + (POSTERS.has(code) ? ' gmc--poster' : '') }, art,
-    h('div', { class: 'gmc__text' }, h('span', { class: 'gmc__kicker', text: 'WODDI Good Mother Network' }), h('h2', { class: 'display', text: g ? `A Good Mother in ${name}` : 'A Good Mother across Africa' }),
-      h('p', { class: 'muted', text: POSTERS.has(code) ? `What a Good Mother is called across the regions and languages of ${name}. Select the map to read it at full size.` : g ? `What a Good Mother is called in the major languages of ${name}.` : PLAQUE })));
+    h('div', { class: 'gmc__text' }, h('span', { class: 'gmc__kicker', text: 'WODDI Good Mother Network' }), h('h2', { class: 'display' }, g ? tf('A Good Mother in {country}', { country: name }) : t('A Good Mother across Africa')),
+      h('p', { class: 'muted' }, POSTERS.has(code) ? tf('What a Good Mother is called across the regions and languages of {country}. Select the map to read it at full size.', { country: name }) : g ? tf('What a Good Mother is called in the major languages of {country}.', { country: name }) : t(PLAQUE))),
+    g ? countryPlaque(code, givenName) : null);
 }
 
-/* Countries with a finished WODDI Good Mother country map (the Founder's artwork, in assets/goodmother). The others keep the drawn shape until their maps arrive. */
-const POSTERS = new Set(['AO', 'BI', 'BW', 'CD', 'CF', 'CG', 'CM', 'DJ', 'DZ', 'EG', 'EH', 'ER', 'ET', 'GA', 'GQ', 'KE', 'KM', 'LS', 'LY', 'MA', 'MG', 'MU', 'MW', 'MZ', 'RW', 'SC', 'SD', 'SO', 'SS', 'ST', 'SZ', 'TD', 'TN', 'TZ', 'UG', 'ZA', 'ZM', 'ZW']);
+/* Countries with a finished WODDI Good Mother country map (the Founder's artwork, in assets/goodmother): 38 in Africa and 130 in the diaspora.
+   The other African countries keep the drawn shape until their maps arrive. */
+const POSTERS_AFRICA = new Set(["AO", "BI", "BW", "CD", "CF", "CG", "CM", "DJ", "DZ", "EG", "EH", "ER", "ET", "GA", "GQ", "KE", "KM", "LS", "LY", "MA", "MG", "MU", "MW", "MZ", "RW", "SC", "SD", "SO", "SS", "ST", "SZ", "TD", "TN", "TZ", "UG", "ZA", "ZM", "ZW"]);
+const POSTERS_DIASPORA = new Set(["AD", "AE", "AF", "AG", "AL", "AM", "AR", "AT", "AU", "AZ", "BA", "BB", "BD", "BE", "BG", "BH", "BN", "BO", "BR", "BS", "BT", "BY", "BZ", "CA", "CH", "CL", "CN", "CO", "CR", "CU", "CY", "CZ", "DE", "DK", "DM", "DO", "EC", "EE", "ES", "FI", "FJ", "FR", "GB", "GD", "GE", "GR", "GT", "GY", "HN", "HR", "HT", "HU", "ID", "IE", "IL", "IN", "IQ", "IR", "IS", "IT", "JM", "JO", "JP", "KG", "KH", "KN", "KP", "KR", "KW", "KZ", "LA", "LB", "LC", "LI", "LK", "LT", "LU", "LV", "MC", "MD", "ME", "MK", "MM", "MN", "MT", "MV", "MX", "MY", "NI", "NL", "NO", "NP", "NZ", "OM", "PA", "PE", "PG", "PH", "PK", "PL", "PT", "PY", "QA", "RO", "RS", "RU", "SA", "SE", "SG", "SI", "SK", "SM", "SR", "SV", "SY", "TH", "TJ", "TL", "TM", "TR", "TT", "UA", "US", "UY", "UZ", "VC", "VE", "VN", "VU", "YE"]);
+const POSTERS = new Set([...POSTERS_AFRICA, ...POSTERS_DIASPORA]);
+export const hasGoodMotherMap = (code) => POSTERS.has(code) || !!GOOD_MOTHER[code] || !!OTHER[code];
+const tf = (s, vars) => t(s).replace(/\{(\w+)\}/g, (m, k2) => vars[k2] ?? m);
+/** The country's name in the language she chose, where the phone knows it; otherwise the name WDOS holds. */
+function countryName(code, fallback) { try { const n = new Intl.DisplayNames([i18n.lang || 'en'], { type: 'region' }).of(code); if (n && n !== code) return n; } catch { /* older phone */ } return fallback || nameOf(code); }
+/* The plaque. It used to be drawn inside each picture, in a different corner from map to map and in English only.
+   It now stands under every map, in the same place and the same style, in the language she chose. */
+const PLAQUE_COUNTRY = 'This map represents the WODDI Good Mother Network across {country}, capturing the meaning of “Good Mother” in diverse languages and dialects across the country. It reflects our commitment to ensuring that every woman, regardless of culture or background, lives out the full essence of her identity. A Good Mother.';
+const PLAQUE_DIASPORA = 'This map represents the WODDI Good Mother Network in the diaspora across {country}, capturing the meaning of “Good Mother” in the diverse languages and dialects of the country. It reflects our commitment to ensuring that every woman, regardless of culture or background, lives out the full essence of her identity. A Good Mother.';
+export function countryPlaque(code, fallbackName) {
+  return h('figcaption', { class: 'gmplaque' }, h('span', { 'aria-hidden': 'true', text: '❦' }), h('p', {}, tf(POSTERS_DIASPORA.has(code) ? PLAQUE_DIASPORA : PLAQUE_COUNTRY, { country: countryName(code, fallbackName) })), h('span', { 'aria-hidden': 'true', text: '❦' }));
+}
 function openPoster(code, name) {
   const close = () => { box.remove(); document.removeEventListener('keydown', esc); }; const esc = (e) => { if (e.key === 'Escape') close(); };
   const box = h('div', { class: 'gmview', role: 'dialog', 'aria-modal': 'true', 'aria-label': `WODDI Good Mother Network map of ${name}`, onclick: (e) => { if (e.target === box) close(); } },
-    h('button', { class: 'gmview__x', type: 'button', 'aria-label': 'Close', onclick: close }, '×'), h('img', { src: `/assets/goodmother/${code}.webp`, alt: `WODDI Good Mother Network map of ${name}, showing what a Good Mother is called in its regions and languages` }));
+    h('button', { class: 'gmview__x', type: 'button', 'aria-label': 'Close', onclick: close }, '×'),
+    h('figure', { class: 'gmview__in' }, h('img', { src: `/assets/goodmother/${code}.webp`, alt: `WODDI Good Mother Network map of ${name}, showing what a Good Mother is called in its regions and languages` }), countryPlaque(code, name)));
   document.addEventListener('keydown', esc); document.body.append(box); box.querySelector('button').focus();
 }
 

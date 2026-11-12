@@ -470,5 +470,20 @@
 "Newsletter": "Lettre d'information",
 "Newsletters": "Lettres d'information",
 "Talk show": "Émission-débat",
-"Everything": "Tout"
+"Everything": "Tout",
+"This map represents the WODDI Good Mother Network across {country}, capturing the meaning of “Good Mother” in diverse languages and dialects across the country. It reflects our commitment to ensuring that every woman, regardless of culture or background, lives out the full essence of her identity. A Good Mother.": "{country} : cette carte représente le réseau WODDI Good Mother à travers le pays, et montre le sens de « Bonne Mère » dans les diverses langues et dialectes du pays. Elle traduit notre engagement à ce que chaque femme, quelles que soient sa culture ou son origine, vive pleinement l'essence de son identité. Une Bonne Mère.",
+"This map represents the WODDI Good Mother Network in the diaspora across {country}, capturing the meaning of “Good Mother” in the diverse languages and dialects of the country. It reflects our commitment to ensuring that every woman, regardless of culture or background, lives out the full essence of her identity. A Good Mother.": "{country} : cette carte représente le réseau WODDI Good Mother dans la diaspora, à travers le pays, et montre le sens de « Bonne Mère » dans les diverses langues et dialectes du pays. Elle traduit notre engagement à ce que chaque femme, quelles que soient sa culture ou son origine, vive pleinement l'essence de son identité. Une Bonne Mère.",
+"This map represents the WODDI Good Mother Network across Africa, capturing the meaning of “Good Mother” in diverse languages and dialects across the continent, ensuring that every woman, regardless of local culture or background, lives up to the identity of her calling A Good Mother.": "Cette carte représente le réseau WODDI Good Mother à travers l'Afrique, et montre le sens de « Bonne Mère » dans les diverses langues et dialectes du continent, afin que chaque femme, quelles que soient sa culture locale ou son origine, soit à la hauteur de son identité et de sa vocation : une Bonne Mère.",
+"A Good Mother in {country}": "Une Bonne Mère : {country}",
+"A Good Mother across Africa": "Une Bonne Mère à travers l'Afrique",
+"What a Good Mother is called across the regions and languages of {country}. Select the map to read it at full size.": "Comment on dit « Bonne Mère » dans les régions et les langues du pays ({country}). Touchez la carte pour la lire en grand.",
+"What a Good Mother is called in the major languages of {country}.": "Comment on dit « Bonne Mère » dans les principales langues du pays ({country}).",
+"Tap a country to read what a Good Mother is called there.": "Touchez un pays pour lire comment on y dit « Bonne Mère ».",
+"The map does not carry a phrase for this country yet.": "La carte ne porte pas encore d'expression pour ce pays.",
+"Choose your city": "Choisissez votre ville",
+"My city is not listed": "Ma ville n'est pas dans la liste",
+"Choose your LGA or district": "Choisissez votre district",
+"My LGA or district is not listed": "Mon district n'est pas dans la liste",
+"Choose your community": "Choisissez votre communauté",
+"My community is not listed": "Ma communauté n'est pas dans la liste"
 }

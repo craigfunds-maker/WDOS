@@ -473,5 +473,20 @@
 "Newsletter": "Jarida",
 "Newsletters": "Majarida",
 "Talk show": "Kipindi cha mazungumzo",
-"Everything": "Yote"
+"Everything": "Yote",
+"This map represents the WODDI Good Mother Network across {country}, capturing the meaning of “Good Mother” in diverse languages and dialects across the country. It reflects our commitment to ensuring that every woman, regardless of culture or background, lives out the full essence of her identity. A Good Mother.": "Ramani hii inawakilisha mtandao wa WODDI Good Mother kote {country}, ikionyesha maana ya “Mama Mwema” katika lugha na lahaja mbalimbali za nchi. Inaonyesha ahadi yetu ya kuhakikisha kila mwanamke, bila kujali utamaduni au asili yake, anaishi kiini kamili cha utambulisho wake. Mama Mwema.",
+"This map represents the WODDI Good Mother Network in the diaspora across {country}, capturing the meaning of “Good Mother” in the diverse languages and dialects of the country. It reflects our commitment to ensuring that every woman, regardless of culture or background, lives out the full essence of her identity. A Good Mother.": "Ramani hii inawakilisha mtandao wa WODDI Good Mother ughaibuni kote {country}, ikionyesha maana ya “Mama Mwema” katika lugha na lahaja mbalimbali za nchi. Inaonyesha ahadi yetu ya kuhakikisha kila mwanamke, bila kujali utamaduni au asili yake, anaishi kiini kamili cha utambulisho wake. Mama Mwema.",
+"This map represents the WODDI Good Mother Network across Africa, capturing the meaning of “Good Mother” in diverse languages and dialects across the continent, ensuring that every woman, regardless of local culture or background, lives up to the identity of her calling A Good Mother.": "Ramani hii inawakilisha mtandao wa WODDI Good Mother kote Afrika, ikionyesha maana ya “Mama Mwema” katika lugha na lahaja mbalimbali za bara, ili kila mwanamke, bila kujali utamaduni wa kwao au asili yake, aishi kulingana na utambulisho wa wito wake: Mama Mwema.",
+"A Good Mother in {country}": "Mama Mwema: {country}",
+"A Good Mother across Africa": "Mama Mwema kote Afrika",
+"What a Good Mother is called across the regions and languages of {country}. Select the map to read it at full size.": "Jinsi “Mama Mwema” anavyoitwa katika mikoa na lugha za nchi ({country}). Gusa ramani kuisoma kwa ukubwa kamili.",
+"What a Good Mother is called in the major languages of {country}.": "Jinsi “Mama Mwema” anavyoitwa katika lugha kuu za nchi ({country}).",
+"Tap a country to read what a Good Mother is called there.": "Gusa nchi kusoma jinsi “Mama Mwema” anavyoitwa huko.",
+"The map does not carry a phrase for this country yet.": "Ramani bado haina neno la nchi hii.",
+"Choose your city": "Chagua jiji lako",
+"My city is not listed": "Jiji langu halipo kwenye orodha",
+"Choose your LGA or district": "Chagua wilaya yako",
+"My LGA or district is not listed": "Wilaya yangu haipo kwenye orodha",
+"Choose your community": "Chagua jumuiya yako",
+"My community is not listed": "Jumuiya yangu haipo kwenye orodha"
 }

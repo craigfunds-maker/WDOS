@@ -473,5 +473,20 @@
 "Newsletter": "النشرة",
 "Newsletters": "النشرات",
 "Talk show": "برنامج حواري",
-"Everything": "الكل"
+"Everything": "الكل",
+"This map represents the WODDI Good Mother Network across {country}, capturing the meaning of “Good Mother” in diverse languages and dialects across the country. It reflects our commitment to ensuring that every woman, regardless of culture or background, lives out the full essence of her identity. A Good Mother.": "تمثل هذه الخريطة شبكة WODDI Good Mother في {country}، وتبيّن معنى «الأم الصالحة» في لغات البلاد ولهجاتها المتنوعة. وهي تعبّر عن التزامنا بأن تعيش كل امرأة، مهما كانت ثقافتها أو خلفيتها، جوهر هويتها كاملاً. أم صالحة.",
+"This map represents the WODDI Good Mother Network in the diaspora across {country}, capturing the meaning of “Good Mother” in the diverse languages and dialects of the country. It reflects our commitment to ensuring that every woman, regardless of culture or background, lives out the full essence of her identity. A Good Mother.": "تمثل هذه الخريطة شبكة WODDI Good Mother في المهجر في {country}، وتبيّن معنى «الأم الصالحة» في لغات البلاد ولهجاتها المتنوعة. وهي تعبّر عن التزامنا بأن تعيش كل امرأة، مهما كانت ثقافتها أو خلفيتها، جوهر هويتها كاملاً. أم صالحة.",
+"This map represents the WODDI Good Mother Network across Africa, capturing the meaning of “Good Mother” in diverse languages and dialects across the continent, ensuring that every woman, regardless of local culture or background, lives up to the identity of her calling A Good Mother.": "تمثل هذه الخريطة شبكة WODDI Good Mother في أنحاء أفريقيا، وتبيّن معنى «الأم الصالحة» في لغات القارة ولهجاتها المتنوعة، حتى ترتقي كل امرأة، مهما كانت ثقافتها المحلية أو خلفيتها، إلى هوية رسالتها: أم صالحة.",
+"A Good Mother in {country}": "الأم الصالحة في {country}",
+"A Good Mother across Africa": "الأم الصالحة في أنحاء أفريقيا",
+"What a Good Mother is called across the regions and languages of {country}. Select the map to read it at full size.": "كيف تُسمّى «الأم الصالحة» في مناطق البلاد ولغاتها ({country}). المسي الخريطة لقراءتها بالحجم الكامل.",
+"What a Good Mother is called in the major languages of {country}.": "كيف تُسمّى «الأم الصالحة» في اللغات الرئيسية للبلاد ({country}).",
+"Tap a country to read what a Good Mother is called there.": "المسي بلداً لقراءة ما تُسمّى به «الأم الصالحة» هناك.",
+"The map does not carry a phrase for this country yet.": "لا تحمل الخريطة عبارة لهذا البلد بعد.",
+"Choose your city": "اختاري مدينتك",
+"My city is not listed": "مدينتي ليست في القائمة",
+"Choose your LGA or district": "اختاري منطقتك المحلية",
+"My LGA or district is not listed": "منطقتي المحلية ليست في القائمة",
+"Choose your community": "اختاري مجتمعك",
+"My community is not listed": "مجتمعي ليس في القائمة"
 }

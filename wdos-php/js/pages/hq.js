@@ -84,7 +84,7 @@ export async function render(root) {
       kpi('users', 'Members', k.members, [h('span', { text: `${fmt(k.active_7d)} active this week` })]),
       kpi('plus', `Joined in ${days} days`, k.new_now, [h('span', {}, delta(k.new_now, k.new_prev, days), k.new_prev ? ' on the previous ' + days : ''), sparkline(totals)]),
       kpi('award', 'Volunteer leaders seated', k.leaders, [h('span', { text: k.leaders ? 'Across both networks' : 'Appoint leaders from Members' })]),
-      kpi('globe', 'Countries with members', k.countries, [h('span', { text: 'of 54 African countries' })]));
+      kpi('globe', 'Countries with members', k.countries, [h('span', { text: 'In Africa and the diaspora' })]));
     if (!k.members) {
       const invite = () => h('a', { class: 'btn btn--quiet btn--s', href: '#/', onclick: (e) => { e.preventDefault(); navigator.clipboard?.writeText(location.origin + '/#/'); e.target.textContent = 'Link copied'; } }, 'Copy the joining link');
       trend.replaceChildren(empty('chart', 'No registrations yet', 'This chart draws itself as soon as the first member joins through the network page.', invite()));

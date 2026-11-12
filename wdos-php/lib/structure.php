@@ -2,6 +2,7 @@
 declare(strict_types=1);
 /* Leadership structure (every seat in scope, filled or vacant), appointment acceptance and guided onboarding. */
 
+const STRUCTURE_COUNTRIES = 'AE AO AT AU BE BF BI BJ BR BW CA CD CF CG CH CI CM CN CV DE DJ DZ EG ER ES ET FR GA GB GH GM GN GQ GW IE IN IT JM KE KM LR LS LY MA MG ML MR MU MW MY MZ NA NE NG NL NO NZ PT QA RW SA SC SD SE SL SN SO SS ST SZ TD TG TN TR TT TZ UG US ZA ZM ZW';
 route('GET', '/structure', function () {
   $u = require_user(); $seat = work_seat($u);
   if (!is_hq($u) && !$seat) fail(403, 'The leadership structure opens for volunteer leaders and WODDI HQ.', 'forbidden');
@@ -21,9 +22,14 @@ route('GET', '/structure', function () {
       'onboarding' => $f['acceptance'] !== '' ? [(int) $f['ob_done'], $steps] : null];
   }
   // Vacant seats can only be named where the place itself is on the list: countries, and states where they are loaded.
+  /* The 81 countries WODDI's structure was drawn up for always show their seats. The other countries of the world were added in v105 so that
+     any woman can register; each joins the structure as soon as it has a member or an appointed leader. */
+  $active = array_flip(explode(' ', STRUCTURE_COUNTRIES));
+  foreach (rows("SELECT DISTINCT country_code c FROM users WHERE status<>'pending_profile' AND country_code<>'' UNION SELECT DISTINCT ou.country_code FROM seats s JOIN org_units ou ON ou.id=s.org_unit_id WHERE s.ends_at IS NULL") as $r) $active[$r['c']] = true;
   $lead = ['country' => 'country_rep', 'state_region' => 'state_coordinator']; $rank = ['country' => 1, 'state_region' => 3];
   foreach (rows("SELECT id, name, level, country_code FROM org_units WHERE level IN ('country','state_region') AND path LIKE ? ORDER BY path", [$path . '%']) as $ou) {
     if ($seat && $seat['position_level'] === $ou['level'] && (int) $seat['org_unit_id'] === (int) $ou['id']) continue;
+    if ($ou['level'] === 'country' && !isset($active[$ou['country_code']])) continue;      // a country added for registration only shows its vacant seats once WODDI is present there
     foreach ($nets as $net) {
       if (isset($have[$net . '|' . $ou['id'] . '|' . $lead[$ou['level']]])) continue;
       $out[] = ['kind' => 'vacant', 'network' => $net, 'level' => $ou['level'], 'position' => $lead[$ou['level']], 'title' => position_title($lead[$ou['level']], $net), 'unit' => $ou['name'], 'unit_id' => (int) $ou['id'],
@@ -31,6 +37,7 @@ route('GET', '/structure', function () {
     }
   }
   $countries = rows("SELECT country_code code, name FROM org_units WHERE level='country' AND path LIKE ? ORDER BY name", [$path . '%']);
+  $countries = array_values(array_filter($countries, fn($c) => isset($active[$c['code']])));
   return ['rows' => $out, 'countries' => $countries, 'networks' => $nets, 'is_hq' => is_hq($u), 'scope' => $seat ? seat_title($seat) : 'All of WODDI'];
 });
 

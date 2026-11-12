@@ -92,7 +92,7 @@ export async function render(root, params) {
   const NOT_LISTED = '__type__';
   F.state = h('select', { class: 'input', id: 'f-state' }); F.stateText = h('input', { class: 'input', id: 'f-state', maxlength: 120, autocomplete: 'address-level1' });
   F.lgaSel = h('select', { class: 'input', id: 'f-lga' }); F.lga = h('input', { class: 'input', id: 'f-lga', maxlength: 120 });
-  let countries = [], stateMode = 'text', lgaMode = 'text', geoStates = null, geoLgas = null;
+  let countries = [], stateMode = 'text', lgaMode = 'text', geoStates = null, geoLgas = null, worldStates = {};
   const getJson = (url) => fetch(url).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
   const stateSlot = h('div'), lgaSlot = h('div');
   const paintState = () => stateSlot.replaceChildren(h('label', { class: 'field', for: 'f-state' }, h('span', { text: 'State or region' }), stateMode === 'text' ? F.stateText : F.state));
@@ -102,12 +102,22 @@ export async function render(root, params) {
   const stateName = () => (stateMode === 'text' ? F.stateText.value.trim() : F.state.value && F.state.value !== NOT_LISTED ? F.state.selectedOptions[0].textContent : '');
   /* Community Clusters already known in the chosen LGA or city are offered as she types, so the same cluster is not spelled three ways */
   const clusterList = h('datalist', { id: 'f-clusters' });
-  const fillClusters = async () => { const c = countries.find((x) => String(x.id) === F.country.value); if (!c) return; const lga = lgaMode === 'select' ? F.lgaSel.value : F.lga.value; try { const r = await api(`/geo/clusters?country=${c.code}&lga=${encodeURIComponent(lga === NOT_LISTED ? '' : lga)}`); clusterList.replaceChildren(...r.clusters.map((n) => opt(n, n))); } catch { /* she can still type it */ } };
+  const fillClusters = async () => { const c = countries.find((x) => String(x.id) === F.country.value); if (!c) return; const lga = lgaMode === 'select' ? F.lgaSel.value : F.lga.value; if (!lga || lga === NOT_LISTED) { paintCommunity([]); return; } try { const r = await api(`/geo/clusters?country=${c.code}&lga=${encodeURIComponent(lga)}`); clusterList.replaceChildren(...r.clusters.map((n) => opt(n, n))); paintCommunity(r.clusters); } catch { paintCommunity([]); } };
+  /* Community or ward: a list wherever WDOS already knows the communities of that LGA or city; typing where it does not, or when hers is not on the list. */
+  F.commSel = h('select', { class: 'input', id: 'f-commsel', hidden: true, onchange: () => { const t2 = F.commSel.value === NOT_LISTED; F.community.hidden = !t2; F.community.value = t2 ? '' : F.commSel.value; if (t2) F.community.focus(); } });
+  const paintCommunity = (list) => { if (!F.community) return; const cur = F.community.value; if (!F.commSel.isConnected) F.community.before(F.commSel);
+    if (!list.length) { F.commSel.hidden = true; F.community.hidden = false; return; }
+    F.commSel.replaceChildren(h('option', { value: '', text: 'Choose your community' }), ...list.map((n) => opt(n, n)), h('option', { value: NOT_LISTED, text: 'My community is not listed' })); F.commSel.hidden = false;
+    if (cur && list.includes(cur)) { F.commSel.value = cur; F.community.hidden = true; } else if (cur) { F.commSel.value = NOT_LISTED; F.community.hidden = false; } else { F.commSel.value = ''; F.community.hidden = true; } };
   async function fillLgas() {
     const c = countries.find((x) => String(x.id) === F.country.value); lgaMode = 'text';
     if (c && c.code === 'NG' && stateMode !== 'text' && stateName()) {
       geoLgas = geoLgas || await getJson('/assets/geo/ng-lgas.json'); const list = geoLgas[stateName()];
       if (list && list.length) { F.lgaSel.replaceChildren(h('option', { value: '', text: 'Choose your LGA' }), ...list.map((n) => opt(n, n)), h('option', { value: NOT_LISTED, text: 'My LGA is not listed' })); lgaMode = 'select'; }
+    }
+    if (c && lgaMode === 'text' && stateMode === 'list' && worldStates[stateName()]) {
+      const list = await getJson(`/assets/geo/world/${c.code}/${worldStates[stateName()]}.json`);
+      if (Array.isArray(list) && list.length) { F.lgaSel.replaceChildren(h('option', { value: '', text: diaspora() ? 'Choose your city' : 'Choose your LGA or district' }), ...list.map((n) => opt(n, n)), h('option', { value: NOT_LISTED, text: diaspora() ? 'My city is not listed' : 'My LGA or district is not listed' })); lgaMode = 'select'; }
     }
     paintLga();
   }
@@ -118,6 +128,11 @@ export async function render(root, params) {
     stateMode = 'text'; F.stateText.value = '';
     if (c && Number(c.children) > 0) {
       try { const r = await api('/geo/children/' + c.id); F.state.replaceChildren(h('option', { value: '', text: 'Choose your state' }), ...r.units.map((u2) => opt(u2.id, u2.name))); stateMode = 'select'; } catch { /* fall back to the published list or typing */ }
+    }
+    worldStates = {};
+    if (c && stateMode === 'text') {                                   // every country: its states, provinces or regions, each with its own list of cities and districts
+      const w = await getJson(`/assets/geo/world/${c.code}.json`); const list = (w.s || []);
+      if (list.length) { list.forEach(([n, code, cities]) => { worldStates[n] = cities ? code : ''; }); F.state.replaceChildren(h('option', { value: '', text: 'Choose your state or region' }), ...list.map(([n]) => opt(n, n)), h('option', { value: NOT_LISTED, text: 'My state or region is not listed' })); stateMode = 'list'; }
     }
     if (c && stateMode === 'text') {
       geoStates = geoStates || await getJson('/assets/geo/states.json'); const list = geoStates[c.code];
