@@ -248,14 +248,25 @@ export const GUIDE = [
 ];
 export const GUIDE_AUDIO = ['ar', 'en', 'fr', 'pt', 'sw'];          // a recorded synthetic voice exists for these
 export const GUIDE_VIDEO = ['ar', 'en', 'fr', 'ha', 'ig', 'pt', 'sw', 'yo'];      // Hausa, Igbo and Yoruba have captions and no voice yet
+/* Which steps a person has recorded, per language. Asked once per visit. A person's recording always comes before a synthetic voice. */
+export const GUIDE_INTRO = 'This guide shows you how to join the WODDI Digital Operating System, step by step.';
+let recordedP = null;
+export const guideRecorded = (fresh = false) => { if (fresh || !recordedP) recordedP = fetch('/api/public/guide-audio', { headers: { 'X-WDOS': '1' } }).then((r) => r.json()).then((d) => d.recorded || {}).catch(() => ({})); return recordedP; };
 export function guideBtn(getStep, label = 'Listen') {
   const b = h('button', { class: 'btn btn--quiet btn--s listen', type: 'button', 'aria-pressed': 'false', 'data-label': label }, icon('volume', 18), h('span', { text: label }));
   const stop = () => { b.setAttribute('aria-pressed', 'false'); b.lastChild.textContent = t(label); };
-  b.addEventListener('click', () => {
+  guideRecorded();
+  b.addEventListener('click', async () => {
     const on = b.getAttribute('aria-pressed') === 'true'; stopAllListening(); if (on) return;
     const n = typeof getStep === 'function' ? getStep() : getStep; const started = () => { b.setAttribute('aria-pressed', 'true'); b.lastChild.textContent = t('Stop'); };
-    if (GUIDE_AUDIO.includes(i18n.lang)) { const a = new Audio(`/assets/audio/guide/${i18n.lang}-${n + 1}.mp3`); guideAudio = a; a.onended = stop; a.onerror = () => { guideAudio = null; if (!speak(b, GUIDE[n], stop)) stop(); }; a.play().then(started).catch(() => { guideAudio = null; if (speak(b, GUIDE[n], stop)) started(); }); }
-    else if (speak(b, GUIDE[n], stop)) started();
+    const lang = i18n.lang; const rec = (await guideRecorded())[lang] || {}; const fallback = () => { guideAudio = null; if (speak(b, GUIDE[n], stop)) started(); else stop(); };
+    const src = rec[n + 1] ? `/api/public/guide-audio/${lang}/${n + 1}?v=${rec[n + 1]}` : GUIDE_AUDIO.includes(lang) ? `/assets/audio/guide/${lang}-${n + 1}.mp3` : '';
+    if (!src) {
+      // no person has recorded this language yet and there is no synthetic voice for it: use the phone's own voice if it has one, otherwise say so plainly
+      if (voiceFor(lang)) { fallback(); return; }
+      toast(LANGS[lang] + ': ' + t('the voice has not been recorded yet'), 'The words are on the screen.'); return;
+    }
+    const a = new Audio(src); guideAudio = a; a.onended = stop; a.onerror = fallback; a.play().then(started).catch(fallback);
   });
   return b;
 }

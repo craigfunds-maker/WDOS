@@ -391,5 +391,6 @@ require __DIR__ . '/../lib/comms.php';
 require __DIR__ . '/../lib/amend.php';
 require __DIR__ . '/../lib/handoff.php';
 require __DIR__ . '/../lib/staff.php';
+require __DIR__ . '/../lib/guide.php';
 
 fail(404, 'No such WDOS endpoint.', 'not_found');

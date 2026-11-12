@@ -7,7 +7,7 @@ import { app, signedIn, refreshUser, go, signOut, setLanguage } from '../app.js'
 
 export function pubBar(right, withLang = true) {
   const tb = h('button', { class: 'iconbtn', type: 'button', 'aria-label': 'Switch between dark and light', onclick: () => { theme.toggle(); tb.replaceChildren(icon(theme.get() === 'light' ? 'moon' : 'sun')); } }, icon(theme.get() === 'light' ? 'moon' : 'sun'));
-  return h('div', { class: 'pubtop' }, withLang ? langPills(setLanguage) : null, h('header', { class: 'pubbar' }, h('a', { href: '#/', 'aria-label': 'WODDI home' }, h('img', { src: '/assets/logos/woddi.png', alt: 'WODDI, The Nurturer' })), h('div', { class: 'grow' }), tb, right || null));
+  return h('div', { class: 'pubtop' }, withLang ? langPills(setLanguage) : null, h('header', { class: 'pubbar' }, h('a', { href: '#/', 'aria-label': 'WODDI home' }, h('img', { src: '/assets/logos/woddi-disc.png', alt: 'WODDI, The Nurturer' })), h('div', { class: 'grow' }), tb, right || null));
 }
 export const pubFoot = () => h('footer', { class: 'pubfoot' }, h('span', { text: 'WODDI Digital Operating System' }), h('span', { text: 'No Woman Is Left Out' }), h('span', { class: 'num', text: 'Build ' + (app.config.build || '') }));
 
