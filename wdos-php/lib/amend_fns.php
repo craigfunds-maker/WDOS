@@ -17,6 +17,7 @@ const POLICY_DEFS = [
   'journey_required_referrals' => ['Member journey: registered referrals needed', 'int', 0, 10],
   'wnnn_country_title' => ['WNNN country leader title in Africa', 'choice', ['Country Lead' => 'Country Lead (African structure document)', 'Country Representative' => 'Country Representative (diaspora document)']],
   'recovery_by_leader' => ['Account recovery: a chapter leader may give a member a temporary PIN in person', 'choice', ['off' => 'Off. Recovery is by fingerprint, by email link, or by HQ', 'on' => 'On. Every use is logged and HQ is told']],
+  'seat_term_expiry' => ['Leader appointment reaching its end date', 'choice', ['notify' => 'WODDI HQ is told 30 days before and on the day. The seat stays until HQ acts', 'auto' => 'HQ is told 30 days before. On the day the seat ends by itself, access stops and the vacancy opens']],
   'age_transition' => ['WNNN member reaching 30', 'choice', ['hq' => 'She is told and listed. WODDI HQ moves her', 'auto' => 'She is told 30 days before, then moved to WGMN automatically. HQ reviews any WNNN seat']],
   'community_blocked_words' => ['Community: words that hold a post for review (separate with commas)', 'text'],
   'welcome_video_url' => ['Welcome screen: link to WODDI\'s own short video file (optional)', 'text'],
@@ -24,7 +25,7 @@ const POLICY_DEFS = [
   'welcome_transcript' => ['Welcome screen: the words spoken in the video or audio', 'text'],
 ];
 const POLICY_FALLBACK = ['chapter_min_active' => '30', 'chapter_plan_next' => '40', 'chapter_capacity' => '50', 'chapter_auto_activate' => 'eligible', 'chapter_auto_create' => 'off',
-  'journey_days' => '7', 'journey_unlock' => 'daily', 'journey_extension_days' => '7', 'journey_required_referrals' => '0', 'wnnn_country_title' => 'Country Lead', 'recovery_by_leader' => 'off', 'age_transition' => 'hq', 'community_blocked_words' => '', 'welcome_video_url' => '', 'welcome_audio_url' => '', 'welcome_transcript' => ''];
+  'journey_days' => '7', 'journey_unlock' => 'daily', 'journey_extension_days' => '7', 'journey_required_referrals' => '0', 'wnnn_country_title' => 'Country Lead', 'recovery_by_leader' => 'off', 'age_transition' => 'hq', 'seat_term_expiry' => 'notify', 'community_blocked_words' => '', 'welcome_video_url' => '', 'welcome_audio_url' => '', 'welcome_transcript' => ''];
 /* The six items the amendments document lists as needing a recorded management choice. */
 const POLICY_DECISIONS = [
   ['wnnn_country_title', 'African WNNN country title', 'Country Lead (African structure document) or Country Representative (diaspora document). Both sources are kept; WDOS shows the one chosen here.'],
@@ -369,6 +370,7 @@ function amend_automations(array &$done): void {
     $n = chapters_recode(150); if ($n) $done['chapter_codes'] = "$n recoded";
     $n = announcements_due(); if ($n) { $done['scheduled_announcements'] = "$n sent"; push_drain(60); }
     if (function_exists('handoff_automations')) handoff_automations($done);
+    if (function_exists('ops_automations')) ops_automations($done);
   } catch (Throwable $e) { error_log('[wdos amend] ' . $e->getMessage()); }
 }
 /** Short facts about a person's chapter and journey for the app shell. Safe before the migration has run. */
@@ -451,6 +453,7 @@ function announcement_send(array $me): array {
     if (!in_array($l, NOTE_LANGS, true) || !is_array($t)) continue; $lt = mb_substr(trim((string) ($t['title'] ?? '')), 0, 160); $lb = mb_substr(trim((string) ($t['body'] ?? '')), 0, 4000);
     if ($lt !== '' && $lb !== '') q('INSERT INTO announcement_texts (announcement_id,lang,title,body) VALUES (?,?,?,?)', [$id, $l, $lt, $lb]);
   }
+  if ((body()['kind'] ?? '') === 'newsletter' && is_hq($me)) { try { q("UPDATE announcements SET kind='newsletter' WHERE id=?", [$id]); } catch (PDOException $e) { /* before migration 021 */ } }
   log_activity((int) $me['id'], null, $when ? 'announcement_scheduled' : 'announcement', $title);
   if ($when) return ['ok' => true, 'id' => $id, 'scheduled_at' => $when, 'recipients' => 0, 'push_queued' => 0];
   $n = announcement_deliver($id);

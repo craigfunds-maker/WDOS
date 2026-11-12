@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Configuration comes from environment variables (Render) or from
  * config.local.php beside index.html (shared hosting / cPanel). */
 
-const WDOS_BUILD = 'v103.4';
+const WDOS_BUILD = 'v104.0';
 
 function cfg(string $key, ?string $default = null): ?string {
   static $local = null;
@@ -186,7 +186,7 @@ function public_user(array $u): array {
     'role' => $u['role'], 'status' => $u['status'], 'has_photo' => (int) $u['has_photo'] === 1,
     'has_password' => !empty($u['password_hash']), 'must_change_password' => (int) $u['must_change_password'] === 1,
     'is_hq' => is_hq($u), 'is_leader' => (bool) $seat,
-    'seat' => $seat ? ['position' => $seat['position_code'], 'title' => seat_title($seat), 'status' => $seat['status'], 'network' => $seat['network'], 'level' => $seat['position_level'], 'acceptance' => $seat['acceptance'] ?? ''] : null, 'todo' => $todo,
+    'seat' => $seat ? ['position' => $seat['position_code'], 'title' => seat_title($seat), 'status' => $seat['status'], 'network' => $seat['network'], 'level' => $seat['position_level'], 'acceptance' => $seat['acceptance'] ?? '', 'id' => (int) $seat['id'], 'term_ends_on' => $seat['term_ends_on'] ?? null] : null, 'todo' => $todo,
     'created_at' => $u['created_at'], 'email_is_phone' => str_ends_with((string) $u['email'], '@phone.wdos.invalid'),
   ] + (function_exists('amend_brief') ? amend_brief($u) : []) + ['he_for_she' => $seat ? (int) ($seat['he_for_she'] ?? 0) === 1 : false] + (function_exists('handoff_brief') ? handoff_brief($u) : []);
 }

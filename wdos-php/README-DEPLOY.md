@@ -115,3 +115,20 @@ The current Supabase WDOS stays the live system. Its other modules (meetings and
 onboarding reader, HQ role homepages, message library, tasks, documents) are
 not moved yet. Profile photographs are not copied by the import. Interface languages other
 than English are also still to be ported.
+
+## Backup and restore (from v104.0)
+
+**Taking a backup (browser only).** Sign in as a super administrator. On the HQ dashboard, in the Operations card, type your own password under Backup and press "Take a backup now". One file named `wdos-backup-YYYYMMDD-HHMMSS.jsonl.gz` downloads to your computer. WDOS does not keep a copy. The file holds members' details and password hashes: store it somewhere private and never send it by email or chat.
+
+**What is in it.** Every table except sign-in sessions and throttling counters. The first line lists each table and its number of rows.
+
+**Restoring (needs a technical person and a command line).** Restore only into a new, empty database, never over the live one:
+1. Create the new empty database and point WDOS at it (DB_HOST, DB_NAME and the other DB settings).
+2. Run the migrations (the setup page, action "migrate").
+3. Run `php lib/restore_cli.php path/to/wdos-backup-....jsonl.gz`.
+4. Read the last line. "RESTORE CLEAN" means every table has the same number of rows as the backup. Anything else lists the tables that differ.
+
+The tool refuses to run on a database that already holds people, and it cannot be opened from a browser.
+
+**What has been proven.** On the test database a backup was restored into a new database, every one of 72 tables matched, sign-in worked on the restored copy and the integrity checks were all zero. It has not yet been rehearsed against the live TiDB database.
+

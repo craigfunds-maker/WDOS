@@ -466,5 +466,9 @@
 "This account is suspended. Contact WODDI HQ.": "Ce compte est suspendu. Contactez le siège de WODDI.",
 "Sign-in did not complete.": "La connexion n'a pas abouti.",
 "Google sign-in did not complete. Try again.": "La connexion Google n'a pas abouti. Réessayez.",
-"Fingerprint sign-in was cancelled, or this device has not been set up yet. Sign in with your password once, then switch it on in Settings.": "La connexion par empreinte a été annulée, ou cet appareil n'est pas encore configuré. Connectez-vous une fois avec votre mot de passe, puis activez-la dans Paramètres."
+"Fingerprint sign-in was cancelled, or this device has not been set up yet. Sign in with your password once, then switch it on in Settings.": "La connexion par empreinte a été annulée, ou cet appareil n'est pas encore configuré. Connectez-vous une fois avec votre mot de passe, puis activez-la dans Paramètres.",
+"Newsletter": "Lettre d'information",
+"Newsletters": "Lettres d'information",
+"Talk show": "Émission-débat",
+"Everything": "Tout"
 }

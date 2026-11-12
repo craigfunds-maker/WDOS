@@ -13,6 +13,7 @@ require __DIR__ . '/../lib/photos.php';
 require __DIR__ . '/../lib/journey_fns.php';
 require __DIR__ . '/../lib/amend_fns.php';
 require __DIR__ . '/../lib/handoff_fns.php';
+require __DIR__ . '/../lib/ops_fns.php';
 
 set_exception_handler(function (Throwable $e) {
   error_log('[wdos] ' . $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine());
@@ -393,5 +394,6 @@ require __DIR__ . '/../lib/amend.php';
 require __DIR__ . '/../lib/handoff.php';
 require __DIR__ . '/../lib/staff.php';
 require __DIR__ . '/../lib/guide.php';
+require __DIR__ . '/../lib/ops.php';
 
 fail(404, 'No such WDOS endpoint.', 'not_found');

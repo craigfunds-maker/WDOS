@@ -38,10 +38,37 @@ export async function render(root) {
   const hero = h('section', { class: 'hero' }, h('div', { class: 'grow' }, h('h1', { class: 'display', text: `${greeting()}, ${u.first_name}` }),
     h('p', { text: new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + '. Here is where both networks stand.' })), seg);
   const kpis = h('div', { class: 'row row--4' });
+  /* Operations: figures the readiness checklist asks HQ to watch. Each line says plainly when WDOS has nothing to measure yet. */
+  const ops = h('div', {}, sk.rows(4)), terms = h('div', {}, sk.rows(3));
+  const line = (label, value, note, tone) => h('div', {}, h('div', { class: 'grow' }, h('b', { text: label }), note ? h('small', { text: note }) : null), h('span', { class: 'tag' + (tone ? ' tag--' + tone : ''), text: value }));
+  const loadOps = () => api('/hq/operations').then((o) => {
+    const a = o.automation, d = o.delivery, sp = o.support; const pw = h('input', { class: 'input', type: 'password', id: 'backup-pw', autocomplete: 'current-password', placeholder: 'Your password', style: 'max-width:220px' }); const bmsg = h('small', { class: 'muted', role: 'status' });
+    const take = h('button', { class: 'btn btn--s', type: 'button', id: 'backup-go', onclick: async () => { bmsg.textContent = ''; take.disabled = true;
+      try { const r = await fetch('/api/hq/backup', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-WDOS': '1' }, body: JSON.stringify({ password: pw.value }) });
+        if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.message || 'The backup was not made.'); }
+        const blob = await r.blob(); const name = (r.headers.get('Content-Disposition') || '').match(/filename="([^"]+)"/)?.[1] || 'wdos-backup.jsonl.gz'; const link = h('a', { href: URL.createObjectURL(blob), download: name }); document.body.append(link); link.click(); link.remove();
+        pw.value = ''; bmsg.textContent = `Saved to this computer as ${name} (${fmt(Math.round(blob.size / 1024))} KB). Keep it somewhere private: it holds members' details.`; loadOps();
+      } catch (e) { bmsg.textContent = e.message; } take.disabled = false; } }, 'Take a backup now');
+    ops.replaceChildren(h('div', { class: 'list list--stack' },
+      line('Automation share of routine work', a.verified_share === null ? 'Not calculable yet' : a.verified_share + '%', a.verified_share === null ? `${a.weighted} of ${a.workflows} workflows have a weight. Enter minutes and weights on the Digital coverage page. Target ${a.target}%.` : `Verified by a named person. Declared: ${a.declared_share}%. Target ${a.target}%.`, a.verified_share !== null && a.verified_share >= a.target ? 'wnnn' : ''),
+      line('Phone notifications, last 7 days', `${fmt(d.push_sent_7d)} sent, ${fmt(d.push_failed_7d)} failed`, d.waiting ? `${fmt(d.waiting)} waiting to go out.` : 'Nothing waiting.', d.push_failed_7d ? 'bad' : ''),
+      line('Email, last 7 days', d.email_on ? `${fmt(d.mail_sent_7d)} sent, ${fmt(d.mail_failed_7d)} failed` : 'Switched off', d.email_on ? '' : 'Email needs BREVO_API_KEY and MAIL_FROM in Render. Until then password reset by email and email reminders do not go out.', d.email_on ? (d.mail_failed_7d ? 'bad' : '') : 'bad'),
+      line('Support: private reports open', fmt(sp.open_cases), sp.open_cases ? `The oldest has waited ${sp.oldest_open_days} days. ${fmt(sp.cases_30d)} received in 30 days.` : `${fmt(sp.cases_30d)} received in 30 days.`, sp.open_cases ? 'bad' : ''),
+      line('Uptime', 'Not measured here', o.uptime.note),
+      line('Last backup', o.backup.last ? fmtDate(o.backup.last) : 'Never', o.backup.last ? `Taken by ${o.backup.by} (GMT ${o.backup.last}).` : 'No backup has been taken from WDOS yet.', o.backup.last ? '' : 'bad')),
+      u.role === 'super_admin' || u.is_super ? h('div', { class: 'panel', style: 'margin-top:14px;display:grid;gap:10px' }, h('b', { text: 'Backup' }), h('small', { class: 'muted', text: 'One file with everything WDOS holds, for a super administrator only. It is made now, downloaded to this computer and not kept on the server. Type your password to confirm.' }), h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center' }, pw, take), bmsg) : null);
+  }).catch((e) => ops.replaceChildren(empty('x', 'This did not load', e.message)));
+  const loadTerms = () => api('/hq/terms').then((r) => {
+    const row = (x, ended) => h('a', { class: 'list__link', href: '#/members/' + x.user_id }, h('div', { class: 'grow' }, h('b', { text: x.name }), h('small', { text: [x.title, x.area, x.network].filter(Boolean).join(' · ') })), h('span', { class: 'tag' + (ended || x.days_left < 0 ? ' tag--bad' : ''), text: ended ? 'Ended ' + fmtDate(x.ended_at) : x.days_left < 0 ? `${-x.days_left} days over` : x.days_left === 0 ? 'Ends today' : `${x.days_left} days left` }));
+    terms.replaceChildren(h('small', { class: 'muted', style: 'display:block;margin-bottom:10px', text: `${fmt(r.with_end_date)} of ${fmt(r.open_seats)} open appointments have an end date. ` + (r.rule === 'auto' ? 'Rule: a seat ends by itself on its last day.' : 'Rule: HQ is told, and the seat stays until HQ acts.') }),
+      r.due.length || r.ended.length ? h('div', { class: 'list list--wrap' }, r.due.map((x) => row(x, false)), r.ended.map((x) => row(x, true))) : empty('award', 'No term is ending in the next 60 days', 'Set the last day of a term on the member\'s page, under Term of this appointment.'));
+  }).catch((e) => terms.replaceChildren(empty('x', 'This did not load', e.message)));
+  loadOps(); loadTerms();
   const trend = h('div'), split = h('div'), countries = h('div'), seats = h('div'), recent = h('div'), feed = h('div');
   root.append(hero, pushNudge(), kpis,
     h('div', { class: 'row row--2-1' }, card('New members', 'Registrations per day, by network', trend, legend([{ name: 'WGMN', color: seriesColor.WGMN }, { name: 'WNNN', color: seriesColor.WNNN }])), card('Network split', 'All members to date', split)),
     card('Meetings', 'Coming up and just held: who was invited, who replied, who opened the link and who attended', meet, h('a', { class: 'btn btn--ghost btn--s', href: '#/meetings', text: 'Schedule or open meetings' })),
+    h('div', { class: 'row row--2' }, card('Operations', 'Automation share, delivery, support and backup', ops), card('Leader terms', 'Appointments with an end date, and seats that became vacant when a term ended', terms, h('a', { class: 'btn btn--ghost btn--s', href: '#/structure', text: 'Fill a vacant seat' }))),
     h('div', { class: 'row row--2' }, card('Members by country', 'The eight largest', countries), card('Volunteer leaders seated', 'Open seats by level', seats)),
     h('div', { class: 'row row--2' }, card('Newest members', null, recent, h('a', { class: 'btn btn--ghost btn--s', href: '#/members', text: 'All members' })), card('Recent activity', null, feed)));
 

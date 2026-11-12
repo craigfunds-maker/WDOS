@@ -150,6 +150,7 @@ route('POST', '/hq/members/(\d+)/seat', function ($id) {
   $title = seat_open($id, $pos['code'], $net, (int) $unit['id'], $chap && $area === '' ? $chap['name'] : $area, $status, (int) $me['id']);
   q('UPDATE seats SET chapter_id=?, he_for_she=? WHERE user_id=? AND ends_at IS NULL', [$chap ? (int) $chap['id'] : null, $hfs ? 1 : 0, $id]);
   if ($hfs) { q("UPDATE users SET participant_class='he_for_she' WHERE id=?", [$id]); chapter_leave($id, 'he_for_she'); }
+  if (function_exists('seat_term_set') && ($b['term_ends_on'] ?? '') !== '') seat_term_set((int) val('SELECT id FROM seats WHERE user_id=? AND ends_at IS NULL', [$id]), (string) $b['term_ends_on'], (int) $me['id']);
   after_response(fn() => push_drain(5));
   return ['ok' => true, 'title' => $title];
 });
@@ -181,7 +182,7 @@ route('GET', '/announcements', function () {
   $w = is_hq($u) ? '1=1' : "(a.audience_network='ALL' OR a.audience_network=?) AND (a.audience_role='all' OR ?=1) AND (a.audience_country IS NULL OR a.audience_country=?)
         AND (a.audience_state='' OR a.audience_state=?) AND (a.audience_lga='' OR a.audience_lga=?) AND (a.audience_community='' OR a.audience_community=?) AND (a.audience_chapter IS NULL OR a.audience_chapter=?) AND (a.audience_lang='' OR a.audience_lang=?) AND (a.audience_user IS NULL OR a.audience_user=" . (int) $u['id'] . ")";
   $lang = (string) ($u['lang'] ?? 'en');                     // her own language where that version was written
-  return ['items' => rows("SELECT a.id, COALESCE(t.title, a.title) title, COALESCE(t.body, a.body) body, a.audience_network, a.audience_role, a.audience_chapter, a.tone, COALESCE(a.sent_at, a.created_at) created_at,
+  return ['items' => rows("SELECT a.id, COALESCE(t.title, a.title) title, COALESCE(t.body, a.body) body, a.audience_network, a.audience_role, a.audience_chapter, a.tone, a.kind, COALESCE(a.sent_at, a.created_at) created_at,
                                   EXISTS (SELECT 1 FROM announcement_acks k WHERE k.announcement_id=a.id AND k.user_id=?) acked
                            FROM announcements a LEFT JOIN announcement_texts t ON t.announcement_id=a.id AND t.lang=? WHERE a.sent_at IS NOT NULL AND $w ORDER BY a.id DESC LIMIT 20",
     is_hq($u) ? [(int) $u['id'], $lang] : [(int) $u['id'], $lang, (string) $u['network'], $leader, (string) $u['country_code'], $u['state_region'], $u['lga'], $u['community'], (int) ($u['chapter_id'] ?? 0), (string) ($u['lang'] ?? 'en')])];

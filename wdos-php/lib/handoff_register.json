@@ -1,5 +1,5 @@
 {
- "build": "v102.0",
+ "build": "v104.0",
  "questions": [
   {
    "id": "Q01",
@@ -69,7 +69,7 @@
    "title": "Volunteer categories",
    "status": "Partial",
    "evidence": "Member, volunteer and volunteer leader sit on one Person ID with dates.",
-   "gap": "Event Volunteer is not modelled. Conflict checks between concurrent roles are not built."
+   "gap": "Event Volunteer is not modelled. Conflict checks between concurrent roles are not built. A member now chooses at registration or on the home screen to volunteer, or names the chapter or LGA role that interests her; HQ sees the list."
   },
   {
    "id": "Q11",
@@ -139,7 +139,7 @@
    "title": "Leadership absence/change",
    "status": "Partial",
    "evidence": "Seat states: vacant, candidate, appointed, acting, on leave, suspended, resigned, replaced. On leave or suspended closes the leadership view at once on open sessions. History is kept. Assigners are told to reassign open tasks.",
-   "gap": "Open tasks are not reassigned automatically. Deputy delegation has no expiry."
+   "gap": "Open tasks are not reassigned automatically. Deputy delegation has no expiry. An appointment can carry an end date: HQ is told 30 days before and on the day, and by rule the seat either waits for HQ or ends by itself, access stops and the vacancy opens."
   },
   {
    "id": "Q21",
@@ -312,9 +312,9 @@
   {
    "id": "Q45",
    "title": "Outage and disaster recovery",
-   "status": "Missing",
-   "evidence": "WDOS keeps no backups of its own and has no outage notice screen.",
-   "gap": "Backups, restore drills and monitoring depend on the database and hosting plans and have not been tested. Awaits decision D14."
+   "status": "Partial",
+   "evidence": "A super administrator takes a full backup from the HQ dashboard: one file, password confirmed, logged, not kept on the server. A command-line restore tool loads it into a new empty database and compares every table. Rehearsed on the test database: every table matched and sign-in worked on the restored copy.",
+   "gap": "The restore has not been rehearsed against the live TiDB database. Backups are taken by hand, not on a schedule. No outage notice screen and no uptime monitor. Awaits decision D14."
   },
   {
    "id": "Q46",

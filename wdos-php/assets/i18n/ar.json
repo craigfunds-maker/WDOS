@@ -469,5 +469,9 @@
 "This account is suspended. Contact WODDI HQ.": "هذا الحساب موقوف. تواصلي مع مقر WODDI.",
 "Sign-in did not complete.": "لم يكتمل تسجيل الدخول.",
 "Google sign-in did not complete. Try again.": "لم يكتمل الدخول عبر Google. حاولي مرة أخرى.",
-"Fingerprint sign-in was cancelled, or this device has not been set up yet. Sign in with your password once, then switch it on in Settings.": "أُلغي الدخول بالبصمة، أو لم يُجهَّز هذا الجهاز بعد. سجلي الدخول بكلمة المرور مرة واحدة ثم فعّليه من الإعدادات."
+"Fingerprint sign-in was cancelled, or this device has not been set up yet. Sign in with your password once, then switch it on in Settings.": "أُلغي الدخول بالبصمة، أو لم يُجهَّز هذا الجهاز بعد. سجلي الدخول بكلمة المرور مرة واحدة ثم فعّليه من الإعدادات.",
+"Newsletter": "النشرة",
+"Newsletters": "النشرات",
+"Talk show": "برنامج حواري",
+"Everything": "الكل"
 }

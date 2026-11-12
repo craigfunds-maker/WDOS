@@ -151,7 +151,7 @@ const MEETING_MODES = ['virtual' => 'Online', 'in_person' => 'In person', 'hybri
 function meeting_get(int $id): array { $m = row('SELECT m.*, h.first_name h_first, h.last_name h_last FROM meetings m JOIN users h ON h.id=m.host_id WHERE m.id=?', [$id]); if (!$m) fail(404, 'That meeting was not found.', 'not_found'); return $m; }
 function meeting_shape(array $m): array {
   return ['id' => (int) $m['id'], 'title' => $m['title'], 'mode' => $m['mode'], 'location' => $m['location'], 'starts_at' => $m['starts_at'], 'ends_at' => $m['ends_at'], 'agenda' => (string) $m['agenda'],
-    'host' => trim($m['h_first'] . ' ' . $m['h_last']), 'host_id' => (int) $m['host_id'], 'audience' => $m['audience'], 'network' => $m['network'], 'scope_label' => $m['scope_label'],
+    'kind' => (string) ($m['kind'] ?? 'meeting'), 'host' => trim($m['h_first'] . ' ' . $m['h_last']), 'host_id' => (int) $m['host_id'], 'audience' => $m['audience'], 'network' => $m['network'], 'scope_label' => $m['scope_label'],
     'status' => $m['status'], 'minutes' => (string) $m['minutes'], 'link' => preg_match('#https?://\S+#i', $m['location'], $lk) ? rtrim($lk[0], '.,)') : '', 'is_link' => (bool) preg_match('#^https?://\S+$#i', trim($m['location']))];
 }
 function meeting_audiences(array $u): array {
@@ -183,6 +183,7 @@ route('POST', '/meetings', function () {
   $mid = ins('INSERT INTO meetings (title,mode,location,starts_at,ends_at,agenda,host_id,audience,network,org_unit_id,unit_path,scope_level,scope_area,scope_label,status,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
     [$title, $mode, $loc, gmdate('Y-m-d H:i:s', $s), gmdate('Y-m-d H:i:s', $e), str_in('agenda', 6000), (int) $u['id'], $audience, $net, $seat ? (int) $seat['org_unit_id'] : null, $seat ? $seat['unit_path'] : '',
      $seat ? $seat['position_level'] : '', $seat ? (string) $seat['area_label'] : '', $seat ? ($seat['_label'] ?? seat_title($seat)) : $aud[$pick], 'scheduled', now()]);
+  if ((body()['kind'] ?? '') === 'talk_show') { try { q("UPDATE meetings SET kind='talk_show' WHERE id=?", [$mid]); } catch (PDOException $e) { /* before migration 021 */ } }
   $m = meeting_get($mid); [$w, $p] = meeting_invited_sql($m);
   $join = meeting_join_sql($m, $w);
   $n = notify_many("u.id<>? AND $join", array_merge([(int) $u['id']], $p), 'meeting', 'Meeting: ' . mb_substr($title, 0, 120), 'Called by ' . work_name($u) . ' for ' . gmdate('j M Y, H:i', $s) . ' GMT. Tap to open the agenda and the ' . ($mode === 'in_person' ? 'address' : 'meeting link') . '.', '#/meetings/' . $mid);
