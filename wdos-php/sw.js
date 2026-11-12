@@ -1,13 +1,13 @@
 /* WDOS service worker: installable offline shell + push notifications.
  * Bump BUILD with every release. The page reloads itself once per build. */
-const BUILD = 'v101.1';
+const BUILD = 'v101.2';
 const CACHE = 'wdos-' + BUILD;
 const SHELL = ['/', '/index.html', '/manifest.json', '/assets/css/app.css', '/assets/favicon.svg',
   '/assets/fonts/inter-latin-wght-normal.woff2', '/assets/fonts/fraunces-latin-wght-normal.woff2',
   '/assets/logos/woddi.png', '/assets/logos/wgmn-disc.png', '/assets/logos/wnnn-disc.png', '/assets/icons/icon-192.png',
   '/js/app.js', '/js/api.js', '/js/ui.js', '/js/charts.js',
   '/js/pages/welcome.js', '/js/pages/login.js', '/js/pages/hq.js', '/js/pages/members.js', '/js/pages/announcements.js',
-  '/js/pages/leader.js', '/js/pages/home.js', '/js/pages/notifications.js', '/js/pages/settings.js', '/js/pages/reporting.js', '/js/pages/tasks.js', '/js/pages/messages.js', '/js/pages/library.js', '/js/pages/help.js', '/js/pages/cases.js', '/js/pages/calendar.js', '/js/pages/coverage.js', '/js/pages/handoff.js', '/js/pages/journey.js', '/js/pages/community.js', '/js/pages/leadership.js', '/js/pages/reports.js', '/js/pages/communications.js', '/js/pages/institute.js', '/js/pages/integrations.js', '/js/pages/invite.js', '/js/pages/chapter.js', '/js/pages/chapters.js', '/js/pages/rules.js', '/js/pages/meetings.js', '/js/pages/structure.js', '/js/pages/onboarding.js', '/js/pages/referrals.js', '/js/pages/activation.js', '/js/goodmother.js', '/js/pushnudge.js', '/js/pages/inspiration.js'];
+  '/js/pages/leader.js', '/js/pages/home.js', '/js/pages/notifications.js', '/js/pages/settings.js', '/js/pages/reporting.js', '/js/pages/tasks.js', '/js/pages/messages.js', '/js/pages/library.js', '/js/pages/help.js', '/js/pages/staff.js', '/js/pages/cases.js', '/js/pages/calendar.js', '/js/pages/coverage.js', '/js/pages/handoff.js', '/js/pages/journey.js', '/js/pages/community.js', '/js/pages/leadership.js', '/js/pages/reports.js', '/js/pages/communications.js', '/js/pages/institute.js', '/js/pages/integrations.js', '/js/pages/invite.js', '/js/pages/chapter.js', '/js/pages/chapters.js', '/js/pages/rules.js', '/js/pages/meetings.js', '/js/pages/structure.js', '/js/pages/onboarding.js', '/js/pages/referrals.js', '/js/pages/activation.js', '/js/goodmother.js', '/js/pushnudge.js', '/js/pages/inspiration.js'];
 
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {

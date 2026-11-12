@@ -119,6 +119,7 @@ route('POST', '/hq/members/(\d+)/reset-password', function ($id) {
   if ($u['role'] === 'super_admin' && $me['role'] !== 'super_admin') fail(403, 'Only a super administrator can change this account.', 'forbidden');
   $alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'; $temp = '';
   for ($i = 0; $i < 10; $i++) $temp .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+  if ($u['role'] === 'hq_admin' && $me['role'] !== 'super_admin' && $id !== (int) $me['id']) fail(403, 'Only a super administrator can reset another HQ staff password.', 'forbidden');
   q('UPDATE users SET password_hash=?, must_change_password=1 WHERE id=?', [password_hash($temp, PASSWORD_DEFAULT), $id]);
   q('DELETE FROM sessions WHERE user_id=?', [$id]);
   log_activity((int) $me['id'], $id, 'password_reset');

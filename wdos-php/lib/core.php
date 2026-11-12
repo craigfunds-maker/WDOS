@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Configuration comes from environment variables (Render) or from
  * config.local.php beside index.html (shared hosting / cPanel). */
 
-const WDOS_BUILD = 'v101.1';
+const WDOS_BUILD = 'v101.2';
 
 function cfg(string $key, ?string $default = null): ?string {
   static $local = null;
@@ -138,7 +138,9 @@ function current_user(): ?array {
 }
 function require_user(): array { $u = current_user(); if (!$u) fail(401, 'Please sign in to continue.', 'signed_out'); return $u; }
 function is_hq(array $u): bool { return in_array($u['role'], ['hq_admin', 'super_admin'], true); }
-function require_hq(): array { $u = require_user(); if (!is_hq($u)) fail(403, 'This area is for WODDI HQ staff.', 'forbidden'); return $u; }
+function require_hq(): array { $u = require_user(); if (!is_hq($u)) fail(403, 'This area is for WODDI HQ staff.', 'forbidden');
+  if ((int) ($u['must_change_password'] ?? 0) === 1) fail(403, 'Choose your own password in Settings first. You signed in with a temporary one.', 'password_change');      // a temporary password opens nothing at HQ
+  return $u; }
 /** State-changing calls must carry our header: a plain cross-site form cannot set it. */
 function require_app_header(): void {
   if (($_SERVER['HTTP_X_WDOS'] ?? '') !== '1') fail(400, 'This request did not come from the WDOS app.', 'bad_origin');
