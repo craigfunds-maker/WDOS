@@ -23,9 +23,11 @@ const POLICY_DEFS = [
   'welcome_video_url' => ['Welcome screen: link to WODDI\'s own short video file (optional)', 'text'],
   'welcome_audio_url' => ['Welcome screen: link to WODDI\'s own recorded audio file (optional)', 'text'],
   'welcome_transcript' => ['Welcome screen: the words spoken in the video or audio', 'text'],
+  'ai_features' => ['AI drafts and summaries for HQ', 'choice', ['on' => 'On: AI drafts are offered. A person always decides', 'off' => 'Off: every AI feature shows its plain version only']],
+  'ai_free_lane_text' => ['Text written by leaders on a free AI lane', 'choice', ['redacted' => 'Only after names, emails, phone numbers and links are removed', 'off' => 'Never. Needs a paid key']],
 ];
 const POLICY_FALLBACK = ['chapter_min_active' => '30', 'chapter_plan_next' => '40', 'chapter_capacity' => '50', 'chapter_auto_activate' => 'eligible', 'chapter_auto_create' => 'off',
-  'journey_days' => '7', 'journey_unlock' => 'daily', 'journey_extension_days' => '7', 'journey_required_referrals' => '0', 'wnnn_country_title' => 'Country Lead', 'recovery_by_leader' => 'off', 'age_transition' => 'hq', 'seat_term_expiry' => 'notify', 'community_blocked_words' => '', 'welcome_video_url' => '', 'welcome_audio_url' => '', 'welcome_transcript' => ''];
+  'journey_days' => '7', 'journey_unlock' => 'daily', 'journey_extension_days' => '7', 'journey_required_referrals' => '0', 'wnnn_country_title' => 'Country Lead', 'recovery_by_leader' => 'off', 'age_transition' => 'hq', 'seat_term_expiry' => 'notify', 'community_blocked_words' => '', 'welcome_video_url' => '', 'welcome_audio_url' => '', 'welcome_transcript' => '', 'ai_features' => 'on', 'ai_free_lane_text' => 'redacted'];
 /* The six items the amendments document lists as needing a recorded management choice. */
 const POLICY_DECISIONS = [
   ['wnnn_country_title', 'African WNNN country title', 'Country Lead (African structure document) or Country Representative (diaspora document). Both sources are kept; WDOS shows the one chosen here.'],
@@ -370,6 +372,7 @@ function amend_automations(array &$done): void {
     $n = chapters_recode(150); if ($n) $done['chapter_codes'] = "$n recoded";
     $n = announcements_due(); if ($n) { $done['scheduled_announcements'] = "$n sent"; push_drain(60); }
     if (function_exists('handoff_automations')) handoff_automations($done);
+    if (function_exists('ai_automations')) ai_automations($done);
     if (function_exists('ops_automations')) ops_automations($done);
   } catch (Throwable $e) { error_log('[wdos amend] ' . $e->getMessage()); }
 }

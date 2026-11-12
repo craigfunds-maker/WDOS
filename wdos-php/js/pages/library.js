@@ -7,8 +7,12 @@ const toData = (file) => new Promise((res, rej) => { const r = new FileReader();
 
 export async function render(root) {
   const body = h('div', { style: 'display:grid;gap:20px' }, h('div', { class: 'card' }, sk.rows(4))); const reader = h('div'); root.append(reader, body);
+  let query = ''; const qBox = input({ type: 'search', maxlength: 160, placeholder: 'Describe what you are looking for', 'aria-label': 'Search the library' }), qNote = h('small', { class: 'faint' });
+  const find = () => { query = qBox.value.trim(); load(); };
+  qBox.addEventListener('keydown', (e) => { if (e.key === 'Enter') find(); }); qBox.addEventListener('search', find);
+  root.insertBefore(h('div', { class: 'card', style: 'display:grid;gap:8px' }, h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' }, h('div', { class: 'grow', style: 'min-width:200px' }, qBox), h('button', { class: 'btn', type: 'button', onclick: find }, 'Search')), qNote), body);
   async function load() {
-    let d; try { d = await api('/library'); } catch (e) { body.replaceChildren(h('div', { class: 'card' }, empty('x', 'The library did not load', e.message))); return; }
+    let d; try { d = query ? await api('/library/search?q=' + encodeURIComponent(query)) : await api('/library'); qNote.textContent = !query ? '' : globalThis.tr(d.mode === 'meaning' ? 'Found by meaning. The closest documents come first.' : d.items.length ? 'Found by the words you typed.' : 'Nothing matches those words. Try other words, or clear the box to see every document.'); } catch (e) { body.replaceChildren(h('div', { class: 'card' }, empty('x', 'The library did not load', e.message))); return; }
     const cats = [...new Set(d.items.map((x) => x.category))]; const parts = [];
     const open = (it) => { if (it.kind === 'doc') { reader.replaceChildren(card(it.title, it.description, docReader(it.url, null, it.title), h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: () => reader.replaceChildren() }, 'Close'))); reader.scrollIntoView({ behavior: 'smooth' }); } else window.open(it.kind === 'file' ? `/api/library/${it.id}/file` : it.url, '_blank', 'noopener'); };
     for (const c of cats) parts.push(card(c, null, h('div', { class: 'list reveal' }, d.items.filter((x) => x.category === c).map((it) => h('div', { style: it.archived ? 'opacity:.55' : '' }, h('div', { class: 'nrow__ico' }, icon(it.kind === 'link' ? 'link' : 'book', 18)),

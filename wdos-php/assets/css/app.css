@@ -461,3 +461,7 @@ html{-webkit-tap-highlight-color:transparent} body{overscroll-behavior-y:none}
 .gmplaque p{margin:0;font-family:var(--display);font-weight:560;font-size:clamp(13px,1.6vw,15.5px);line-height:1.5;max-width:70ch} .gmplaque span{color:#8C4A22;font-size:13px;line-height:1}
 .gmview__in{margin:0;width:min(100%,1100px);display:grid;gap:12px} .gmview__in img{width:100%} .gmview__in .gmplaque{box-shadow:0 14px 40px rgba(0,0,0,.45)}
 
+/* v108.0: on a phone in Arabic the closed menu slid the wrong way and stayed over the page. It now slides off to the right. */
+@media (max-width:900px){[dir="rtl"] .side{transform:translateX(102%)} [dir="rtl"] .shell.nav-open .side{transform:none}}
+/* the page Listen button in the top bar shows only its icon on a phone */
+@media (max-width:640px){.top .listen span{display:none} .top .listen{padding-inline:10px}}

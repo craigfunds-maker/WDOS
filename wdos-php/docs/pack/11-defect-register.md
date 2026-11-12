@@ -29,6 +29,8 @@ Every row is something known from the code, the tests or the live test copy. Not
 | R-21 | 3 | Guide videos were rebuilt at v106.0 and do not show the newest maps; videos for HQ, leaders and IT are scripts only. | Document 05 | Record after wording is approved | | |
 | R-22 | 3 | No accessibility test has been run with a screen reader user or with low-literacy users on basic phones. | No evidence file | Include in the pilot | | |
 | R-23 | 3 | No load test at real volumes and no uptime monitoring outside Render's own. | No evidence file | Load test on staging; add monitoring | | |
+| R-25 | 2 | AI features run on free lanes. Free tiers may use prompts to improve the provider's products. WDOS sends leader-written text only after redaction, and never private reports or voices, but redaction by pattern can miss a name written in an unusual way. | `lib/ai_fns.php`, test t107 | Put the main lane on a paid plan and list it in `AI_PAID_LANES` before real report text is summarised | | |
+| R-26 | 3 | Of the 31 AI features in the AI handoff, 5 are built (digest, weekly brief, library search by meaning, coverage gaps, Listen on every page). Voice-to-report has the speech service but no screen, and needs a paid lane. The other 25 are not built. | AI handoff note of 12 Nov 2026 | Build in the handoff's phase order | | |
 | R-24 | 4 | Shared phones: one phone number can sign in one account only. Other women on the same phone need an email or a leader reset. | Registration rule | `TO DECIDE` (see document 08) | | |
 
 ## Closed in the last builds

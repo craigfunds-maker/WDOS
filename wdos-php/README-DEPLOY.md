@@ -136,3 +136,20 @@ The tool refuses to run on a database that already holds people, and it cannot b
 ## Document pack (from v107.0)
 
 `docs/pack/` holds eleven working documents written from the code as built: roles and access matrix, quick guides for HQ, leaders and IT, video scripts, administrator continuity and emergency access, support routing, migration plan, retention and incident plan, acceptance criteria for workflows W01 to W30, and the defect and open-items register. They are drafts for joint review, not approved policy. Blanks marked `TO DECIDE` are management decisions.
+
+## AI features (from v108.0)
+
+One AI service (`lib/ai_fns.php`, class `Ai`) is the only code that talks to an AI provider. Lanes are tried in this order: Cloudflare Workers AI, Hugging Face, Groq, Gemini. A lane is used only when its key is set in Render, under Environment:
+
+| Lane | Render variables |
+|---|---|
+| Cloudflare Workers AI (main lane) | `CF_ACCOUNT_ID`, `CF_API_TOKEN` (token with Workers AI Read and Edit) |
+| Hugging Face | `HF_TOKEN` |
+| Groq | `GROQ_API_KEY` |
+| Gemini | `GEMINI_API_KEY` |
+
+Optional: `AI_DAILY_CALLS` (default 300), `AI_LANES` (order), `AI_PAID_LANES` (names of lanes on a paid plan, for example `cloudflare`). With no key every AI panel shows its counted figures and a plain note; nothing breaks.
+
+Rules in System rules: `ai_features` (on/off) and `ai_free_lane_text` (redacted/off). Leader-written text goes to a free lane only after names, emails, phone numbers, links and membership numbers are removed. Private reports and voice recordings never go to a free lane. Every call is logged in `ai_calls` and shown on HQ, AI assistant.
+
+Built: AI service, report digest, weekly brief (also written by itself on Mondays), library search by meaning with word search underneath, coverage gap finder, Listen on every page (the phone's own voice). Not built yet: the other 26 items of the AI handoff list.
