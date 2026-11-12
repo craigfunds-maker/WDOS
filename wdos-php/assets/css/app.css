@@ -445,13 +445,14 @@ html{-webkit-tap-highlight-color:transparent} body{overscroll-behavior-y:none}
 /* Join WGMN: the Good Mother map of Africa above the form, centred, on the page's own background (no panel, no logos),
    with its title above and the plaque beside it. On a phone the plaque sits under the map. */
 .joinmap{display:grid;gap:0} .joinmap>*{min-width:0} .joinmap .jform{margin-top:18px}
-.joinmap__map{width:min(640px,100%);margin:18px auto 0}
+.joinmap__map{width:min(600px,100%);margin:18px auto 0}
 .joinmap__map .gm{margin:0;padding:0;background:none;border:0;outline:0;border-radius:0;color:var(--ink);overflow:visible}
 .joinmap__map .gm__head{padding:0;background:none;border:0;box-shadow:none;border-radius:0;justify-content:center} .joinmap__map .gm__head img{display:none}
 .joinmap__map .gm__title{flex:none;color:var(--brand);font-size:clamp(17px,2.6vw,24px);text-shadow:none}
-.joinmap__map .gm__body{grid-template-columns:minmax(0,1fr) 220px;gap:clamp(12px,3vw,28px);margin-top:10px;align-items:center}
+.joinmap__map .gm__body{grid-template-columns:minmax(0,1fr) clamp(128px,25%,150px);gap:clamp(12px,3vw,28px);margin-top:10px;align-items:center}
 .joinmap__map .gm__stage{min-height:160px} .joinmap__map .gm__wait{color:var(--ink-2)} .joinmap__map .gm__svg{max-height:clamp(220px,36vh,310px);margin:0 auto;filter:drop-shadow(0 8px 10px rgba(36,16,29,.22))}
 .joinmap__map .gm__cap{min-height:38px;padding:6px 12px;font-size:13.5px;margin-top:6px;background:var(--surface);border:1px solid var(--line);color:var(--ink)}
 .joinmap__map .gm__cap b{color:var(--brand)} .joinmap__map .gm__ph{background:rgba(124,181,24,.18)} .joinmap__map .gm__ph small,.joinmap__map .gm__none{color:var(--ink-2)}
-.joinmap__map .gm__plaque{gap:4px;padding:10px 12px;border-radius:10px;box-shadow:inset 0 0 0 1.5px rgba(140,74,34,.35),0 8px 16px -12px rgba(36,16,29,.45)} .joinmap__map .gm__plaque p{font-size:11.5px;line-height:1.4} .joinmap__map .gm__plaque span{font-size:11px}
-@media (max-width:620px){ .joinmap__map{margin-top:12px} .joinmap__map .gm__body{grid-template-columns:1fr;gap:10px} .joinmap__map .gm__svg{max-height:230px} .joinmap__map .gm__stage{min-height:120px} .joinmap__map .gm__plaque{width:min(300px,100%);justify-self:center;padding:8px 12px} .joinmap__map .gm__plaque span{display:none} }
+.joinmap__map .gm__plaque{gap:4px;padding:10px 12px;border-radius:10px;box-shadow:inset 0 0 0 1.5px rgba(140,74,34,.35),0 8px 16px -12px rgba(36,16,29,.45)} .joinmap__map .gm__plaque p{font-size:11px;line-height:1.42} .joinmap__map .gm__plaque span{font-size:11px}
+@media (max-width:620px){ .joinmap__map{margin-top:12px} .joinmap__map .gm__body{gap:10px} .joinmap__map .gm__svg{max-height:250px} .joinmap__map .gm__stage{min-height:120px} .joinmap__map .gm__plaque{padding:8px 9px} .joinmap__map .gm__plaque p{font-size:10.5px} .joinmap__map .gm__plaque span{display:none} }
+@media (max-width:430px){ .joinmap__map .gm__body{grid-template-columns:1fr} .joinmap__map .gm__svg{max-height:230px} .joinmap__map .gm__plaque{width:min(240px,100%);justify-self:center;padding:8px 12px} }
