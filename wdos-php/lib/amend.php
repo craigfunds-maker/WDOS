@@ -20,7 +20,7 @@ route('POST', '/policy', function () {
   $me = require_hq(); $k = str_in('key', 60); $v = trim((string) (body()['value'] ?? '')); $d = POLICY_DEFS[$k] ?? null;
   if (preg_match('/^chapter_capacity@[A-Z]{2}$/', $k)) $d = ['Capacity for one country', 'int', 0, 500];      // 0 removes the country's own figure
   if (!$d) fail(422, 'That rule does not exist.', 'key');
-  if ($d[1] === 'text') { $v = mb_substr($v, 0, 600); if (str_ends_with($k, '_url') && $v !== '' && !preg_match('#^(https://|/)#', $v)) fail(422, 'Give a link that starts with https://', 'value'); }
+  if ($d[1] === 'text') { $v = mb_substr($v, 0, 600); if (str_ends_with($k, '_url') && $v !== '' && !preg_match('#^(https://|/)#', $v)) fail(422, 'Give a link that starts with https://', 'value'); if (str_ends_with($k, '_email') && !filter_var($v, FILTER_VALIDATE_EMAIL)) fail(422, 'Enter a valid email address.', 'value'); }
   elseif ($d[1] === 'int') { if (!ctype_digit($v) || (int) $v < $d[2] || (int) $v > $d[3]) fail(422, "Enter a whole number from {$d[2]} to {$d[3]}.", 'value'); }
   elseif (!isset($d[2][$v])) fail(422, 'Choose one of the listed options.', 'value');
   $from = str_in('effective_from', 10); $dt = DateTime::createFromFormat('Y-m-d', $from);

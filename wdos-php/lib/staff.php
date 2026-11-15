@@ -24,10 +24,13 @@ route('POST', '/hq/staff', function () {
   if (!filter_var($email, FILTER_VALIDATE_EMAIL)) fail(422, 'Enter a valid email address. The staff member signs in with it.', 'email');
   if (val('SELECT 1 FROM users WHERE email=?', [$email])) fail(409, 'An account with this email already exists. Open that person under Members and give HQ access there.', 'email_taken');
   $temp = temp_password();
-  $id = ins("INSERT INTO users (email,password_hash,first_name,last_name,phone,role,status,signup_method,must_change_password,created_at) VALUES (?,?,?,?,?,'hq_admin','active','staff',1,?)",
-    [$email, password_hash($temp, PASSWORD_DEFAULT), $first, $last, preg_replace('/[^\d+]/', '', str_in('phone', 32)), now()]);
+  $b = body(); $feat = !empty($b['all']) || !isset($b['features']) ? null : implode(',', array_values(array_intersect(array_keys(HQ_FEATURES), (array) $b['features'])));
+  if ($feat === '') fail(422, 'Tick at least one area, or choose every area.', 'features');
+  $id = ins("INSERT INTO users (email,password_hash,first_name,last_name,phone,role,status,signup_method,must_change_password,designation,hq_features,created_at) VALUES (?,?,?,?,?,'hq_admin','active','staff',1,?,?,?)",
+    [$email, password_hash($temp, PASSWORD_DEFAULT), $first, $last, preg_replace('/[^\d+]/', '', str_in('phone', 32)), str_in('designation', 160), $feat, now()]);
+  $mailed = !empty($b['send_invite']) && envoy_invite_mail($id, 'staff'); if ($mailed) after_response(fn() => mail_drain(4));
   log_activity((int) $me['id'], $id, 'hq_staff_created', $email);
-  return ['ok' => true, 'id' => $id, 'email' => $email, 'temporary_password' => $temp];
+  return ['ok' => true, 'id' => $id, 'email' => $email, 'temporary_password' => $temp, 'invited' => $mailed];
 });
 /* Switch a staff login off or back on. Off signs the person out everywhere at once. */
 route('POST', '/hq/staff/(\d+)', function ($id) {

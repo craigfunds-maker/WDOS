@@ -22,7 +22,7 @@ function work_date(string $s): ?string {
 
 /** The people this person may assign a task to or call to a meeting, as a WHERE on users u. Herself is added by the caller. */
 function work_people_sql(array $u): array {
-  if (is_hq($u)) return ["(u.role IN ('hq_admin','super_admin') OR EXISTS (SELECT 1 FROM seats s WHERE s.user_id=u.id AND s.ends_at IS NULL))", []];
+  if (is_hq($u)) return ["(u.role IN ('hq_admin','super_admin','envoy') OR EXISTS (SELECT 1 FROM seats s WHERE s.user_id=u.id AND s.ends_at IS NULL))", []];
   $seat = work_seat($u);
   if (!$seat) return ['1=0', []];
   return ['EXISTS (SELECT 1 FROM seats s JOIN positions p ON p.code=s.position_code JOIN org_units o ON o.id=s.org_unit_id

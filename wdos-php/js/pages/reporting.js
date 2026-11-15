@@ -3,6 +3,7 @@
  * from the approved WDOS templates; system figures inside a report are counted, never typed. */
 import { h, icon, avatar, flag, card, sk, empty, ago, fmt, fmtDate, toast, netTag } from '../ui.js';
 import { api } from '../api.js';
+import { uploadButton, docList } from '../files.js';
 import { app, go } from '../app.js';
 import { kpi } from './hq.js';
 
@@ -137,6 +138,12 @@ async function reportView(root, id) {
   }
   out.push(sectionsWrap);
 
+  /* the report document itself: a PDF or Word file the leader uploads, which HQ and the reviewer open here */
+  const docBox = h('div', {}, sk.rows(1)); const docTools = h('div');
+  const drawDocs = (r2) => { docBox.replaceChildren(docList(r2.documents, { emptyText: r2.required ? globalThis.tr('No document attached yet. Attach the report as a PDF or Word file before you submit.') : globalThis.tr('No document attached yet.'), canRemove: (x) => r2.can_edit, onRemove: async (x) => { try { const n = await api(`/reporting/report/${id}/documents/${x.id}/delete`, {}); drawDocs({ ...r2, documents: n.documents }); toast('Document removed', globalThis.tr('Tap here to undo.'), 'ok', async () => { const b2 = await api(`/reporting/report/${id}/documents/${x.id}/restore`, {}); drawDocs({ ...r2, documents: b2.documents }); }); } catch (e) { toast('Not removed', e.message, 'bad'); } } }));
+    docTools.replaceChildren(r2.can_edit ? uploadButton(globalThis.tr('Upload the report document'), 'report', async (f) => { const n = await api(`/reporting/report/${id}/documents`, { file_id: f.id }); drawDocs({ ...r2, documents: n.documents }); toast('Document attached', f.name, 'ok'); }) : ''); };
+  api(`/reporting/report/${id}/documents`).then(drawDocs).catch((e) => docBox.replaceChildren(h('p', { class: 'faint', text: e.message })));
+  out.push(card('Report document', 'The report itself, as a PDF or Word (.docx) file. Your reviewer and WODDI HQ open it here. HQ is told by notification and email when the report is submitted.', h('div', { style: 'display:grid;gap:12px' }, docBox, docTools))); out[out.length - 1].id = 'report-doc';
   /* evidence (links) */
   const evBox = h('div'); const canAdd = edit || rights.contribute;
   const drawEv = (list) => evBox.replaceChildren(list.length ? h('div', { class: 'list' }, list.map((e) => h('div', {}, h('div', { class: 'grow' }, h('a', { href: e.url, target: '_blank', rel: 'noopener', text: e.url.length > 70 ? e.url.slice(0, 70) + '…' : e.url }), h('small', { text: [e.note, e.by_name, ago(e.created_at)].filter(Boolean).join(' · ') })), edit ? h('button', { class: 'btn btn--ghost btn--s', onclick: async () => { await api(`/reporting/report/${id}/evidence/${e.id}/delete`, {}); reload(); } }, 'Remove') : null))) : h('p', { class: 'faint', style: 'font-size:14px', text: 'No evidence attached yet.' }));

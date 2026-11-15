@@ -6,7 +6,7 @@ declare(strict_types=1);
 
 const ACT_ROUTES = ['ref3' => ['label' => '3-Day Referral Activation', 'days' => 3], 'open7' => ['label' => '7-Day Activation', 'days' => 7]];
 const ACT_NOTICE = 'Referral and activation are important steps in the process, but they do not guarantee appointment. Activation helps assess readiness for the role.';
-const REF_CATS = ['focal_person' => 'A WODDI focal person or referral lead', 'volunteer_leader' => 'An existing WODDI volunteer leader', 'individual' => 'An individual who knows WODDI', 'other' => 'Other'];
+const REF_CATS = ['envoy' => 'A WODDI Envoy', 'focal_person' => 'A WODDI focal person or referral lead', 'volunteer_leader' => 'An existing WODDI volunteer leader', 'individual' => 'An individual who knows WODDI', 'other' => 'Other'];
 const ACT_OUTCOMES = ['selected' => 'Selected', 'reserve' => 'Reserve', 'further_review' => 'Further review', 'alternative_role' => 'Alternative role offered', 'not_selected' => 'Not selected'];
 
 function jn_json(?string $s): array { $d = json_decode((string) $s, true); return is_array($d) ? $d : []; }
@@ -75,10 +75,10 @@ function referral_attach(int $userId, array $f, $ref): ?int {
   if (!is_array($ref)) return null;
   try {
     $link = ref_link_by_code((string) ($ref['code'] ?? ''));
-    if ($link && $link['network'] !== $f['network']) $link = null;                     // a WGMN link cannot place someone in WNNN
+    if ($link && $link['kind'] !== 'envoy' && $link['network'] !== $f['network']) $link = null;                     // a WGMN link cannot place someone in WNNN; an envoy's link serves both networks
     $position = $link && $link['position_code'] !== '' ? $link['position_code'] : (string) ($ref['position'] ?? '');
     $pos = $position !== '' ? row('SELECT * FROM positions WHERE code=?', [$position]) : null;
-    $cat = isset(REF_CATS[$ref['category'] ?? '']) ? $ref['category'] : ($link ? 'volunteer_leader' : '');
+    $cat = $link && $link['kind'] === 'envoy' ? 'envoy' : (isset(REF_CATS[$ref['category'] ?? '']) ? $ref['category'] : ($link ? 'volunteer_leader' : ''));
     $name = $link ? trim($link['o_first'] . ' ' . $link['o_last']) : mb_substr(trim((string) ($ref['name'] ?? '')), 0, 160);
     if (!$link && !$pos) return null;
     q('DELETE FROM referrals WHERE user_id=?', [$userId]);

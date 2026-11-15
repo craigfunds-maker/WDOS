@@ -3,6 +3,7 @@ import { h, icon, avatar, card, sk, empty, ago, fmt, fmtDate, toast, input, fiel
 import { api } from '../api.js';
 import { app, go } from '../app.js';
 import { kpi } from './hq.js';
+import { uploadButton, docList } from '../files.js';
 
 const SCOPES = [['', 'My tasks'], ['assigned', 'Assigned by me'], ['area', 'My area']];
 export const TASK_ST = { open: ['Open', ''], in_progress: ['In progress', 'wgmn'], submitted: ['Submitted for review', 'wgmn'], completed: ['Completed', 'wnnn'], cancelled: ['Cancelled', ''] };
@@ -59,23 +60,35 @@ function newForm(leader, done, opts = {}) {
   const title = input({ maxlength: 190, placeholder: 'Task title' }); const details = h('textarea', { class: 'input', rows: 3, placeholder: 'Start typing the details…' });
   const pri = h('select', { class: 'input' }, Object.entries(PRI).map(([v, l]) => h('option', { value: v, text: l }))); pri.value = 'normal';
   const due = input({ type: 'date' }); const approval = h('input', { type: 'checkbox' }); const checklist = h('textarea', { class: 'input', rows: 3, placeholder: 'One checklist item per line' });
-  const who = h('select', { class: 'input' }, h('option', { value: 'me', text: 'Myself' }), leader ? h('option', { value: 'others', text: 'People in my area' }) : null);
+  const who = h('select', { class: 'input' }, h('option', { value: 'me', text: 'Myself' }), leader ? h('option', { value: 'others', text: 'People in my area' }) : null, leader && !opts.parent ? h('option', { value: 'group', text: 'A group of leaders' }) : null);
+  /* a group: every leader matching network, leadership level, position and country; each gets her own task */
+  const gNet = h('select', { class: 'input' }, [['', 'Both networks'], ['WGMN', 'WGMN'], ['WNNN', 'WNNN']].map(([v, l]) => h('option', { value: v, text: l })));
+  const gLvl = h('select', { class: 'input' }, [['', 'Every level'], ['country', 'Country'], ['state', 'State or region'], ['lga', 'LGA, district or city'], ['community_cluster', 'Community cluster'], ['chapter', 'Chapter']].map(([v, l]) => h('option', { value: v, text: l })));
+  const gPos = h('select', { class: 'input' }, h('option', { value: '', text: 'Every position' })); const gCty = h('select', { class: 'input', hidden: true }, h('option', { value: '', text: 'Every country' })); const gCount = h('p', { class: 'muted', style: 'margin:0', 'aria-live': 'polite' });
+  if (leader) api('/dm/options').then((o) => { if (o.network) { gNet.replaceChildren(h('option', { value: o.network, text: o.network })); } gPos.append(...o.positions.map((p) => h('option', { value: p.code, text: p.title_wgmn === p.title_wnnn ? p.title_wgmn : `${p.title_wgmn} / ${p.title_wnnn}` }))); if (o.countries.length) { gCty.append(...o.countries.map((c) => h('option', { value: c.code, text: c.name }))); gCty.hidden = false; } }).catch(() => {});
+  const gAud = () => ({ who: 'leaders', network: gNet.value, level: gLvl.value, position: gPos.value, country: gCty.value });
+  let gt; const gCountNow = () => { clearTimeout(gt); gt = setTimeout(async () => { try { const r = await api('/dm/audience', gAud()); gCount.textContent = tf('{1} leaders will each get this task.', fmt(r.count)); } catch (e) { gCount.textContent = e.message; } }, 300); };
+  [gNet, gLvl, gPos, gCty].forEach((x) => x.addEventListener('change', gCountNow));
+  const groupWrap = h('div', { hidden: true, style: 'display:grid;gap:10px' }, h('div', { class: 'grid2' }, field('Network', gNet), field('Leadership level', gLvl), field('Position', gPos), field('Country', gCty)), gCount);
+  const briefIds = []; const briefList = h('div');
+  const briefUp = uploadButton('Attach a brief or template', 'task', async (f) => { briefIds.push(f.id); briefList.append(h('span', { class: 'tag', text: f.name })); });
   /* scope: one chapter, or every chapter (the wider area) */
   const chap = h('select', { class: 'input' }, h('option', { value: '', text: 'Not tied to one chapter' })); if (opts.chapter) chap.append(h('option', { value: opts.chapter, text: 'The chapter of the first task' })), (chap.value = String(opts.chapter));
   if (leader) api('/chapters').then((r) => chap.append(...r.items.filter((c) => c.id !== opts.chapter).map((c) => h('option', { value: c.id, text: c.name })))).catch(() => {});
   const picker = peoplePicker(true); const pickWrap = h('div', { hidden: true }, field('Who should receive this task', picker.node, 'Each person gets a separate task with its own tracked status. You can only reach people within your authority.'));
   const apprWrap = h('label', { class: 'check', hidden: true }, approval, h('span', {}, h('b', { text: 'Requires approval' }), h('br'), h('small', { class: 'faint', text: 'Only you or a leader over the unit can mark it completed.' })));
-  who.addEventListener('change', () => { pickWrap.hidden = apprWrap.hidden = who.value !== 'others'; });
+  who.addEventListener('change', () => { pickWrap.hidden = who.value !== 'others'; apprWrap.hidden = who.value === 'me'; groupWrap.hidden = who.value !== 'group'; if (who.value === 'group') gCountNow(); });
   const err = h('p', { class: 'err', role: 'alert' });
   const save = h('button', { class: 'btn', type: 'button', onclick: async () => {
-    err.textContent = ''; const ids = who.value === 'others' ? picker.ids() : [app.user.id];
+    err.textContent = ''; let ids = who.value === 'others' ? picker.ids() : [app.user.id];
     if (who.value === 'others' && !ids.length) { err.textContent = 'Find recipients first.'; return; }
     save.disabled = true;
-    try { const r = await api('/tasks', { title: title.value, details: details.value, priority: pri.value, due_on: due.value, requires_approval: approval.checked, assignees: ids, checklist: checklist.value.split('\n'), chapter_id: Number(chap.value) || 0, parent_id: opts.parent || 0 });
+    try { if (who.value === 'group') { const g = await api('/dm/audience', { ...gAud(), with_ids: true }); ids = g.ids || []; if (!ids.length) { err.textContent = 'Nobody matches this group.'; save.disabled = false; return; } }
+      const r = await api('/tasks', { title: title.value, details: details.value, priority: pri.value, due_on: due.value, requires_approval: approval.checked, assignees: ids, checklist: checklist.value.split('\n'), chapter_id: Number(chap.value) || 0, parent_id: opts.parent || 0, files: briefIds });
       toast(r.created > 1 ? tf('Task assigned to {1} leaders', r.created) : 'Task created', '', 'ok'); done(); }
     catch (e) { err.textContent = e.message; save.disabled = false; } } }, 'Create task');
   if (opts.parent && leader) { who.value = 'others'; who.dispatchEvent(new Event('change')); }
-  return card(opts.parent ? 'Delegate part of this task' : 'New task', opts.parent ? 'The new task stays linked to this one. Each task has one person accountable for it.' : null, h('div', { style: 'display:grid;gap:14px' }, field('Task title', title), field('Details', details), h('div', { class: 'grid2' }, field('Priority', pri), field('Due date (optional)', due), field('Assign to', who), leader ? field('Chapter', chap) : null), pickWrap, apprWrap, field('Checklist (optional)', checklist), err, h('div', {}, save)));
+  return card(opts.parent ? 'Delegate part of this task' : 'New task', opts.parent ? 'The new task stays linked to this one. Each task has one person accountable for it.' : null, h('div', { style: 'display:grid;gap:14px' }, field('Task title', title), field('Details', details), h('div', { class: 'grid2' }, field('Priority', pri), field('Due date (optional)', due), field('Assign to', who), leader ? field('Chapter', chap) : null), pickWrap, groupWrap, apprWrap, field('Checklist (optional)', checklist), field('Documents (optional)', h('div', { style: 'display:grid;gap:8px' }, briefList, briefUp), 'A brief, a template or a form the person needs. Each person can open it from the task.'), err, h('div', {}, save)));
 }
 
 /* ------------------------------------------------------------------ detail -- */
@@ -100,6 +113,7 @@ async function detail(root, id) {
       cb.addEventListener('change', async () => { try { await api(`/tasks/${id}/item/${i.id}`, { done: cb.checked }); load(); } catch (e) { toast('Not saved', e.message, 'bad'); cb.checked = !cb.checked; } }); return h('label', { class: 'check' }, cb, h('span', { text: i.label })); }),
       canEditItems && active ? h('div', { style: 'display:flex;gap:8px' }, itemIn, h('button', { class: 'btn btn--quiet btn--s', type: 'button', onclick: async () => { try { await api(`/tasks/${id}/item`, { label: itemIn.value }); load(); } catch (e) { toast('Not added', e.message, 'bad'); } } }, 'Add')) : null,
       !d.items.length && !(canEditItems && active) ? h('p', { class: 'faint', text: 'No checklist on this task.' }) : null);
+    const docsBody = h('div', { style: 'display:grid;gap:12px' }, sk.rows(1)); const docs = card('Documents', 'The brief from the person who gave the task, and the finished work. When the work is submitted, the person who gave the task and WODDI HQ are told by email.', docsBody); docs.id = 'task-docs';
     const cIn = h('textarea', { class: 'input', rows: 2, placeholder: 'Write a comment…' });
     const evNote = h('textarea', { class: 'input', rows: 2, placeholder: 'What was done' }), evUrl = input({ type: 'url', placeholder: 'Link to a document or photograph (optional), https://' });
     const evs = d.comments.filter((c) => c.kind === 'evidence'); d.comments = d.comments.filter((c) => c.kind !== 'evidence');
@@ -113,7 +127,10 @@ async function detail(root, id) {
         h('dl', { class: 'dl' }, [['Accountable owner', `${t.assignee.first_name} ${t.assignee.last_name}`], ['Assigned by', t.by.name], ['Due', t.due_on ? fmtDate(t.due_on) : 'No due date'], ['Created', fmtDate(t.created_at)], t.completed_at ? ['Completed', fmtDate(t.completed_at)] : null].filter(Boolean).flatMap(([k, v]) => [h('dt', { text: k }), h('dd', { text: v })])),
         t.from_report ? h('a', { href: '#/reporting/r/' + t.from_report, text: 'Open the report this task came from' }) : null, t.from_meeting ? h('a', { href: '#/meetings/' + t.from_meeting, text: 'Open the meeting this task came from' }) : null, act)),
       h('div', { class: 'row row--2' }, card(`Checklist (${t.items_done}/${t.items})`, null, items), card('Comments', null, comments)),
-      card('Evidence', 'What shows the work was done. The person who assigned the task is told when evidence is added.', evidence));
+      card('Evidence', 'What shows the work was done. The person who assigned the task is told when evidence is added.', evidence), docs);
+    api(`/tasks/${id}/files`).then((f) => { const draw = (list) => docsBody.replaceChildren(docList(list, { canRemove: (x) => x.added_by_id === app.user.id || r.manage, onRemove: async (x) => { try { const n = await api(`/tasks/${id}/files/${x.id}/delete`, {}); draw(n.files); } catch (e) { toast('Not removed', e.message, 'bad'); } } }),
+        f.can_add_work ? uploadButton('Upload the finished work', 'task', async (x) => { const n = await api(`/tasks/${id}/files`, { file_id: x.id, role: 'work' }); draw(n.files); toast('Document attached', x.name, 'ok'); }) : null, f.can_add_brief ? uploadButton('Add a brief or template', 'task', async (x) => { const n = await api(`/tasks/${id}/files`, { file_id: x.id, role: 'brief' }); draw(n.files); }, { cls: 'btn btn--ghost' }) : null);
+      draw(f.files); }).catch((e) => docsBody.replaceChildren(h('p', { class: 'faint', text: e.message })));
   }
   load(); void go;
 }

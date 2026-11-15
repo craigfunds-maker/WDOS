@@ -136,15 +136,20 @@ route('POST', '/reporting/report/(\d+)/submit', function ($id) {
   $u = require_user(); $r = rp_report((int) $id); $t = rp_template($r['template']);
   if (!rp_rights($u, $r)['edit'] || !$t) fail(403, 'This report can no longer be submitted.', 'locked');
   [$err, $warn] = rp_validate($r, $t);
+  $docs = function_exists('doc_list') ? doc_list('report', (int) $id) : [];
+  if (policy('report_document_required') !== 'no' && (int) $r['is_nil'] !== 1 && !$docs) $err[] = 'Attach the report itself as a PDF or Word (.docx) document before you submit.';
   if ($err) return ['ok' => true, 'submitted' => false, 'errors' => $err, 'warnings' => $warn];
   $node = rp_node_for($r); $snap = $node ? rp_snapshot($node, $r['period_start'], $r['period_end'], $r['template']) : [];
   $onTime = $r['due_on'] ? (int) (rp_today()->format('Y-m-d') <= $r['due_on']) : 1; $again = $r['status'] === 'returned';
   q("UPDATE report_instances SET status='submitted', snapshot=?, submitted_at=?, on_time=COALESCE(on_time, ?), updated_at=? WHERE id=?", [json_encode($snap), now(), $onTime, now(), (int) $id]);
   q('INSERT INTO report_reviews (report_id,version,action,note,by_user,created_at) VALUES (?,?,?,?,?,?)', [(int) $id, (int) $r['version'], $again ? 'resubmit' : 'submit', '', (int) $u['id'], now()]);
   $title = trim($u['first_name'] . ' ' . $u['last_name']) . ($again ? ' resubmitted ' : ' submitted ') . $r['report_no']; $bodyText = $r['unit_label'] . '. Open it to review.';
-  if ($node && $node['sup_user']) notify((int) $node['sup_user'], 'report', $title, $bodyText, '#/reporting/r/' . $id); else notify_hq('report', $title, $bodyText, '#/reporting/r/' . $id);
+  if ($node && $node['sup_user']) { notify((int) $node['sup_user'], 'report', $title, $bodyText, '#/reporting/r/' . $id); if (function_exists('person_mail')) person_mail((int) $node['sup_user'], $title, 'A report was submitted to you', '<p>' . htmlspecialchars($title) . '.</p><p>' . htmlspecialchars($r['unit_label']) . '. ' . count($docs) . ' document(s) attached.</p>', '#/reporting/r/' . $id); }
+  // WODDI HQ is told of every submitted report: in the app, on the phone, and at the HQ inbox
+  if (!$node || !$node['sup_user'] || !val("SELECT 1 FROM users WHERE id=? AND role IN ('hq_admin','super_admin')", [(int) $node['sup_user']])) notify_hq('report', $title, $bodyText, '#/reporting/r/' . $id);
+  if (function_exists('hq_mail')) hq_mail('WDOS report submitted: ' . $r['report_no'] . ' · ' . trim($u['first_name'] . ' ' . $u['last_name']), 'A leader submitted a report', '<p><b>' . htmlspecialchars(trim($u['first_name'] . ' ' . $u['last_name'])) . '</b>' . ($again ? ' resubmitted ' : ' submitted ') . '<b>' . htmlspecialchars($r['report_no']) . '</b>.</p><p>' . htmlspecialchars($r['unit_label']) . '</p><p>' . ($docs ? 'Attached: ' . htmlspecialchars(implode(', ', array_column($docs, 'name'))) : 'No document attached (no-activity declaration).') . '</p>', '#/reporting/r/' . $id);
   log_activity((int) $u['id'], (int) $u['id'], 'report_submitted', $r['report_no'] . ' · ' . $r['unit_label']);
-  after_response(fn() => push_drain(20));
+  after_response(fn() => push_drain(20)); after_response(fn() => mail_drain(6));
   return ['ok' => true, 'submitted' => true, 'report_no' => $r['report_no'], 'warnings' => $warn];
 });
 

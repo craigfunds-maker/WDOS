@@ -4,7 +4,7 @@ import { api, fingerprintSupported, fingerprintLogin } from '../api.js';
 import { app, signedIn, go } from '../app.js';
 import { pubBar, pubFoot } from './welcome.js';
 
-const HASH_ERRORS = { google_off: 'Google sign-in is not switched on yet.', google_failed: 'Google sign-in did not complete. Try again.', google_unverified: 'Google has not verified that email address.', suspended: 'This account is suspended. Contact WODDI HQ.' };
+const HASH_ERRORS = { google_off: 'Google sign-in is not switched on yet.', google_failed: 'Google sign-in did not complete. Try again.', google_unverified: 'Google has not verified that email address.', suspended: 'This account is suspended. Contact WODDI HQ.', envoy_closed: 'WODDI is not taking new envoys through this page at the moment. Write to WODDI HQ.' };
 
 export async function render(root, params) {
   const err = said(h('p', { class: 'err', role: 'alert' }));
@@ -35,7 +35,8 @@ export async function render(root, params) {
     const g = app.config.google ? h('a', { class: 'gbtn', href: '/api/auth/google/start' }, googleMark(), 'Continue with Google')
       : h('span', { class: 'gbtn', 'aria-disabled': 'true', title: 'HQ IT has not added the Google keys yet' }, googleMark(), 'Continue with Google');
     return [h('h1', { class: 'display', text: 'Sign in to WDOS' }), form, h('div', { class: 'or', text: 'or' }), g, fp,
-      h('p', { class: 'muted', style: 'text-align:center;font-size:14.5px;margin-top:4px' }, 'New to WODDI? ', h('a', { href: '#/', text: 'Choose your network and join' }))];
+      h('p', { class: 'muted', style: 'text-align:center;font-size:14.5px;margin-top:4px' }, 'New to WODDI? ', h('a', { href: '#/', text: 'Choose your network and join' })),
+      h('p', { class: 'muted', style: 'text-align:center;font-size:14.5px;margin:0' }, h('a', { href: '#/envoy/join', text: 'Become a WODDI Envoy' }))];
   };
   const forgotView = (prefill) => {
     const email = h('input', { class: 'input', id: 'fg-email', type: 'email', required: true, value: prefill || '', autocomplete: 'email' });

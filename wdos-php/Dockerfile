@@ -2,6 +2,8 @@
 # .htaccess because uploading through the GitHub website from Windows skips dotfiles.
 FROM php:8.3-apache
 RUN docker-php-ext-install pdo_mysql && a2enmod rewrite headers deflate
+# report and task documents up to 10 MB arrive as base64 inside JSON, so the request limit is set above that
+RUN printf 'upload_max_filesize=20M\npost_max_size=24M\nmemory_limit=256M\nmax_execution_time=120\n' > /usr/local/etc/php/conf.d/wdos.ini
 RUN printf '%s\n' \
  '<Directory /var/www/html>' \
  '  Options -Indexes' \
@@ -9,7 +11,7 @@ RUN printf '%s\n' \
  '  Require all granted' \
  '  RewriteEngine On' \
  '  RewriteRule ^(lib|migrations|docs)(/|$) - [F,L]' \
- '  RewriteRule ^(config\.local\.php|config\.sample\.php|Dockerfile|README-DEPLOY\.md)$ - [F,L]' \
+ '  RewriteRule ^(config\.local\.php|config\.sample\.php|Dockerfile|README-DEPLOY\.md|\.user\.ini)$ - [F,L]' \
  '  RewriteRule ^api(/.*)?$ api/index.php [QSA,L]' \
  '  <FilesMatch "^(sw\.js|index\.html)$">' \
  '    Header set Cache-Control "no-cache"' \

@@ -12,11 +12,11 @@ export const kindIcon = (k) => KIND_ICON[k] || 'bell';
 
 /* ---------------------------------------------------------------- routes -- */
 const pages = {
-  welcome: () => import('./pages/welcome.js'), login: () => import('./pages/login.js'),
+  welcome: () => import('./pages/welcome.js'), login: () => import('./pages/login.js'), envoyjoin: () => import('./pages/envoyjoin.js'),
   hq: () => import('./pages/hq.js'), members: () => import('./pages/members.js'), announcements: () => import('./pages/announcements.js'),
   leader: () => import('./pages/leader.js'), home: () => import('./pages/home.js'),
   reporting: () => import('./pages/reporting.js'), tasks: () => import('./pages/tasks.js'), meetings: () => import('./pages/meetings.js'), structure: () => import('./pages/structure.js'),
-  onboarding: () => import('./pages/onboarding.js'), referrals: () => import('./pages/referrals.js'), activation: () => import('./pages/activation.js'), inspiration: () => import('./pages/inspiration.js'), messages: () => import('./pages/messages.js'), journey: () => import('./pages/journey.js'), community: () => import('./pages/community.js'), leadership: () => import('./pages/leadership.js'), reports: () => import('./pages/reports.js'), communications: () => import('./pages/communications.js'), institute: () => import('./pages/institute.js'), integrations: () => import('./pages/integrations.js'), ai: () => import('./pages/ai.js'), invite: () => import('./pages/invite.js'), chapter: () => import('./pages/chapter.js'), chapters: () => import('./pages/chapters.js'), rules: () => import('./pages/rules.js'), library: () => import('./pages/library.js'), help: () => import('./pages/help.js'), voices: () => import('./pages/voices.js'), staff: () => import('./pages/staff.js'), cases: () => import('./pages/cases.js'), calendar: () => import('./pages/calendar.js'), coverage: () => import('./pages/coverage.js'), handoff: () => import('./pages/handoff.js'),
+  onboarding: () => import('./pages/onboarding.js'), referrals: () => import('./pages/referrals.js'), activation: () => import('./pages/activation.js'), inspiration: () => import('./pages/inspiration.js'), messages: () => import('./pages/messages.js'), journey: () => import('./pages/journey.js'), community: () => import('./pages/community.js'), leadership: () => import('./pages/leadership.js'), reports: () => import('./pages/reports.js'), communications: () => import('./pages/communications.js'), institute: () => import('./pages/institute.js'), integrations: () => import('./pages/integrations.js'), ai: () => import('./pages/ai.js'), inbox: () => import('./pages/inbox.js'), envoy: () => import('./pages/envoy.js'), envoys: () => import('./pages/envoys.js'), meetreq: () => import('./pages/meetreq.js'), guide: () => import('./pages/guide.js'), invite: () => import('./pages/invite.js'), chapter: () => import('./pages/chapter.js'), chapters: () => import('./pages/chapters.js'), rules: () => import('./pages/rules.js'), library: () => import('./pages/library.js'), help: () => import('./pages/help.js'), voices: () => import('./pages/voices.js'), staff: () => import('./pages/staff.js'), cases: () => import('./pages/cases.js'), calendar: () => import('./pages/calendar.js'), coverage: () => import('./pages/coverage.js'), handoff: () => import('./pages/handoff.js'),
   notifications: () => import('./pages/notifications.js'), settings: () => import('./pages/settings.js'),
 };
 function resolve(path) {
@@ -24,14 +24,26 @@ function resolve(path) {
   const pub = (name, params = {}) => ({ name, params, shell: false });
   if (!u) {
     if (seg[0] === 'login') return pub('login');
+    if (seg[0] === 'envoy' && seg[1] === 'join') return pub('envoyjoin');
     if (seg[0] === 'reset') return pub('login', { reset: seg[1] });
     if (seg[0] === 'r' && seg[1]) return pub('welcome', { ref: seg[1] });
     if (seg[0] === 'join' && seg[1]) return pub('welcome', { network: seg[1], leader: true });
     return pub('welcome', { network: '' });
   }
+  if (u.status === 'pending_profile' && u.role === 'envoy') return pub('envoyjoin', { complete: true });
   if (u.status === 'pending_profile') return pub('welcome', { complete: true, network: u.network || '' });
   const sh = (name, title, params = {}) => ({ name, title, params, shell: true });
   if (u.is_hq && u.must_change_password) return sh('settings', 'Choose your own password');      // a staff login made with a temporary password opens nothing else until it is changed
+  if (u.is_envoy) {                    // a WODDI Envoy has a limited dashboard: her link and people, messages, tasks, notifications, settings, help
+    if (u.must_change_password) return sh('settings', 'Choose your own password');
+    if (seg[0] === 'inbox') return sh('inbox', 'Messages', { tab: seg[1], id: seg[2] });
+    if (seg[0] === 'tasks') return sh('tasks', 'Tasks', { tab: seg[1] });
+    if (seg[0] === 'notifications') return sh('notifications', 'Notifications');
+    if (seg[0] === 'settings') return sh('settings', 'Settings');
+    if (seg[0] === 'help') return sh('help', 'Help and private reports');
+    if (seg[0] === 'guide') return sh('guide', 'How to use WDOS');
+    return sh('envoy', 'My envoy dashboard');
+  }
   switch (seg[0]) {
     case 'leaders': if (!u.is_hq) return sh(u.is_leader ? 'leader' : 'home', u.is_leader ? 'Leadership dashboard' : 'Home');
       return !seg[1] ? sh('leader', 'Leader dashboards', { pick: true }) : seg[2] === 'members' ? sh('members', 'Members in this leader\'s area', { scope: 'leader', as: seg[1] }) : sh('leader', 'Leader dashboard', { as: seg[1] });
@@ -61,7 +73,10 @@ function resolve(path) {
     case 'coverage': return u.is_hq ? sh('coverage', 'Digital coverage') : sh('home', 'Home');
     case 'handoff': return u.is_hq ? sh('handoff', 'Handoff register') : sh('home', 'Home');
     case 'tasks': return sh('tasks', 'Tasks', { tab: seg[1] });
-    case 'meetings': return sh('meetings', 'Meetings', { tab: seg[1] });
+    case 'meetings': return seg[1] === 'requests' ? sh('meetreq', 'Video meetings', { id: seg[2] }) : sh('meetings', 'Meetings', { tab: seg[1] });
+    case 'inbox': return sh('inbox', 'Messages', { tab: seg[1], id: seg[2] });
+    case 'envoys': return u.is_hq ? sh('envoys', 'WODDI Envoys', { id: seg[1] }) : sh('home', 'Home');
+    case 'guide': return sh('guide', 'How to use WDOS');
     case 'structure': return (u.is_hq || u.is_leader) ? sh('structure', 'Leadership structure') : sh('home', 'Home');
     case 'referrals': return (u.is_hq || u.is_leader) ? sh('referrals', 'Referral and activation', { tab: seg[1], id: seg[2] }) : sh('home', 'Home');
     case 'onboarding': return (u.is_hq || u.is_leader) ? sh('onboarding', 'Onboarding', { user: seg[1] }) : sh('home', 'Home');
@@ -98,13 +113,25 @@ export const go = (hash) => { if (location.hash === hash) render(); else locatio
 export async function refreshUser() { app.user = (await api('/me')).user; return app.user; }
 export async function setLanguage(lang) { await i18n.set(lang); if (app.user) api('/me/lang', { lang }).catch(() => {}); shellEls = null; render(); }
 export async function signOut() { stopPulse(); await api('/auth/logout', {}).catch(() => {}); try { localStorage.removeItem('wdos.join'); sessionStorage.clear(); if (window.caches) { for (const k of await caches.keys()) if (/api|data|runtime/i.test(k)) await caches.delete(k); } } catch { /* nothing kept */ } app.user = null; shellEls = null; go('#/login'); }
-export function signedIn(user) { app.user = user; shellEls = null; startPulse(); pushSync(app.config.vapid); go('#/'); }
+export function signedIn(user) { app.user = user; shellEls = null; startPulse(); pushSync(app.config.vapid); go('#/'); maybeGuide(); }
+/* A leader or envoy who has not seen the walkthrough yet gets it once, after sign-in. It stays under How to use WDOS. */
+export function maybeGuide() { const u = app.user; if (!u || u.guide_seen || u.is_hq || !(u.is_leader || u.is_envoy) || u.must_change_password) return; setTimeout(() => import('./pages/guide.js').then((m) => m.openGuide(true)), 900); }
 
 /* ----------------------------------------------------------------- shell -- */
+/* An HQ login limited to some areas sees only those areas in the menu. The server refuses the rest anyway. */
+const HQ_AREA = { '#/members': 'members', '#/leaders': 'members', '#/leadership': 'structure', '#/structure': 'structure', '#/chapters': 'chapters', '#/referrals': 'referrals', '#/envoys': 'referrals', '#/reports': 'reports', '#/reporting': 'reports',
+  '#/tasks': 'tasks', '#/meetings': 'tasks', '#/meetings/requests': 'tasks', '#/calendar': 'tasks', '#/communications': 'communications', '#/inspiration': 'communications', '#/messages': 'communications', '#/cases': 'cases',
+  '#/rules': 'administration', '#/handoff': 'administration', '#/coverage': 'administration', '#/ai': 'administration', '#/integrations': 'administration', '#/voices': 'administration' };
+function hqAllowed(u, items) {
+  if (!Array.isArray(u.hq_features)) return items;
+  const out = items.filter((it) => it.length === 1 || !HQ_AREA[it[0]] || u.hq_features.includes(HQ_AREA[it[0]]));
+  return out.filter((it, i) => it.length > 1 || (out[i + 1] && out[i + 1].length > 1));        // drop a heading left with nothing under it
+}
 function navItems() {
-  const u = app.user; const comm = [['Communication'], ['#/community', 'spark', 'WODDI Community'], ['#/institute', 'award', 'Institute'], ['#/messages', 'send', u.is_hq ? 'Messages' : 'Messages with HQ'], ['#/announcements', 'megaphone', 'Announcements'], ['#/library', 'book', 'Document library'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/help', 'book', 'Help and private reports'], ['#/settings', 'sliders', 'Settings']];
-  if (u.is_hq) return [['Overview'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/leaders', 'eye', 'Leader dashboards'], ['#/leadership', 'tree', 'Leadership'], ['#/structure', 'users', 'Who holds each seat'], ['#/chapters', 'grid', 'Chapters'], ['#/referrals', 'route', 'Referral and activation'], ['Work'], ['#/reports', 'chart', 'Reports'], ['#/reporting', 'book', 'Leader reports'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ['#/calendar', 'calendar', 'Annual calendar'], ['Communication'], ['#/communications', 'megaphone', 'Communications'], ['#/inspiration', 'award', 'Inspiration messages'], ...comm.slice(1, -3), ['Administration'], ['#/staff', 'users', 'Staff and logins'], ['#/voices', 'volume', 'Guide voices'], ['#/rules', 'sliders', 'System rules'], ['#/handoff', 'check', 'Handoff register'], ['#/coverage', 'chart', 'Digital coverage'], ['#/cases', 'eye', 'Confidential cases'], ['#/ai', 'spark', 'AI assistant'], ['#/integrations', 'link', 'Integrations'], ...comm.slice(-3)];
-  if (u.is_leader) return [['My leadership'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'My members'], ['#/chapters', 'grid', 'Chapters'], u.chapter || (u.seat && u.seat.level === 'chapter') ? ['#/chapter', 'users', 'My chapter'] : null, ['#/leadership', 'tree', 'Leadership'], ['#/structure', 'users', 'Who holds each seat'], ['#/referrals', 'route', 'Referral links'], ['#/onboarding', 'book', 'Onboarding'], ['Work'], u.he_for_she ? null : ['#/reports', 'chart', 'Reports'], ['#/reporting', 'book', 'My reports'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ['#/calendar', 'calendar', 'Annual calendar'], ...comm].filter(Boolean);
+  const u = app.user; const comm = [['Communication'], ['#/community', 'spark', 'WODDI Community'], ['#/institute', 'award', 'Institute'], ['#/inbox', 'send', 'Messages'], ['#/messages', 'inbox', u.is_hq ? 'Help desk messages' : 'Messages with HQ'], ['#/announcements', 'megaphone', 'Announcements'], ['#/library', 'book', 'Document library'], ['#/notifications', 'bell', 'Notifications'], ['Account'], u.is_hq ? null : ['#/guide', 'award', 'How to use WDOS'], ['#/help', 'book', 'Help and private reports'], ['#/settings', 'sliders', 'Settings']].filter(Boolean);
+  if (u.is_envoy) return [['WODDI Envoy'], ['#/', 'grid', 'My dashboard'], ['#/inbox', 'send', 'Messages'], ['#/tasks', 'tasks', 'Tasks'], ['#/notifications', 'bell', 'Notifications'], ['Account'], ['#/guide', 'award', 'How to use WDOS'], ['#/help', 'book', 'Help and private reports'], ['#/settings', 'sliders', 'Settings']];
+  if (u.is_hq) return hqAllowed(u, [['Overview'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/leaders', 'eye', 'Leader dashboards'], ['#/leadership', 'tree', 'Leadership'], ['#/structure', 'users', 'Who holds each seat'], ['#/chapters', 'grid', 'Chapters'], ['#/referrals', 'route', 'Referral and activation'], ['#/envoys', 'users', 'WODDI Envoys'], ['Work'], ['#/reports', 'chart', 'Reports'], ['#/reporting', 'book', 'Leader reports'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ['#/meetings/requests', 'calendar', 'Video meetings'], ['#/calendar', 'calendar', 'Annual calendar'], ['Communication'], ['#/communications', 'megaphone', 'Communications'], ['#/inspiration', 'award', 'Inspiration messages'], ...comm.slice(1, -3), ['Administration'], ['#/staff', 'users', 'Staff and logins'], ['#/voices', 'volume', 'Guide voices'], ['#/rules', 'sliders', 'System rules'], ['#/handoff', 'check', 'Handoff register'], ['#/coverage', 'chart', 'Digital coverage'], ['#/cases', 'eye', 'Confidential cases'], ['#/ai', 'spark', 'AI assistant'], ['#/integrations', 'link', 'Integrations'], ...comm.slice(-3)]);
+  if (u.is_leader) return [['My leadership'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'My members'], ['#/chapters', 'grid', 'Chapters'], u.chapter || (u.seat && u.seat.level === 'chapter') ? ['#/chapter', 'users', 'My chapter'] : null, ['#/leadership', 'tree', 'Leadership'], ['#/structure', 'users', 'Who holds each seat'], ['#/referrals', 'route', 'Referral links'], ['#/onboarding', 'book', 'Onboarding'], ['Work'], u.he_for_she ? null : ['#/reports', 'chart', 'Reports'], ['#/reporting', 'book', 'My reports'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ['#/meetings/requests', 'calendar', 'Video meetings'], ['#/calendar', 'calendar', 'Annual calendar'], ...comm].filter(Boolean);
   return [['My network'], ['#/', 'grid', 'Home'], u.journey ? ['#/journey', 'route', 'My seven-day journey'] : null, ['#/chapter', 'users', 'My chapter'], ['#/invite', 'send', 'My 3 referrals'], ['#/leadership', 'tree', 'Leadership'], u.zone_supervisor ? ['#/chapters', 'grid', 'My zone chapters'] : null, u.todo && u.todo.activation ? ['#/activation', 'route', 'My Activation'] : null, ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ['#/calendar', 'calendar', 'Annual calendar'], ...comm].filter(Boolean);
 }
 function markNav(path) {
@@ -137,8 +164,9 @@ function buildShell() {
     h('header', { class: 'top' }, h('button', { class: 'iconbtn top__menu', type: 'button', 'aria-label': 'Open the menu', 'aria-controls': 'side', onclick: () => shell.classList.add('nav-open') }, icon('menu')), title, h('div', { class: 'grow' }), listenBtn(() => { const m = document.querySelector('main'); return m ? m.innerText.replace(/\s*\n+\s*/g, '. ').slice(0, 4000) : ''; }, 'Listen to this page'), langPicker(setLanguage), themeBtn, bellWrap, meWrap),
     h('main', {}, page));
   /* On a phone the main destinations sit in a bar at the bottom, as in a native app. "More" opens the full menu. */
-  const tabs = u.is_hq ? [['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/reporting', 'chart', 'Reporting'], ['#/notifications', 'bell', 'Alerts']]
-    : u.is_leader ? [['#/', 'grid', 'Dashboard'], ['#/tasks', 'tasks', 'Tasks'], ['#/reporting', 'chart', 'Reporting'], ['#/notifications', 'bell', 'Alerts']]
+  const tabs = u.is_envoy ? [['#/', 'grid', 'Dashboard'], ['#/inbox', 'send', 'Messages'], ['#/tasks', 'tasks', 'Tasks'], ['#/notifications', 'bell', 'Alerts']]
+    : u.is_hq ? [['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/reporting', 'chart', 'Reporting'], ['#/notifications', 'bell', 'Alerts']]
+    : u.is_leader ? [['#/', 'grid', 'Dashboard'], ['#/tasks', 'tasks', 'Tasks'], ['#/reporting', 'chart', 'Reporting'], ['#/inbox', 'send', 'Messages']]
     : [['#/', 'grid', 'Home'], ['#/chapter', 'users', 'Chapter'], ['#/messages', 'send', 'Messages'], ['#/notifications', 'bell', 'Alerts']];
   const tabbar = h('nav', { class: 'tabbar', 'aria-label': 'Quick menu' }, tabs.map((it) => h('a', { href: it[0] }, h('span', { class: 'tabbar__ico' }, icon(it[1], 22), it[0] === '#/notifications' ? h('i', { class: 'tabbar__n', hidden: true, 'data-unread': '' }) : null), h('span', { text: it[2] }))),
     h('button', { type: 'button', 'aria-controls': 'side', onclick: () => shell.classList.add('nav-open') }, h('span', { class: 'tabbar__ico' }, icon('menu', 22)), h('span', { text: 'More' })));
@@ -212,5 +240,5 @@ window.addEventListener('hashchange', render);
     return;
   }
   if (app.user) startPulse();
-  render();
+  render(); maybeGuide();
 })();

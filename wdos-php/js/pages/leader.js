@@ -39,7 +39,7 @@ export async function render(root, params = {}) {
     try { d = await api('/leader/dashboard?days=' + days + as); }
     catch (e) { kpis.replaceChildren(); [trend, breakdown, team, recent].forEach((x) => x.replaceChildren(empty('x', 'Could not load this', e.message, h('button', { class: 'btn btn--quiet btn--s', onclick: load }, 'Try again')))); return; }
     const k = d.kpis;
-    meta.replaceChildren(flag(d.seat.country_code), netTag(d.seat.network), h('span', { class: 'tag', text: d.seat.status === 'appointed' ? 'Appointed' : d.seat.status === 'acting' ? 'Acting' : 'Pending confirmation' }), h('span', { class: 'tag', text: 'Since ' + fmtDate(d.seat.since) }), u.member_no ? h('span', { class: 'tag num', text: u.member_no }) : null);
+    meta.replaceChildren(flag(d.seat.country_code), netTag(d.seat.network), h('span', { class: 'tag', text: d.seat.status === 'appointed' ? 'Appointed' : d.seat.status === 'acting' ? 'Acting' : 'Pending confirmation' }), h('span', { class: 'tag', text: tf('Since {1}', fmtDate(d.seat.since)) }), u.member_no ? h('span', { class: 'tag num', text: u.member_no }) : null);
     kpis.replaceChildren(
       kpi('users', 'Members in your area', k.members, [h('span', { text: tf('{1} active this week', fmt(k.active_7d)) })]),
       kpi('plus', tf('Joined in {1} days', days), k.new_now, [h('span', {}, delta(k.new_now, k.new_prev, days)), sparkline(d.series.map((p) => p.WGMN + p.WNNN), color)]),

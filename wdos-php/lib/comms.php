@@ -25,7 +25,7 @@ function thread_post(array $t, array $sender, string $body): void {
     notify((int) $t['user_id'], 'message', 'WODDI HQ: ' . mb_substr($t['subject'], 0, 120), $snip, $url);
     $p = row('SELECT email, first_name FROM users WHERE id=?', [(int) $t['user_id']]);
     if ($p) mail_queue($p['email'], $p['first_name'], 'WODDI HQ sent you a message: ' . mb_substr($t['subject'], 0, 120), mail_wrap('Dear ' . $p['first_name'] . ',', '<p>WODDI HQ wrote to you about <b>' . htmlspecialchars($t['subject']) . '</b>:</p><p style="white-space:pre-wrap;border-left:3px solid #D4006A;padding-left:12px">' . nl2br(htmlspecialchars(mb_substr($body, 0, 1500))) . '</p>', 'Reply in WDOS', app_url() . '/' . $url));
-  } else notify_hq('message', trim($sender['first_name'] . ' ' . $sender['last_name']) . ': ' . mb_substr($t['subject'], 0, 110), $snip, $url);
+  } else { notify_hq('message', trim($sender['first_name'] . ' ' . $sender['last_name']) . ': ' . mb_substr($t['subject'], 0, 110), $snip, $url); if (function_exists('hq_mail')) hq_mail('New message in WDOS from ' . trim($sender['first_name'] . ' ' . $sender['last_name']), 'A message reached WODDI HQ', '<p><b>' . htmlspecialchars(trim($sender['first_name'] . ' ' . $sender['last_name'])) . '</b> (' . htmlspecialchars(function_exists('dm_title_of') ? dm_title_of((int) $sender['id']) : '') . ') wrote about <b>' . htmlspecialchars($t['subject']) . '</b>:</p><p>' . htmlspecialchars(mb_substr($body, 0, 400)) . '</p>', $url); }
   after_response(fn() => push_drain(20)); after_response(fn() => mail_drain(6));
 }
 

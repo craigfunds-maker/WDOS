@@ -1,4 +1,4 @@
-# WDOS on PHP: deployment guide (build v91.0)
+# WDOS on PHP: deployment guide (build v109.0)
 
 Everything here is done in a browser. No terminal is needed.
 
@@ -53,7 +53,9 @@ In Google Cloud Console > Credentials, open the OAuth client already used for
 WDOS (or create a Web application client) and add this Authorised redirect URI:
 `APP_URL/api/auth/google/callback`. Then add `GOOGLE_CLIENT_ID` and
 `GOOGLE_CLIENT_SECRET` to the environment. Until then the Google button is
-shown greyed out.
+shown greyed out. From v109.0 the same keys also switch on "Sign up with Google"
+on the WODDI Envoy page (`APP_URL/#/envoy/join`); no extra redirect address is
+needed.
 
 ## C. Email for password-reset links (optional)
 
@@ -75,6 +77,19 @@ members ask HQ, and HQ resets the password from Members.
    `curl -s "https://your-domain/api/cron?key=YOUR_ADMIN_KEY" > /dev/null`
 6. Moving the data: export the TiDB database (or let Claude prepare the SQL
    file) and import it with phpMyAdmin.
+7. PHP version (from v109.0): in cPanel > Select PHP Version (or MultiPHP
+   Manager) choose PHP 8.3 and tick these extensions: pdo_mysql, mbstring,
+   curl, openssl, gd, zip, fileinfo. The `.user.ini` file in the package raises
+   the upload limits to 20 MB so report documents fit; if your host ignores
+   it, set `upload_max_filesize` 20M and `post_max_size` 24M in MultiPHP INI
+   Editor.
+8. On shared hosting `config.local.php` holds what Render keeps in Environment:
+   database, `ADMIN_KEY`, `APP_URL` (the new address), `BREVO_API_KEY`,
+   `MAIL_FROM`, the push keys, Google keys, and the video call keys below.
+   Change the Google OAuth redirect address to the new domain at the same time.
+9. The background work (message release, email and push queues) also runs on
+   every page visit, so nothing stops if the cron is late, but keep the cron
+   in step 5: it is what sends reminders when nobody is using the site.
 
 ## Releasing an update
 
@@ -153,3 +168,30 @@ Optional: `AI_DAILY_CALLS` (default 300), `AI_LANES` (order), `AI_PAID_LANES` (n
 Rules in System rules: `ai_features` (on/off) and `ai_free_lane_text` (redacted/off). Leader-written text goes to a free lane only after names, emails, phone numbers, links and membership numbers are removed. Private reports and voice recordings never go to a free lane. Every call is logged in `ai_calls` and shown on HQ, AI assistant.
 
 Built: AI service, report digest, weekly brief (also written by itself on Mondays), library search by meaning with word search underneath, coverage gap finder, Listen on every page (the phone's own voice). Not built yet: the other 26 items of the AI handoff list.
+
+## Video meetings for leaders (from v109.0)
+
+Leaders ask HQ for a meeting in their area; HQ approves; the Join button
+unlocks 30 minutes before the start and the call opens inside WDOS.
+
+- With no keys set, calls use the free public server meet.jit.si. It works,
+  but Jitsi ends calls shown inside another website after 5 minutes. WDOS
+  says so on the call screen and offers "Open in a new tab instead", which
+  goes back into the same room with no limit.
+- For calls inside WDOS with no time limit, use Jitsi as a Service (8x8 JaaS,
+  free for up to 25 monthly users, then paid per user): in jaas.8x8.vc create
+  an app, then API keys > Add API key > Generate. Put `JAAS_APP_ID` (starts
+  with vpaas-magic-cookie-), `JAAS_API_KEY_ID` (the full key id shown, with
+  the app id and a slash in front) and `JAAS_PRIVATE_KEY` (the whole private
+  key text) into the environment. WDOS signs each person's entry itself.
+- A Jitsi server of WODDI's own also works with no limit: set `JITSI_DOMAIN`
+  to its address. QServers shared hosting cannot run one; it needs a VPS.
+
+## Continuous integration (from v109.0)
+
+`.github/workflows/ci.yml` runs on every push: PHP and JavaScript syntax, the
+five dictionaries, then the v109 suites against a real database with made-up
+people only. To let a green run deploy Render by itself, copy the Deploy Hook
+from Render (Settings > Deploy Hook) into GitHub (repository Settings >
+Secrets and variables > Actions > New repository secret) named
+`RENDER_DEPLOY_HOOK`. Or, in Render, set Auto-Deploy to "After CI checks pass".

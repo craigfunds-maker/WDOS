@@ -67,18 +67,20 @@ route('POST', '/tasks', function () {
   if (mb_strlen($title) < 3) fail(422, 'The task title must be at least 3 characters.', 'title');
   $ids = array_values(array_unique(array_map('intval', is_array($b['assignees'] ?? null) ? $b['assignees'] : [(int) ($b['assignee_id'] ?? $u['id'])])));
   if (!$ids) $ids = [(int) $u['id']];
-  if (count($ids) > 60) fail(422, 'Assign to 60 people at most in one go.', 'assignees');
+  $cap = is_hq($u) ? 500 : 100; if (count($ids) > $cap) fail(422, "Assign to $cap people at most in one go. Narrow the group by network, level or region.", 'assignees');
   foreach ($ids as $aid) if (!work_may_assign($u, $aid)) fail(403, 'You can only assign tasks to yourself or within your own area.', 'scope');
   // scope: a task can belong to one chapter; a delegated task keeps a link to the task it came from, and still has one accountable owner
   $chapterId = (int) ($b['chapter_id'] ?? 0) ?: null; $parentId = (int) ($b['parent_id'] ?? 0) ?: null;
   if ($parentId) { $par = row('SELECT * FROM tasks WHERE id=?', [$parentId]); if (!$par || ((int) $par['assignee_id'] !== (int) $u['id'] && (int) $par['assigned_by'] !== (int) $u['id'] && !is_hq($u))) fail(403, 'You can delegate only a task that is yours.', 'parent'); if (!$chapterId && $par['chapter_id']) $chapterId = (int) $par['chapter_id']; }
   if ($chapterId) { $c = row('SELECT * FROM chapters WHERE id=?', [$chapterId]); if (!$c || !in_array(chapter_access($u, $c), ['hq', 'leader'], true)) fail(403, 'That chapter is outside your area.', 'chapter'); }
   $due = work_date(str_in('due_on', 10)); $items = array_slice(array_filter(array_map(fn($x) => mb_substr(trim((string) $x), 0, 190), is_array($b['checklist'] ?? null) ? $b['checklist'] : [])), 0, 20);
+  $files = []; foreach (array_slice(array_map('intval', is_array($b['files'] ?? null) ? $b['files'] : []), 0, 10) as $fid) if (val('SELECT 1 FROM doc_files WHERE id=? AND uploaded_by=?', [$fid, (int) $u['id']])) $files[] = $fid;
   $made = [];
   foreach ($ids as $aid) {
     $tid = task_create((int) $u['id'], $aid, $title, str_in('details', 4000), str_in('priority', 8), $due, !empty($b['requires_approval']) && $aid !== (int) $u['id']);
     foreach ($items as $label) q('INSERT INTO task_items (task_id,label) VALUES (?,?)', [$tid, $label]);
     if ($chapterId || $parentId) q('UPDATE tasks SET chapter_id=?, parent_id=? WHERE id=?', [$chapterId, $parentId, $tid]);
+    foreach ($files as $fid) doc_link($fid, 'task', $tid, 'brief', (int) $u['id']);
     $made[] = $tid;
   }
   log_activity((int) $u['id'], count($ids) === 1 ? $ids[0] : null, 'task_created', $title . (count($ids) > 1 ? ' (' . count($ids) . ' people)' : ''));
@@ -111,6 +113,12 @@ route('POST', '/tasks/(\d+)/status', function ($id) {
     $msg = ['in_progress' => $from === 'submitted' ? ["Sent back: $title", "$me wrote: $note"] : ["Started: $title", "$me has started this task."], 'submitted' => ["Submitted for review: $title", "$me asks you to approve completion."],
       'completed' => ["Completed: $title", $from === 'submitted' ? "$me approved the completion." : "$me marked it completed."], 'cancelled' => ["Cancelled: $title", "$me cancelled this task."], 'open' => ["Reopened: $title", "$me reopened this task."]][$to];
     notify($other, 'task', $msg[0], $msg[1], $url); after_response(fn() => push_drain(10));
+  }
+  // finished work handed in: the person who gave the task is emailed, and HQ's inbox too when HQ gave it
+  if (in_array($to, ['submitted', 'completed'], true) && (int) $u['id'] === (int) $t['assignee_id'] && (int) $t['assigned_by'] !== (int) $u['id']) {
+    $files = doc_list('task', (int) $id); $html = '<p><b>' . htmlspecialchars($me) . '</b> ' . ($to === 'submitted' ? 'submitted' : 'completed') . ' the task <b>' . htmlspecialchars($t['title']) . '</b>.</p>' . ($files ? '<p>Attached: ' . htmlspecialchars(implode(', ', array_column(array_filter($files, fn($f) => $f['role'] === 'work'), 'name')) ?: 'none') . '</p>' : '') . ($note !== '' ? '<p>' . htmlspecialchars($note) . '</p>' : '');
+    person_mail((int) $t['assigned_by'], 'WDOS task ' . ($to === 'submitted' ? 'submitted' : 'completed') . ': ' . mb_substr($t['title'], 0, 110), 'Work was handed in', $html, $url);
+    if (val("SELECT 1 FROM users WHERE id=? AND role IN ('hq_admin','super_admin')", [(int) $t['assigned_by']])) { hq_mail('WDOS task ' . ($to === 'submitted' ? 'submitted' : 'completed') . ': ' . mb_substr($t['title'], 0, 100) . ' · ' . $me, 'Work was handed in to HQ', $html, $url); notify_hq('task', ($to === 'submitted' ? 'Submitted for review: ' : 'Completed: ') . mb_substr($t['title'], 0, 100), $me, $url); }
   }
   return ['ok' => true, 'status' => $to];
 });

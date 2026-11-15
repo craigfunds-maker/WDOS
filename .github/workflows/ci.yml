@@ -1,0 +1,74 @@
+# WDOS continuous integration and delivery.
+# Every push and pull request: PHP syntax, JavaScript syntax, dictionary consistency, then the v109 test suites
+# against a real MariaDB with synthetic data. On main, when every check passes, Render is asked to deploy
+# (only if the RENDER_DEPLOY_HOOK secret is set; otherwise Render's own auto-deploy setting decides).
+name: WDOS CI
+on:
+  push: { branches: [main] }
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      db:
+        image: mariadb:11
+        env: { MARIADB_ROOT_PASSWORD: root }
+        ports: ['3306:3306']
+        options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: '3306'
+      DB_NAME: wdos
+      DB_USER: root
+      DB_PASS: root
+      ADMIN_KEY: test-admin-key
+      APP_URL: http://localhost:8080
+      BREVO_API_KEY: ci-not-real
+      MAIL_FROM: wdos-ci@wdos-mail.org
+      BREVO_API_URL: http://127.0.0.1:8099/v3/smtp/email
+      WDOS_ROOT: ${{ github.workspace }}/wdos-php
+      WDOS_SQL: mysql -h127.0.0.1 -P3306 -uroot -proot wdos
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.3', extensions: 'pdo_mysql, mbstring, curl, openssl, gd, zip', coverage: none }
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: PHP syntax
+        run: find wdos-php -name '*.php' -print0 | xargs -0 -n1 php -l | grep -v '^No syntax errors' || true; find wdos-php -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null
+      - name: JavaScript syntax
+        run: |
+          for f in $(find wdos-php/js -name '*.js'); do cp "$f" /tmp/check.mjs; node --check /tmp/check.mjs || { echo "syntax error in $f"; exit 1; }; done
+          node --check wdos-php/sw.js
+      - name: Dictionaries (five languages, same keys, none empty)
+        run: python ci/static_checks.py
+      - name: Start WDOS and the local stand-in for email
+        run: |
+          pip install -q requests
+          (python ci/aimock.py > /tmp/aimock.out 2>&1 &)
+          (php -d post_max_size=24M -d upload_max_filesize=20M -d memory_limit=256M -S 127.0.0.1:8080 ci/router.php > /tmp/php.log 2>&1 &)
+          for i in $(seq 1 30); do curl -sf localhost:8080/api/config > /dev/null && break; sleep 1; done
+      - name: Suite v109 part 1 (documents, messages, envoys, staff areas, video meeting requests)
+        run: ci/reset.sh && python ci/t108.py | tee /tmp/t108.out && grep -q 'FAILURES 0' /tmp/t108.out
+      - name: Suite v109 part 2 (envoy sign-up, Google start, call inside WDOS, notices in five languages)
+        run: ci/reset.sh && python ci/t109.py | tee /tmp/t109.out && grep -q 'FAILURES 0' /tmp/t109.out
+      - name: Server log on failure
+        if: failure()
+        run: tail -n 80 /tmp/php.log || true
+  deploy:
+    needs: checks
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask Render to deploy
+        env: { HOOK: '${{ secrets.RENDER_DEPLOY_HOOK }}' }
+        run: |
+          if [ -z "$HOOK" ]; then echo "RENDER_DEPLOY_HOOK is not set. Render's own auto-deploy setting decides."; exit 0; fi
+          curl -sf -X POST "$HOOK" > /dev/null && echo "Render deploy requested."

@@ -55,6 +55,21 @@ const NOTE_TEMPLATES = [
     'fr' => ['Ajoutez votre photo', '{1}, votre profil n\'a pas encore de photo. Cela prend une minute et aide vos responsables à vous reconnaître.'],
     'pt' => ['Adicione a sua fotografia', '{1}, o seu perfil ainda não tem fotografia. Demora um minuto e ajuda as suas líderes a reconhecê-la.'],
     'sw' => ['Ongeza picha yako', '{1}, wasifu wako bado hauna picha. Inachukua dakika moja na huwasaidia viongozi wako kukutambua.']]],
+  ['/^Video meeting approved: (.+)$/u', '/^(.+)\. The room opens 30 minutes before the start\.$/u', [
+    'ar' => ['تمت الموافقة على الاجتماع بالفيديو: {1}', '{1}. تُفتح الغرفة قبل البدء بـ30 دقيقة.'],
+    'fr' => ['Réunion vidéo approuvée : {1}', '{1}. La salle ouvre 30 minutes avant le début.'],
+    'pt' => ['Reunião por vídeo aprovada: {1}', '{1}. A sala abre 30 minutos antes do início.'],
+    'sw' => ['Mkutano wa video umeidhinishwa: {1}', '{1}. Chumba hufunguka dakika 30 kabla ya kuanza.']]],
+  ['/^You are invited: (.+)$/u', '/^(.*)$/u', [
+    'ar' => ['أنتِ مدعوّة: {1}', '{1}'], 'fr' => ['Vous êtes invitée : {1}', '{1}'], 'pt' => ['Está convidada: {1}', '{1}'], 'sw' => ['Umealikwa: {1}', '{1}']]],
+  ['/^Video meeting not approved: (.+)$/u', '/^(.*)$/su', [
+    'ar' => ['لم تتم الموافقة على الاجتماع بالفيديو: {1}', '{1}'], 'fr' => ['Réunion vidéo non approuvée : {1}', '{1}'], 'pt' => ['Reunião por vídeo não aprovada: {1}', '{1}'], 'sw' => ['Mkutano wa video haujaidhinishwa: {1}', '{1}']]],
+  ['/^Video meeting (?:request|cancelled): (.+)$/u', '/^(.*)$/u', [
+    'ar' => ['اجتماع بالفيديو: {1}', '{1}'], 'fr' => ['Réunion vidéo : {1}', '{1}'], 'pt' => ['Reunião por vídeo: {1}', '{1}'], 'sw' => ['Mkutano wa video: {1}', '{1}']]],
+  ['/^Cancelled: (.+)$/u', '/^(.*)$/su', [
+    'ar' => ['أُلغي: {1}', '{1}'], 'fr' => ['Annulée : {1}', '{1}'], 'pt' => ['Cancelada: {1}', '{1}'], 'sw' => ['Umeghairiwa: {1}', '{1}']]],
+  ['/^Minutes: (.+)$/u', '/^(\d+) attended\.$/u', [
+    'ar' => ['محضر: {1}', 'عدد الحاضرين: {1}.'], 'fr' => ['Compte rendu : {1}', '{1} participants.'], 'pt' => ['Ata: {1}', '{1} participantes.'], 'sw' => ['Kumbukumbu: {1}', 'Waliohudhuria {1}.']]],
 ];
 /* One entry per template above, in the same order: its key, its name on the Communications page, the English wording,
  * and what {1} and {2} stand for. WODDI HQ can replace any wording in any language; the change is logged. */
@@ -69,6 +84,12 @@ const NOTE_META = [
   ['chapter_placed', 'Chapter placement confirmation', 'You have been placed in a chapter', 'Your chapter is {1}. Open it to meet your chapter.', '{1} is the chapter.'],
   ['task_due', 'Task deadline notification', 'Due today: {1}', 'This task is due today.', '{1} is the task.'],
   ['photo_nudge', 'Photograph reminder', 'Add your photograph', '{1}, your profile still has no photograph. It takes a minute and helps your leaders recognise you.', '{1} is the first name.'],
+  ['meet_approved', 'Video meeting approved', 'Video meeting approved: {1}', '{1}. The room opens 30 minutes before the start.', 'Title: {1} is the meeting. Message: {1} is the date and time.'],
+  ['meet_invited', 'Invited to a video meeting', 'You are invited: {1}', '{1}', 'Title: {1} is the meeting. Message: {1} is the date and time.'],
+  ['meet_declined', 'Video meeting not approved', 'Video meeting not approved: {1}', '{1}', 'Title: {1} is the meeting. Message: {1} is the note from HQ.'],
+  ['meet_hq', 'Video meeting request or cancellation (HQ)', 'Video meeting request: {1}', '{1}', '{1} is the meeting.'],
+  ['meet_cancelled', 'Meeting cancelled', 'Cancelled: {1}', '{1}', '{1} is the meeting.'],
+  ['meet_minutes', 'Video meeting minutes', 'Minutes: {1}', '{1} attended.', 'Title: {1} is the meeting. Message: {1} is the number who attended.'],
 ];
 /** Wordings WODDI HQ has approved in place of the built-in ones: [key][lang] = [title, body]. */
 function note_overrides(): array {

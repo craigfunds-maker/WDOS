@@ -74,7 +74,7 @@ function notify_hq(string $kind, string $title, string $body, string $url): void
 function mail_configured(): bool { return (bool) cfg('BREVO_API_KEY') && (bool) cfg('MAIL_FROM'); }
 function send_mail(string $to, string $toName, string $subject, string $html): bool {
   if (!mail_configured()) return false;
-  $ch = curl_init('https://api.brevo.com/v3/smtp/email');
+  $ch = curl_init((string) cfg('BREVO_API_URL', 'https://api.brevo.com/v3/smtp/email'));
   curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 12,
     CURLOPT_HTTPHEADER => ['api-key: ' . cfg('BREVO_API_KEY'), 'Content-Type: application/json', 'Accept: application/json'],
     CURLOPT_POSTFIELDS => json_encode(['sender' => ['email' => cfg('MAIL_FROM'), 'name' => cfg('MAIL_FROM_NAME', 'WODDI HQ')],

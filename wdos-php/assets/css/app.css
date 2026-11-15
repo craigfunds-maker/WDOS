@@ -465,3 +465,36 @@ html{-webkit-tap-highlight-color:transparent} body{overscroll-behavior-y:none}
 @media (max-width:900px){[dir="rtl"] .side{transform:translateX(102%)} [dir="rtl"] .shell.nav-open .side{transform:none}}
 /* the page Listen button in the top bar shows only its icon on a phone */
 @media (max-width:640px){.top .listen span{display:none} .top .listen{padding-inline:10px}}
+/* v109: messages, undo bar, envoy steps, the walkthrough guide */
+.undobar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));z-index:450;display:flex;gap:12px;align-items:center;width:min(560px,calc(100vw - 24px));padding:12px 14px;border-radius:14px;background:var(--ink);color:var(--surface);box-shadow:var(--shadow-2)}
+.undobar small{color:inherit;opacity:.75} .undobar .btn{flex:none}
+@media (min-width:901px){.undobar{bottom:24px}}
+.dmrow{display:flex;gap:10px;align-items:center;padding:4px 0} .dmrow>input{flex:none;width:18px;height:18px}
+.dmrow__a{display:flex;gap:12px;align-items:center;min-width:0;color:inherit;text-decoration:none;padding:8px;border-radius:12px} .dmrow__a:hover{background:var(--sunken)}
+.dmrow.is-unread b{font-weight:800} .dmrow .badge{min-width:22px;padding:2px 7px;border-radius:999px;background:#D4006A;color:#fff;font-size:12px;font-weight:700;text-align:center}
+.dmthread{display:grid;gap:10px;max-height:min(60vh,560px);overflow:auto;padding:4px}
+.dmmsg{max-width:min(560px,88%);padding:10px 14px;border-radius:16px;background:var(--sunken);border:1px solid var(--line-soft);display:grid;gap:4px;justify-self:start}
+.dmmsg.is-mine{justify-self:end;background:rgba(212,0,106,.08);border-color:rgba(212,0,106,.25)}
+[dir="rtl"] .dmmsg{justify-self:end} [dir="rtl"] .dmmsg.is-mine{justify-self:start}
+.linkbtn{border:0;background:none;padding:0;color:#D4006A;font:inherit;font-size:13px;cursor:pointer;justify-self:start}
+.steps3{display:inline-flex;gap:4px} .steps3 i{width:12px;height:12px;border-radius:50%;background:var(--line);display:block} .steps3 i.is-open{background:rgba(124,181,24,.45)} .steps3 i.is-done{background:#7CB518}
+.reflink{display:block;padding:12px 14px;border-radius:12px;background:var(--sunken);border:1px dashed var(--line)}
+.guidebox{width:min(760px,100%);margin:auto 0} .guidevid{width:100%;max-height:70vh;border-radius:14px;background:#180a14;aspect-ratio:9/16;object-fit:contain}
+@media (min-width:700px){.guidevid{aspect-ratio:auto;max-height:62vh}}
+.guidesteps{margin:0;padding-inline-start:22px;display:grid;gap:12px} .guidesteps p{margin:2px 0 6px}
+.btn:disabled,.btn[disabled]{opacity:.45;cursor:not-allowed;filter:saturate(.6)}
+@media(max-width:760px){.top .langpick{flex-shrink:0;min-width:98px;padding-inline-end:26px}}
+[dir=rtl] .pop{right:auto;left:0;transform-origin:top left}
+@media(max-width:560px){.pop,[dir=rtl] .pop{position:fixed;left:10px;right:10px;top:62px;width:auto}}
+.callstage{position:fixed;inset:0;z-index:200;background:#0b0610;display:flex;flex-direction:column}
+.callstage__bar{display:flex;align-items:center;gap:10px;padding:10px 12px;padding-top:max(10px,env(safe-area-inset-top));background:#1a0c17;color:#fff;border-bottom:1px solid #3a2034}
+.callstage__bar b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .callstage__bar small{color:#d8bfd0;font-size:12px}
+.callstage__bar .grow{min-width:0;flex:1}
+.callstage__leave{background:#c4103d;color:#fff;border-color:#c4103d}
+.callstage__frame{flex:1;min-height:0} .callstage__frame iframe{border:0;display:block}
+.callstage__status,.callstage__note{margin:0;padding:10px 14px;color:#f3e6ee;font-size:14px} .callstage__note{background:#2b1526;font-size:13px}
+.callstage__status[hidden]{display:none}
+body.in-call{overflow:hidden}
+@media(max-width:560px){.callstage__bar{flex-wrap:wrap}.callstage__bar .grow{flex-basis:100%}}
+.signin.envoyjoin{width:min(620px,100%)}.envoyjoin__head{display:flex;gap:14px;align-items:flex-start;margin-bottom:6px}.envoyjoin__ico{flex:0 0 auto;width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:color-mix(in srgb,var(--s-wgmn,#D4006A) 18%,transparent);color:var(--s-wgmn,#D4006A)}
+.envoyjoin textarea.input{min-height:84px;resize:vertical}

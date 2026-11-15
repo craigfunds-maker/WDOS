@@ -44,3 +44,10 @@ You work in the same area as the leader you support. You add your contribution t
 - A member is in the wrong chapter: tell HQ through Messages with HQ. HQ moves the member and the history is kept.
 - A safeguarding matter or a complaint: never put it in a task, report or issue. Use Help and private reports. It goes to HQ only.
 - Anything else: Messages with HQ.
+
+## New in v109.0
+
+- **Walkthrough.** The first time you sign in, a short narrated video and seven written steps open. Watch it again any time from the menu: How to use WDOS.
+- **Monthly report document.** Your monthly report needs the report itself attached as a PDF or Word file. Press Upload the report document on the report page, then Submit report. HQ is told at once by notification and email.
+- **Messages.** Open Messages, press New message, and write to one person or a group (by network, leadership level, position, country or state). You can write to HQ, to the leaders above you and to the people in your area. You have 30 seconds to undo; drafts are kept; deleted conversations can be restored. Each person is told in the app, on the phone and by email.
+- **Video meetings in your area.** Open Video meetings and press Ask for a video meeting. HQ approves, the Join button unlocks 30 minutes before the start, and the call opens inside WDOS. Afterwards record the minutes and the number who attended; everyone invited and HQ receive them.

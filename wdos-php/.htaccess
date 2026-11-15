@@ -3,7 +3,7 @@ Options -Indexes
 RewriteEngine On
 # private folders and files are never served
 RewriteRule ^(lib|migrations|docs)(/|$) - [F,L]
-RewriteRule ^(config\.local\.php|config\.sample\.php|Dockerfile|README-DEPLOY\.md)$ - [F,L]
+RewriteRule ^(config\.local\.php|config\.sample\.php|Dockerfile|README-DEPLOY\.md|\.user\.ini)$ - [F,L]
 # every /api/... request goes to the one PHP entry point
 RewriteRule ^api(/.*)?$ api/index.php [QSA,L]
 <IfModule mod_headers.c>
@@ -18,3 +18,14 @@ RewriteRule ^api(/.*)?$ api/index.php [QSA,L]
 </IfModule>
 AddType application/manifest+json .webmanifest
 AddType font/woff2 .woff2
+# the same limits where PHP runs as an Apache module (cPanel "PHP handler: DSO"); ignored elsewhere
+<IfModule mod_php.c>
+  php_value upload_max_filesize 20M
+  php_value post_max_size 24M
+  php_value memory_limit 256M
+</IfModule>
+<IfModule mod_php8.c>
+  php_value upload_max_filesize 20M
+  php_value post_max_size 24M
+  php_value memory_limit 256M
+</IfModule>

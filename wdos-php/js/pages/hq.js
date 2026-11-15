@@ -6,11 +6,11 @@ import { app } from '../app.js';
 import { lineChart, donut, bars, sparkline, countUp, seriesColor, legend } from '../charts.js';
 
 export function rangeSeg(days, onPick) {
-  return h('div', { class: 'seg', role: 'group', 'aria-label': 'Period' }, [7, 30, 90].map((d) => h('button', { type: 'button', 'aria-pressed': String(d === days), onclick: () => onPick(d), text: d + ' days' })));
+  return h('div', { class: 'seg', role: 'group', 'aria-label': 'Period' }, [7, 30, 90].map((d) => h('button', { type: 'button', 'aria-pressed': String(d === days), onclick: () => onPick(d), text: tf('{1} days', d) })));
 }
 export function delta(now, prev, days) {
   if (!prev && !now) return h('span', { class: 'delta delta--flat' }, icon('flat', 14), 'No change');
-  if (!prev) return h('span', { class: 'delta delta--up' }, icon('up', 14), 'First ' + days + ' days');
+  if (!prev) return h('span', { class: 'delta delta--up' }, icon('up', 14), tf('First {1} days', days));
   const p = Math.round(((now - prev) / prev) * 100);
   return h('span', { class: 'delta delta--' + (p > 0 ? 'up' : p < 0 ? 'down' : 'flat') }, icon(p > 0 ? 'up' : p < 0 ? 'down' : 'flat', 14), (p > 0 ? '+' : '') + p + '%');
 }

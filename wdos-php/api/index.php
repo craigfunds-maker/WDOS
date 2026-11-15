@@ -15,6 +15,7 @@ require __DIR__ . '/../lib/amend_fns.php';
 require __DIR__ . '/../lib/handoff_fns.php';
 require __DIR__ . '/../lib/ops_fns.php';
 require __DIR__ . '/../lib/ai_fns.php';
+require __DIR__ . '/../lib/v109_fns.php';
 
 set_exception_handler(function (Throwable $e) {
   error_log('[wdos] ' . $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine());
@@ -40,6 +41,10 @@ function route(string $method, string $pattern, callable $fn): void {
 
 /* ---------------------------------------------------------------- setup -- */
 if (str_starts_with($PATH, '/setup')) { require __DIR__ . '/../lib/setup.php'; exit; }
+
+/* An HQ login limited to some areas is refused the others here, before any route answers. Every reply then releases due messages. */
+hq_feature_guard($METHOD, $PATH);
+if ($PATH !== '/config') after_response(fn() => outbox_tick());
 
 /* ----------------------------------------------------------------- misc -- */
 route('GET', '/health', fn() => ['ok' => true, 'build' => WDOS_BUILD, 'db' => (bool) val('SELECT 1'), 'time' => now()]);
@@ -183,7 +188,7 @@ route('GET', '/me', function () {
 if ($METHOD === 'GET' && $PATH === '/auth/google/start') {
   if (!cfg('GOOGLE_CLIENT_ID')) { header('Location: ' . app_origin() . '/#/login?e=google_off'); exit; }
   $net = strtoupper((string) ($_GET['network'] ?? ''));
-  [$sid, $state] = wa_challenge('google', null, in_array($net, ['WGMN', 'WNNN'], true) ? $net : '');
+  [$sid, $state] = wa_challenge('google', null, ($_GET['as'] ?? '') === 'envoy' ? 'ENVOY' : (in_array($net, ['WGMN', 'WNNN'], true) ? $net : ''));
   header('Location: https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query([
     'client_id' => cfg('GOOGLE_CLIENT_ID'), 'redirect_uri' => app_origin() . '/api/auth/google/callback', 'response_type' => 'code',
     'scope' => 'openid email profile', 'state' => $sid . '.' . $state, 'prompt' => 'select_account']));
@@ -212,13 +217,16 @@ if ($METHOD === 'GET' && $PATH === '/auth/google/callback') {
     }
   }
   if (!$u) {
-    $id = ins("INSERT INTO users (email,google_sub,first_name,last_name,network,role,status,signup_method,created_at) VALUES (?,?,?,?,?,'member','pending_profile','google',?)",
-      [$email, $claims['sub'], mb_substr((string) ($claims['given_name'] ?? ''), 0, 80), mb_substr((string) ($claims['family_name'] ?? ''), 0, 80), $c['data'] ?: null, now()]);
+    $envoy = $c['data'] === 'ENVOY';
+    if ($envoy && (policy('envoy_signup') ?: 'open') === 'closed') $back('envoy_closed');
+    if (empty($claims['email_verified'])) $back('google_unverified');
+    $id = ins("INSERT INTO users (email,google_sub,first_name,last_name,network,role,status,signup_method,created_at) VALUES (?,?,?,?,?,?,'pending_profile','google',?)",
+      [$email, $claims['sub'], mb_substr((string) ($claims['given_name'] ?? ''), 0, 80), mb_substr((string) ($claims['family_name'] ?? ''), 0, 80), $envoy ? null : ($c['data'] ?: null), $envoy ? 'envoy' : 'member', now()]);
     $u = row('SELECT * FROM users WHERE id=?', [$id]);
   }
   if (in_array($u['status'], ['suspended', 'withdrawn'], true)) $back('suspended');
   session_start_for((int) $u['id'], 'google');
-  header('Location: ' . app_origin() . '/#/');
+  header('Location: ' . app_origin() . ($u['role'] === 'envoy' && $u['status'] === 'pending_profile' ? '/#/envoy/join' : '/#/'));
   exit;
 }
 
@@ -403,5 +411,6 @@ require __DIR__ . '/../lib/staff.php';
 require __DIR__ . '/../lib/guide.php';
 require __DIR__ . '/../lib/ops.php';
 require __DIR__ . '/../lib/ai.php';
+require __DIR__ . '/../lib/v109.php';
 
 fail(404, 'No such WDOS endpoint.', 'not_found');

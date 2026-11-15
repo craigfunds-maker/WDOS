@@ -1,4 +1,4 @@
-# 11. Defect and open-items register (as of build v107.0, 12 November 2026)
+# 11. Defect and open-items register (as of build v109.0, 15 November 2026)
 
 Every row is something known from the code, the tests or the live test copy. Nothing here is hidden as "minor". Severity: 1 blocks broad rollout, 2 blocks a pilot with real members unless accepted in writing, 3 should be fixed before rollout, 4 polish. Owner and date are blank until assigned.
 
@@ -32,6 +32,10 @@ Every row is something known from the code, the tests or the live test copy. Not
 | R-25 | 2 | AI features run on free lanes. Free tiers may use prompts to improve the provider's products. WDOS sends leader-written text only after redaction, and never private reports or voices, but redaction by pattern can miss a name written in an unusual way. | `lib/ai_fns.php`, test t107 | Put the main lane on a paid plan and list it in `AI_PAID_LANES` before real report text is summarised | | |
 | R-26 | 3 | Of the 31 AI features in the AI handoff, 5 are built (digest, weekly brief, library search by meaning, coverage gaps, Listen on every page). Voice-to-report has the speech service but no screen, and needs a paid lane. The other 25 are not built. | AI handoff note of 12 Nov 2026 | Build in the handoff's phase order | | |
 | R-24 | 4 | Shared phones: one phone number can sign in one account only. Other women on the same phone need an email or a leader reset. | Registration rule | `TO DECIDE` (see document 08) | | |
+| R-27 | 2 | Video calls inside WDOS stop after 5 minutes on the free public Jitsi server (meet.jit.si limits calls embedded in other sites). The call screen says so and offers the same room in a new tab. | Jitsi policy; v109 call screen | Add JaaS keys (free to 25 monthly users) or a WODDI Jitsi server on a VPS | | |
+| R-28 | 3 | The narrated leader walkthrough videos use synthetic voices (Kokoro for English, French, Portuguese; Piper for Swahili and Arabic). No person has listened to all five end to end, and no speech-recognition check could be run in the build environment. Hausa, Yoruba and Igbo leaders get the English video with the steps written and read aloud in their language. | `assets/video/wdos-leader-guide-*.mp4` | A native speaker per language watches once; re-voice any unclear step | | |
+| R-29 | 3 | Envoy sign-up is open by default (System rules: envoy_signup = open), so a new envoy's link works at once. HQ can pause her, or switch the rule to review. | Rule set in v109 | `TO DECIDE` open or review | | |
+| R-30 | 3 | The CI pipeline runs the v109 suites only; the older suites (t93 to t107) still run on the developer's machine. | `.github/workflows/ci.yml` | Port the older suites to the CI fixtures | | |
 
 ## Closed in the last builds
 
@@ -44,6 +48,9 @@ Every row is something known from the code, the tests or the live test copy. Not
 | C-05 | Structure page listed 485 vacant rows after all countries were added | v105.x | Local check |
 | C-06 | Leader, HQ and remaining member screen labels untranslated in French, Portuguese, Arabic, Swahili | v107.0 | `tr/extract.py`: 0 member, 0 leader, 0 HQ fixed labels left (unreviewed, see R-06) |
 | C-07 | Mauritania had no country map | v107.0 | All 55 African countries now have one |
+| C-08 | Delayed messages were never released: the release job was registered after routes that answer and stop | v109.0 | Test suite t108 |
+| C-09 | Notification panel ran off the left edge in Arabic and off the side on phones | v109.0 | Screenshots shots/v109 |
+| C-10 | Portuguese lacked the word "Normal" (task priority) | v109.0 | `ci/static_checks.py` |
 
 ## Readiness, stated plainly
 

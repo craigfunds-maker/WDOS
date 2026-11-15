@@ -23,7 +23,7 @@ export async function render(root, params) {
   if (params.tab && /^\d+$/.test(params.tab)) return detail(root, params.tab);
   const scope = params.tab === 'past' ? 'past' : '';
   const list = h('div', {}, sk.rows(4)); const formSlot = h('div'); const tools = h('div', { class: 'toolbar' });
-  root.append(tabs([['', 'Upcoming'], ['past', 'Past']], scope, '#/meetings'), formSlot, card(scope ? 'Past meetings' : 'Upcoming meetings', null, list, tools));
+  root.append(tabs([['', 'Upcoming'], ['past', 'Past'], ['requests', 'Video meetings']], scope, '#/meetings'), formSlot, card(scope ? 'Past meetings' : 'Upcoming meetings', null, list, tools));
   async function load() {
     let r; try { r = await api('/meetings?scope=' + (scope || 'upcoming')); } catch (e) { list.replaceChildren(empty('x', 'Meetings did not load', e.message)); return; }
     tools.replaceChildren(r.can_schedule ? h('button', { class: 'btn', type: 'button', onclick: () => { if (formSlot.firstChild) formSlot.replaceChildren(); else formSlot.replaceChildren(newForm(r, () => { formSlot.replaceChildren(); load(); })); } }, icon('plus', 18), 'Schedule a meeting') : '');
