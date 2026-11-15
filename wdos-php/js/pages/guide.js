@@ -25,8 +25,9 @@ export const ENVOY_STEPS = [
 function guideBody(onDone) {
   const envoy = app.user?.is_envoy; const steps = envoy ? ENVOY_STEPS : LEADER_STEPS; const lang = i18n.lang;
   const vlang = LEADER_VIDEO.includes(lang) ? lang : 'en';
-  const video = envoy ? null : h('video', { class: 'guidevid', controls: true, preload: 'metadata', playsinline: true, poster: `/assets/video/wdos-leader-guide-${vlang}.jpg`, src: `/assets/video/wdos-leader-guide-${vlang}.mp4`, 'aria-label': t('How to use WDOS, video guide') });
-  const note = !envoy && vlang !== lang ? h('p', { class: 'faint', style: 'margin:0', text: t('This video is not yet narrated in your language, so it plays in English. The steps below are in your language, and Listen reads them aloud.') }) : null;
+  const kind = envoy ? 'envoy' : 'leader';
+  const video = h('video', { class: 'guidevid', controls: true, preload: 'metadata', playsinline: true, poster: `/assets/video/wdos-${kind}-guide-${vlang}.jpg`, src: `/assets/video/wdos-${kind}-guide-${vlang}.mp4`, 'aria-label': t('How to use WDOS, video guide') });
+  const note = vlang !== lang ? h('p', { class: 'faint', style: 'margin:0', text: t('This video is not yet narrated in your language, so it plays in English. The steps below are in your language, and Listen reads them aloud.') }) : null;
   const all = () => steps.map(([a, b], i) => `${i + 1}. ${t(a)}. ${t(b)}`).join(' ');
   return h('div', { style: 'display:grid;gap:14px' }, video, note,
     h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, listenBtn(all, 'Listen to every step'), onDone ? h('button', { class: 'btn', type: 'button', onclick: onDone }, t('I am ready')) : null),
@@ -38,7 +39,7 @@ export function openGuide(first) {
   const close = () => { wrap.remove(); document.removeEventListener('keydown', esc); api('/me/guide-seen', {}).then(() => { if (app.user) app.user.guide_seen = true; }).catch(() => {}); };
   const esc = (e) => { if (e.key === 'Escape') close(); };
   const wrap = h('div', { class: 'gmview is-guide', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('How to use WDOS') },
-    h('div', { class: 'card guidebox' }, h('div', { class: 'card__head' }, h('div', { class: 'grow' }, h('h2', { text: first ? t('Welcome to your WDOS dashboard') : t('How to use WDOS') }), h('p', { text: app.user?.is_envoy ? t('Four short steps for WODDI Envoys.') : t('Watch the short video, or read the steps. You can open this again any time from the menu, under How to use WDOS.') })),
+    h('div', { class: 'card guidebox' }, h('div', { class: 'card__head' }, h('div', { class: 'grow' }, h('h2', { text: first ? t('Welcome to your WDOS dashboard') : t('How to use WDOS') }), h('p', { text: app.user?.is_t('Watch the short video, or read the steps. You can open this again any time from the menu, under How to use WDOS.') })),
       h('button', { class: 'iconbtn', type: 'button', 'aria-label': t('Close'), onclick: close }, icon('x'))), h('div', { class: 'card__body' }, guideBody(close))));
   document.addEventListener('keydown', esc); document.body.append(wrap);
 }

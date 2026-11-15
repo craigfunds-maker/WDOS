@@ -2884,5 +2884,11 @@
 "Leave the call": "Ondoka kwenye simu",
 "The call is taking long to start. Check your connection, or press Open in a new tab instead.": "Simu inachelewa kuanza. Angalia muunganisho wako, au bonyeza Fungua kwenye kichupo kipya badala yake.",
 "The call could not load here. Press Open in a new tab instead.": "Simu haikuweza kupakia hapa. Bonyeza Fungua kwenye kichupo kipya badala yake.",
-"or": "au"
+"or": "au",
+"Privacy notice": "Taarifa ya faragha",
+"What WDOS keeps about you, who can see it, and how to ask for a correction or removal.": "WDOS inahifadhi nini kukuhusu, nani anaweza kuiona, na jinsi ya kuomba marekebisho au kufutwa.",
+"Read the privacy notice": "Soma taarifa ya faragha",
+"You can write to WODDI HQ and to the people who joined through your link.": "Unaweza kuwaandikia makao makuu ya WODDI na watu waliojiunga kupitia kiungo chako.",
+"You were invited by {1}, a WODDI Envoy. Choose the position you would like to be considered for. Your 3-day Referral Activation starts as soon as your account is made.": "Umealikwa na {1}, Balozi wa WODDI. Chagua nafasi ungependa kuzingatiwa. Uamilishaji wako wa siku 3 unaanza mara akaunti yako ikiundwa.",
+"One person will receive this, in a private conversation with you:": "Mtu mmoja atapokea huu, katika mazungumzo ya faragha nawe:"
 }

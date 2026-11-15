@@ -283,8 +283,14 @@ function jaas_jwt(array $u, string $room, bool $moderator): ?string {
   if (!openssl_sign($msg, $sig, $key, OPENSSL_ALGO_SHA256)) return null;
   return $msg . '.' . b64url($sig);
 }
-function call_engine(): string { return jaas_configured() ? 'jaas' : (jitsi_domain() !== 'meet.jit.si' ? 'self' : 'public'); }
-function jitsi_domain(): string { $d = strtolower(trim((string) cfg('JITSI_DOMAIN', 'meet.jit.si'))); return preg_match('/^[a-z0-9.\-]+$/', $d) ? $d : 'meet.jit.si'; }
+const CALL_SERVERS = ['meet.vpsfree.cz', 'meet.guifi.net', 'meet.jit.si'];
+/** Which Jitsi server a new meeting uses: WODDI's own server when JITSI_DOMAIN is set, otherwise the community server chosen in System rules. */
+function jitsi_domain(): string {
+  $own = strtolower(trim((string) cfg('JITSI_DOMAIN', ''))); if ($own !== '' && preg_match('/^[a-z0-9.\-]+$/', $own)) return $own;
+  $d = (string) policy('video_call_server'); return in_array($d, CALL_SERVERS, true) ? $d : 'meet.vpsfree.cz';
+}
+/** jaas: 8x8 keys set; public: meet.jit.si (5-minute embed limit, sign-in to start); community or own: no limit. */
+function call_engine(?string $domain = null): string { if (jaas_configured()) return 'jaas'; $d = $domain ?: jitsi_domain(); return $d === 'meet.jit.si' ? 'public' : (in_array($d, CALL_SERVERS, true) ? 'community' : 'self'); }
 /** The room opens 30 minutes before the start and closes three hours after the planned end. */
 function mr_window(array $m): array { $s = strtotime($m['starts_at'] . ' UTC'); return [$s - 1800, $s + (int) $m['duration_min'] * 60 + 3 * 3600]; }
 function mr_ids(array $m): array { return array_values(array_filter(array_map('intval', explode(',', (string) $m['attendee_ids'])))); }

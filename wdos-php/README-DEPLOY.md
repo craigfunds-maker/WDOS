@@ -52,7 +52,12 @@ dashboard, Members, Announcements and Settings.
 In Google Cloud Console > Credentials, open the OAuth client already used for
 WDOS (or create a Web application client) and add this Authorised redirect URI:
 `APP_URL/api/auth/google/callback`. Then add `GOOGLE_CLIENT_ID` and
-`GOOGLE_CLIENT_SECRET` to the environment. Until then the Google button is
+`GOOGLE_CLIENT_SECRET` to the environment. The final address is
+https://woddicrm.org, so the client lists both addresses while testing:
+origins `https://woddicrm.org` and `https://wdos.onrender.com`, redirect URIs
+`https://woddicrm.org/api/auth/google/callback` and
+`https://wdos.onrender.com/api/auth/google/callback`. Remove the onrender ones
+after the move. Until then the Google button is
 shown greyed out. From v109.0 the same keys also switch on "Sign up with Google"
 on the WODDI Envoy page (`APP_URL/#/envoy/join`); no extra redirect address is
 needed.
@@ -174,18 +179,22 @@ Built: AI service, report digest, weekly brief (also written by itself on Monday
 Leaders ask HQ for a meeting in their area; HQ approves; the Join button
 unlocks 30 minutes before the start and the call opens inside WDOS.
 
-- With no keys set, calls use the free public server meet.jit.si. It works,
-  but Jitsi ends calls shown inside another website after 5 minutes. WDOS
-  says so on the call screen and offers "Open in a new tab instead", which
-  goes back into the same room with no limit.
-- For calls inside WDOS with no time limit, use Jitsi as a Service (8x8 JaaS,
-  free for up to 25 monthly users, then paid per user): in jaas.8x8.vc create
-  an app, then API keys > Add API key > Generate. Put `JAAS_APP_ID` (starts
-  with vpaas-magic-cookie-), `JAAS_API_KEY_ID` (the full key id shown, with
-  the app id and a slash in front) and `JAAS_PRIVATE_KEY` (the whole private
-  key text) into the environment. WDOS signs each person's entry itself.
-- A Jitsi server of WODDI's own also works with no limit: set `JITSI_DOMAIN`
-  to its address. QServers shared hosting cannot run one; it needs a VPS.
+- Default: a free community Jitsi server, `meet.vpsfree.cz` (run by the
+  vpsFree.cz non-profit). On 15 Nov 2026 it was tested from inside WDOS on the
+  live address: it joined in about 8 seconds, needed no sign-in and ran past
+  7 minutes with no cut. `meet.guifi.net` passed the same test and is the
+  second choice. HQ switches between them in System rules ("Leader video
+  meetings"). Each approved meeting keeps the server it was approved on.
+- Community servers are run by volunteers: no service promise, and they can
+  change their rules. If one stops working, switch the rule to the other.
+- `meet.jit.si` is not advised: the first person must sign in, and calls
+  shown inside another website stop after 5 minutes.
+- Optional, paid above 25 people a month: Jitsi as a Service (8x8 JaaS). Free
+  for 25 monthly active users (each phone or browser that joins in a month),
+  then $99 a month for 300. If you add `JAAS_APP_ID`, `JAAS_API_KEY_ID` and
+  `JAAS_PRIVATE_KEY`, WDOS uses JaaS instead and signs each entry itself.
+- Your own Jitsi server (needs a VPS, not QServers shared hosting): set
+  `JITSI_DOMAIN` to its address and WDOS uses it for every meeting.
 
 ## Continuous integration (from v109.0)
 

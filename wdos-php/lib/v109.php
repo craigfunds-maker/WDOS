@@ -321,6 +321,7 @@ route('POST', '/meet-requests/(\d+)/decide', function ($id) {
   if (!in_array($m['status'], ['pending', 'approved'], true)) fail(409, 'This request is already ' . $m['status'] . '.', 'state');
   $room = $m['room'] ?: 'WODDI-' . preg_replace('/[^A-Za-z0-9]/', '', $m['request_no']) . '-' . strtoupper(substr(b64u(random_bytes(9)), 0, 10));
   q('UPDATE meeting_requests SET status=?, hq_note=?, decided_by=?, decided_at=?, room=?, updated_at=? WHERE id=?', [$d === 'approve' ? 'approved' : 'declined', $note, (int) $me['id'], now(), $d === 'approve' ? $room : $m['room'], now(), (int) $id]);
+  if ($d === 'approve' && empty($m['call_domain'])) q('UPDATE meeting_requests SET call_domain=? WHERE id=?', [jitsi_domain(), (int) $id]);   // everyone in this meeting uses the same server, even if HQ changes the rule later
   $when = gmdate('j M Y, H:i', strtotime($m['starts_at'] . ' UTC')) . ' GMT'; $url = '#/meetings/requests/' . $id;
   if ($d === 'approve') {
     notify((int) $m['requester_id'], 'meeting', 'Video meeting approved: ' . mb_substr($m['title'], 0, 120), $when . '. The room opens 30 minutes before the start.', $url);
@@ -352,9 +353,9 @@ route('POST', '/meet-requests/(\d+)/join', function ($id) {
   if (time() < $open) fail(403, 'The room opens 30 minutes before the start.', 'not_yet', ['opens_at' => gmdate('Y-m-d H:i:s', $open)]);
   if (time() > $close) fail(403, 'This meeting has ended.', 'closed');
   q('INSERT INTO meeting_request_joins (request_id,user_id,first_at,last_at) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE last_at=VALUES(last_at)', [(int) $id, (int) $u['id'], now(), now()]);
-  $name = trim($u['first_name'] . ' ' . $u['last_name']); $kind = call_engine(); $mod = in_array(mr_role($u, $m), ['requester', 'hq'], true);
-  $tab = 'https://' . jitsi_domain() . '/' . rawurlencode($m['room']) . '#userInfo.displayName=' . rawurlencode('"' . $name . '"');
-  $out = ['ok' => true, 'engine' => $kind, 'room' => $m['room'], 'domain' => jitsi_domain(), 'name' => $name, 'email' => (string) ($u['email'] ?? ''), 'moderator' => $mod, 'url' => $tab,
+  $name = trim($u['first_name'] . ' ' . $u['last_name']); $dom = ($m['call_domain'] ?? '') ?: jitsi_domain(); $kind = call_engine($dom); $mod = in_array(mr_role($u, $m), ['requester', 'hq'], true);
+  $tab = 'https://' . $dom . '/' . rawurlencode($m['room']) . '#userInfo.displayName=' . rawurlencode('"' . $name . '"');
+  $out = ['ok' => true, 'engine' => $kind, 'room' => $m['room'], 'domain' => $dom, 'name' => $name, 'email' => (string) ($u['email'] ?? ''), 'moderator' => $mod, 'url' => $tab,
     'closes_at' => gmdate('Y-m-d H:i:s', $close), 'limit_minutes' => $kind === 'public' ? 5 : null];
   if ($kind === 'jaas') {
     $jwt = jaas_jwt($u, $m['room'], $mod);
@@ -384,9 +385,8 @@ route('POST', '/meet-requests/(\d+)/minutes', function ($id) {
 });
 
 /* -------------------------------------------------- WODDI Envoys sign themselves up -- */
-route('GET', '/envoy/join-info', fn() => ['mode' => policy('envoy_signup') ?: 'open', 'google' => (bool) cfg('GOOGLE_CLIENT_ID') && (bool) cfg('GOOGLE_CLIENT_SECRET')]);
+route('GET', '/envoy/join-info', fn() => ['mode' => 'open', 'google' => (bool) cfg('GOOGLE_CLIENT_ID') && (bool) cfg('GOOGLE_CLIENT_SECRET')]);
 route('POST', '/envoy/join', function () {
-  $mode = policy('envoy_signup') ?: 'open'; if ($mode === 'closed') fail(403, 'WODDI is not taking new envoys through this page at the moment. Write to WODDI HQ.', 'closed');
   $me = current_user(); $google = $me && $me['role'] === 'envoy' && $me['status'] === 'pending_profile';
   if ($me && !$google) fail(409, 'You are already signed in. Sign out first to make a WODDI Envoy account.', 'signed_in');
   throttle('envoy-join:' . client_ip(), 6, 3600);
@@ -408,7 +408,7 @@ route('POST', '/envoy/join', function () {
   }
   if (val('SELECT 1 FROM envoys WHERE user_id=?', [$id])) fail(409, 'This envoy account is already set up.', 'already');
   throttle_hit('envoy-join:' . client_ip());
-  $live = $mode === 'open';
+  $live = true;                         // every envoy who signs up gets her link at once; HQ can pause her later
   $lid = ins("INSERT INTO referral_links (code,owner_id,kind,network,label,campaign,active,created_at) VALUES (?,?,'envoy','',?,'envoy',?,?)", [ref_new_code(), $id, 'WODDI Envoy: ' . $first . ' ' . $last, $live ? 1 : 0, now()]);
   q('INSERT INTO envoys (user_id,link_id,country_code,status,created_by,created_at,state_region,city,organisation,reach_plan,heard_from,source) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)', [$id, $lid, $cc, $live ? 'active' : 'pending', $id, now(), $state, $city ?: null, $org ?: null, $plan, $heard ?: null, 'self']);
   log_activity($id, $id, 'envoy_signed_up', $google ? 'google' : 'email');

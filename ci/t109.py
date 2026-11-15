@@ -16,12 +16,11 @@ def login(e,p):
     s=S(); r=s.post(B+'/auth/login',json={'email':e,'password':p}); assert r.ok,(e,r.text[:200]); return s
 sql("delete from login_attempts"); sql("delete from rate_limits") if sql("show tables like 'rate_limits'") else None
 hq=login('hq@test.local','hq-password-1'); ld=login('leader@test.local','leader-pass-1')
-def rule(v): r=hq.post(B+'/policy',json={'key':'envoy_signup','value':v,'note':'test'}); assert r.ok, r.text
 cc=sql("select country_code from org_units where level='country' and country_code='NG' limit 1") or sql("select country_code from org_units where level='country' limit 1")
 form=lambda **k: {'first_name':'Halima','last_name':'Sule','email':f'halima.{X}@wdos-mail.org','phone':'+2348031112222','country_code':cc,'state_region':'Kaduna','city':'Zaria',
   'organisation':'Zaria market women','reach_plan':'My market association and two church fellowships in Zaria.','heard_from':'A WGMN coordinator','password':'envoy-pass-1','consent':True,**k}
 # ---- open
-rule('open'); a=S()
+a=S()
 chk('join info open', a.get(B+'/envoy/join-info').json()['mode']=='open')
 r=a.post(B+'/envoy/join',json=form(consent=False)); chk('consent required', r.status_code==422 and r.json().get('error')=='consent', r.text)
 r=a.post(B+'/envoy/join',json=form(reach_plan='x')); chk('where she will share is required', r.status_code==422, r.text)
@@ -40,24 +39,12 @@ chk('envoy cannot open the member list', a.get(B+'/hq/members').status_code in (
 chk('envoy cannot open leader dashboard data', a.get(B+'/leader/dashboard').status_code in (401,403))
 d=hq.get(B+f'/hq/envoys/{eid}').json()['envoy']; chk('HQ sees her sign-up details', d['source']=='self' and d['reach_plan'].startswith('My market') and d['city']=='Zaria', d)
 L=[e for e in hq.get(B+'/hq/envoys').json()['envoys'] if e['id']==eid]; chk('HQ list shows her', L and L[0]['source']=='self' and L[0]['status']=='active', L)
-# ---- review
-rule('review'); b=S()
-r=b.post(B+'/envoy/join',json=form(email=f'grace.{X}@wdos-mail.org',first_name='Grace',last_name='Okon')); chk('review sign-up accepted', r.ok and r.json()['live'] is False, r.text)
-gid=int(sql(f"select id from users where email='grace.{X}@wdos-mail.org'"))
-chk('link waits for approval', sql(f"select concat(e.status,'|',l.active) from envoys e join referral_links l on l.id=e.link_id where e.user_id={gid}")=='pending|0')
-chk('her dashboard says pending', b.get(B+'/envoy/home').json()['status']=='pending')
-code=sql(f"select l.code from envoys e join referral_links l on l.id=e.link_id where e.user_id={gid}")
-r=S().get(B+f'/r/{code}'); chk('pending link does not take sign-ups', r.status_code in (404,410) or (r.ok and not r.json().get('active',True)) or r.status_code==200, r.status_code)
-chk('HQ told she waits', int(sql("select count(*) from notifications where title like 'WODDI Envoy waiting for approval: Grace Okon%'"))>=1)
-r=hq.post(B+f'/hq/envoys/{gid}',json={'active':True}); chk('HQ approves', r.ok, r.text)
-chk('approved: link on', sql(f"select concat(e.status,'|',l.active) from envoys e join referral_links l on l.id=e.link_id where e.user_id={gid}")=='active|1')
-chk('she is told', int(sql(f"select count(*) from notifications where user_id={gid} and title='Your WODDI Envoy link is on'"))==1)
-chk('leader cannot approve envoys', ld.post(B+f'/hq/envoys/{gid}',json={'active':False}).status_code in (401,403))
-# ---- closed
-rule('closed')
-chk('closed: page says closed', S().get(B+'/envoy/join-info').json()['mode']=='closed')
-r=S().post(B+'/envoy/join',json=form(email=f'closed.{X}@wdos-mail.org')); chk('closed: sign-up refused', r.status_code==403, r.text)
-rule('open')
+# ---- no approval step and no closing: every sign-up is live, HQ can still pause
+chk('sign-up rule retired', all(r['key']!='envoy_signup' for r in hq.get(B+'/policy').json()['rules']))
+chk('join info always open', S().get(B+'/envoy/join-info').json()['mode']=='open')
+r=hq.post(B+f'/hq/envoys/{eid}',json={'active':False}); chk('HQ can pause an envoy', r.ok and sql(f"select concat(e.status,'|',l.active) from envoys e join referral_links l on l.id=e.link_id where e.user_id={eid}")=='suspended|0', r.text)
+r=hq.post(B+f'/hq/envoys/{eid}',json={'active':True}); chk('HQ can switch her back on', r.ok and sql(f"select l.active from envoys e join referral_links l on l.id=e.link_id where e.user_id={eid}")=='1', r.text)
+chk('leader cannot pause envoys', ld.post(B+f'/hq/envoys/{eid}',json={'active':False}).status_code in (401,403))
 # ---- Google start for envoys (keys not set here: sent back with a clear reason, never a crash)
 r=S().get(B+'/auth/google/start?as=envoy',allow_redirects=False); chk('google start answers', r.status_code in (302,303) and 'google_off' in r.headers.get('Location',''), (r.status_code, r.headers.get('Location')))
 chk('google keys reported off', S().get(B+'/envoy/join-info').json()['google'] is False)
@@ -69,8 +56,12 @@ if not mid:
 owner=sql(f"select u.email from meeting_requests m join users u on u.id=m.requester_id where m.id={mid}")
 s=ld if owner=='leader@test.local' else hq
 r=s.post(B+f'/meet-requests/{mid}/join',json={}); j=r.json() if r.ok else {}
-chk('join gives what the page needs to embed', r.ok and j.get('room')=='WODDI-TEST-ROOM-123' and j.get('domain') and j.get('name') and j.get('engine') in ('public','self','jaas'), r.text)
-chk('public engine is honest about the 5-minute embed limit', j.get('engine')!='public' or j.get('limit_minutes')==5, j)
+chk('join gives what the page needs to embed', r.ok and j.get('room')=='WODDI-TEST-ROOM-123' and j.get('domain') and j.get('name') and j.get('engine') in ('public','self','jaas','community'), r.text)
+chk('default server is the tested community one, no limit', j.get('domain')=='meet.vpsfree.cz' and j.get('engine')=='community' and not j.get('limit_minutes'), j)
+r=hq.post(B+'/policy',json={'key':'video_call_server','value':'meet.guifi.net','note':'test'}); chk('HQ can switch the call server', r.ok, r.text)
+j2=s.post(B+f'/meet-requests/{mid}/join',json={}).json(); chk('the new rule applies to a meeting with no server fixed yet', j2.get('domain')=='meet.guifi.net', j2)
+r=hq.post(B+'/policy',json={'key':'video_call_server','value':'evil.example.com','note':'test'}); chk('unknown server refused', r.status_code==422, r.status_code)
+hq.post(B+'/policy',json={'key':'video_call_server','value':'meet.vpsfree.cz','note':'test'})
 out=S().post(B+f'/meet-requests/{mid}/join',json={}); chk('signed-out cannot join', out.status_code==401)
 # JaaS token: signed with the key, verifies with its public half, carries room, name and moderator flag
 p=php(r'''

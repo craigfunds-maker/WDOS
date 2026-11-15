@@ -20,13 +20,15 @@ export async function render(root, params) {
   if (params.tab && /^\d+$/.test(params.tab)) return detail(root, params.tab);
   const scope = SCOPES.some(([k]) => k === params.tab) ? params.tab || '' : '';
   const leader = app.user.is_hq || app.user.is_leader;
+  const envoy = !!app.user.is_envoy && !leader;                  // an envoy sees only the tasks HQ gives her: no assigning, no review counts
   const kpis = h('div', { class: 'row row--4' }, sk.kpi(), sk.kpi(), sk.kpi(), sk.kpi());
   const status = h('select', { class: 'input', 'aria-label': 'Status', style: 'width:auto' }, [['active', 'Open tasks'], ['', 'All statuses'], ['overdue', 'Overdue only'], ['completed', 'Completed'], ['cancelled', 'Cancelled']].map(([v, l]) => h('option', { value: v, text: l })));
   const search = input({ type: 'search', placeholder: 'Search tasks…', 'aria-label': 'Search tasks', style: 'max-width:260px' });
   const list = h('div', {}, sk.rows(5)); const formSlot = h('div'); const extra = h('div', { class: 'tagrow', style: 'max-width:none;justify-content:flex-start' }); const chapFilter = h('select', { class: 'input', 'aria-label': 'Chapter', hidden: true }, h('option', { value: '', text: 'Every chapter' }));
   const newBtn = h('button', { class: 'btn', type: 'button', onclick: () => { if (formSlot.firstChild) formSlot.replaceChildren(); else formSlot.replaceChildren(newForm(leader, () => { formSlot.replaceChildren(); load(); })); } }, icon('plus', 18), 'New task');
   if (leader) root.append(tabs(SCOPES, scope, '#/tasks'));
-  root.append(kpis, extra, formSlot, card(SCOPES.find(([k]) => k === scope)[1], null, list, h('div', { class: 'toolbar' }, search, status, chapFilter, newBtn)));
+  if (envoy) kpis.className = 'row row--2';
+  root.append(kpis, envoy ? '' : extra, formSlot, card(SCOPES.find(([k]) => k === scope)[1], null, list, h('div', { class: 'toolbar' }, search, status, chapFilter, envoy ? '' : newBtn)));
   if (leader) { api('/chapters').then((r) => { if (r.items.length) { chapFilter.append(...r.items.map((c) => h('option', { value: c.id, text: c.name }))); chapFilter.hidden = false; } }).catch(() => {}); chapFilter.addEventListener('change', load); }
   let timer;
   search.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(load, 300); }); status.addEventListener('change', load);
@@ -36,7 +38,7 @@ export async function render(root, params) {
     catch (e) { kpis.replaceChildren(); list.replaceChildren(empty('x', 'Tasks did not load', e.message, h('button', { class: 'btn btn--quiet btn--s', onclick: load }, 'Try again'))); return; }
     const c = r.counts;
     kpis.replaceChildren(kpi('tasks', 'My open tasks', c.mine, [h('span', { text: 'Assigned to you' })]), kpi('clock', 'My overdue tasks', c.overdue, [h('span', { text: 'Past the due date' })]),
-      kpi('inbox', 'Tasks awaiting your review', c.to_approve, [h('span', { text: 'Submitted by the people you assigned' })]), kpi('send', 'Open tasks I assigned', c.sent, [h('span', { text: 'Still with the assignee' })]));
+      ...(envoy ? [] : [kpi('inbox', 'Tasks awaiting your review', c.to_approve, [h('span', { text: 'Submitted by the people you assigned' })]), kpi('send', 'Open tasks I assigned', c.sent, [h('span', { text: 'Still with the assignee' })])]));
     extra.replaceChildren(h('span', { class: 'tag', text: tf('{1} in this view', fmt(r.total)) }), h('span', { class: 'tag', text: tf('{1} chapter-scoped', fmt(r.chapter_scoped)) }), h('span', { class: 'tag' + (r.escalations ? ' tag--bad' : ''), text: tf('{1} past due (escalations)', fmt(r.escalations)) }));
     list.replaceChildren(r.items.length ? h('div', { class: 'list reveal' }, r.items.map((t) => taskRow(t, scope === '' ? 'by' : 'assignee')), r.total > r.items.length ? h('p', { class: 'faint', style: 'padding:12px 4px', text: tf('Showing the first {1} of {2} tasks. Use the filters to narrow.', r.items.length, fmt(r.total)) }) : null)
       : empty('tasks', 'No tasks here', scope === 'assigned' ? 'Tasks you assign to other leaders are tracked here.' : 'Tasks in this view will appear as they are created.'));

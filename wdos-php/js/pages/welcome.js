@@ -9,7 +9,7 @@ export function pubBar(right, withLang = true) {
   const tb = h('button', { class: 'iconbtn', type: 'button', 'aria-label': 'Switch between dark and light', onclick: () => { theme.toggle(); tb.replaceChildren(icon(theme.get() === 'light' ? 'moon' : 'sun')); } }, icon(theme.get() === 'light' ? 'moon' : 'sun'));
   return h('div', { class: 'pubtop' }, withLang ? langPills(setLanguage) : null, h('header', { class: 'pubbar' }, h('a', { href: '#/', 'aria-label': 'WODDI home' }, h('img', { src: '/assets/logos/woddi-disc.png', alt: 'WODDI, The Nurturer' })), h('div', { class: 'grow' }), tb, right || null));
 }
-export const pubFoot = () => h('footer', { class: 'pubfoot' }, h('span', { text: 'WODDI Digital Operating System' }), h('span', { text: 'No Woman Is Left Out' }), h('span', { class: 'num', text: 'Build ' + (app.config.build || '') }));
+export const pubFoot = () => h('footer', { class: 'pubfoot' }, h('span', { text: 'WODDI Digital Operating System' }), h('span', { text: 'No Woman Is Left Out' }), h('a', { href: '/privacy?lang=' + (i18n.lang || 'en'), text: 'Privacy notice' }), h('span', { class: 'num', text: 'Build ' + (app.config.build || '') }));
 
 const NET_ABOUT = {
   WGMN: ['For Women Aged 30 and Above', 'A network for women to grow in purpose, strengthen family and societal influence, and build a lasting legacy.'],
@@ -44,7 +44,8 @@ export async function render(root, params) {
     try { const r = await api('/ref/' + encodeURIComponent(params.ref)); link = r.link; params.network = link.network; }
     catch (e) { root.append(h('div', { class: 'public' }, pubBar(h('a', { class: 'btn btn--quiet', href: '#/login', text: 'Sign in' })), h('main', { class: 'join' }, h('div', { class: 'card', style: 'max-width:560px;margin:40px auto' }, h('div', { class: 'card__body', style: 'display:grid;gap:12px;text-align:center' }, h('h2', { text: 'This invitation link is not active' }), h('p', { class: 'muted', text: 'Ask the person who sent it for a new link, or join WODDI directly.' }), h('div', {}, h('a', { class: 'btn', href: '#/', text: 'Join as a member' }))))), pubFoot())); return; }
   }
-  const candidate = leaderForm || (link && link.position);
+  const envoyLink = !!(link && link.kind === 'envoy');            // an envoy's invitee chooses the position, then goes through the 3-day referral activation
+  const candidate = leaderForm || (link && link.position) || envoyLink;
   if (candidate) refMeta = await api('/positions').catch(() => null);
   const saved = complete ? {} : await draft.load();
   let chosen = ['WGMN', 'WNNN'].includes(String(params.network).toUpperCase()) ? String(params.network).toUpperCase() : (!link && !leaderForm && saved.network) || '';
@@ -164,7 +165,8 @@ export async function render(root, params) {
       F.position = F.position || h('select', { class: 'input', id: 'f-position' }); F.refCat = F.refCat || h('select', { class: 'input', id: 'f-refcat' }, h('option', { value: '', text: 'Choose' }), Object.entries(refMeta.categories).map(([v, l]) => h('option', { value: v, text: l }))); F.refName = F.refName || h('input', { class: 'input', id: 'f-refname', maxlength: 160 });
       const keep = F.position.value; F.position.replaceChildren(h('option', { value: '', text: 'Choose the position' }), ...refMeta.positions.map((p) => h('option', { value: p.code, text: chosen === 'WNNN' ? p.title_wnnn : p.title_wgmn }))); F.position.value = keep;
       refBlock = h('fieldset', {}, h('legend', { text: 'The position and where you will serve' }),
-        link ? h('p', { class: 'muted', style: 'margin:0 0 12px', text: tf('You have been referred by {1} for consideration as {2}.', link.owner, link.role + (link.place ? ', ' + link.place : '')) })
+        envoyLink ? h('div', { style: 'display:grid;gap:12px' }, h('p', { class: 'muted', style: 'margin:0', text: tf('You were invited by {1}, a WODDI Envoy. Choose the position you would like to be considered for. Your 3-day Referral Activation starts as soon as your account is made.', link.owner) }), h('label', { class: 'field', for: 'f-position' }, h('span', { text: 'Position being considered for' }), F.position))
+        : link ? h('p', { class: 'muted', style: 'margin:0 0 12px', text: tf('You have been referred by {1} for consideration as {2}.', link.owner, link.role + (link.place ? ', ' + link.place : '')) })
           : h('div', { class: 'grid2' }, h('label', { class: 'field', for: 'f-position' }, h('span', { text: 'Position being considered for' }), F.position), h('label', { class: 'field', for: 'f-refcat' }, h('span', { text: 'Who referred you?' }), F.refCat), h('label', { class: 'field', for: 'f-refname' }, h('span', { text: 'Name of the person who referred you' }), F.refName)),
         h('p', { class: 'notice', text: refMeta.notice }));
     }
@@ -214,7 +216,8 @@ export async function render(root, params) {
       body.lang = i18n.lang; if (!complete) { body.idem = draft.key(); body.draft = draft.ref().t; }
       if (F.source && F.source.value) body.source = F.source.value;
       { const c = new URLSearchParams(location.search).get('c'); if (c) body.campaign = c.slice(0, 40); }
-      if (link) body.referral = { code: link.code };
+      if (envoyLink && !F.position.value) { err.textContent = 'Choose the position you are being considered for.'; F.position.focus(); return; }
+      if (link) body.referral = envoyLink ? { code: link.code, position: F.position.value } : { code: link.code };
       else if (candidate) {
         if (!F.position.value) { err.textContent = 'Choose the position you are being considered for.'; F.position.focus(); return; }
         if (!F.refCat.value) { err.textContent = 'Please tell us who referred you.'; F.refCat.focus(); return; }
@@ -260,6 +263,7 @@ export async function render(root, params) {
       if (has(F.country)) { if (!F.country.value) { F.country.focus(); return 'Choose your country.'; } if (!diaspora() && !stateName() && !(stateMode === 'select' && F.state.value)) { (stateMode === 'text' ? F.stateText : F.state).focus(); return 'Choose your state or region.'; } }
       if (F.vol && has(F.vol) && F.vol.value === 'lead' && !F.volRole.value) { F.volRole.focus(); return 'Choose the leadership role you are interested in.'; }
       if (F.password && has(F.password)) { if (F.password.value.length < 6) { F.password.focus(); return 'Choose a password or PIN of at least 6 letters or numbers.'; } }
+      if (F.position && has(F.position) && envoyLink && !F.position.value) return 'Choose the position you are being considered for.';
       if (F.position && has(F.position) && !link) { if (!F.position.value) return 'Choose the position you are being considered for.'; if (!F.refCat.value) return 'Please tell us who referred you.'; if (!F.refName.value.trim()) return 'Please type the name of the person who referred you.'; }
       return '';
     };

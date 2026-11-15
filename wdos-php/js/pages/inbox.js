@@ -123,7 +123,7 @@ async function compose(root, opts) {
   const label = () => mode.value === 'one' ? [...picked.values()].map((p) => p.first_name + ' ' + p.last_name).join(', ') : [t(WHO[who.value]), net.value, lvl.selectedOptions[0]?.text, pos.value ? pos.selectedOptions[0]?.text : '', ctry && ctry.value ? ctry.selectedOptions[0].text : '', state.value].filter((x) => x && x !== t('Every level')).join(' · ');
   let ct; const count = () => { clearTimeout(ct); ct = setTimeout(async () => {
     if (mode.value === 'one' && !picked.size) { countLine.textContent = t('Choose at least one person.'); return; }
-    try { const r = await api('/dm/audience', audience()); countLine.textContent = r.count ? tf('{1} people will receive this, each in a private conversation with you.', fmt(r.count)) + (r.sample.length ? ' ' + r.sample.join(', ') + (r.count > r.sample.length ? '…' : '') : '') : t('Nobody matches this choice.'); }
+    try { const r = await api('/dm/audience', audience()); countLine.textContent = r.count ? (r.count === 1 ? t('One person will receive this, in a private conversation with you:') : tf('{1} people will receive this, each in a private conversation with you.', fmt(r.count))) + (r.sample.length ? ' ' + r.sample.join(', ') + (r.count > r.sample.length ? '…' : '') : '') : t('Nobody matches this choice.'); }
     catch (e) { countLine.textContent = e.message; } }, 300); };
   [who, net, lvl, pos, ctry].filter(Boolean).forEach((s) => s.addEventListener('change', count)); state.addEventListener('input', count);
   mode.addEventListener('change', () => { oneBox.hidden = mode.value !== 'one'; groupBox.hidden = mode.value === 'one'; count(); });
@@ -144,7 +144,7 @@ async function compose(root, opts) {
     catch (e) { err.textContent = e.message; } send.disabled = false; } }, icon('send', 18), t('Send'));
   const save = h('button', { class: 'btn btn--quiet', type: 'button', onclick: async () => { try { const r = await api('/dm/drafts', { id: draftId, subject: subject.value, body: body.value, audience: mode.value === 'group' ? audience() : {} }); draftId = r.id; toast('Draft saved', 'Find it under Drafts.', 'ok'); } catch (e) { toast('Not saved', e.message, 'bad'); } } }, t('Save draft'));
   const discard = draft ? h('button', { class: 'btn btn--ghost', type: 'button', onclick: async () => { await api('/dm/drafts/' + draft.id + '/delete', {}); go('#/inbox/drafts'); } }, t('Delete draft')) : null;
-  root.append(card('New message', app.user.is_hq ? 'Write to one person, or to a group: by network, leadership level, position, country or state.' : 'You can write to HQ, to the leaders above you and to the people in your area.',
+  root.append(card('New message', app.user.is_hq ? 'Write to one person, or to a group: by network, leadership level, position, country or state.' : (app.user.is_envoy ? 'You can write to WODDI HQ and to the people who joined through your link.' : 'You can write to HQ, to the leaders above you and to the people in your area.'),
     h('div', { style: 'display:grid;gap:14px' }, field('Send to', mode), oneBox, groupBox, countLine, field('Subject', subject), field('Message', body), err,
       h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, send, save, discard),
       h('small', { class: 'faint', text: tf('After you press Send you have {1} seconds to undo. Then each person is told in the app, on the phone and by email.', o.undo_seconds) }))));

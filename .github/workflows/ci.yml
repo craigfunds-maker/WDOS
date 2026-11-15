@@ -4,7 +4,7 @@
 # (only if the RENDER_DEPLOY_HOOK secret is set; otherwise Render's own auto-deploy setting decides).
 name: WDOS CI
 on:
-  push: { branches: [main] }
+  push: { branches: [main, 'wip/**'] }
   pull_request:
   workflow_dispatch:
 concurrency:
@@ -62,8 +62,29 @@ jobs:
       - name: Server log on failure
         if: failure()
         run: tail -n 80 /tmp/php.log || true
+  all-suites:
+    # every suite from t93 to t109, on fresh databases, as on the developer's machine
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    services:
+      db:
+        image: mariadb:11
+        env: { MARIADB_ROOT_PASSWORD: root }
+        ports: ['3306:3306']
+        options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.3', extensions: 'pdo_mysql, mbstring, curl, openssl, gd, zip', coverage: none }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Every suite
+        run: pip install -q requests && bash ci/full/run.sh
+      - name: Server log on failure
+        if: failure()
+        run: tail -n 120 /tmp/php.log || true
   deploy:
-    needs: checks
+    needs: [checks, all-suites]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:

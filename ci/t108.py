@@ -175,7 +175,7 @@ chk('leader emailed about the approval', int(sql("select count(*) from mail_outb
 d=ld.get(B+f'/meet-requests/{mid}').json()['meeting']; chk('approved and gate not yet open', d['status']=='approved' and d['gate']=='not_yet', d['gate'])
 r=ld.post(B+f'/meet-requests/{mid}/join',json={}); chk('join refused before the room opens', r.status_code==403 and r.json()['error']=='not_yet', r.text)
 sql(f"update meeting_requests set starts_at=utc_timestamp() - interval 5 minute where id={mid}")
-r=ld.post(B+f'/meet-requests/{mid}/join',json={}).json(); chk('the room opens at the meeting time on Jitsi', r.get('ok') and r['url'].startswith('https://meet.jit.si/WODDI-'), r)
+r=ld.post(B+f'/meet-requests/{mid}/join',json={}).json(); chk('the room opens at the meeting time on Jitsi', r.get('ok') and r['url'].startswith('https://meet.vpsfree.cz/WODDI-') and r['domain']=='meet.vpsfree.cz' and sql(f"select call_domain from meeting_requests where id={mid}")=='meet.vpsfree.cz', r)
 chk('HQ can join too', hq.post(B+f'/meet-requests/{mid}/join',json={}).ok)
 chk('joins counted', ld.get(B+f'/meet-requests/{mid}').json()['meeting']['joins']==2)
 chk('room name never shown before join', 'meet.jit.si' not in json.dumps(ld.get(B+f'/meet-requests/{mid}').json()))

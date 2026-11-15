@@ -218,7 +218,6 @@ if ($METHOD === 'GET' && $PATH === '/auth/google/callback') {
   }
   if (!$u) {
     $envoy = $c['data'] === 'ENVOY';
-    if ($envoy && (policy('envoy_signup') ?: 'open') === 'closed') $back('envoy_closed');
     if (empty($claims['email_verified'])) $back('google_unverified');
     $id = ins("INSERT INTO users (email,google_sub,first_name,last_name,network,role,status,signup_method,created_at) VALUES (?,?,?,?,?,?,'pending_profile','google',?)",
       [$email, $claims['sub'], mb_substr((string) ($claims['given_name'] ?? ''), 0, 80), mb_substr((string) ($claims['family_name'] ?? ''), 0, 80), $envoy ? null : ($c['data'] ?: null), $envoy ? 'envoy' : 'member', now()]);

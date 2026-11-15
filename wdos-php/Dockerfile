@@ -13,6 +13,7 @@ RUN printf '%s\n' \
  '  RewriteRule ^(lib|migrations|docs)(/|$) - [F,L]' \
  '  RewriteRule ^(config\.local\.php|config\.sample\.php|Dockerfile|README-DEPLOY\.md|\.user\.ini)$ - [F,L]' \
  '  RewriteRule ^api(/.*)?$ api/index.php [QSA,L]' \
+ '  RewriteRule ^privacy/?$ privacy.html [L]' \
  '  <FilesMatch "^(sw\.js|index\.html)$">' \
  '    Header set Cache-Control "no-cache"' \
  '  </FilesMatch>' \
