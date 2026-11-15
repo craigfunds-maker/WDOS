@@ -33,7 +33,7 @@ Every row is something known from the code, the tests or the live test copy. Not
 | R-26 | 3 | Of the 31 AI features in the AI handoff, 5 are built (digest, weekly brief, library search by meaning, coverage gaps, Listen on every page). Voice-to-report has the speech service but no screen, and needs a paid lane. The other 25 are not built. | AI handoff note of 12 Nov 2026 | Build in the handoff's phase order | | |
 | R-24 | 4 | Shared phones: one phone number can sign in one account only. Other women on the same phone need an email or a leader reset. | Registration rule | `TO DECIDE` (see document 08) | | |
 | R-27 | 3 | Leader video calls run on a volunteer community Jitsi server (meet.vpsfree.cz, with meet.guifi.net as the second choice). Both passed a 7-minute embedded test on 15 Nov 2026, but there is no service promise and call media passes through that third party. | Test from the live address, 15 Nov 2026 | Watch the first real meetings; for a guaranteed service use JaaS (paid above 25 users a month) or a WODDI server on a VPS | | |
-| R-28 | 3 | The narrated leader and envoy walkthrough videos use synthetic voices (Kokoro for English, French, Portuguese; Piper for Swahili and Arabic). No person has listened to all five end to end, and no speech-recognition check could be run in the build environment. Hausa, Yoruba and Igbo leaders get the English video with the steps written and read aloud in their language. | `assets/video/wdos-leader-guide-*.mp4` | A native speaker per language watches once; re-voice any unclear step | | |
+| R-28 | 3 | The guided tour inside WDOS (How to use WDOS) uses synthetic voices (Kokoro for English, French, Portuguese; Piper for Swahili and Arabic). No person has listened to all five end to end, and no speech-recognition check could be run in the build environment. Hausa, Yoruba and Igbo leaders get the English tour with the steps written and read aloud in their language. The first name is spoken by the phone's own voice, which varies by phone. | `assets/tour/voice/*` | A native speaker per language watches once; re-voice any unclear step | | |
 
 ## Closed in the last builds
 
@@ -53,6 +53,10 @@ Every row is something known from the code, the tests or the live test copy. Not
 | C-12 | meet.jit.si refused embedded calls unless the first person signed in; leader meetings moved to a tested community server | v109.1 | Live test, 15 Nov 2026 |
 | C-13 | An envoy's invitee never started the 3-day activation (no position was asked), and only one network showed on an envoy's link | v109.1 | Test suite t109, browser check |
 | C-14 | Every suite (t93 to t109) now runs in GitHub Actions on each push | v109.1 | WDOS CI run 3, all green |
+| C-15 | Join stayed locked until 30 minutes before the start after HQ approved; it now opens at approval, with Notify people, Copy meeting link, WhatsApp and a guest link | v109.2 | t108 meeting checks |
+| C-16 | The plain walkthrough video did not show what to tap; replaced by a guided tour on real screens with tap markers, captions, narration in 5 languages and a personal greeting by first name | v109.2 | ui tour check, 5 languages |
+| C-17 | The first-sign-in guide crashed for envoys and leaders (`app.user?.is_t is not a function`), so it never appeared | v109.2 | ui tour check, no page errors |
+| C-18 | On a phone the envoy's Message button sat off the right edge of the screen | v109.2 | tour capture at 390 px |
 
 ## Readiness, stated plainly
 

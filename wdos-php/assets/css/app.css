@@ -230,7 +230,7 @@ a.list__link{color:inherit;text-decoration:none;border-radius:10px} a.list__link
 @media (max-width:640px){
   .nets{gap:10px} .net{padding:16px 8px 14px;gap:10px} .net__disc{width:78%} .net__line{display:none}
   .grid2{grid-template-columns:1fr} .row--4{grid-template-columns:1fr 1fr;gap:12px} .row,.page{gap:14px}
-  .kpi{padding:14px;min-height:112px} .kpi__value{font-size:28px} .hide-s{display:none!important} .kpi__foot svg{display:none} .dl{grid-template-columns:100px 1fr}
+  .kpi{padding:14px;min-height:112px} .kpi__value{font-size:28px} .hide-s{display:none!important} .show-s{display:inline-flex!important} .kpi__foot svg{display:none} .dl{grid-template-columns:100px 1fr}
   .toasts{right:10px;left:10px;bottom:10px;width:auto} .hero__disc{width:56px;height:56px}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
@@ -498,3 +498,38 @@ body.in-call{overflow:hidden}
 @media(max-width:560px){.callstage__bar{flex-wrap:wrap}.callstage__bar .grow{flex-basis:100%}}
 .signin.envoyjoin{width:min(620px,100%)}.envoyjoin__head{display:flex;gap:14px;align-items:flex-start;margin-bottom:6px}.envoyjoin__ico{flex:0 0 auto;width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:color-mix(in srgb,var(--s-wgmn,#D4006A) 18%,transparent);color:var(--s-wgmn,#D4006A)}
 .envoyjoin textarea.input{min-height:84px;resize:vertical}
+.show-s{display:none}
+
+/* v109.2 guided tour */
+.tour{display:grid;gap:12px;max-width:440px;margin:0 auto}
+.tour__top{display:grid;gap:6px}
+.tour__bar{height:6px;border-radius:6px;background:var(--line,#e5e5e5);overflow:hidden}
+.tour__bar span{display:block;height:100%;width:0;background:var(--brand,#c2185b);transition:width .4s}
+.tour__count{color:var(--muted,#666)}
+.tour__stage{display:grid;place-items:center}
+.tour__phone{position:relative;width:100%;max-width:340px;aspect-ratio:540/969;border-radius:22px;overflow:hidden;border:6px solid #1d1d22;box-shadow:0 10px 30px rgba(0,0,0,.25);background:#fff}
+.tour__phone img{width:100%;height:100%;display:block;user-select:none;-webkit-user-select:none}
+.tour__ring{position:absolute;border-radius:12px;box-shadow:0 0 0 3px #ffd400,0 0 0 9999px rgba(10,10,20,.42);animation:tourIn .5s ease-out both;pointer-events:none}
+.tour__ring.is-tap{animation:tourIn .5s ease-out both,tourGlow 1.4s .5s ease-in-out infinite}
+.tour__finger{position:absolute;width:0;height:0;pointer-events:none;animation:tourIn .5s .4s both}
+.tour__dot{position:absolute;left:-18px;top:-18px;width:36px;height:36px;border-radius:50%;background:rgba(255,212,0,.55);border:2px solid #fff;animation:tourTap 1.4s .6s ease-out infinite}
+.tour__hand{position:absolute;left:-6px;top:4px;font-size:34px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45));animation:tourPress 1.4s .6s ease-in-out infinite}
+@keyframes tourIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+@keyframes tourGlow{0%,100%{box-shadow:0 0 0 3px #ffd400,0 0 0 9999px rgba(10,10,20,.42)}50%{box-shadow:0 0 0 6px #ffd400,0 0 0 9999px rgba(10,10,20,.42)}}
+@keyframes tourTap{0%{transform:scale(.5);opacity:1}70%{transform:scale(1.6);opacity:0}100%{opacity:0}}
+@keyframes tourPress{0%,100%{transform:translateY(8px)}35%{transform:translateY(0)}55%{transform:translateY(0) scale(.9)}}
+.tour__hello{display:grid;justify-items:center;gap:10px;text-align:center;padding:22px 12px;border-radius:18px;background:linear-gradient(160deg,#fde7f0,#fff6d6);color:#2a1020;width:100%;max-width:340px}
+.tour__hello h2{color:#D4006A}
+.tour__hello h2{margin:4px 0 0;font-size:30px}
+.tour__hello p{margin:0;font-size:17px;line-height:1.45}
+.tour__logo{width:64px;height:64px}
+.tour__cap{margin:0;font-size:17px;line-height:1.45;min-height:3em;text-align:center}
+.tour__note{margin:0;font-size:14px;color:var(--muted,#666)}
+.tour__controls{display:flex;gap:8px;justify-content:center;align-items:center}
+.tour__play{min-width:150px;justify-content:center}
+.tour__nav span{display:none}
+@media (min-width:480px){.tour__nav span{display:inline}}
+[dir=rtl] .tour__nav svg{transform:scaleX(-1)}
+.tour__steps summary{cursor:pointer;font-weight:600;padding:8px 0}
+.guidebox{max-height:94vh;overflow:auto}
+@media (prefers-reduced-motion:reduce){.tour__ring,.tour__ring.is-tap,.tour__dot,.tour__hand,.tour__finger{animation:none}}

@@ -154,7 +154,7 @@ function buildShell() {
   const title = h('h1', {});
   const badge = h('i', { class: 'badge', hidden: true, 'data-unread': '' });
   const bellWrap = h('div', { style: 'position:relative' });
-  const bell = h('button', { class: 'iconbtn', type: 'button', 'aria-label': 'Notifications', 'aria-haspopup': 'true', onclick: (e) => { e.stopPropagation(); togglePop(bellWrap, bellPanel); } }, icon('bell'), badge);
+  const bell = h('button', { class: 'iconbtn', type: 'button', 'data-tour': 'bell', 'aria-label': 'Notifications', 'aria-haspopup': 'true', onclick: (e) => { e.stopPropagation(); togglePop(bellWrap, bellPanel); } }, icon('bell'), badge);
   bellWrap.append(bell);
   const meWrap = h('div', { style: 'position:relative' });
   meWrap.append(h('button', { class: 'iconbtn', type: 'button', 'aria-label': 'Your account', onclick: (e) => { e.stopPropagation(); togglePop(meWrap, mePanel); } }, avatar(u, 34)));
@@ -169,7 +169,7 @@ function buildShell() {
     : u.is_leader ? [['#/', 'grid', 'Dashboard'], ['#/tasks', 'tasks', 'Tasks'], ['#/reporting', 'chart', 'Reporting'], ['#/inbox', 'send', 'Messages']]
     : [['#/', 'grid', 'Home'], ['#/chapter', 'users', 'Chapter'], ['#/messages', 'send', 'Messages'], ['#/notifications', 'bell', 'Alerts']];
   const tabbar = h('nav', { class: 'tabbar', 'aria-label': 'Quick menu' }, tabs.map((it) => h('a', { href: it[0] }, h('span', { class: 'tabbar__ico' }, icon(it[1], 22), it[0] === '#/notifications' ? h('i', { class: 'tabbar__n', hidden: true, 'data-unread': '' }) : null), h('span', { text: it[2] }))),
-    h('button', { type: 'button', 'aria-controls': 'side', onclick: () => shell.classList.add('nav-open') }, h('span', { class: 'tabbar__ico' }, icon('menu', 22)), h('span', { text: 'More' })));
+    h('button', { type: 'button', 'data-tour': 'more', 'aria-controls': 'side', onclick: () => shell.classList.add('nav-open') }, h('span', { class: 'tabbar__ico' }, icon('menu', 22)), h('span', { text: 'More' })));
   shell.append(side, h('div', { class: 'scrim', onclick: () => shell.classList.remove('nav-open') }), main, tabbar);
   root.append(shell);
   shellEls = { shell, nav, title, page, tabbar };

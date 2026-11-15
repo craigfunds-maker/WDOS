@@ -28,7 +28,7 @@ export async function render(root, params) {
 function head(root, cur) {
   root.append(h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px' },
     tabs([['', 'Inbox'], ['deleted', 'Deleted'], ['drafts', 'Drafts']], cur, '#/inbox'), h('span', { class: 'grow' }),
-    h('a', { class: 'btn', href: '#/inbox/new' }, icon('plus', 18), t('New message'))));
+    h('a', { class: 'btn', 'data-tour': 'dm-new', href: '#/inbox/new' }, icon('plus', 18), t('New message'))));
 }
 
 async function list(root, view) {
@@ -101,7 +101,7 @@ async function compose(root, opts) {
   let o; try { o = await api('/dm/options'); } catch (e) { root.append(card('New message', null, empty('x', 'This page did not load', e.message))); return; }
   let draft = null; if (opts.draft) { try { draft = (await api('/dm/drafts')).drafts.find((d) => d.id === opts.draft) || null; } catch { draft = null; } }
   const aud0 = draft ? (() => { try { return JSON.parse(draft.audience || '{}'); } catch { return {}; } })() : {};
-  const mode = h('select', { class: 'input', 'aria-label': t('Send to') }, h('option', { value: 'one', text: t('One person or a few people') }), o.who.length ? h('option', { value: 'group', text: t('A group') }) : null);
+  const mode = h('select', { class: 'input', 'data-tour': 'dm-to', 'aria-label': t('Send to') }, h('option', { value: 'one', text: t('One person or a few people') }), o.who.length ? h('option', { value: 'group', text: t('A group') }) : null);
   /* one by one */
   const picked = new Map(); const chips = h('div', { class: 'tagrow' }); const results = h('div', { class: 'picklist' });
   const q = input({ type: 'search', placeholder: t('Search by name, email or member number'), 'aria-label': t('Search people') });

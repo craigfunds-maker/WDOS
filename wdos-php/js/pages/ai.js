@@ -35,11 +35,20 @@ export async function render(root) {
   async function loadStatus() {
     let d; try { d = await api('/hq/ai'); } catch (e) { status.replaceChildren(empty('x', 'The AI status did not load', e.message)); return; }
     const lanes = d.lanes.length ? h('div', { class: 'tagrow' }, d.lanes.map((l) => h('span', { class: 'tag', text: l.lane + (l.paid ? ' · paid' : ' · free') }))) : note(why(d.enabled ? 'no_key' : 'off'));
+    /* v109.2: when no key is set, say exactly how to switch AI on (free lanes first) */
+    const howOn = !d.lanes.length && d.enabled ? h('div', { class: 'panel', style: 'display:grid;gap:8px' }, h('b', { text: 'How to switch AI on (free)' }),
+      h('ol', { style: 'margin:0;padding-left:20px;display:grid;gap:6px' }, [
+        'Cloudflare Workers AI (free daily allowance): in the Cloudflare dashboard open My Profile, then API Tokens, and create a token from the Workers AI template. Copy it.',
+        'Copy your Cloudflare Account ID: it is the long code in the address bar after dash.cloudflare.com/.',
+        'In Render, open the WDOS service, then Environment. Add CF_ACCOUNT_ID and CF_API_TOKEN with those two values, and press Save.',
+        'Optional second lane: create a free Gemini API key in Google AI Studio and add it as GEMINI_API_KEY. WDOS uses it when Cloudflare is busy.',
+        'After the next deploy, come back here and press Test the AI lanes.'].map((x) => h('li', { text: x }))),
+      h('small', { class: 'faint', text: tf('Keys this server reads: {1}', d.known_lanes.map((k) => k.needs.join(' + ')).join(' · ')) })) : null;
     const test = h('button', { class: 'btn btn--s', type: 'button', onclick: async () => { test.disabled = true; try { const r = await api('/hq/ai/test', {}); r.ok ? toast('AI answered', tf('Lane used: {1}', r.lane), 'ok') : toast('No AI answer', why(r.reason), 'bad'); } catch (e) { toast('No AI answer', e.message, 'bad'); } test.disabled = false; loadStatus(); } }, 'Test the AI lanes');
     const use = d.usage.length ? h('div', { class: 'tablewrap' }, h('table', { class: 'table' }, h('thead', {}, h('tr', {}, ['Feature', 'Lane', 'Calls', 'Succeeded', 'From cache', 'Average time', 'Last used'].map((x) => h('th', { text: x })))),
       h('tbody', {}, d.usage.map((u) => h('tr', {}, h('td', { text: u.feature }), h('td', { text: u.lane || '-' }), h('td', { text: fmt(u.calls) }), h('td', { text: fmt(u.succeeded) }), h('td', { text: fmt(u.from_cache) }), h('td', { text: u.avg_ms === null ? '-' : fmt(u.avg_ms) + ' ms' }), h('td', { text: fmtDate(u.last_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) })))))) : note('No AI call has been made in the last 30 days.');
     const fails = d.recent_failures.length ? h('div', { class: 'list' }, d.recent_failures.map((f) => h('div', {}, h('div', { class: 'grow' }, h('b', { text: f.feature + ' · ' + f.lane }), h('small', { text: f.error })), h('small', { class: 'faint', text: fmtDate(f.created_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) })))) : null;
-    status.replaceChildren(h('div', { style: 'display:grid;gap:14px' }, h('div', { style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap' }, h('b', { text: 'Lanes ready on this server' }), lanes, d.lanes.length ? test : null),
+    status.replaceChildren(h('div', { style: 'display:grid;gap:14px' }, h('div', { style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap' }, h('b', { text: 'Lanes ready on this server' }), lanes, d.lanes.length ? test : null), howOn,
       note(tf('Used today: {1} of {2} calls. Results are kept and reused, so opening this page costs nothing.', fmt(d.used_today), fmt(d.daily_cap))),
       note(d.free_lane_text === 'off' ? 'Rule in force: text written by leaders never goes to a free AI lane.' : 'Rule in force: names, emails, phone numbers and links are removed before any text written by leaders goes to a free AI lane. Private reports are never sent to any lane.'),
       h('b', { text: 'AI calls, last 30 days' }), use, fails ? h('b', { text: 'Recent failures' }) : null, fails));

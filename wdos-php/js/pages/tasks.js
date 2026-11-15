@@ -105,7 +105,7 @@ async function detail(root, id) {
     const dSlot = h('div'); const canLead = app.user.is_hq || app.user.is_leader;
     if ((r.mine || r.manage) && active && canLead) act.append(h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => { if (dSlot.firstChild) dSlot.replaceChildren(); else dSlot.replaceChildren(newForm(true, () => { dSlot.replaceChildren(); toast('Delegated', 'The new task is linked to this one.', 'ok'); }, { parent: t.id, chapter: t.chapter_id })); } }, 'Delegate part of this'));
     if (r.mine && t.status === 'open') act.append(btn('Start', 'in_progress', 'btn btn--quiet'));
-    if (r.mine && active && t.requires_approval && !r.manage) act.append(btn('Submit for review', 'submitted'));
+    if (r.mine && active && t.requires_approval && !r.manage) { const sb = btn('Submit for review', 'submitted'); sb.dataset.tour = 'task-submit'; act.append(sb); }
     if (r.mine && active && (!t.requires_approval || r.manage)) act.append(btn('Mark completed', 'completed'));
     if (r.manage && t.status === 'submitted') act.append(btn('Approve completion', 'completed'), btn('Send back', 'in_progress', 'btn btn--quiet', 'What needs to be corrected?'));
     if (r.manage && ['open', 'in_progress', 'submitted'].includes(t.status)) act.append(btn('Cancel task', 'cancelled', 'btn btn--ghost'));

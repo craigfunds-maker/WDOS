@@ -292,7 +292,12 @@ function jitsi_domain(): string {
 /** jaas: 8x8 keys set; public: meet.jit.si (5-minute embed limit, sign-in to start); community or own: no limit. */
 function call_engine(?string $domain = null): string { if (jaas_configured()) return 'jaas'; $d = $domain ?: jitsi_domain(); return $d === 'meet.jit.si' ? 'public' : (in_array($d, CALL_SERVERS, true) ? 'community' : 'self'); }
 /** The room opens 30 minutes before the start and closes three hours after the planned end. */
-function mr_window(array $m): array { $s = strtotime($m['starts_at'] . ' UTC'); return [$s - 1800, $s + (int) $m['duration_min'] * 60 + 3 * 3600]; }
+/** v109.2: the room opens the moment HQ approves (Azeez), and closes 3 hours after the planned end */
+function mr_window(array $m): array {
+  $s = strtotime($m['starts_at'] . ' UTC');
+  $open = !empty($m['decided_at']) ? min($s - 1800, strtotime($m['decided_at'] . ' UTC')) : $s - 1800;
+  return [$open, $s + (int) $m['duration_min'] * 60 + 3 * 3600];
+}
 function mr_ids(array $m): array { return array_values(array_filter(array_map('intval', explode(',', (string) $m['attendee_ids'])))); }
 /** requester, invited WDOS people, or HQ */
 function mr_role(array $u, array $m): string {
@@ -311,6 +316,8 @@ function mr_out(array $u, array $m): array {
     'requester' => $req ? ['id' => (int) $req['id'], 'first_name' => $req['first_name'], 'last_name' => $req['last_name'], 'has_photo' => (int) $req['has_photo']] : null, 'my_role' => $role,
     'gate' => $gate, 'opens_at' => gmdate('Y-m-d H:i:s', $open), 'joins' => (int) val('SELECT COUNT(*) FROM meeting_request_joins WHERE request_id=?', [(int) $m['id']]),
     'minutes' => $m['minutes'], 'attendance_count' => $m['attendance_count'] === null ? null : (int) $m['attendance_count'], 'attendance_names' => $m['attendance_names'], 'minutes_at' => $m['minutes_at'],
-    'can_decide' => is_hq($u) && in_array($m['status'], ['pending', 'approved'], true), 'can_cancel' => $role === 'requester' && in_array($m['status'], ['pending', 'approved'], true) && $t < $open + 1800,
+    'can_decide' => is_hq($u) && in_array($m['status'], ['pending', 'approved'], true), 'can_cancel' => $role === 'requester' && in_array($m['status'], ['pending', 'approved'], true) && $t < strtotime($m['starts_at'] . ' UTC'),
+    'can_notify' => in_array($role, ['requester', 'hq'], true) && $m['status'] === 'approved' && $t <= $close,
+    'guest_link' => (in_array($role, ['requester', 'hq'], true) && $m['status'] === 'approved' && $t <= $close && $m['room'] && call_engine(($m['call_domain'] ?? '') ?: jitsi_domain()) !== 'jaas') ? 'https://' . (($m['call_domain'] ?? '') ?: jitsi_domain()) . '/' . rawurlencode($m['room']) : null,
     'can_minutes' => ($role === 'requester' || is_hq($u)) && $m['status'] === 'approved' && $t >= strtotime($m['starts_at'] . ' UTC'), 'created_at' => $m['created_at']];
 }

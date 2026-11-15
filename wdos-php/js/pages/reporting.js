@@ -160,7 +160,7 @@ async function reportView(root, id) {
   /* actions */
   const problems = h('div');
   const bar = h('div', { class: 'rpbar' }, saved, h('span', { class: 'grow' }));
-  if (edit) bar.append(h('button', { class: 'btn', type: 'button', onclick: async (e) => { const b = e.currentTarget; b.disabled = true; problems.replaceChildren();
+  if (edit) bar.append(h('button', { class: 'btn', 'data-tour': 'report-submit', type: 'button', onclick: async (e) => { const b = e.currentTarget; b.disabled = true; problems.replaceChildren();
     try { await flush(); const res = await api(`/reporting/report/${id}/submit`, {});
       if (!res.submitted) { problems.replaceChildren(h('div', { class: 'panel', style: 'border-color:var(--bad)' }, h('b', { text: 'Cannot submit yet' }), h('p', { class: 'muted', style: 'font-size:14px', text: 'Complete the following before submitting:' }), h('ul', { style: 'margin:0;padding-left:20px' }, res.errors.map((x) => h('li', { text: x }))))); problems.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
       else { toast(tf('Report {1} submitted for review', res.report_no), res.warnings.length ? 'Accepted with notes: ' + res.warnings.join(' ') : '', res.warnings.length ? 'info' : 'ok'); reload(); return; } }

@@ -1,4 +1,4 @@
-/* Video meetings a leader asks for in her country or area. HQ approves, then the room unlocks 30 minutes before the start.
+/* Video meetings a leader asks for in her country or area. HQ approves, and the room opens at once (v109.2).
  * The call runs on Jitsi inside WDOS (the page stays open around it). With the JaaS keys set it has no time limit; the public
  * meet.jit.si server cuts embedded calls after 5 minutes, so the stage also offers the same room in a new tab. Minutes and attendance go to everyone invited and to HQ. */
 import { h, t, icon, avatar, card, sk, empty, ago, fmt, toast, input, field, tabs, i18n } from '../ui.js';
@@ -17,12 +17,12 @@ export async function render(root, params) {
   root.append(tabs([['', 'Upcoming'], ['past', 'Past'], ['requests', 'Video meetings']], 'requests', '#/meetings'));
   const formHost = h('div'), list = h('div', {}, sk.rows(4)), tools = h('div', { class: 'toolbar' });
   root.append(h('div', { class: 'panel', style: 'margin-bottom:16px;display:grid;gap:6px' }, h('b', { text: t('Video meetings in your country or area') }),
-    h('small', { class: 'muted', text: t('Fill the form. WODDI HQ approves it, then the Join button unlocks 30 minutes before the start. The call runs on Jitsi Meet: free, with no time limit. After the meeting, record the minutes and how many attended. They go to everyone invited and to HQ.') })),
+    h('small', { class: 'muted', text: t('Fill the form. When WODDI HQ approves it, the Join button is ready at once and you can tell your people. The call runs on Jitsi Meet: free, with no time limit. After the meeting, record the minutes and how many attended. They go to everyone invited and to HQ.') })),
     formHost, h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px' }, tabs([['', 'All'], ['pending', 'Waiting'], ['approved', 'Approved'], ['held', 'Held']], view, '#/meetings/requests'), h('span', { class: 'grow' }), tools),
     card(app.user.is_hq ? 'Requests from leaders' : 'My video meetings', null, list));
   async function load() {
     let d; try { d = await api('/meet-requests' + (view ? '?status=' + view : '')); } catch (e) { list.replaceChildren(empty('x', 'Video meetings did not load', e.message)); return; }
-    tools.replaceChildren(d.can_request ? h('button', { class: 'btn', type: 'button', onclick: () => { if (formHost.firstChild) formHost.replaceChildren(); else formHost.replaceChildren(requestForm(d, (id) => go('#/meetings/requests/' + id))); } }, icon('plus', 18), t('Ask for a video meeting')) : '');
+    tools.replaceChildren(d.can_request ? h('button', { class: 'btn', 'data-tour': 'mr-ask', type: 'button', onclick: () => { if (formHost.firstChild) formHost.replaceChildren(); else formHost.replaceChildren(requestForm(d, (id) => go('#/meetings/requests/' + id))); } }, icon('plus', 18), t('Ask for a video meeting')) : '');
     list.replaceChildren(d.items.length ? h('div', { class: 'list list--stack reveal' }, d.items.map((m) => h('a', { class: 'list__link', href: '#/meetings/requests/' + m.id }, h('div', { class: 'nrow__ico' }, icon('calendar', 18)),
       h('div', { class: 'grow' }, h('b', { text: m.title }), h('small', { text: [m.request_no, whenText(m), m.leader_name, [m.region, m.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ') })),
       h('div', { class: 'tagrow' }, m.network ? h('span', { class: 'tag', text: m.network }) : null, stTag(m.status))))) : empty('calendar', 'No video meetings here', d.can_request ? 'Press Ask for a video meeting to send your first request to HQ.' : 'Leaders ask for video meetings here. You see the ones you are invited to.'));
@@ -73,15 +73,18 @@ async function detail(root, id) {
       m.other_needs ? h('div', {}, h('b', { text: t('Anything else') }), h('p', { style: 'white-space:pre-wrap;margin:4px 0 0', text: m.other_needs })) : null,
       m.hq_note ? h('div', { class: 'panel' }, h('b', { text: t('Note from WODDI HQ') }), h('p', { style: 'white-space:pre-wrap;margin:4px 0 0', text: m.hq_note })) : null)));
     /* the gate */
-    const gate = { locked: m.status === 'pending' ? 'The room unlocks after WODDI HQ approves this request.' : 'There is no room for this meeting.', not_yet: tf('Approved. The Join button unlocks 30 minutes before the start ({1}).', utc(m.opens_at).toLocaleString(loc(), { dateStyle: 'medium', timeStyle: 'short' })), open: 'The room is open.', closed: 'This meeting has ended.' }[m.gate];
-    const join = h('button', { class: 'btn btn--lime', type: 'button', disabled: m.gate !== 'open', onclick: async () => { try { const r = await api(`/meet-requests/${id}/join`, {}); openStage(m, r, load); } catch (e) { toast('The room is not open', e.message, 'bad'); } } }, icon('send', 18), t('Join the video meeting'));
-    out.push(card('Video call', 'The call opens here inside WDOS. Allow the camera and microphone when your phone asks. Press Leave the call when you finish.',
+    const gate = { locked: m.status === 'pending' ? 'The room unlocks after WODDI HQ approves this request.' : 'There is no room for this meeting.', not_yet: 'Approved. The room opens shortly.', open: 'Approved. The room is open now. Tap Join the video meeting.', closed: 'This meeting has ended.' }[m.gate];
+    const join = h('button', { class: 'btn btn--lime', 'data-tour': 'mr-join', type: 'button', disabled: m.gate !== 'open', onclick: async () => { try { const r = await api(`/meet-requests/${id}/join`, {}); openStage(m, r, load); } catch (e) { toast('The room is not open', e.message, 'bad'); } } }, icon('send', 18), t('Join the video meeting'));
+    const callCard = card('Video call', 'The call opens here inside WDOS. Allow the camera and microphone when your phone asks. Press Leave the call when you finish.',
       h('div', { style: 'display:grid;gap:10px' }, h('p', { style: 'margin:0', text: t(gate) }), h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, join, m.can_cancel ? h('button', { class: 'btn btn--ghost', type: 'button', onclick: async () => { if (!confirm(t('Cancel this video meeting? HQ and everyone invited are told.'))) return; try { await api(`/meet-requests/${id}/cancel`, {}); load(); } catch (e) { toast('Not cancelled', e.message, 'bad'); } } }, t('Cancel the meeting')) : null),
-        h('small', { class: 'faint', text: tf('{1} people have opened the room so far.', fmt(m.joins)) }))));
+        h('small', { class: 'faint', text: m.joins === 1 ? t('1 person has opened the room so far.') : tf('{1} people have opened the room so far.', fmt(m.joins)) })));
+    /* v109.2: once approved, Join and Tell your people come first, above the details */
+    if (m.status === 'approved') out.unshift(callCard); else out.push(callCard);
+    if (m.can_notify) out.splice(m.status === 'approved' ? 1 : out.length, 0, tellCard(m, id, load));
     /* HQ decision */
     if (m.can_decide) { const note = h('textarea', { class: 'input', rows: 2, maxlength: 2000, placeholder: t('Note to the leader (required when not approving)') });
-      const act = async (decision) => { try { await api(`/meet-requests/${id}/decide`, { decision, note: note.value }); toast(decision === 'approve' ? 'Approved' : 'Not approved', 'The leader is told by notification and email.', 'ok'); load(); } catch (e) { toast('Not recorded', e.message, 'bad'); } };
-      out.push(card('HQ decision', m.status === 'approved' ? 'Already approved. You can still withdraw the approval with a note.' : 'Approve to unlock the room at the meeting time, or decline with the reason.', h('div', { style: 'display:grid;gap:10px' }, note, h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, m.status === 'pending' ? h('button', { class: 'btn btn--lime', type: 'button', onclick: () => act('approve') }, t('Approve')) : null, h('button', { class: 'btn btn--danger', type: 'button', onclick: () => act('decline') }, m.status === 'approved' ? t('Withdraw approval') : t('Do not approve')))))); }
+      const act = async (decision) => { try { await api(`/meet-requests/${id}/decide`, { decision, note: note.value }); toast(decision === 'approve' ? 'Approved' : 'Not approved', decision === 'approve' ? 'The Join button is ready now. The leader and everyone invited are told.' : 'The leader is told by notification and email.', 'ok'); load(); } catch (e) { toast('Not recorded', e.message, 'bad'); } };
+      out.push(card('HQ decision', m.status === 'approved' ? 'Already approved. You can still withdraw the approval with a note.' : 'Approve to open the room at once and tell the leader, or decline with the reason.', h('div', { style: 'display:grid;gap:10px' }, note, h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, m.status === 'pending' ? h('button', { class: 'btn btn--lime', type: 'button', onclick: () => act('approve') }, t('Approve')) : null, h('button', { class: 'btn btn--danger', type: 'button', onclick: () => act('decline') }, m.status === 'approved' ? t('Withdraw approval') : t('Do not approve')))))); }
     /* minutes */
     if (m.minutes) out.push(card('Minutes and attendance', tf('Recorded {1}. Sent to everyone invited and to HQ.', ago(m.minutes_at)), h('div', { style: 'display:grid;gap:10px' }, h('div', { class: 'kv' }, h('div', {}, h('span', { text: t('Number who attended') }), h('b', { text: fmt(m.attendance_count) }))), m.attendance_names ? h('p', { style: 'white-space:pre-wrap;margin:0', text: m.attendance_names }) : null, h('p', { style: 'white-space:pre-wrap;margin:0', text: m.minutes }))));
     else if (m.can_minutes) { const mins = h('textarea', { class: 'input', rows: 6, maxlength: 12000, placeholder: t('What was discussed, what was decided, and who will do what') }); const cnt = input({ type: 'number', min: 1, inputmode: 'numeric' }); const names = h('textarea', { class: 'input', rows: 3, maxlength: 6000, placeholder: t('Names of those who attended (optional)') }); const err = h('p', { class: 'err', role: 'alert' });
@@ -90,6 +93,41 @@ async function detail(root, id) {
     box.replaceChildren(...out);
   }
   load();
+}
+
+/* ---- telling people about an approved meeting ---- */
+async function copyText(txt) {
+  try { await navigator.clipboard.writeText(txt); return true; } catch { /* old phones */ }
+  const ta = h('textarea', { style: 'position:fixed;opacity:0' }); ta.value = txt; document.body.append(ta); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch { ok = false; } ta.remove(); return ok;
+}
+function tellCard(m, id, reload) {
+  const link = location.origin + '/#/meetings/requests/' + id;
+  const msg = tf('You are invited to a WODDI video meeting: {1}, {2}. Open it in WDOS and tap Join the video meeting: {3}', m.title, whenText(m), link);
+  const picked = new Map(); const chips = h('div', { class: 'tagrow' }); const results = h('div', { class: 'picklist' });
+  const q = input({ type: 'search', placeholder: t('Search people by name'), 'aria-label': t('Choose people to tell') });
+  const note = h('textarea', { class: 'input', rows: 2, maxlength: 600, placeholder: t('A short message (optional)') });
+  const err = h('p', { class: 'err', role: 'alert' });
+  const paint = () => chips.replaceChildren(...[...picked.values()].map((p) => h('button', { type: 'button', class: 'tag', title: t('Remove'), onclick: () => { picked.delete(p.id); paint(); } }, `${p.first_name} ${p.last_name} ✕`)));
+  let qt; q.addEventListener('input', () => { clearTimeout(qt); qt = setTimeout(async () => { if (q.value.trim().length < 2) { results.replaceChildren(); return; } try { const r = await api('/dm/people?q=' + encodeURIComponent(q.value.trim())); results.replaceChildren(...r.people.map((p) => h('button', { type: 'button', class: 'pick', onclick: () => { picked.set(p.id, p); paint(); q.value = ''; results.replaceChildren(); } }, avatar(p, 30), h('span', {}, h('b', { text: `${p.first_name} ${p.last_name}` }), h('small', { text: p.title }))))); } catch (e) { results.replaceChildren(h('p', { class: 'faint', text: e.message })); } }, 250); });
+  const send = async (everyone) => { err.textContent = ''; try { const r = await api(`/meet-requests/${id}/notify`, { people: [...picked.keys()], everyone_invited: everyone, message: note.value }); toast('People told', tf('{1} people were told in WDOS, on the phone and by email.', fmt(r.told)), 'ok'); reload(); } catch (e) { err.textContent = e.message; } };
+  const copyBtn = (label, txt, tour) => h('button', { class: 'btn btn--ghost', 'data-tour': tour || null, type: 'button', onclick: async () => { const ok = await copyText(txt); toast(ok ? 'Copied' : 'Not copied', ok ? 'Paste it in any chat or message.' : 'Press and hold the link to copy it.', ok ? 'ok' : 'bad'); } }, icon('link', 16), t(label));
+  const share = h('button', { class: 'btn btn--ghost', type: 'button', onclick: async () => { if (navigator.share) { try { await navigator.share({ title: m.title, text: msg }); } catch { /* closed */ } } else window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank', 'noopener'); } }, icon('send', 16), t('Share'));
+  const wa = h('a', { class: 'btn btn--ghost', href: 'https://wa.me/?text=' + encodeURIComponent(msg), target: '_blank', rel: 'noopener' }, t('Send on WhatsApp'));
+  return card('Tell your people', 'The room is open. Tell people in WDOS, or copy the link and send it.',
+    h('div', { style: 'display:grid;gap:12px' },
+      h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, m.people.length ? h('button', { class: 'btn', type: 'button', onclick: () => send(true) }, icon('bell', 16), tf('Notify everyone invited ({1})', fmt(m.people.length))) : null),
+      field('Notify more people in WDOS', h('div', { style: 'display:grid;gap:8px' }, chips, q, results), 'They are added to the meeting and told in the app, on the phone and by email.'),
+      field('Message', note), err,
+      h('div', {}, h('button', { class: 'btn btn--lime', 'data-tour': 'mr-notify', type: 'button', onclick: () => send(false) }, icon('bell', 16), t('Notify the people I chose'))),
+      h('hr', { class: 'sep' }),
+      h('b', { text: t('Copy the meeting link and send it') }),
+      h('input', { class: 'input', readonly: true, value: link, 'aria-label': t('Meeting link'), onfocus: (e) => e.target.select() }),
+      h('small', { class: 'faint', text: t('People open this link, sign in to WDOS and tap Join the video meeting. Only people invited can join.') }),
+      h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, copyBtn('Copy meeting link', link, 'mr-copy'), copyBtn('Copy invitation message', msg), share, wa),
+      m.guest_link ? h('details', {}, h('summary', { text: t('Guests without a WDOS account') }), h('div', { style: 'display:grid;gap:8px;margin-top:8px' },
+        h('small', { class: 'faint', text: t('Anyone with this call link can enter the call without signing in. Send it only to guests you trust.') }),
+        h('input', { class: 'input', readonly: true, value: m.guest_link, 'aria-label': t('Guest call link'), onfocus: (e) => e.target.select() }),
+        h('div', {}, copyBtn('Copy guest call link', m.guest_link)))) : null));
 }
 
 /* ---- the call, inside WDOS ---- */
