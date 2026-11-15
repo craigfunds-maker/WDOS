@@ -26,9 +26,10 @@ fails=0
 run() { bash reset.sh >/dev/null 2>&1; out=$(timeout 1200 python3 "$@" 2>&1); echo "$out" | tail -2; echo "$out" | grep -aq "FAILURES 0" || { echo "::error::$* failed"; echo "$out" | grep -aE "FAIL|Traceback|Error" | head -15; fails=$((fails+1)); }; }
 start "$MAIL"
 for t in t97 t98 t99 t100 t101 t102 t103 t104 t105 t108 t109; do echo "== $t"; run $t.py; done
+start "DUMMY=1"
 echo "== t93 then t96 (t96 continues from t93)"; bash reset.sh >/dev/null 2>&1; o=$(python3 t93.py 2>&1); echo "$o" | tail -1; echo "$o" | grep -aq "FAILURES 0" || { echo "::error::t93 failed"; fails=$((fails+1)); }
 o=$(python3 t96.py 2>&1); echo "$o" | tail -1; echo "$o" | grep -aq "FAILURES 0" || { echo "::error::t96 failed"; echo "$o" | grep -aE "FAIL|Traceback" | head; fails=$((fails+1)); }
-start "DUMMY=1"; echo "== t106 (email off)"; run t106.py
+echo "== t106 (email off)"; run t106.py
 echo "== t107 without an AI key"; run t107.py nokey
 start "AI_MOCK_URL=http://127.0.0.1:8099"; echo "== t107 with the stand-in AI"; run t107.py mock
 echo "suites failed: $fails"; exit $fails

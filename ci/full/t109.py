@@ -37,6 +37,12 @@ r=S().post(B+'/envoy/join',json=form(phone='+2348039990000')); chk('same email r
 r=a.post(B+'/envoy/join',json=form(email=f'other.{X}@wdos-mail.org')); chk('signed-in person cannot sign up again', r.status_code==409, r.text)
 chk('envoy cannot open the member list', a.get(B+'/hq/members').status_code in (401,403))
 chk('envoy cannot open leader dashboard data', a.get(B+'/leader/dashboard').status_code in (401,403))
+code=a.get(B+'/envoy/home').json()['code']
+ng=sql("select id from org_units where level='country' and country_code='NG'"); kd=sql(f"select id from org_units where parent_id={ng} limit 1")
+inv=S(); r=inv.post(B+'/auth/register',json={'network':'WGMN','first_name':'Asabe','last_name':'Invitee','dob':'1985-02-02','phone':'+2348039'+X,'country_id':int(ng),'state_id':int(kd),'lga':'Zaria','community':'Samaru','email':f'asabe.{X}@wdos-mail.org','password':'member-pass-1','consent':True,'referral':{'code':code,'position':'chapter_lead'}})
+act=inv.get(B+'/activation').json().get('activation') if r.ok else None
+chk("an envoy's invitee starts the 3-day activation", r.ok and act and act.get('route')=='ref3', r.text[:200])
+ppl=a.get(B+'/envoy/home').json()['people']; chk('the envoy sees her and her 3 days', any(p['first_name']=='Asabe' and p['activation'] and p['activation']['days_total']==3 for p in ppl), ppl[:1])
 d=hq.get(B+f'/hq/envoys/{eid}').json()['envoy']; chk('HQ sees her sign-up details', d['source']=='self' and d['reach_plan'].startswith('My market') and d['city']=='Zaria', d)
 L=[e for e in hq.get(B+'/hq/envoys').json()['envoys'] if e['id']==eid]; chk('HQ list shows her', L and L[0]['source']=='self' and L[0]['status']=='active', L)
 # ---- no approval step and no closing: every sign-up is live, HQ can still pause

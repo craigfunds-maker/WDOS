@@ -331,6 +331,6 @@ export async function render(root, params) {
   if (plain && chosen && saved.first_name) { choose(chosen, false); stage = 'form'; buildForm(); wrap.classList.add('is-open'); setStage('form'); }     // an interrupted registration opens where she stopped
   else if (plain) { if (chosen) choose(chosen, false); }
   else if (chosen) choose(chosen, false);
-  if (link) { const otherCard = cards[link.network === 'WGMN' ? 'WNNN' : 'WGMN']; otherCard.hidden = true; otherCard.querySelector('input').disabled = true; }
+  if (link && !envoyLink && link.network) { const otherCard = cards[link.network === 'WGMN' ? 'WNNN' : 'WGMN']; otherCard.hidden = true; otherCard.querySelector('input').disabled = true; }
 }
 export { go };
