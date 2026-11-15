@@ -33,8 +33,7 @@ Every row is something known from the code, the tests or the live test copy. Not
 | R-26 | 3 | Of the 31 AI features in the AI handoff, 5 are built (digest, weekly brief, library search by meaning, coverage gaps, Listen on every page). Voice-to-report has the speech service but no screen, and needs a paid lane. The other 25 are not built. | AI handoff note of 12 Nov 2026 | Build in the handoff's phase order | | |
 | R-24 | 4 | Shared phones: one phone number can sign in one account only. Other women on the same phone need an email or a leader reset. | Registration rule | `TO DECIDE` (see document 08) | | |
 | R-27 | 3 | Leader video calls run on a volunteer community Jitsi server (meet.vpsfree.cz, with meet.guifi.net as the second choice). Both passed a 7-minute embedded test on 15 Nov 2026, but there is no service promise and call media passes through that third party. | Test from the live address, 15 Nov 2026 | Watch the first real meetings; for a guaranteed service use JaaS (paid above 25 users a month) or a WODDI server on a VPS | | |
-| R-28 | 3 | The narrated leader walkthrough videos use synthetic voices (Kokoro for English, French, Portuguese; Piper for Swahili and Arabic). No person has listened to all five end to end, and no speech-recognition check could be run in the build environment. Hausa, Yoruba and Igbo leaders get the English video with the steps written and read aloud in their language. | `assets/video/wdos-leader-guide-*.mp4` | A native speaker per language watches once; re-voice any unclear step | | |
-| R-30 | 3 | The CI pipeline runs the v109 suites only; the older suites (t93 to t107) still run on the developer's machine. | `.github/workflows/ci.yml` | Port the older suites to the CI fixtures | | |
+| R-28 | 3 | The narrated leader and envoy walkthrough videos use synthetic voices (Kokoro for English, French, Portuguese; Piper for Swahili and Arabic). No person has listened to all five end to end, and no speech-recognition check could be run in the build environment. Hausa, Yoruba and Igbo leaders get the English video with the steps written and read aloud in their language. | `assets/video/wdos-leader-guide-*.mp4` | A native speaker per language watches once; re-voice any unclear step | | |
 
 ## Closed in the last builds
 
@@ -52,6 +51,8 @@ Every row is something known from the code, the tests or the live test copy. Not
 | C-10 | Portuguese lacked the word "Normal" (task priority) | v109.0 | `ci/static_checks.py` |
 | C-11 | Envoy sign-up rule removed: every envoy who signs up gets her link at once; HQ can still pause her (management direction, 15 Nov 2026) | v109.1 | Test suite t109 |
 | C-12 | meet.jit.si refused embedded calls unless the first person signed in; leader meetings moved to a tested community server | v109.1 | Live test, 15 Nov 2026 |
+| C-13 | An envoy's invitee never started the 3-day activation (no position was asked), and only one network showed on an envoy's link | v109.1 | Test suite t109, browser check |
+| C-14 | Every suite (t93 to t109) now runs in GitHub Actions on each push | v109.1 | WDOS CI run 3, all green |
 
 ## Readiness, stated plainly
 
