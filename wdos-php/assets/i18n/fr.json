@@ -2929,5 +2929,10 @@
 "Guest call link": "Lien d'appel pour les invités",
 "Copy guest call link": "Copier le lien d'appel pour les invités",
 "A short message (optional)": "Un court message (facultatif)",
-"{1} people were told in WDOS, on the phone and by email.": "{1} personnes ont été prévenues dans WDOS, sur le téléphone et par email."
+"{1} people were told in WDOS, on the phone and by email.": "{1} personnes ont été prévenues dans WDOS, sur le téléphone et par email.",
+"Your device clock is wrong": "L'horloge de votre appareil est fausse",
+"It is about {1} hours {2}. Meeting times and countdowns will show wrong. Open your phone or computer settings and switch on \"Set time automatically\" and \"Set time zone automatically\". Time zone now: {3}": "Elle a environ {1} heures {2}. Les heures des réunions et les comptes à rebours seront faux. Ouvrez les réglages de votre téléphone ou ordinateur et activez « Régler l'heure automatiquement » et « Régler le fuseau horaire automatiquement ». Fuseau horaire actuel : {3}",
+"ahead": "en avance",
+"behind": "en retard",
+"Ask at least one hour before. HQ needs time to approve. Times are in this device's time zone: {1}.": "Demandez au moins une heure avant. Le siège a besoin de temps pour approuver. Les heures sont dans le fuseau horaire de cet appareil : {1}."
 }

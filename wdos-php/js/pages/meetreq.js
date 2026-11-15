@@ -54,7 +54,7 @@ function requestForm(d, done) {
   return card('Ask for a video meeting', 'Every field helps HQ approve quickly. The meeting time is in your own time zone.',
     h('div', { style: 'display:grid;gap:14px' }, h('div', { class: 'row row--2' }, field('Leader asking', F.leader), field('Country and region', F.region)), field('Meeting title', F.title), field('Reason for the meeting', F.reason),
       field('Who will attend', F.who, 'Name the group, or list the people. Leaders in WDOS can also be invited below.'), field('Invite leaders in WDOS (optional)', h('div', { style: 'display:grid;gap:8px' }, chips, q, results), 'They are told when HQ approves, and get the Join button.'),
-      h('div', { class: 'row row--2' }, field('Expected number of people', F.count), field('How long', F.dur)), field('Date and time', F.date, 'Ask at least one hour before. HQ needs time to approve.'),
+      h('div', { class: 'row row--2' }, field('Expected number of people', F.count), field('How long', F.dur)), field('Date and time', F.date, tf('Ask at least one hour before. HQ needs time to approve. Times are in this device\'s time zone: {1}.', Intl.DateTimeFormat().resolvedOptions().timeZone || 'GMT')),
       field('Graphics you need from WODDI', F.graphics), field('Anything else', F.other), err, h('div', {}, send)));
 }
 

@@ -1,5 +1,5 @@
 /* WDOS front end entry: session, router, shell (collapsible sidebar, top bar, notification bell). */
-import { h, clear, icon, avatar, toast, ago, theme, empty, i18n, t, langPicker, chime, listenBtn } from './ui.js';
+import { h, clear, icon, avatar, toast, ago, theme, empty, i18n, t, tf, langPicker, chime, listenBtn } from './ui.js';
 import { pushSync } from './api.js';
 import { api } from './api.js';
 
@@ -115,7 +115,18 @@ export async function setLanguage(lang) { await i18n.set(lang); if (app.user) ap
 export async function signOut() { stopPulse(); await api('/auth/logout', {}).catch(() => {}); try { localStorage.removeItem('wdos.join'); sessionStorage.clear(); if (window.caches) { for (const k of await caches.keys()) if (/api|data|runtime/i.test(k)) await caches.delete(k); } } catch { /* nothing kept */ } app.user = null; shellEls = null; go('#/login'); }
 export function signedIn(user) { app.user = user; shellEls = null; startPulse(); pushSync(app.config.vapid); go('#/'); maybeGuide(); }
 /* A leader or envoy who has not seen the walkthrough yet gets it once, after sign-in. It stays under How to use WDOS. */
-export function maybeGuide() { const u = app.user; if (!u || u.guide_seen || u.is_hq || !(u.is_leader || u.is_envoy) || u.must_change_password) return; setTimeout(() => import('./pages/guide.js').then((m) => m.openGuide(true)), 900); }
+/* v109.2: a device clock that is hours off (for example a computer set to another country's time zone, with the hour typed in by hand)
+ * makes every meeting time and countdown wrong. Compare with the server once per sign-in and say so plainly. */
+export async function checkClock() {
+  try {
+    const t0 = Date.now(); const r = await fetch('/api/health', { cache: 'no-store' }); const j = await r.json(); const rtt = Date.now() - t0;
+    const server = Date.parse(String(j.time).replace(' ', 'T') + 'Z') + rtt / 2; const off = Date.now() - server;
+    if (Math.abs(off) < 10 * 60e3) return;
+    const hrs = Math.round(Math.abs(off) / 360e4 * 2) / 2; const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    toast(t('Your device clock is wrong'), tf('It is about {1} hours {2}. Meeting times and countdowns will show wrong. Open your phone or computer settings and switch on "Set time automatically" and "Set time zone automatically". Time zone now: {3}', hrs, off > 0 ? t('ahead') : t('behind'), zone), 'bad');
+  } catch { /* offline: say nothing */ }
+}
+export function maybeGuide() { checkClock(); const u = app.user; if (!u || u.guide_seen || u.is_hq || !(u.is_leader || u.is_envoy) || u.must_change_password) return; setTimeout(() => import('./pages/guide.js').then((m) => m.openGuide(true)), 900); }
 
 /* ----------------------------------------------------------------- shell -- */
 /* An HQ login limited to some areas sees only those areas in the menu. The server refuses the rest anyway. */
