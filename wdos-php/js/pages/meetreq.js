@@ -3,6 +3,7 @@
  * meet.jit.si server cuts embedded calls after 5 minutes, so the stage also offers the same room in a new tab. Minutes and attendance go to everyone invited and to HQ. */
 import { h, t, icon, avatar, card, sk, empty, ago, fmt, toast, input, field, tabs, i18n } from '../ui.js';
 import { api } from '../api.js';
+import { uploadButton, readB64 } from '../files.js';
 import { app, go } from '../app.js';
 import { countdown } from './meetings.js';
 
@@ -85,14 +86,92 @@ async function detail(root, id) {
     if (m.can_decide) { const note = h('textarea', { class: 'input', rows: 2, maxlength: 2000, placeholder: t('Note to the leader (required when not approving)') });
       const act = async (decision) => { try { await api(`/meet-requests/${id}/decide`, { decision, note: note.value }); toast(decision === 'approve' ? 'Approved' : 'Not approved', decision === 'approve' ? 'The Join button is ready now. The leader and everyone invited are told.' : 'The leader is told by notification and email.', 'ok'); load(); } catch (e) { toast('Not recorded', e.message, 'bad'); } };
       out.push(card('HQ decision', m.status === 'approved' ? 'Already approved. You can still withdraw the approval with a note.' : 'Approve to open the room at once and tell the leader, or decline with the reason.', h('div', { style: 'display:grid;gap:10px' }, note, h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, m.status === 'pending' ? h('button', { class: 'btn btn--lime', type: 'button', onclick: () => act('approve') }, t('Approve')) : null, h('button', { class: 'btn btn--danger', type: 'button', onclick: () => act('decline') }, m.status === 'approved' ? t('Withdraw approval') : t('Do not approve')))))); }
-    /* minutes */
-    if (m.minutes) out.push(card('Minutes and attendance', tf('Recorded {1}. Sent to everyone invited and to HQ.', ago(m.minutes_at)), h('div', { style: 'display:grid;gap:10px' }, h('div', { class: 'kv' }, h('div', {}, h('span', { text: t('Number who attended') }), h('b', { text: fmt(m.attendance_count) }))), m.attendance_names ? h('p', { style: 'white-space:pre-wrap;margin:0', text: m.attendance_names }) : null, h('p', { style: 'white-space:pre-wrap;margin:0', text: m.minutes }))));
-    else if (m.can_minutes) { const mins = h('textarea', { class: 'input', rows: 6, maxlength: 12000, placeholder: t('What was discussed, what was decided, and who will do what') }); const cnt = input({ type: 'number', min: 1, inputmode: 'numeric' }); const names = h('textarea', { class: 'input', rows: 3, maxlength: 6000, placeholder: t('Names of those who attended (optional)') }); const err = h('p', { class: 'err', role: 'alert' });
-      out.push(card('Record the minutes', 'Send the minutes and the number who attended. Everyone invited and WODDI HQ get them in the app, on the phone and by email.', h('div', { style: 'display:grid;gap:12px' }, field('Minutes', mins), field('Number who attended', cnt), field('Who attended', names), err,
-        h('div', {}, h('button', { class: 'btn', type: 'button', onclick: async () => { err.textContent = ''; try { await api(`/meet-requests/${id}/minutes`, { minutes: mins.value, attendance_count: Number(cnt.value) || 0, attendance_names: names.value }); toast('Minutes sent', '', 'ok'); load(); } catch (e) { err.textContent = e.message; } } }, t('Send the minutes')))))); }
+    /* minutes: the text, the leaders who attended, a minutes document and a recording (v109.2) */
+    if (m.minutes) out.push(minutesView(m));
+    else if (m.can_minutes) out.push(minutesForm(m, id, load));
     box.replaceChildren(...out);
   }
   load();
+}
+
+/* ---- minutes ---- */
+const personRow = (p, extra) => h('div', { class: 'list__link', style: 'cursor:default' }, avatar(p, 34), h('div', { class: 'grow' }, h('b', { text: `${p.first_name} ${p.last_name}` }), p.title ? h('small', { text: p.title }) : null), extra || null);
+function filesView(files) {
+  return files.map((f) => f.role === 'recording'
+    ? h('div', { style: 'display:grid;gap:6px' }, h('b', { text: t('Recording') }), f.mime.startsWith('video/') ? h('video', { controls: true, preload: 'metadata', src: f.url, style: 'width:100%;max-height:320px;border-radius:12px' }) : h('audio', { controls: true, preload: 'metadata', src: f.url, style: 'width:100%' }),
+      h('a', { class: 'btn btn--ghost btn--s', href: f.url + '?dl=1', style: 'justify-self:start' }, icon('link', 16), t('Download the recording')))
+    : h('a', { class: 'btn btn--ghost', href: f.url, target: '_blank', rel: 'noopener', style: 'justify-self:start' }, icon('book', 16), tf('Minutes document: {1}', f.name)));
+}
+function minutesView(m) {
+  return card('Minutes and attendance', tf('Recorded {1}. Sent to the volunteer leaders and to HQ, in the app and by email.', ago(m.minutes_at)), h('div', { style: 'display:grid;gap:14px' },
+    h('div', { class: 'kv' }, h('div', {}, h('span', { text: t('Number who attended') }), h('b', { text: fmt(m.attendance_count) }))),
+    m.attended && m.attended.length ? h('div', { style: 'display:grid;gap:6px' }, h('b', { text: tf('Leaders who attended ({1})', fmt(m.attended.length)) }), h('div', { class: 'list' }, m.attended.map((p) => personRow(p)))) : null,
+    m.attendance_names ? h('div', {}, h('b', { text: t('Others present') }), h('p', { style: 'white-space:pre-wrap;margin:4px 0 0', text: m.attendance_names })) : null,
+    h('div', {}, h('b', { text: t('Minutes') }), h('p', { style: 'white-space:pre-wrap;margin:4px 0 0', text: m.minutes })),
+    ...filesView(m.minute_files || [])));
+}
+function recorder(onFile) {
+  /* a voice note of the minutes, recorded on the phone; uploaded as a small audio file */
+  const state = h('small', { class: 'faint', 'aria-live': 'polite' }); const preview = h('div');
+  let rec = null; let chunks = []; let t0 = 0; let tick = null;
+  const btn = h('button', { class: 'btn btn--quiet', type: 'button' }, icon('volume', 18), t('Record a voice note'));
+  const stop = () => { try { rec && rec.state !== 'inactive' && rec.stop(); } catch { /* stopped */ } };
+  btn.onclick = async () => {
+    if (rec && rec.state === 'recording') { stop(); return; }
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) { toast('Not available here', 'This browser cannot record. Upload a recording from your phone instead.', 'bad'); return; }
+    let stream; try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch { toast('Microphone blocked', 'Allow the microphone for WDOS, then try again.', 'bad'); return; }
+    const type = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4'].find((x) => MediaRecorder.isTypeSupported?.(x)) || '';
+    rec = new MediaRecorder(stream, type ? { mimeType: type, audioBitsPerSecond: 32000 } : {}); chunks = [];
+    rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    rec.onstop = async () => {
+      clearInterval(tick); stream.getTracks().forEach((x) => x.stop()); btn.replaceChildren(icon('volume', 18), t('Record again'));
+      const mt = rec.mimeType || 'audio/webm'; const blob = new Blob(chunks, { type: mt }); const ext = mt.includes('ogg') ? 'ogg' : mt.includes('mp4') ? 'm4a' : 'webm';
+      preview.replaceChildren(h('audio', { controls: true, src: URL.createObjectURL(blob), style: 'width:100%' }));
+      await onFile(new File([blob], `voice-note-minutes.${ext}`, { type: mt }));
+    };
+    rec.start(1000); t0 = Date.now(); btn.replaceChildren(icon('x', 18), t('Stop recording'));
+    tick = setInterval(() => { const s = Math.round((Date.now() - t0) / 1000); state.textContent = tf('Recording… {1}', `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`); if (s >= 3600) stop(); }, 500);
+  };
+  return h('div', { style: 'display:grid;gap:8px' }, h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, btn, state), preview);
+}
+function minutesForm(m, id, reload) {
+  const mins = h('textarea', { class: 'input', rows: 7, maxlength: 12000, placeholder: t('What was discussed, what was decided, and who will do what') });
+  const joinedIds = new Set((m.joined || []).map((p) => p.id));
+  const roster = [...(m.joined || []), ...(m.people || []).filter((p) => !joinedIds.has(p.id))];
+  const ticks = new Map();
+  const list = roster.length ? h('div', { class: 'list' }, roster.map((p) => { const cb = h('input', { type: 'checkbox', checked: joinedIds.has(p.id), 'aria-label': `${p.first_name} ${p.last_name}`, onchange: () => { cnt.value = Math.max(Number(cnt.value) || 0, [...ticks.values()].filter((c) => c.checked).length); } }); ticks.set(p.id, cb);
+    return h('label', { class: 'list__link', style: 'cursor:pointer' }, cb, avatar(p, 34), h('div', { class: 'grow' }, h('b', { text: `${p.first_name} ${p.last_name}` }), h('small', { text: [p.title, joinedIds.has(p.id) ? t('Opened the room in WDOS') : t('Invited')].filter(Boolean).join(' · ') }))); }))
+    : h('p', { class: 'faint', text: t('Nobody opened the room through WDOS. Write the names below.') });
+  const cnt = input({ type: 'number', min: 1, inputmode: 'numeric', value: joinedIds.size || '' });
+  const names = h('textarea', { class: 'input', rows: 3, maxlength: 6000, placeholder: t('Names of others present, one per line (optional)') });
+  const err = h('p', { class: 'err', role: 'alert' });
+  let docFile = null; let recFile = null;
+  const docShow = h('div'); const recShow = h('small', { class: 'faint' });
+  const showDoc = () => docShow.replaceChildren(docFile ? h('div', { class: 'tagrow' }, h('span', { class: 'tag', text: docFile.name }), h('button', { class: 'btn btn--quiet btn--s', type: 'button', onclick: () => { docFile = null; showDoc(); } }, t('Remove'))) : '');
+  const upRec = async (f) => {
+    if (f.size > 15 * 1048576) { toast('That recording is too large', 'The limit is 15 MB. Record a shorter voice note.', 'bad'); return; }
+    recShow.textContent = tf('Uploading {1}…', f.name);
+    try { const r = await api('/files', { name: f.name, data: await readB64(f), purpose: 'recording' }); recFile = r.file; recShow.textContent = tf('Recording ready: {1}', r.file.name); }
+    catch (e) { recShow.textContent = ''; toast('Not uploaded', e.message, 'bad'); }
+  };
+  const pickRec = h('input', { type: 'file', accept: 'audio/*,video/mp4,.mp3,.m4a,.ogg,.webm,.wav,.mp4', hidden: true, onchange: (e) => { const f = e.target.files[0]; e.target.value = ''; if (f) upRec(f); } });
+  const send = h('button', { class: 'btn btn--lime', type: 'button', onclick: async () => {
+    err.textContent = ''; send.disabled = true;
+    try {
+      const r = await api(`/meet-requests/${id}/minutes`, { minutes: mins.value, attendance_count: Number(cnt.value) || 0, attendance_names: names.value, attended: [...ticks].filter(([, c]) => c.checked).map(([k]) => k), minutes_file: docFile?.id || null, recording_file: recFile?.id || null });
+      toast('Minutes sent', tf('{1} leaders and WODDI HQ were told in the app and by email.', fmt(r.told)), 'ok'); reload();
+    } catch (e) { err.textContent = e.message; send.disabled = false; }
+  } }, icon('send', 16), t('Send the minutes'));
+  return card('Record the minutes', 'Send the minutes, the leaders who attended, and a document or recording if you have one. The volunteer leaders and WODDI HQ get them in the app, on the phone and by email, and HQ sees them on the HQ dashboard.', h('div', { style: 'display:grid;gap:14px' },
+    field('Minutes', mins),
+    field('Leaders who attended', list, 'People WDOS saw open the room are ticked. Untick anyone who did not stay.'),
+    field('Number who attended', cnt, 'Everyone present, including people who joined together on one phone.'),
+    field('Others present', names),
+    field('Minutes document (optional)', h('div', { style: 'display:grid;gap:8px' }, uploadButton(t('Upload the minutes document'), 'task', (f) => { docFile = f; showDoc(); }), docShow)),
+    field('Recording (optional)', h('div', { style: 'display:grid;gap:8px' }, recorder(upRec),
+      h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, h('button', { class: 'btn btn--quiet', type: 'button', onclick: () => pickRec.click() }, icon('plus', 18), t('Upload a recording')), pickRec), recShow,
+      h('small', { class: 'faint', text: t('Audio (MP3, M4A, OGG, WEBM, WAV) or an MP4 video, up to 15 MB.') }))),
+    err, h('div', {}, send)));
 }
 
 /* ---- telling people about an approved meeting ---- */

@@ -1,5 +1,5 @@
 /* HQ dashboard. Every figure is a count of real rows; an empty system shows empty states, never sample numbers. */
-import { h, clear, icon, avatar, flag, netTag, card, sk, empty, ago, fmt, greeting, fmtDate } from '../ui.js';
+import { h, clear, icon, tf, avatar, flag, netTag, card, sk, empty, ago, fmt, greeting, fmtDate } from '../ui.js';
 import { pushNudge } from '../pushnudge.js';
 import { api } from '../api.js';
 import { app } from '../app.js';
@@ -63,11 +63,18 @@ export async function render(root) {
     terms.replaceChildren(h('small', { class: 'muted', style: 'display:block;margin-bottom:10px', text: tf('{1} of {2} open appointments have an end date. ', fmt(r.with_end_date), fmt(r.open_seats)) + (r.rule === 'auto' ? 'Rule: a seat ends by itself on its last day.' : 'Rule: HQ is told, and the seat stays until HQ acts.') }),
       r.due.length || r.ended.length ? h('div', { class: 'list list--wrap' }, r.due.map((x) => row(x, false)), r.ended.map((x) => row(x, true))) : empty('award', 'No term is ending in the next 60 days', 'Set the last day of a term on the member\'s page, under Term of this appointment.'));
   }).catch((e) => terms.replaceChildren(empty('x', 'This did not load', e.message)));
+  /* v109.2: minutes of leader video meetings land on the HQ dashboard */
+  const minutesBox = h('div');
+  api('/hq/meeting-minutes').then((r) => minutesBox.replaceChildren(r.items.length ? h('div', { class: 'list list--wrap' }, r.items.map((x) => h('a', { class: 'list__link', href: '#/meetings/requests/' + x.id },
+    h('div', { class: 'grow' }, h('b', { text: x.title }), h('small', { text: [x.leader_name, x.country, x.network, tf('{1} attended', fmt(x.attendance_count)), x.leaders ? tf('{1} leaders named', fmt(x.leaders)) : null, x.files ? tf('{1} files', fmt(x.files)) : null].filter(Boolean).join(' · ') }),
+      h('small', { class: 'faint', text: x.summary })), h('span', { class: 'tag', text: ago(x.minutes_at) })))) : empty('calendar', 'No minutes yet', 'When a leader sends the minutes of a video meeting, they appear here.')))
+    .catch((e) => minutesBox.replaceChildren(empty('x', 'This did not load', e.message)));
   loadOps(); loadTerms();
   const trend = h('div'), split = h('div'), countries = h('div'), seats = h('div'), recent = h('div'), feed = h('div');
   root.append(hero, pushNudge(), kpis,
     h('div', { class: 'row row--2-1' }, card('New members', 'Registrations per day, by network', trend, legend([{ name: 'WGMN', color: seriesColor.WGMN }, { name: 'WNNN', color: seriesColor.WNNN }])), card('Network split', 'All members to date', split)),
     card('Meetings', 'Coming up and just held: who was invited, who replied, who opened the link and who attended', meet, h('a', { class: 'btn btn--ghost btn--s', href: '#/meetings', text: 'Schedule or open meetings' })),
+    card('Video meeting minutes', 'Minutes, the leaders who attended, documents and recordings sent by volunteer leaders', minutesBox, h('a', { class: 'btn btn--ghost btn--s', href: '#/meetings/requests', text: 'All video meetings' })),
     h('div', { class: 'row row--2' }, card('Operations', 'Automation share, delivery, support and backup', ops), card('Leader terms', 'Appointments with an end date, and seats that became vacant when a term ended', terms, h('a', { class: 'btn btn--ghost btn--s', href: '#/structure', text: 'Fill a vacant seat' }))),
     h('div', { class: 'row row--2' }, card('Members by country', 'The eight largest', countries), card('Volunteer leaders seated', 'Open seats by level', seats)),
     h('div', { class: 'row row--2' }, card('Newest members', null, recent, h('a', { class: 'btn btn--ghost btn--s', href: '#/members', text: 'All members' })), card('Recent activity', null, feed)));

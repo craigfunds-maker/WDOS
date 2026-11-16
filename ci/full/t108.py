@@ -1,6 +1,6 @@
 # v109: report documents, task files, direct messages (bulk, undo, delete, drafts), envoys, HQ staff areas, HQ inbox email.
 import requests, subprocess, json, base64, time, io, zipfile, os
-B='http://localhost:8080/api'
+B='http://localhost:8080/api'; AILOG='/tmp/aimock.log'
 def S():
     s=requests.Session(); s.headers.update({'X-WDOS':'1'}); return s
 SQL=os.environ.get('WDOS_SQL','mariadb --socket=/tmp/mdb.sock -uroot wdos').split()
@@ -195,9 +195,35 @@ chk('joins counted', ld.get(B+f'/meet-requests/{mid}').json()['meeting']['joins'
 chk('room name never shown before join', 'meet.jit.si' not in json.dumps(ld.get(B+f'/meet-requests/{mid}').json()))
 chk('short minutes refused', ld.post(B+f'/meet-requests/{mid}/minutes',json={'minutes':'ok','attendance_count':5}).status_code==422)
 chk('attendance number required', ld.post(B+f'/meet-requests/{mid}/minutes',json={'minutes':'We agreed each LGA holds one outreach day before 20 December.','attendance_count':0}).status_code==422)
-sql("delete from mail_outbox")
-r=ld.post(B+f'/meet-requests/{mid}/minutes',json={'minutes':'We agreed each LGA holds one outreach day before 20 December.','attendance_count':18,'attendance_names':'18 coordinators'}); chk('minutes sent', r.ok, r.text)
+# who opened the room is offered for ticking; a minutes document and a recording go with the minutes (v109.2)
+d=ld.get(B+f'/meet-requests/{mid}').json()['meeting']; jids=[p['id'] for p in d['joined']]
+chk('people who opened the room are listed for the minutes, with titles', len(jids)==3 and all('title' in p for p in d['joined']), d['joined'])
+OGG=b'OggS'+b'\x00'*60+b'OpusHead'+b'\x01'*4000
+WEBM=b'\x1a\x45\xdf\xa3'+b'\x00'*30+b'webm'+b'\x02'*3000
+rec=ld.post(B+'/files',json={'name':'voice-note-minutes.ogg','data':base64.b64encode(OGG).decode(),'purpose':'recording'}); chk('a voice note uploads as a recording', rec.ok and rec.json()['file']['mime']=='audio/ogg', rec.text)
+chk('a browser voice note (webm) is accepted', ld.post(B+'/files',json={'name':'voice-note-minutes.webm','data':base64.b64encode(WEBM).decode(),'purpose':'recording'}).json().get('file',{}).get('mime')=='audio/webm')
+chk('a PDF is not taken as a recording', ld.post(B+'/files',json={'name':'x.pdf','data':base64.b64encode(PDF).decode(),'purpose':'recording'}).status_code==422)
+big=ld.post(B+'/files',json={'name':'long.ogg','data':base64.b64encode(b'OggS'+b'\x00'*(15*1048576)).decode(),'purpose':'recording'}); chk('a recording over 15 MB is refused', big.status_code in (413,422), big.status_code)
+mdoc=ld.post(B+'/files',json={'name':'Minutes 15 Nov.pdf','data':base64.b64encode(PDF).decode()}).json()['file']
+outsider_id=int(sql("select id from users where email='outside.t108@example.org'"))
+chk('a recording cannot be sent as the minutes document', ld.post(B+f'/meet-requests/{mid}/minutes',json={'minutes':'We agreed each LGA holds one outreach day before 20 December.','attendance_count':3,'minutes_file':rec.json()['file']['id']}).status_code==422)
+sql("delete from mail_outbox"); sql("delete from notifications where kind='meeting' and title like 'Minutes:%'")
+r=ld.post(B+f'/meet-requests/{mid}/minutes',json={'minutes':'We agreed each LGA holds one outreach day before 20 December.','attendance_count':2,'attendance_names':'18 coordinators','attended':jids+[999999],'minutes_file':mdoc['id'],'recording_file':rec.json()['file']['id']}); chk('minutes sent with leaders, document and recording', r.ok, r.text)
 chk('HQ inbox gets the minutes', int(sql("select count(*) from mail_outbox where to_email='woddingo@gmail.com' and subject like 'WDOS meeting minutes%'"))==1, sql('select to_email,subject from mail_outbox'))
-d=hq.get(B+f'/meet-requests/{mid}').json()['meeting']; chk('held with attendance recorded', d['status']=='held' and d['attendance_count']==18, d['status'])
+chk('each HQ admin is emailed the minutes too', int(sql("select count(*) from mail_outbox m join users u on u.email=m.to_email where u.role in ('hq_admin','super_admin') and m.subject like 'WDOS meeting minutes%'"))>=1)
+time.sleep(2); ml=[l for l in open(AILOG).read().splitlines() if 'smtp' in l and 'WDOS meeting minutes' in l] if os.path.exists(AILOG) else []
+chk('the email lists the leaders who attended and the recording', any('Leaders who attended' in l and 'Recording: voice-note-minutes.ogg' in l for l in ml), len(ml))
+chk('HQ gets the in-app note', int(sql("select count(*) from notifications n join users u on u.id=n.user_id where u.role in ('hq_admin','super_admin') and n.title like 'Minutes:%'"))>=1)
+chk('a leader who attended gets the in-app note and email', int(sql(f"select count(*) from notifications where user_id={outsider_id} and title like 'Minutes:%'"))==1 and int(sql("select count(*) from mail_outbox where to_email='outside.t108@example.org' and subject like 'WDOS meeting minutes%'"))==1)
+d=hq.get(B+f'/meet-requests/{mid}').json()['meeting']; chk('held: count raised to the leaders ticked, unknown ids dropped', d['status']=='held' and d['attendance_count']==3 and sorted(p['id'] for p in d['attended'])==sorted(jids), (d['attendance_count'], d['attended']))
+chk('minutes document and recording are attached', sorted(f['role'] for f in d['minute_files'])==['minutes','recording'], d['minute_files'])
+rf=[f for f in d['minute_files'] if f['role']=='recording'][0]
+x=m.get(B[:-4]+rf['url'],headers={'Range':'bytes=0-99'}); chk('an attendee can play the recording, with byte ranges', x.status_code==206 and len(x.content)==100 and x.headers.get('Content-Range','').startswith('bytes 0-99/'), (x.status_code, x.headers.get('Content-Range')))
+chk('the recording plays inline as audio', x.headers.get('Content-Type')=='audio/ogg')
+hsh=subprocess.run(['php','-r',"echo password_hash('stranger-pass-1', PASSWORD_DEFAULT);"],capture_output=True,text=True).stdout
+sid=sql("select id from users where email like 'seed%@test.local' and role='member' and status='active' order by id desc limit 1"); sql(f"update users set password_hash='{hsh}' where id={sid}")
+o2=login(sql(f"select email from users where id={sid}"),'stranger-pass-1'); chk('a member not at the meeting cannot open the recording', o2.get(B[:-4]+rf['url']).status_code==404)
+hm=hq.get(B+'/hq/meeting-minutes').json()['items']; chk('the minutes are on the HQ dashboard', hm and hm[0]['id']==mid and hm[0]['leaders']==3 and hm[0]['files']==2, hm[:1])
+chk('only HQ reads the dashboard minutes list', ld.get(B+'/hq/meeting-minutes').status_code==403)
 print('checks',cnt); print('FAILURES',bad)
 sql("update users set email='leader@test.local' where email='ngozi.t108@wdos-mail.org'")

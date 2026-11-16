@@ -8,7 +8,7 @@ route('POST', '/files', function () {
   $b = body(); $data = (string) ($b['data'] ?? '');
   $bin = base64_decode((string) preg_replace('#^data:[^;]*;base64,#', '', $data), true);
   if ($bin === false) fail(422, 'That file could not be read. Choose it again.', 'file');
-  return ['ok' => true, 'file' => doc_store($u, mb_substr(basename((string) ($b['name'] ?? 'document')), 0, 190), $bin, ($b['purpose'] ?? '') === 'report')];
+  return ['ok' => true, 'file' => doc_store($u, mb_substr(basename((string) ($b['name'] ?? 'document')), 0, 190), $bin, ($b['purpose'] ?? '') === 'report', ($b['purpose'] ?? '') === 'recording')];
 });
 route('GET', '/files/(\d+)', function ($id) {
   $u = require_user(); if (!doc_can($u, (int) $id)) fail(404, 'That file was not found, or it is outside your area.', 'not_found');
@@ -395,26 +395,58 @@ route('POST', '/meet-requests/(\d+)/notify', function ($id) {
   after_response(fn() => push_drain(40));
   return ['ok' => true, 'told' => count($to), 'invited' => count($all)];
 });
-/** After the meeting: minutes and the number who attended go to everyone invited, the requester and HQ. */
+/** After the meeting: the minutes, the leaders who attended, the minutes document and the recording go to every volunteer
+ *  leader invited or present, the requester, and HQ (HQ dashboard panel, in-app note, phone, and an email to each HQ admin
+ *  and to the HQ inbox). */
 route('POST', '/meet-requests/(\d+)/minutes', function ($id) {
   $u = require_user(); $m = row('SELECT * FROM meeting_requests WHERE id=?', [(int) $id]);
   if (!$m || (mr_role($u, $m) !== 'requester' && !is_hq($u))) fail(404, 'That meeting was not found.', 'not_found');
   if ($m['status'] !== 'approved' && $m['status'] !== 'held') fail(409, 'Minutes are recorded for an approved meeting.', 'state');
   if (time() < strtotime($m['starts_at'] . ' UTC')) fail(409, 'Minutes are recorded once the meeting has started.', 'not_yet');
-  $min = str_in('minutes', 12000); $cnt = (int) (body()['attendance_count'] ?? -1); $names = str_in('attendance_names', 6000);
+  $b = body(); $min = str_in('minutes', 12000); $cnt = (int) ($b['attendance_count'] ?? -1); $names = str_in('attendance_names', 6000);
   if (mb_strlen($min) < 20) fail(422, 'Write the minutes: what was discussed and decided.', 'minutes');
+  /* who attended: only people WDOS saw open the room, or people invited */
+  $allowed = array_values(array_unique(array_merge(mr_ids($m), [(int) $m['requester_id']], array_map('intval', array_column(rows('SELECT user_id FROM meeting_request_joins WHERE request_id=?', [(int) $id]), 'user_id')))));
+  $att = array_values(array_intersect(array_unique(array_map('intval', (array) ($b['attended'] ?? []))), $allowed));
+  if ($cnt < count($att)) $cnt = count($att);
   if ($cnt < 1 || $cnt > 100000) fail(422, 'Enter how many people attended.', 'attendance_count');
-  q("UPDATE meeting_requests SET status='held', minutes=?, attendance_count=?, attendance_names=?, minutes_by=?, minutes_at=?, updated_at=? WHERE id=?", [$min, $cnt, $names, (int) $u['id'], now(), now(), (int) $id]);
-  $url = '#/meetings/requests/' . $id; $title = 'Minutes: ' . mb_substr($m['title'], 0, 120); $line = $cnt . ' attended.';
-  $html = '<p><b>' . htmlspecialchars($m['title']) . '</b> (' . htmlspecialchars($m['request_no']) . ')</p><p><b>Attendance:</b> ' . $cnt . '</p>' . ($names !== '' ? '<p>' . nl2br(htmlspecialchars($names)) . '</p>' : '') . '<p><b>Minutes</b></p><p>' . nl2br(htmlspecialchars($min)) . '</p>';
-  $to = array_values(array_unique(array_merge(mr_ids($m), [(int) $m['requester_id']]))); $to = array_values(array_diff($to, [(int) $u['id']]));
+  $files = [];
+  foreach (['minutes_file' => 'minutes', 'recording_file' => 'recording'] as $k => $role) {
+    $fid = (int) ($b[$k] ?? 0); if (!$fid) continue;
+    $f = row('SELECT * FROM doc_files WHERE id=? AND uploaded_by=?', [$fid, (int) $u['id']]); if (!$f) fail(422, 'Upload the file again.', $k);
+    if ($role === 'minutes' && !isset(DOC_TYPES_ANY[$f['mime']])) fail(422, 'The minutes document must be a PDF, Word or similar document.', $k);
+    if ($role === 'recording' && !isset(DOC_TYPES_MEDIA[$f['mime']])) fail(422, 'The recording must be an audio or video file.', $k);
+    $files[$role] = $f;
+  }
+  q("UPDATE meeting_requests SET status='held', minutes=?, attendance_count=?, attendance_names=?, attended_ids=?, minutes_by=?, minutes_at=?, updated_at=? WHERE id=?", [$min, $cnt, $names, implode(',', $att), (int) $u['id'], now(), now(), (int) $id]);
+  foreach ($files as $role => $f) doc_link((int) $f['id'], 'meeting', (int) $id, $role, (int) $u['id']);
+  $url = '#/meetings/requests/' . $id; $title = 'Minutes: ' . mb_substr($m['title'], 0, 120);
+  $line = $cnt . ' attended.';   /* kept short so it is shown in each person's language (notify_i18n meet_minutes) */
+  $plist = people_titled($att);
+  $html = '<p><b>' . htmlspecialchars($m['title']) . '</b> (' . htmlspecialchars($m['request_no']) . '), ' . htmlspecialchars(gmdate('j M Y, H:i', strtotime($m['starts_at'] . ' UTC'))) . ' GMT</p>'
+    . '<p><b>Attendance:</b> ' . $cnt . '</p>'
+    . ($plist ? '<p><b>Leaders who attended</b></p><ul>' . implode('', array_map(fn($p) => '<li>' . htmlspecialchars(trim($p['first_name'] . ' ' . $p['last_name'])) . ($p['title'] !== '' ? ', ' . htmlspecialchars($p['title']) : '') . '</li>', $plist)) . '</ul>' : '')
+    . ($names !== '' ? '<p><b>Others present</b><br>' . nl2br(htmlspecialchars($names)) . '</p>' : '')
+    . '<p><b>Minutes</b></p><p>' . nl2br(htmlspecialchars($min)) . '</p>'
+    . ($files ? '<p><b>Attached in WDOS:</b> ' . implode(', ', array_map(fn($r, $f) => htmlspecialchars(($r === 'recording' ? 'Recording: ' : 'Minutes document: ') . $f['name']), array_keys($files), $files)) . '. Open the meeting in WDOS to play or download them.</p>' : '');
+  $to = array_values(array_diff(array_unique(array_merge(mr_ids($m), [(int) $m['requester_id']], $att)), [(int) $u['id']]));
+  $hqIds = array_map('intval', array_column(rows("SELECT id FROM users WHERE role IN ('hq_admin','super_admin') AND status='active'"), 'id'));
+  $to = array_values(array_diff($to, $hqIds));
   if ($to) { notify_many('u.id IN (' . implode(',', $to) . ')', [], 'meeting', $title, $line, $url); foreach ($to as $i) person_mail($i, 'WDOS meeting minutes: ' . mb_substr($m['title'], 0, 110), 'Minutes of the meeting', $html, $url); }
-  notify_hq('meeting', $title, $line, $url); hq_mail('WDOS meeting minutes ' . $m['request_no'] . ': ' . mb_substr($m['title'], 0, 100), 'Minutes of a leader video meeting', $html, $url);
+  notify_hq('meeting', $title, $line, $url);
+  foreach (array_diff($hqIds, [(int) $u['id']]) as $i) person_mail($i, 'WDOS meeting minutes ' . $m['request_no'] . ': ' . mb_substr($m['title'], 0, 100), 'Minutes of a leader video meeting', $html, $url);
+  hq_mail('WDOS meeting minutes ' . $m['request_no'] . ': ' . mb_substr($m['title'], 0, 100), 'Minutes of a leader video meeting', $html, $url);
   log_activity((int) $u['id'], null, 'meeting_minutes', $m['request_no'] . ' · ' . $cnt . ' attended');
-  after_response(fn() => push_drain(30));
-  return ['ok' => true];
+  after_response(fn() => push_drain(40));
+  return ['ok' => true, 'told' => count($to), 'hq' => count($hqIds)];
 });
-
+/** HQ dashboard: the latest minutes of leader video meetings */
+route('GET', '/hq/meeting-minutes', function () {
+  $u = require_user(); if (!is_hq($u)) fail(403, 'For WODDI HQ.', 'forbidden');
+  return ['items' => array_map(fn($m) => ['id' => (int) $m['id'], 'request_no' => $m['request_no'], 'title' => $m['title'], 'leader_name' => $m['leader_name'], 'country' => country_name($m['country_code']) ?: '', 'network' => $m['network'],
+    'starts_at' => $m['starts_at'], 'minutes_at' => $m['minutes_at'], 'attendance_count' => (int) $m['attendance_count'], 'leaders' => count(mr_attended($m)), 'files' => (int) val("SELECT COUNT(*) FROM doc_links WHERE owner_type='meeting' AND owner_id=? AND removed_at IS NULL", [(int) $m['id']]), 'summary' => mb_substr((string) $m['minutes'], 0, 220)],
+    rows("SELECT * FROM meeting_requests WHERE status='held' AND minutes IS NOT NULL ORDER BY minutes_at DESC LIMIT 12"))];
+});
 /* -------------------------------------------------- WODDI Envoys sign themselves up -- */
 route('GET', '/envoy/join-info', fn() => ['mode' => 'open', 'google' => (bool) cfg('GOOGLE_CLIENT_ID') && (bool) cfg('GOOGLE_CLIENT_SECRET')]);
 route('POST', '/envoy/join', function () {

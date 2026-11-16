@@ -56,6 +56,7 @@ Every row is something known from the code, the tests or the live test copy. Not
 | C-15 | Join stayed locked until 30 minutes before the start after HQ approved; it now opens at approval, with Notify people, Copy meeting link, WhatsApp and a guest link | v109.2 | t108 meeting checks |
 | C-16 | The plain walkthrough video did not show what to tap; replaced by a guided tour on real screens with tap markers, captions, narration in 5 languages and a personal greeting by first name | v109.2 | ui tour check, 5 languages |
 | C-17 | The first-sign-in guide crashed for envoys and leaders (`app.user?.is_t is not a function`), so it never appeared | v109.2 | ui tour check, no page errors |
+| C-19 | Minutes now carry the leaders who attended (ticked from who opened the room), a minutes document and a recording or voice note; sent to the volunteer leaders and to HQ in the app and by email (each HQ admin and the HQ inbox), and shown on the HQ dashboard | v109.2 | t108 minutes checks |
 | C-18 | On a phone the envoy's Message button sat off the right edge of the screen | v109.2 | tour capture at 390 px |
 
 ## Readiness, stated plainly

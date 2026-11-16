@@ -4,7 +4,7 @@ import { api } from './api.js';
 
 export const kb = (n) => n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
 const KIND = { 'application/pdf': 'PDF', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word', 'application/msword': 'Word', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'Excel', 'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PowerPoint', 'text/csv': 'CSV', 'image/jpeg': 'Picture', 'image/png': 'Picture' };
-const readB64 = (file) => new Promise((ok, bad) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.onerror = () => bad(new Error(tr('That file could not be read. Choose it again.'))); r.readAsDataURL(file); });
+export const readB64 = (file) => new Promise((ok, bad) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.onerror = () => bad(new Error(tr('That file could not be read. Choose it again.'))); r.readAsDataURL(file); });
 const tr = (s) => (globalThis.tr ? globalThis.tr(s) : s);
 
 /** A button that opens the file chooser and uploads. purpose 'report' accepts PDF and Word only. onDone(file) runs after the upload. */

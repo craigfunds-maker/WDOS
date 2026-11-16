@@ -66,6 +66,8 @@ function person_mail(int $userId, string $subject, string $heading, string $html
 /* ---- documents: stored in 512 KB pieces so one file never meets a database row limit ---- */
 const DOC_CHUNK = 524288;
 const DOC_MAX = 10485760;               // 10 MB
+const REC_MAX = 15728640;               // 15 MB: a meeting recording or voice note (about an hour of voice at low data)
+const DOC_TYPES_MEDIA = ['audio/mpeg' => 'mp3', 'audio/mp4' => 'm4a', 'audio/ogg' => 'ogg', 'audio/webm' => 'webm', 'audio/wav' => 'wav', 'video/mp4' => 'mp4', 'video/webm' => 'webm'];
 const DOC_TYPES_REPORT = ['application/pdf' => 'pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx'];
 const DOC_TYPES_ANY = DOC_TYPES_REPORT + ['application/msword' => 'doc', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'pptx', 'text/csv' => 'csv', 'image/jpeg' => 'jpg', 'image/png' => 'png'];
 /** What the bytes really are. A renamed file does not pass: the content decides. */
@@ -80,14 +82,26 @@ function doc_sniff(string $bin, string $name): string {
     if (str_contains($bin, 'ppt/')) return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
     return 'application/zip';
   }
+  $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+  if (strncmp($bin, 'ID3', 3) === 0 || (strlen($bin) > 2 && ord($bin[0]) === 0xFF && (ord($bin[1]) & 0xE0) === 0xE0 && $ext === 'mp3')) return 'audio/mpeg';
+  if (strncmp($bin, 'OggS', 4) === 0) return 'audio/ogg';
+  if (strncmp($bin, 'RIFF', 4) === 0 && substr($bin, 8, 4) === 'WAVE') return 'audio/wav';
+  if (strncmp($bin, "\x1A\x45\xDF\xA3", 4) === 0) return in_array($ext, ['weba', 'opus'], true) || str_contains($name, 'voice') || $ext === '' ? 'audio/webm' : ($ext === 'webm' && !str_contains(substr($bin, 0, 4096), 'V_VP') ? 'audio/webm' : 'video/webm');
+  if (substr($bin, 4, 4) === 'ftyp') return in_array($ext, ['m4a', 'aac'], true) || str_contains(substr($bin, 8, 4), 'M4A') ? 'audio/mp4' : 'video/mp4';
   if (preg_match('/\.csv$/i', $name) && mb_check_encoding(substr($bin, 0, 4000), 'UTF-8')) return 'text/csv';
   return 'application/octet-stream';
 }
-function doc_store(array $u, string $name, string $bin, bool $reportOnly): array {
+function doc_store(array $u, string $name, string $bin, bool $reportOnly, bool $media = false): array {
   if ($bin === '') fail(422, 'Choose a file first.', 'file');
+  if ($media) {
+    if (strlen($bin) > REC_MAX) fail(422, 'That recording is too large. The limit is 15 MB. Record a shorter voice note, or send the minutes as a document.', 'size');
+    $mime = doc_sniff($bin, $name); $types = DOC_TYPES_MEDIA;
+    if (!isset($types[$mime])) fail(422, 'Upload a recording as an audio file (MP3, M4A, OGG, WEBM or WAV) or an MP4 video.', 'type');
+  } else {
   if (strlen($bin) > DOC_MAX) fail(422, 'That file is too large. The limit is 10 MB. Save the report as a PDF, or make the pictures in it smaller.', 'size');
   $mime = doc_sniff($bin, $name); $types = $reportOnly ? DOC_TYPES_REPORT : DOC_TYPES_ANY;
   if (!isset($types[$mime])) fail(422, $reportOnly ? 'A report document must be a PDF or a Word (.docx) file.' : 'Upload a PDF, Word, Excel, PowerPoint, CSV or picture file.', 'type');
+  }
   $ext = $types[$mime]; $base = trim(preg_replace('/[^\p{L}\p{N} ._()\-]+/u', '', pathinfo($name, PATHINFO_FILENAME))) ?: 'document';
   $clean = mb_substr($base, 0, 150) . '.' . $ext; $n = (int) ceil(strlen($bin) / DOC_CHUNK);
   $id = ins('INSERT INTO doc_files (name,mime,size,sha256,chunks,uploaded_by,created_at) VALUES (?,?,?,?,?,?,?)', [$clean, $mime, strlen($bin), hash('sha256', $bin), $n, (int) $u['id'], now()]);
@@ -109,6 +123,7 @@ function doc_can(array $u, int $fileId): bool {
   if ((int) $f['uploaded_by'] === (int) $u['id']) return true;
   foreach (rows('SELECT owner_type, owner_id FROM doc_links WHERE file_id=? AND removed_at IS NULL', [$fileId]) as $l) {
     if ($l['owner_type'] === 'report' && ($r = row('SELECT * FROM report_instances WHERE id=?', [(int) $l['owner_id']]))) { $rt = rp_rights($u, $r); if ($rt['view'] || $rt['review']) return true; }
+    if ($l['owner_type'] === 'meeting' && ($mm = row('SELECT * FROM meeting_requests WHERE id=?', [(int) $l['owner_id']])) && (mr_role($u, $mm) !== '' || in_array((int) $u['id'], mr_attended($mm), true))) return true;
     if ($l['owner_type'] === 'task' && ($t = row(TASK_SELECT . ' WHERE t.id=?', [(int) $l['owner_id']]))) { if ((int) $t['assignee_id'] === (int) $u['id'] || task_can_manage($u, $t)) return true; }
   }
   return false;
@@ -116,10 +131,23 @@ function doc_can(array $u, int $fileId): bool {
 function doc_send(int $fileId, bool $download): never {
   $f = row('SELECT * FROM doc_files WHERE id=?', [$fileId]); if (!$f) fail(404, 'That file was not found.', 'not_found');
   while (ob_get_level()) ob_end_clean();
-  $inline = !$download && in_array($f['mime'], ['application/pdf', 'image/jpeg', 'image/png'], true);
-  header('Content-Type: ' . $f['mime']); header('Content-Length: ' . (int) $f['size']); header('X-Content-Type-Options: nosniff'); header('Cache-Control: private, max-age=300');
+  $media = isset(DOC_TYPES_MEDIA[$f['mime']]);
+  $inline = !$download && ($media || in_array($f['mime'], ['application/pdf', 'image/jpeg', 'image/png'], true));
+  $size = (int) $f['size']; $from = 0; $to = $size - 1;
+  /* byte ranges, so a recording plays and seeks on iPhone and Android */
+  if ($media && preg_match('/^bytes=(\d*)-(\d*)$/', (string) ($_SERVER['HTTP_RANGE'] ?? ''), $rg)) {
+    if ($rg[1] === '' && $rg[2] !== '') { $from = max(0, $size - (int) $rg[2]); } else { $from = (int) $rg[1]; if ($rg[2] !== '') $to = min($to, (int) $rg[2]); }
+    if ($from > $to || $from >= $size) { http_response_code(416); header('Content-Range: bytes */' . $size); exit; }
+    http_response_code(206); header('Content-Range: bytes ' . $from . '-' . $to . '/' . $size);
+  }
+  header('Content-Type: ' . $f['mime']); header('Content-Length: ' . ($to - $from + 1)); header('X-Content-Type-Options: nosniff'); header('Cache-Control: private, max-age=300');
+  if ($media) header('Accept-Ranges: bytes');
   header('Content-Disposition: ' . ($inline ? 'inline' : 'attachment') . "; filename=\"" . preg_replace('/[^A-Za-z0-9._ ()\-]/', '_', $f['name']) . "\"; filename*=UTF-8''" . rawurlencode($f['name']));
-  for ($i = 0; $i < (int) $f['chunks']; $i++) { echo (string) val('SELECT bytes FROM doc_chunks WHERE file_id=? AND seq=?', [$fileId, $i]); flush(); }
+  if ($size === 0) exit;
+  for ($i = intdiv($from, DOC_CHUNK); $i <= intdiv($to, DOC_CHUNK); $i++) {
+    $b = (string) val('SELECT bytes FROM doc_chunks WHERE file_id=? AND seq=?', [$fileId, $i]); $s0 = $i * DOC_CHUNK;
+    $a = max(0, $from - $s0); $e = min(strlen($b) - 1, $to - $s0); if ($e >= $a) echo substr($b, $a, $e - $a + 1); flush();
+  }
   exit;
 }
 
@@ -300,6 +328,18 @@ function mr_window(array $m): array {
 }
 function mr_ids(array $m): array { return array_values(array_filter(array_map('intval', explode(',', (string) $m['attendee_ids'])))); }
 /** requester, invited WDOS people, or HQ */
+function mr_attended(array $m): array { return array_values(array_filter(array_map('intval', explode(',', (string) ($m['attended_ids'] ?? ''))))); }
+/** name and seat title of each person, for minutes and the attendance list */
+function people_titled(array $ids): array {
+  if (!$ids) return [];
+  $out = [];
+  foreach (rows('SELECT id, first_name, last_name, has_photo FROM users WHERE id IN (' . implode(',', array_map('intval', $ids)) . ')') as $p) {
+    $seat = current_seat((int) $p['id']);
+    $out[] = ['id' => (int) $p['id'], 'first_name' => $p['first_name'], 'last_name' => $p['last_name'], 'has_photo' => (int) $p['has_photo'], 'title' => $seat ? seat_title($seat) : ''];
+  }
+  usort($out, fn($a, $b) => strcmp($a['first_name'] . $a['last_name'], $b['first_name'] . $b['last_name']));
+  return $out;
+}
 function mr_role(array $u, array $m): string {
   if ((int) $m['requester_id'] === (int) $u['id']) return 'requester';
   if (in_array((int) $u['id'], mr_ids($m), true)) return 'invited';
@@ -315,6 +355,8 @@ function mr_out(array $u, array $m): array {
     'graphics' => $m['graphics'], 'other_needs' => $m['other_needs'], 'starts_at' => $m['starts_at'], 'duration_min' => (int) $m['duration_min'], 'tz' => $m['tz'], 'status' => $m['status'], 'hq_note' => $m['hq_note'], 'decided_at' => $m['decided_at'],
     'requester' => $req ? ['id' => (int) $req['id'], 'first_name' => $req['first_name'], 'last_name' => $req['last_name'], 'has_photo' => (int) $req['has_photo']] : null, 'my_role' => $role,
     'gate' => $gate, 'opens_at' => gmdate('Y-m-d H:i:s', $open), 'joins' => (int) val('SELECT COUNT(*) FROM meeting_request_joins WHERE request_id=?', [(int) $m['id']]),
+    'attended' => people_titled(mr_attended($m)), 'minute_files' => doc_list('meeting', (int) $m['id']),
+    'joined' => (in_array($role, ['requester', 'hq'], true) && !$m['minutes']) ? people_titled(array_map('intval', array_column(rows('SELECT user_id FROM meeting_request_joins WHERE request_id=?', [(int) $m['id']]), 'user_id'))) : [],
     'minutes' => $m['minutes'], 'attendance_count' => $m['attendance_count'] === null ? null : (int) $m['attendance_count'], 'attendance_names' => $m['attendance_names'], 'minutes_at' => $m['minutes_at'],
     'can_decide' => is_hq($u) && in_array($m['status'], ['pending', 'approved'], true), 'can_cancel' => $role === 'requester' && in_array($m['status'], ['pending', 'approved'], true) && $t < strtotime($m['starts_at'] . ' UTC'),
     'can_notify' => in_array($role, ['requester', 'hq'], true) && $m['status'] === 'approved' && $t <= $close,
