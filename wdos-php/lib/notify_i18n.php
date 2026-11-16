@@ -72,6 +72,22 @@ const NOTE_TEMPLATES = [
     'ar' => ['محضر: {1}', 'عدد الحاضرين: {1}.'], 'fr' => ['Compte rendu : {1}', '{1} participants.'], 'pt' => ['Ata: {1}', '{1} participantes.'], 'sw' => ['Kumbukumbu: {1}', 'Waliohudhuria {1}.']]],
   ['/^Meeting flier ready: (.+)$/u', '/^Open the meeting to see and share it\.$/u', [
     'ar' => ['ملصق الاجتماع جاهز: {1}', 'افتحي الاجتماع لتريه وتشاركيه.'], 'fr' => ['Affiche de la réunion prête : {1}', 'Ouvrez la réunion pour la voir et la partager.'], 'pt' => ['Cartaz da reunião pronto: {1}', 'Abra a reunião para o ver e partilhar.'], 'sw' => ['Bango la mkutano liko tayari: {1}', 'Fungua mkutano ulione na kulishiriki.']]],
+  ['/^Video meeting tomorrow: (.+)$/u', '/^(.*)$/u', [
+    'ar' => ['اجتماع بالفيديو غدًا: {1}', '{1}'], 'fr' => ['Réunion vidéo demain : {1}', '{1}'], 'pt' => ['Reunião por vídeo amanhã: {1}', '{1}'], 'sw' => ['Mkutano wa video kesho: {1}', '{1}']]],
+  ['/^Video meeting in 1 hour: (.+)$/u', '/^(.*)$/u', [
+    'ar' => ['اجتماع بالفيديو بعد ساعة: {1}', '{1}'], 'fr' => ['Réunion vidéo dans 1 heure : {1}', '{1}'], 'pt' => ['Reunião por vídeo daqui a 1 hora: {1}', '{1}'], 'sw' => ['Mkutano wa video baada ya saa 1: {1}', '{1}']]],
+  ['/^Video meeting starting now: (.+)$/u', '/^Open WDOS and tap Join the video meeting\.$/u', [
+    'ar' => ['الاجتماع بالفيديو يبدأ الآن: {1}', 'افتحي WDOS واضغطي على الانضمام إلى الاجتماع بالفيديو.'], 'fr' => ['La réunion vidéo commence : {1}', 'Ouvrez WDOS et appuyez sur Rejoindre la réunion vidéo.'], 'pt' => ['A reunião por vídeo começa agora: {1}', 'Abra o WDOS e toque em Entrar na reunião por vídeo.'], 'sw' => ['Mkutano wa video unaanza sasa: {1}', 'Fungua WDOS na ubonyeze Jiunge na mkutano wa video.']]],
+  ['/^Due in 2 days: (.+)$/u', '/^Finish it and submit it before the due date\.$/u', [
+    'ar' => ['موعدها بعد يومين: {1}', 'أنجزيها وأرسليها قبل الموعد.'], 'fr' => ['À rendre dans 2 jours : {1}', 'Terminez-la et soumettez-la avant la date prévue.'], 'pt' => ['Prazo em 2 dias: {1}', 'Termine e envie antes do prazo.'], 'sw' => ['Inatakiwa baada ya siku 2: {1}', 'Ikamilishe na uiwasilishe kabla ya tarehe.']]],
+  ['/^Overdue: (.+)$/u', '/^This task was due yesterday\.(.*)$/su', [
+    'ar' => ['متأخرة: {1}', 'كان موعد هذه المهمة أمس. أنجزيها أو أخبري من أسندها إليكِ بما يؤخّرها.'], 'fr' => ['En retard : {1}', "Cette tâche était à rendre hier. Terminez-la ou dites à la personne qui l'a confiée ce qui bloque."], 'pt' => ['Atrasada: {1}', 'Esta tarefa era para ontem. Termine-a ou diga a quem a deu o que a está a atrasar.'], 'sw' => ['Imechelewa: {1}', 'Kazi hii ilitakiwa jana. Ikamilishe au mwambie aliyekupa kinachokuchelewesha.']]],
+  ['/^Waiting for your review: (.+)$/u', '/^(.+) submitted this task two days ago\.$/u', [
+    'ar' => ['بانتظار مراجعتك: {1}', 'أرسلت {1} هذه المهمة قبل يومين.'], 'fr' => ['En attente de votre examen : {1}', '{1} a soumis cette tâche il y a deux jours.'], 'pt' => ['À espera da sua revisão: {1}', '{1} enviou esta tarefa há dois dias.'], 'sw' => ['Inasubiri ukaguzi wako: {1}', '{1} aliwasilisha kazi hii siku mbili zilizopita.']]],
+  ['/^Unread message from (.+)$/u', '/^Open Messages in WDOS to read it and reply\.$/u', [
+    'ar' => ['رسالة غير مقروءة من {1}', 'افتحي الرسائل في WDOS لقراءتها والرد عليها.'], 'fr' => ['Message non lu de {1}', 'Ouvrez Messages dans WDOS pour le lire et répondre.'], 'pt' => ['Mensagem não lida de {1}', 'Abra Mensagens no WDOS para a ler e responder.'], 'sw' => ['Ujumbe haujasomwa kutoka kwa {1}', 'Fungua Ujumbe katika WDOS uusome na ujibu.']]],
+  ['/^Reminder: (.+)$/u', '/^Please read this announcement and press I have read this\.$/u', [
+    'ar' => ['تذكير: {1}', 'يرجى قراءة هذا الإعلان والضغط على قرأت هذا.'], 'fr' => ['Rappel : {1}', "Lisez cette annonce et appuyez sur J'ai lu ce message."], 'pt' => ['Lembrete: {1}', 'Leia este anúncio e toque em Li esta mensagem.'], 'sw' => ['Kikumbusho: {1}', 'Tafadhali soma tangazo hili na ubonyeze Nimesoma hii.']]],
 ];
 /* One entry per template above, in the same order: its key, its name on the Communications page, the English wording,
  * and what {1} and {2} stand for. WODDI HQ can replace any wording in any language; the change is logged. */
@@ -93,6 +109,14 @@ const NOTE_META = [
   ['meet_cancelled', 'Meeting cancelled', 'Cancelled: {1}', '{1}', '{1} is the meeting.'],
   ['meet_minutes', 'Video meeting minutes', 'Minutes: {1}', '{1} attended.', 'Title: {1} is the meeting. Message: {1} is the number who attended.'],
   ['meet_flier', 'Meeting flier ready', 'Meeting flier ready: {1}', 'Open the meeting to see and share it.', 'Title: {1} is the meeting.'],
+  ['meet_day', 'Video meeting reminder: the day before', 'Video meeting tomorrow: {1}', '{1}', 'Title: {1} is the meeting. Message: {1} is the date and time.'],
+  ['meet_hour', 'Video meeting reminder: one hour before', 'Video meeting in 1 hour: {1}', '{1}', 'Title: {1} is the meeting. Message: {1} is the date and time.'],
+  ['meet_now', 'Video meeting reminder: starting now', 'Video meeting starting now: {1}', 'Open WDOS and tap Join the video meeting.', '{1} is the meeting.'],
+  ['task_soon', 'Task due in 2 days', 'Due in 2 days: {1}', 'Finish it and submit it before the due date.', '{1} is the task.'],
+  ['task_overdue', 'Task overdue', 'Overdue: {1}', 'This task was due yesterday. Complete it or tell the assigner what is holding it.', '{1} is the task.'],
+  ['task_review', 'Submitted task waiting for review', 'Waiting for your review: {1}', '{1} submitted this task two days ago.', 'Title: {1} is the task. Message: {1} is the person.'],
+  ['dm_unread', 'Unread message reminder', 'Unread message from {1}', 'Open Messages in WDOS to read it and reply.', '{1} is the sender.'],
+  ['ann_reminder', 'Announcement reminder', 'Reminder: {1}', 'Please read this announcement and press I have read this.', '{1} is the announcement.'],
 ];
 /** Wordings WODDI HQ has approved in place of the built-in ones: [key][lang] = [title, body]. */
 function note_overrides(): array {

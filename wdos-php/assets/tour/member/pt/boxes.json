@@ -1,0 +1,91 @@
+[
+{
+"id": "dash",
+"action": "none",
+"box": null,
+"label": ""
+},
+{
+"id": "journey",
+"action": "tap",
+"box": [
+51.79,
+38.33,
+45.13,
+23.39
+],
+"label": "Jornada de sete dias\n1/7\nPassos concluídos"
+},
+{
+"id": "chapter",
+"action": "tap",
+"box": [
+3.08,
+38.33,
+45.13,
+23.39
+],
+"label": "O meu capítulo\nUshafa WGMN 001\n1 mulher no seu capítulo"
+},
+{
+"id": "invite",
+"action": "tap",
+"box": [
+3.08,
+38.58,
+45.13,
+22.88
+],
+"label": "Progresso das indicações\n0/3\n0 concluíram os sete dias"
+},
+{
+"id": "community",
+"action": "tap",
+"box": [
+3.08,
+42.17,
+93.85,
+15.68
+],
+"label": "Comunidade WODDI\n\nO seu capítulo, a sua rede em cada nível, círculos temáticos e"
+},
+{
+"id": "messages",
+"action": "tap",
+"box": [
+40.3,
+90.71,
+19.39,
+8.44
+],
+"label": "Mensagens"
+},
+{
+"id": "bell",
+"action": "tap",
+"box": [
+72.82,
+1.5,
+10.77,
+6.0
+],
+"label": "2"
+},
+{
+"id": "lang",
+"action": "tap",
+"box": [
+32.31,
+1.64,
+25.64,
+5.71
+],
+"label": "العربية\nEnglish\nFrançais\nHausa\nIgbo\nPortuguês\nKiswahili\nYorùbá"
+},
+{
+"id": "end",
+"action": "none",
+"box": null,
+"label": ""
+}
+]

@@ -16,6 +16,7 @@ require __DIR__ . '/../lib/handoff_fns.php';
 require __DIR__ . '/../lib/ops_fns.php';
 require __DIR__ . '/../lib/ai_fns.php';
 require __DIR__ . '/../lib/v109_fns.php';
+require __DIR__ . '/../lib/followup_fns.php';
 
 set_exception_handler(function (Throwable $e) {
   error_log('[wdos] ' . $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine());
@@ -45,6 +46,12 @@ if (str_starts_with($PATH, '/setup')) { require __DIR__ . '/../lib/setup.php'; e
 /* An HQ login limited to some areas is refused the others here, before any route answers. Every reply then releases due messages. */
 hq_feature_guard($METHOD, $PATH);
 if ($PATH !== '/config') after_response(fn() => outbox_tick());
+/* v109.3: an account made with Google is held at "finish your profile" until she has filled in her details, in both
+ * networks and for envoys. Hiding pages is not enough: the server refuses everything else until the profile is complete. */
+if (!preg_match('#^/(health|config|me|me/lang|auth/.+|geo/.+|positions|public/.+|ref/.+|envoy/join(-info)?|notifications(/.*)?|privacy)$#', $PATH)) {
+  $pp = current_user();
+  if ($pp && $pp['status'] === 'pending_profile') fail(403, 'Finish your profile first. Fill in your details to continue.', 'profile_incomplete');
+}
 
 /* ----------------------------------------------------------------- misc -- */
 route('GET', '/health', fn() => ['ok' => true, 'build' => WDOS_BUILD, 'db' => (bool) val('SELECT 1'), 'time' => now()]);
@@ -411,5 +418,6 @@ require __DIR__ . '/../lib/guide.php';
 require __DIR__ . '/../lib/ops.php';
 require __DIR__ . '/../lib/ai.php';
 require __DIR__ . '/../lib/v109.php';
+require __DIR__ . '/../lib/legacy.php';
 
 fail(404, 'No such WDOS endpoint.', 'not_found');

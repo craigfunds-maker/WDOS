@@ -1,6 +1,6 @@
 /* Sign in: password, Google, or fingerprint. Also the forgotten-password and reset-link screens. */
-import { h, t, icon, googleMark, toast, said } from '../ui.js';
-import { api, fingerprintSupported, fingerprintLogin } from '../api.js';
+import { h, t, tf, icon, googleMark, toast, said } from '../ui.js';
+import { api, fingerprintSupported, fingerprintLogin, bio } from '../api.js';
 import { app, signedIn, go } from '../app.js';
 import { pubBar, pubFoot } from './welcome.js';
 
@@ -30,8 +30,8 @@ export async function render(root, params) {
     const fp = fingerprintSupported() ? h('button', { class: 'fpbtn', type: 'button', onclick: async () => {
       err.textContent = '';
       try { const r = await fingerprintLogin(email.value.trim()); signedIn(r.user); }
-      catch (ex) { if (ex.name === 'NotAllowedError') err.textContent = 'Fingerprint sign-in was cancelled, or this device has not been set up yet. Sign in with your password once, then switch it on in Settings.'; else err.textContent = ex.message; }
-    } }, icon('fingerprint', 20), 'Sign in with fingerprint') : null;
+      catch (ex) { if (ex.name === 'NotAllowedError') err.textContent = tf('{1} sign-in was cancelled, or this device has not been set up yet. Sign in with your password once, then switch it on in Settings.', t(bio().name)); else err.textContent = ex.message; }
+    } }, icon(bio().icon, 20), tf('Sign in with {1}', t(bio().name))) : null;
     const g = app.config.google ? h('a', { class: 'gbtn', href: '/api/auth/google/start' }, googleMark(), 'Continue with Google')
       : h('span', { class: 'gbtn', 'aria-disabled': 'true', title: 'HQ IT has not added the Google keys yet' }, googleMark(), 'Continue with Google');
     return [h('h1', { class: 'display', text: 'Sign in to WDOS' }), form, h('div', { class: 'or', text: 'or' }), g, fp,

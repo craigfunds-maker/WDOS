@@ -127,6 +127,17 @@
 "label": "Demander une réunion vidéo"
 },
 {
+"id": "mrflier",
+"action": "tap",
+"box": [
+7.44,
+46.51,
+76.61,
+6.86
+],
+"label": "Téléverser l'affiche de la réunion"
+},
+{
 "id": "mrjoin",
 "action": "tap",
 "box": [
@@ -160,6 +171,17 @@
 "label": "Copier le lien de la réunion"
 },
 {
+"id": "mrminutes",
+"action": "look",
+"box": [
+3.08,
+10.09,
+93.85,
+89.91
+],
+"label": "Compte rendu et présence\n\nEnregistré il y a 2 min. Envoyé aux responsables bénév"
+},
+{
 "id": "bell",
 "action": "tap",
 "box": [
@@ -168,7 +190,7 @@
 10.77,
 6.0
 ],
-"label": "5"
+"label": "6"
 },
 {
 "id": "lang",

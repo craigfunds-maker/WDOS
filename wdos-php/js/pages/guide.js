@@ -18,6 +18,14 @@ export const LEADER_STEPS = [
   ['Video meetings', 'Open Video meetings to ask HQ for a meeting in your area. Fill in the form. As soon as HQ approves, the Join button is ready. Tell your people from the same page, or copy the meeting link and send it. Afterwards, send the minutes and the number who attended.'],
   ['Notifications and language', 'The bell shows what is new. Change your language at the top of any page, and press Listen to hear the page read aloud.'],
 ];
+export const MEMBER_STEPS = [
+  ['Your home', 'Your home page shows your seven-day journey, your chapter, your referrals and the WODDI Community.'],
+  ['Seven-day journey', 'Open the seven-day journey and take one short step each day until you are an active member.'],
+  ['Your chapter', 'Open My chapter to see the women near you and your chapter leaders.'],
+  ['Invite three women', 'Open your referrals, copy your own link and send it on WhatsApp to three women you trust.'],
+  ['Messages and help', 'Press Messages to write to WODDI HQ. The answer comes in the app and by email.'],
+  ['Notifications and language', 'The bell shows what is new. Change your language at the top of any page, and press Listen to hear the page read aloud.'],
+];
 export const ENVOY_STEPS = [
   ['Your link', 'Your dashboard shows your own referral link. Copy it, or send it on WhatsApp, to women who should join WODDI.'],
   ['The people you referred', 'Everyone who joins through your link appears on your dashboard, with how far she is in her 3 days.'],
@@ -26,7 +34,7 @@ export const ENVOY_STEPS = [
 ];
 
 function stepsList() {
-  const steps = app.user?.is_envoy ? ENVOY_STEPS : LEADER_STEPS;
+  const steps = app.user?.is_envoy ? ENVOY_STEPS : app.user?.is_leader ? LEADER_STEPS : MEMBER_STEPS;
   const all = () => steps.map(([a, b], i) => `${i + 1}. ${t(a)}. ${t(b)}`).join(' ');
   return h('div', { style: 'display:grid;gap:12px' }, h('div', {}, listenBtn(all, 'Listen to every step')),
     h('ol', { class: 'guidesteps' }, steps.map(([a, b]) => h('li', {}, h('b', { text: a }), h('p', { text: b }), listenBtn(() => t(a) + '. ' + t(b))))));
@@ -47,7 +55,7 @@ function sayName(name, lang) {
 }
 
 export async function tourPlayer({ onClose, first } = {}) {
-  const kind = app.user?.is_envoy ? 'envoy' : 'leader';
+  const kind = app.user?.is_envoy ? 'envoy' : app.user?.is_leader ? 'leader' : 'member';
   const lang = TOUR_LANGS.includes(i18n.lang) ? i18n.lang : 'en';
   const base = `/assets/tour/${kind}/${lang}/`; const voice = `/assets/tour/voice/${lang}/`;
   let man = { scenes: [] };
@@ -134,7 +142,7 @@ export async function openGuide(first) {
 
 export async function render(root) {
   const host = h('div');
-  root.append(card(app.user?.is_envoy ? 'How to use WDOS as a WODDI Envoy' : 'How to use WDOS as a volunteer leader', 'Press Play. Each screen shows exactly what to tap, with the words read aloud in your language.', host));
+  root.append(card(app.user?.is_envoy ? 'How to use WDOS as a WODDI Envoy' : app.user?.is_leader ? 'How to use WDOS as a volunteer leader' : 'How to use WDOS as a member', 'Press Play. Each screen shows exactly what to tap, with the words read aloud in your language.', host));
   const p = await tourPlayer({});
   host.append(p);
   const off = () => { p.stop(); window.removeEventListener('hashchange', off); document.removeEventListener('keydown', p.keys); };

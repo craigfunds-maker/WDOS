@@ -1,0 +1,91 @@
+[
+{
+"id": "dash",
+"action": "none",
+"box": null,
+"label": ""
+},
+{
+"id": "journey",
+"action": "tap",
+"box": [
+51.79,
+38.34,
+45.13,
+23.39
+],
+"label": "Seven-day journey\n1/7\nSteps completed"
+},
+{
+"id": "chapter",
+"action": "tap",
+"box": [
+3.08,
+38.34,
+45.13,
+23.39
+],
+"label": "My chapter\nUshafa WGMN 001\n1 woman in your chapter"
+},
+{
+"id": "invite",
+"action": "tap",
+"box": [
+3.08,
+40.02,
+45.13,
+19.89
+],
+"label": "Referral progress\n0/3\n0 completed their seven days"
+},
+{
+"id": "community",
+"action": "tap",
+"box": [
+3.08,
+42.19,
+93.85,
+15.68
+],
+"label": "WODDI Community\n\nYour chapter, your network at every level, topic circles and ev"
+},
+{
+"id": "messages",
+"action": "tap",
+"box": [
+40.3,
+90.71,
+19.39,
+8.44
+],
+"label": "Messages"
+},
+{
+"id": "bell",
+"action": "tap",
+"box": [
+72.82,
+1.5,
+10.77,
+6.0
+],
+"label": "2"
+},
+{
+"id": "lang",
+"action": "tap",
+"box": [
+32.36,
+1.64,
+25.64,
+5.71
+],
+"label": "العربية\nEnglish\nFrançais\nHausa\nIgbo\nPortuguês\nKiswahili\nYorùbá"
+},
+{
+"id": "end",
+"action": "none",
+"box": null,
+"label": ""
+}
+]

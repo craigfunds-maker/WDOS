@@ -163,4 +163,6 @@ function work_automations(array &$done): void {
       $done['meeting_' . $m['id']] = "$n reminded";
     }
   } catch (PDOException $e) { error_log('[wdos work] ' . $e->getMessage()); }
+  if (function_exists('followup_automations')) followup_automations($done);
+  if (function_exists('self_governance')) self_governance($done);
 }

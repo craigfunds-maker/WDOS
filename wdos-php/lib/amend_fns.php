@@ -444,6 +444,7 @@ function announcement_deliver(int $id): int {
   foreach (rows('SELECT lang, title, body FROM announcement_texts WHERE announcement_id=?', [$id]) as $t) $texts[$t['lang']] = [$t['title'], mb_substr($t['body'], 0, 240)];
   $n = notify_many($w, $p, 'announcement', $a['title'], mb_substr($a['body'], 0, 240), '#/announcements/' . $id, $texts);
   q('UPDATE announcements SET recipients=? WHERE id=?', [$n, $id]);
+  if (!empty($a['by_email']) && function_exists('mail_many')) mail_many($w, $p, $a['title'], mb_substr($a['body'], 0, 1500), '#/announcements/' . $id, $texts);
   return $n;
 }
 function announcement_send(array $me): array {
@@ -459,6 +460,7 @@ function announcement_send(array $me): array {
     if (!in_array($l, NOTE_LANGS, true) || !is_array($t)) continue; $lt = mb_substr(trim((string) ($t['title'] ?? '')), 0, 160); $lb = mb_substr(trim((string) ($t['body'] ?? '')), 0, 4000);
     if ($lt !== '' && $lb !== '') q('INSERT INTO announcement_texts (announcement_id,lang,title,body) VALUES (?,?,?,?)', [$id, $l, $lt, $lb]);
   }
+  if (!empty(body()['by_email'])) { try { q('UPDATE announcements SET by_email=1 WHERE id=?', [$id]); } catch (PDOException $e) { /* before migration 028 */ } }
   if ((body()['kind'] ?? '') === 'newsletter' && is_hq($me)) { try { q("UPDATE announcements SET kind='newsletter' WHERE id=?", [$id]); } catch (PDOException $e) { /* before migration 021 */ } }
   log_activity((int) $me['id'], null, $when ? 'announcement_scheduled' : 'announcement', $title);
   if ($when) return ['ok' => true, 'id' => $id, 'scheduled_at' => $when, 'recipients' => 0, 'push_queued' => 0];

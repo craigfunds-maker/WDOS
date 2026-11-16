@@ -127,6 +127,17 @@
 "label": "Omba mkutano wa video"
 },
 {
+"id": "mrflier",
+"action": "tap",
+"box": [
+7.44,
+46.51,
+60.12,
+6.86
+],
+"label": "Pakia bango la mkutano"
+},
+{
 "id": "mrjoin",
 "action": "tap",
 "box": [
@@ -160,6 +171,17 @@
 "label": "Nakili kiungo cha mkutano"
 },
 {
+"id": "mrminutes",
+"action": "look",
+"box": [
+3.08,
+0.0,
+93.85,
+100.0
+],
+"label": "Kumbukumbu na mahudhurio\n\nZimerekodiwa dakika 4 zilizopita. Zimetumwa kwa viongo"
+},
+{
 "id": "bell",
 "action": "tap",
 "box": [
@@ -168,7 +190,7 @@
 10.77,
 6.0
 ],
-"label": "5"
+"label": "6"
 },
 {
 "id": "lang",

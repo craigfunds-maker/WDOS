@@ -40,6 +40,9 @@ export async function render(root, params) {
   const complete = !!params.complete; const u = app.user;
   /* A referral: either a link someone shared (#/r/CODE) or the network's referral form (#/join/WGMN). */
   let link = null, refMeta = null; const leaderForm = !!params.leader && !complete;
+  /* v109.3: a referral survives "Continue with Google": the code is kept on this device until the profile is finished */
+  let gref = ''; try { gref = complete ? (localStorage.getItem('wdos.gref') || '') : ''; } catch { gref = ''; }
+  if (gref) { try { const r = await api('/ref/' + encodeURIComponent(gref)); link = r.link; if (!u?.network) params.network = link.network; } catch { try { localStorage.removeItem('wdos.gref'); } catch { /* none */ } } }
   if (params.ref && !complete) {
     try { const r = await api('/ref/' + encodeURIComponent(params.ref)); link = r.link; params.network = link.network; }
     catch (e) { root.append(h('div', { class: 'public' }, pubBar(h('a', { class: 'btn btn--quiet', href: '#/login', text: 'Sign in' })), h('main', { class: 'join' }, h('div', { class: 'card', style: 'max-width:560px;margin:40px auto' }, h('div', { class: 'card__body', style: 'display:grid;gap:12px;text-align:center' }, h('h2', { text: 'This invitation link is not active' }), h('p', { class: 'muted', text: 'Ask the person who sent it for a new link, or join WODDI directly.' }), h('div', {}, h('a', { class: 'btn', href: '#/', text: 'Join as a member' }))))), pubFoot())); return; }
@@ -172,7 +175,7 @@ export async function render(root, params) {
     }
     const form = h('form', { class: 'jform reveal', novalidate: true },
       h('div', { class: 'jform__head' }, h('img', { src: n.disc, alt: '' }), h('div', {}, h('h2', { text: complete ? 'Finish your profile' : tf('Join {1}', chosen) }), h('p', { class: 'muted', text: `${n.name}. ${n.age}.` }))),
-      !complete && app.config.google ? h('div', { style: 'margin-top:18px' }, h('a', { class: 'gbtn', href: '/api/auth/google/start?network=' + chosen }, googleMark(), tf('Continue with Google as {1}', chosen)), h('div', { class: 'or', text: 'or fill in the form' })) : null,
+      !complete && !leaderForm && app.config.google ? h('div', { style: 'margin-top:18px' }, h('a', { class: 'gbtn', href: '/api/auth/google/start?network=' + chosen, onclick: () => { try { if (link) localStorage.setItem('wdos.gref', link.code); else localStorage.removeItem('wdos.gref'); } catch { /* private mode */ } } }, googleMark(), tf('Continue with Google as {1}', chosen)), h('div', { class: 'or', text: 'or fill in the form' })) : null,
       h('fieldset', { 'data-eyebrow': 'Simple details' }, h('legend', { text: 'Your details' }), h('p', { class: 'muted', style: 'margin:0 0 12px', text: 'Only the essential details now. No OTP and no long registration form.' }), h('div', { class: 'grid2' },
         field('first_name', 'First name', { required: true, maxlength: 80, autocomplete: 'given-name', value: u?.first_name || saved.first_name || '' }),
         field('last_name', 'Surname', { required: true, maxlength: 80, autocomplete: 'family-name', value: u?.last_name || saved.last_name || '' }),
@@ -187,9 +190,9 @@ export async function render(root, params) {
       h('fieldset', { 'data-eyebrow': 'Your agreement' }, h('legend', { text: 'Your agreement' }), h('p', { class: 'muted', style: 'margin:0 0 6px', text: 'A simple summary of membership and privacy information. Press Listen to hear it.' }),
         h('div', { class: 'panel', style: 'margin-bottom:14px' }, h('b', { text: 'Membership summary' }), h('p', { style: 'margin:6px 0 0', text: 'WODDI uses information to manage membership, learning, chapters and approved communications. Participation is voluntary. Unauthorised dues, local accounts and fundraising are not permitted.' }), h('p', { class: 'muted', style: 'margin:6px 0 0;font-size:14px', text: 'WODDI keeps your name, phone number and location so your chapter and your leaders can reach you. WODDI does not sell or share them outside WODDI.' })),
         h('label', { class: 'check' }, consent, h('span', { text: 'I agree to the membership guidance and privacy notice, and to the WODDI Code of Conduct.' })),
-        complete || link || leaderForm ? null : h('div', { class: 'panel', style: 'margin-top:16px;display:grid;gap:12px' }, F.vol = choices('f-vol', 'Would you like to volunteer with WODDI?', [['', 'Not now. I am joining as a member'], ['volunteer', 'Yes, I want to volunteer in my chapter'], ['lead', 'Yes, and I am interested in a leadership role']], (v) => { volRoleBox.hidden = v !== 'lead'; }),
+        link || leaderForm ? null : h('div', { class: 'panel', style: 'margin-top:16px;display:grid;gap:12px' }, F.vol = choices('f-vol', 'Would you like to volunteer with WODDI?', [['', 'Not now. I am joining as a member'], ['volunteer', 'Yes, I want to volunteer in my chapter'], ['lead', 'Yes, and I am interested in a leadership role']], (v) => { volRoleBox.hidden = v !== 'lead'; }),
           volRoleBox = h('label', { class: 'field', for: 'f-volrole', hidden: true }, h('span', { text: 'Which role are you interested in?' }), F.volRole = h('select', { class: 'input', id: 'f-volrole', style: 'font-size:15px' }, h('option', { value: '', text: 'Choose a role' })), h('small', { class: 'muted', text: 'This records your interest. WODDI Headquarters appoints leaders after you are an active member.' }))),
-        complete || link ? null : h('label', { class: 'field', for: 'f-source', style: 'margin-top:16px' }, h('span', { text: 'How did you hear about WODDI? (optional)' }), F.source = h('select', { class: 'input', id: 'f-source' }, h('option', { value: '', text: 'Choose one' }))),
+        link ? null : h('label', { class: 'field', for: 'f-source', style: 'margin-top:16px' }, h('span', { text: 'How did you hear about WODDI? (optional)' }), F.source = h('select', { class: 'input', id: 'f-source' }, h('option', { value: '', text: 'Choose one' }))),
         complete ? null : h('div', { style: 'margin-top:16px' }, field('password', 'Choose your password or PIN', { type: 'password', required: true, minlength: 6, autocomplete: 'new-password' }, 'At least 6 letters or numbers. Choose one you will remember. No code is sent to you.'))),
       err, submit,
       complete ? h('p', { class: 'muted', style: 'margin-top:12px;font-size:14px' }, 'Signed in as ' + (u?.email || '') + '. ', h('a', { href: '#', onclick: (e) => { e.preventDefault(); signOut(); }, text: 'Use a different account' })) : null);
@@ -212,7 +215,9 @@ export async function render(root, params) {
         state_id: stateMode === 'select' ? Number(F.state.value) || 0 : 0, state_region: stateMode === 'select' ? '' : stateName(), lga: lgaMode === 'select' ? F.lgaSel.value : F.lga.value, community: F.community.value, ward: diaspora() ? '' : F.ward.value, consent: consent.checked };
       if (stateMode === 'list' && !body.state_region && !diaspora()) { err.textContent = 'Choose your state or region.'; F.state.focus(); return; }
       if (lgaMode === 'select' && !body.lga) { err.textContent = 'Choose your LGA.'; F.lgaSel.focus(); return; }
-      if (!complete) { body.email = F.email.value.trim(); body.password = F.password.value; if (F.vol) body.volunteer_interest = F.vol.value === 'lead' ? F.volRole.value : F.vol.value; const last = checkStep(steps[steps.length - 1]); if (last) { err.textContent = last; return; } if (!consent.checked) { err.textContent = 'Please review and accept the membership guidance.'; consent.focus(); return; } }
+      if (F.vol) body.volunteer_interest = F.vol.value === 'lead' ? F.volRole.value : F.vol.value;
+      if (complete && !consent.checked) { err.textContent = t('Please confirm you agree to the Code of Conduct.'); return; }
+      if (!complete) { body.email = F.email.value.trim(); body.password = F.password.value; const last = checkStep(steps[steps.length - 1]); if (last) { err.textContent = last; return; } if (!consent.checked) { err.textContent = 'Please review and accept the membership guidance.'; consent.focus(); return; } }
       body.lang = i18n.lang; if (!complete) { body.idem = draft.key(); body.draft = draft.ref().t; }
       if (F.source && F.source.value) body.source = F.source.value;
       { const c = new URLSearchParams(location.search).get('c'); if (c) body.campaign = c.slice(0, 40); }
@@ -227,6 +232,7 @@ export async function render(root, params) {
       submit.disabled = true; const label = submit.textContent; submit.textContent = 'Creating your membership…';
       try {
         const r = await api(complete ? '/auth/complete-profile' : '/auth/register', body);
+        try { localStorage.removeItem('wdos.gref'); } catch { /* none */ }
         toast(tf('Welcome to {1}', chosen), tf('Your membership number is {1}.', r.user.member_no), 'ok');
         draft.clear();
         if (complete) { await refreshUser(); }

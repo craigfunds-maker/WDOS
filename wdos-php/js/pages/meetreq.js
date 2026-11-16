@@ -107,12 +107,13 @@ function filesView(files) {
     : h('a', { class: 'btn btn--ghost', href: f.url, target: '_blank', rel: 'noopener', style: 'justify-self:start' }, icon('book', 16), tf('Minutes document: {1}', f.name)));
 }
 function minutesView(m) {
-  return card('Minutes and attendance', tf('Recorded {1}. Sent to the volunteer leaders and to HQ, in the app and by email.', ago(m.minutes_at)), h('div', { style: 'display:grid;gap:14px' },
+  const mc = card('Minutes and attendance', tf('Recorded {1}. Sent to the volunteer leaders and to HQ, in the app and by email.', ago(m.minutes_at)), h('div', { style: 'display:grid;gap:14px' },
     h('div', { class: 'kv' }, h('div', {}, h('span', { text: t('Number who attended') }), h('b', { text: fmt(m.attendance_count) }))),
     m.attended && m.attended.length ? h('div', { style: 'display:grid;gap:6px' }, h('b', { text: tf('Leaders who attended ({1})', fmt(m.attended.length)) }), h('div', { class: 'list' }, m.attended.map((p) => personRow(p)))) : null,
     m.attendance_names ? h('div', {}, h('b', { text: t('Others present') }), h('p', { style: 'white-space:pre-wrap;margin:4px 0 0', text: m.attendance_names })) : null,
     h('div', {}, h('b', { text: t('Minutes') }), h('p', { style: 'white-space:pre-wrap;margin:4px 0 0', text: m.minutes })),
     ...filesView(m.minute_files || [])));
+  mc.dataset.tour = 'mr-minutes'; return mc;
 }
 function recorder(onFile) {
   /* a voice note of the minutes, recorded on the phone; uploaded as a small audio file */
@@ -166,7 +167,7 @@ function minutesForm(m, id, reload) {
       toast('Minutes sent', tf('{1} leaders and WODDI HQ were told in the app and by email.', fmt(r.told)), 'ok'); reload();
     } catch (e) { err.textContent = e.message; send.disabled = false; }
   } }, icon('send', 16), t('Send the minutes'));
-  return card('Record the minutes', 'Send the minutes, the leaders who attended, and a document or recording if you have one. The volunteer leaders and WODDI HQ get them in the app, on the phone and by email, and HQ sees them on the HQ dashboard.', h('div', { style: 'display:grid;gap:14px' },
+  const rc = card('Record the minutes', 'Send the minutes, the leaders who attended, and a document or recording if you have one. The volunteer leaders and WODDI HQ get them in the app, on the phone and by email, and HQ sees them on the HQ dashboard.', h('div', { style: 'display:grid;gap:14px' },
     field('Minutes', mins),
     field('Leaders who attended', list, 'People WDOS saw open the room are ticked. Untick anyone who did not stay.'),
     field('Number who attended', cnt, 'Everyone present, including people who joined together on one phone.'),
@@ -176,6 +177,7 @@ function minutesForm(m, id, reload) {
       h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, h('button', { class: 'btn btn--quiet', type: 'button', onclick: () => pickRec.click() }, icon('plus', 18), t('Upload a recording')), pickRec), recShow,
       h('small', { class: 'faint', text: t('Audio (MP3, M4A, OGG, WEBM, WAV) or an MP4 video, up to 15 MB.') }))),
     err, h('div', {}, send)));
+  rc.dataset.tour = 'mr-minutes'; return rc;
 }
 
 /* ---- the meeting flier (v109.2) ---- */

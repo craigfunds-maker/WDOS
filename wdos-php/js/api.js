@@ -29,7 +29,7 @@ export async function fingerprintEnroll(label) {
   publicKey.excludeCredentials = (publicKey.excludeCredentials || []).map((c) => ({ ...c, id: fromB64u(c.id) }));
   const cred = await navigator.credentials.create({ publicKey });
   const r = cred.response;
-  if (!r.getPublicKey || !r.getPublicKey()) throw new Error('This browser cannot set up fingerprint sign-in. Update it and try again.');
+  if (!r.getPublicKey || !r.getPublicKey()) throw new Error(globalThis.tf ? globalThis.tf('This browser cannot set up {1} sign-in. Update it and try again.', globalThis.tr ? globalThis.tr(bio().name) : bio().name) : 'This browser cannot set up this sign-in. Update it and try again.');
   return api('/webauthn/register/verify', { challenge_id, id: toB64u(cred.rawId), clientDataJSON: toB64u(r.clientDataJSON), authenticatorData: toB64u(r.getAuthenticatorData()), publicKey: toB64u(r.getPublicKey()), alg: r.getPublicKeyAlgorithm(), label });
 }
 export async function fingerprintLogin(emailHint = '') {
@@ -39,6 +39,16 @@ export async function fingerprintLogin(emailHint = '') {
   const cred = await navigator.credentials.get({ publicKey });
   const r = cred.response;
   return api('/webauthn/login/verify', { challenge_id, id: toB64u(cred.rawId), clientDataJSON: toB64u(r.clientDataJSON), authenticatorData: toB64u(r.authenticatorData), signature: toB64u(r.signature) });
+}
+/** v109.3: the name of this device's own lock, so the button says what the person will actually use:
+ *  Face ID on an iPhone or iPad, fingerprint on Android, Touch ID on a Mac, Windows Hello on Windows. */
+export function bio() {
+  const ua = navigator.userAgent; const ipad = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+  if (/iPhone|iPad|iPod/.test(ua) || ipad) return { name: 'Face ID', key: 'faceid', icon: 'face' };
+  if (/Android/.test(ua)) return { name: 'fingerprint', key: 'fingerprint', icon: 'fingerprint' };
+  if (/Macintosh|Mac OS X/.test(ua)) return { name: 'Touch ID', key: 'touchid', icon: 'fingerprint' };
+  if (/Windows/.test(ua)) return { name: 'Windows Hello', key: 'hello', icon: 'fingerprint' };
+  return { name: 'fingerprint', key: 'fingerprint', icon: 'fingerprint' };
 }
 export function deviceLabel() {
   const ua = navigator.userAgent;

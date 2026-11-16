@@ -1,5 +1,6 @@
 /* A member's home: her membership, what is left to set up, and the latest from HQ. */
-import { h, icon, avatar, flag, netTag, card, sk, empty, ago, greeting, fmtDate, NETS, inspCard, toast, choices } from '../ui.js';
+import { h, t as tr, tf, icon, avatar, flag, netTag, card, sk, empty, ago, greeting, fmtDate, NETS, inspCard, toast, choices } from '../ui.js';
+import { bio } from '../api.js';
 import { pushNudge } from '../pushnudge.js';
 import { goodMotherCard } from '../goodmother.js';
 import { api, pushState } from '../api.js';
@@ -15,7 +16,7 @@ export async function render(root) {
   const tiles = h('div', { class: 'row row--4' }); root.append(tiles);
   const tile = (ic, label, value, foot, href, ext) => h('a', { class: 'card kpi kpi--link', href, ...(ext ? { target: '_blank', rel: 'noopener' } : {}) }, h('div', { class: 'kpi__label' }, icon(ic, 17), h('span', { text: label })), h('div', { class: 'kpi__value', style: String(value).length > 6 ? 'font-size:21px;line-height:1.25;letter-spacing:0' : '', text: String(value) }), h('div', { class: 'kpi__foot' }, h('span', { text: foot })));
   const jr = u.journey; const paintTiles = (ref) => tiles.replaceChildren(
-    tile('users', 'My chapter', u.chapter ? u.chapter.name : 'Pending', u.chapter ? tf('{1} women in your chapter', u.chapter.members) : 'Open to see what is needed', '#/chapter'),
+    tile('users', 'My chapter', u.chapter ? u.chapter.name : 'Pending', u.chapter ? (Number(u.chapter.members) === 1 ? tr('1 woman in your chapter') : tf('{1} women in your chapter', u.chapter.members)) : 'Open to see what is needed', '#/chapter'),
     tile('route', 'Seven-day journey', jr ? (jr.status === 'active' ? 'Active' : `${jr.done}/${jr.total}`) : 'Active', jr ? (jr.status === 'active' ? 'You completed your seven days' : 'Steps completed') : 'Member before the journey began', '#/journey'),
     tile('send', 'Referral progress', ref ? `${ref.registered}/${ref.target}` : '0/3', ref ? tf('{1} completed their seven days', ref.verified) : 'Invite three women', '#/invite'),
     tile('book', 'Learning', 'Institute', 'Courses and the volunteer pathway', '#/institute'));
@@ -49,7 +50,7 @@ export async function render(root) {
   steps.replaceChildren(
     step(u.has_photo, 'Add your photograph', u.has_photo ? 'Done. Your leaders can recognise you.' : 'So your leaders and HQ can recognise you.'),
     step(push === 'on', 'Switch on notifications', push === 'on' ? 'Done on this device.' : push === 'unsupported' ? 'Not available in this browser. On iPhone, add WDOS to the Home Screen.' : 'Get announcements on this phone even when WDOS is closed.'),
-    step(creds.credentials.length > 0, 'Set up fingerprint sign-in', creds.credentials.length ? 'Done. Sign in without typing a password.' : 'Sign in with your fingerprint or face next time.'));
+    step(creds.credentials.length > 0, tf('Set up {1} sign-in', tr(bio().name)), creds.credentials.length ? 'Done. Sign in without typing a password.' : tf('Sign in with {1} next time.', tr(bio().name))));
   news.replaceChildren(ann.items.length ? h('div', { class: 'list reveal' }, ann.items.slice(0, 4).map((a) => h('a', { class: 'list__link', href: '#/announcements/' + a.id }, h('div', { class: 'nrow__ico' }, icon('megaphone', 18)), h('div', { class: 'grow' }, h('b', { text: a.title }), h('small', { text: ago(a.created_at) })))))
     : empty('megaphone', 'No announcements yet', 'When WODDI HQ writes to your network, you will read it here and get a notification.'));
 }

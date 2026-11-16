@@ -57,7 +57,11 @@ Every row is something known from the code, the tests or the live test copy. Not
 | C-16 | The plain walkthrough video did not show what to tap; replaced by a guided tour on real screens with tap markers, captions, narration in 5 languages and a personal greeting by first name | v109.2 | ui tour check, 5 languages |
 | C-17 | The first-sign-in guide crashed for envoys and leaders (`app.user?.is_t is not a function`), so it never appeared | v109.2 | ui tour check, no page errors |
 | C-19 | Minutes now carry the leaders who attended (ticked from who opened the room), a minutes document and a recording or voice note; sent to the volunteer leaders and to HQ in the app and by email (each HQ admin and the HQ inbox), and shown on the HQ dashboard | v109.2 | t108 minutes checks |
-| C-19 | A leader could not attach a meeting flier; she can now upload a picture or PDF with her request or later, HQ can add or change it and the leader is told in the app and by email | v109.2 | t108 flier checks |
+| C-20 | A leader could not attach a meeting flier; she can now upload a picture or PDF with her request or later, HQ can add or change it and the leader is told in the app and by email | v109.2 | t108 flier checks |
+| C-21 | Meetings, tasks, messages and announcements had no follow-up: reminders now go the day before, an hour before and as a meeting starts; tasks due soon, due today, overdue or waiting for review; messages unread for a day; announcements unread for two days. In the app, by push and by email, in each person's language, each sent once | v109.3 | t110 |
+| C-22 | Self-governance: WDOS now checks itself every day (chapter counts, members in two chapters, cross-network placements, chapters over 50, seats held by suspended accounts, failed email or push) and tells HQ; a meeting request waiting over 12 hours reminds HQ | v109.3 | t110 |
+| C-23 | A Google sign-up in either network could reach pages before her details were filled in; the server now refuses everything except her profile until it is complete | v109.3 | t111 |
+| C-24 | Nothing from the old (Supabase) WDOS beyond accounts had been carried over. Every table is now copied row for row into an archive with counts checked against the old system, the stored files into a private folder outside the website, and the super administrator can search both under Old WDOS records | v109.3 | t111 |
 | C-18 | On a phone the envoy's Message button sat off the right edge of the screen | v109.2 | tour capture at 390 px |
 
 ## Readiness, stated plainly
