@@ -21,8 +21,9 @@ function sb(string $method, string $path, ?string $body = null, array $extra = [
   global $base, $key;
   for ($try = 0; $try < 4; $try++) {
     $ch = curl_init($base . $path);
-    curl_setopt_array($ch, [CURLOPT_CUSTOMREQUEST => $method, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 120, CURLOPT_HEADER => true,
+    curl_setopt_array($ch, [CURLOPT_CUSTOMREQUEST => $method, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 300, CURLOPT_CONNECTTIMEOUT => 20, CURLOPT_HEADER => true,
       CURLOPT_HTTPHEADER => array_merge(['apikey: ' . $key, 'Authorization: Bearer ' . $key, 'Content-Type: application/json'], $extra)]);
+    if ($method === 'HEAD') curl_setopt($ch, CURLOPT_NOBODY, true);              // a HEAD reply has no body: do not wait for one
     if ($body !== null) curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
     $res = curl_exec($ch); $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE); $hs = (int) curl_getinfo($ch, CURLINFO_HEADER_SIZE); curl_close($ch);
     if ($res === false || $code >= 500 || $code === 429) { sleep(2 + 3 * $try); continue; }
