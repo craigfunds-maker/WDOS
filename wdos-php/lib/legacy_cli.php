@@ -11,8 +11,10 @@ if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require __DIR__ . '/core.php';
 function legacy_dir(): string { return rtrim((string) (cfg('LEGACY_DIR') ?: dirname(__DIR__, 2) . '/wdos-legacy-files'), '/'); }
 @set_time_limit(0); ini_set('memory_limit', '1024M');
-$base = rtrim((string) cfg('SUPABASE_URL'), '/'); $key = (string) cfg('SUPABASE_SERVICE_KEY');
-if ($base === '' || $key === '') { fwrite(STDERR, "Add SUPABASE_URL and SUPABASE_SERVICE_KEY to config.local.php first.\n"); exit(2); }
+// the two settings may also sit in their own file beside the website folder (never inside it): wdos-supabase.php
+$sbFile = dirname(__DIR__, 2) . '/wdos-supabase.php'; $sbCfg = is_file($sbFile) ? (array) require $sbFile : [];
+$base = rtrim((string) ($sbCfg['SUPABASE_URL'] ?? '' ?: cfg('SUPABASE_URL')), '/'); $key = (string) ($sbCfg['SUPABASE_SERVICE_KEY'] ?? '' ?: cfg('SUPABASE_SERVICE_KEY'));
+if ($base === '' || $key === '') { fwrite(STDERR, "Add SUPABASE_URL and SUPABASE_SERVICE_KEY to wdos-supabase.php (beside public_html) or config.local.php first.\n"); exit(2); }
 $what = $argv[1] ?? 'all';
 
 function sb(string $method, string $path, ?string $body = null, array $extra = [], bool $raw = false) {
