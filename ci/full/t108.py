@@ -166,9 +166,7 @@ chk('HQ inbox emailed about the request', int(sql("select count(*) from mail_out
 chk('a member cannot ask for a video meeting', m.post(B+'/meet-requests',json=form).status_code==403)
 chk('an outsider cannot see it', m.get(B+f'/meet-requests/{mid}').status_code==404)
 # the meeting flier (v109.2): with the request or later; a picture or a PDF; HQ adding it tells the leader
-import io as _io
-from PIL import Image as _Im
-_b=_io.BytesIO(); _Im.new('RGB',(40,60),(212,0,106)).save(_b,'PNG'); PNG=_b.getvalue()
+PNG=b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00(\x00\x00\x00<\x08\x02\x00\x00\x00\x9b\xdbo\xb7\x00\x00\x00NIDATx^\xed\xd0A\r\x00!\x10\xc0@8\xb9\xe8E\x109\x13\xb3\x9f\x8e\x81&\xddw\x9d5\xe1\x9b\x88\xfe\n3\xadfZ\xcd\xb4\x9ai5\xd3j\xa6\xd5L\xab\x99V3\xadfZ\xcd\xb4\x9ai5\xd3j\xa6\xd5L\xab\x99V3\xadfZ\xcd\x8c\xad~\xfc\x89\x01\xb6\xc1\xb8\xb7\x9d\x00\x00\x00\x00IEND\xaeB`\x82'
 csvf=ld.post(B+'/files',json={'name':'list.csv','data':base64.b64encode(b'a,b\n1,2\n').decode(),'purpose':'flier'}).json()['file']
 before=int(sql("select count(*) from meeting_requests"))
 r=ld.post(B+'/meet-requests',json=dict(form,flier_file=csvf['id'])); chk('a CSV is refused as the flier, and no request is left behind', r.status_code==422 and r.json().get('field','flier_file') and int(sql("select count(*) from meeting_requests"))==before, r.text)
