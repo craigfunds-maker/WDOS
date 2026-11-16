@@ -27,7 +27,7 @@ for ($i = 0; $i < 420; $i++) {
 // a few seats so the leadership views have real rows
 $pw = password_hash('leader-pass-1', PASSWORD_DEFAULT);
 $lead = row("SELECT id FROM users WHERE network='WGMN' AND country_code='NG' ORDER BY id LIMIT 1");
-q("UPDATE users SET email='leader@test.local', password_hash=?, first_name='Ngunan', last_name='Addingi' WHERE id=?", [$pw, (int)$lead['id']]);
+q("UPDATE users SET email='leader@test.local', password_hash=?, first_name='Amara', last_name='Bello' WHERE id=?", [$pw, (int)$lead['id']]);
 q('INSERT INTO seats (user_id,position_code,network,org_unit_id,status,starts_at) VALUES (?,?,?,?,?,?)', [(int)$lead['id'],'country_rep','WGMN',48,'appointed',gmdate('Y-m-d H:i:s', time()-60*86400)]);
 $k=0; foreach (rows("SELECT id, org_unit_id, network FROM users WHERE country_code='NG' AND org_unit_id>=100 AND id<>? ORDER BY id LIMIT 60", [(int)$lead['id']]) as $u) {
   if ($k++ % 4) continue; $pos = ['state_coordinator','assistant_state_coordinator'][$k % 2];

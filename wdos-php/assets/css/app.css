@@ -533,3 +533,24 @@ body.in-call{overflow:hidden}
 .tour__steps summary{cursor:pointer;font-weight:600;padding:8px 0}
 .guidebox{max-height:94vh;overflow:auto}
 @media (prefers-reduced-motion:reduce){.tour__ring,.tour__ring.is-tap,.tour__dot,.tour__hand,.tour__finger{animation:none}}
+/* v109.4 live guide: runs over her own pages. Only the panel takes taps; the ring and finger point at her real button. */
+.ltour{position:fixed;inset:0;z-index:9000;pointer-events:none}
+.ltour__shade{position:fixed;inset:0;background:rgba(10,10,20,.5)}
+.ltour__ring{position:fixed;display:none;border-radius:12px;box-shadow:0 0 0 3px #ffd400,0 0 0 9999px rgba(10,10,20,.42);animation:tourGlow 1.4s ease-in-out infinite;transition:left .25s,top .25s,width .25s,height .25s}
+.ltour__finger{position:fixed;display:none;width:0;height:0}
+.ltour__finger.is-look .tour__hand{display:none}
+.ltour__panel{pointer-events:auto;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));width:min(440px,calc(100vw - 20px));max-height:72vh;overflow:auto;
+  display:grid;gap:10px;padding:14px;border-radius:18px;background:#fff;color:#1d1d22;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.ltour__panel .tour__count,.ltour__panel .tour__note{color:#55505a}
+.ltour__panel .iconbtn{color:#1d1d22}
+.ltour__panel .tour__nav{color:#1d1d22;border-color:#cfc8d0;background:#fff}
+.ltour__panel .tour__nav:disabled{opacity:.4}
+.ltour__panel.is-top{bottom:auto;top:calc(64px + env(safe-area-inset-top,0px))}
+@media (min-width:900px){.ltour__panel{bottom:20px}.ltour__panel.is-top{top:20px}}
+.ltour__top{display:flex;gap:10px;align-items:center}
+.ltour__text{margin:0;font-size:17px;line-height:1.45;color:#1d1d22}
+.ltour__read{justify-self:center;font-size:14px}
+.ltour .tour__hello{max-width:none;padding:12px 10px;gap:6px}
+.ltour .tour__logo{display:none}
+.ltour .tour__hello h2{font-size:26px}
+@media (prefers-reduced-motion:reduce){.ltour__ring{animation:none;transition:none}}

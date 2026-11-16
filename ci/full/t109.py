@@ -57,7 +57,7 @@ chk('google keys reported off', S().get(B+'/envoy/join-info').json()['google'] i
 # ---- the call inside WDOS
 mid=sql("select id from meeting_requests where status='approved' and starts_at<=utc_timestamp() and request_no='MR-202611-0099'")
 if not mid:
-    sql("insert into meeting_requests (request_no,requester_id,network,country_code,region,leader_name,title,reason,attendees_text,attendee_ids,graphics,other_needs,expected_count,starts_at,duration_min,tz,status,room,hq_note,created_at,updated_at) select 'MR-202611-0099',id,'WGMN','NG','Lagos','Ngunan Addingi','Test call now','Plan the outreach','Coordinators','','','',5,utc_timestamp(),60,'Africa/Lagos','approved','WODDI-TEST-ROOM-123','',utc_timestamp(),utc_timestamp() from users where email='leader@test.local'")
+    sql("insert into meeting_requests (request_no,requester_id,network,country_code,region,leader_name,title,reason,attendees_text,attendee_ids,graphics,other_needs,expected_count,starts_at,duration_min,tz,status,room,hq_note,created_at,updated_at) select 'MR-202611-0099',id,'WGMN','NG','Lagos','Amara Bello','Test call now','Plan the outreach','Coordinators','','','',5,utc_timestamp(),60,'Africa/Lagos','approved','WODDI-TEST-ROOM-123','',utc_timestamp(),utc_timestamp() from users where email='leader@test.local'")
     mid=sql("select id from meeting_requests where request_no='MR-202611-0099'")
 owner=sql(f"select u.email from meeting_requests m join users u on u.id=m.requester_id where m.id={mid}")
 s=ld if owner=='leader@test.local' else hq

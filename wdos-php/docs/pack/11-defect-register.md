@@ -62,6 +62,8 @@ Every row is something known from the code, the tests or the live test copy. Not
 | C-22 | Self-governance: WDOS now checks itself every day (chapter counts, members in two chapters, cross-network placements, chapters over 50, seats held by suspended accounts, failed email or push) and tells HQ; a meeting request waiting over 12 hours reminds HQ | v109.3 | t110 |
 | C-23 | A Google sign-up in either network could reach pages before her details were filled in; the server now refuses everything except her profile until it is complete | v109.3 | t111 |
 | C-24 | Nothing from the old (Supabase) WDOS beyond accounts had been carried over. Every table is now copied row for row into an archive with counts checked against the old system, the stored files into a private folder outside the website, and the super administrator can search both under Old WDOS records | v109.3 | t111 |
+| C-25 | The video guide showed screenshots of one sample leader's dashboard (and that sample used a real leader's name); it now runs on each person's own dashboard and pages, ringing her real buttons, and says plainly when something is not on her page yet. Sample accounts now use invented names | v109.4 | t111, tour/livecheck.py |
+| C-26 | The guide voice sounded slow and robotic (compressed voice model, and the phone's own voice reading the name); it now uses the full Kokoro voice model (clear US voice for English, Kokoro for French and Portuguese, Piper for Swahili and Arabic, which Kokoro does not speak), at a natural speed with no pause to fetch the next line | v109.4 | t111 |
 | C-18 | On a phone the envoy's Message button sat off the right edge of the screen | v109.2 | tour capture at 390 px |
 
 ## Readiness, stated plainly

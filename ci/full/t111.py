@@ -41,4 +41,17 @@ for net,em in (('WGMN','g.wgmn@wdos-mail.org'),('WNNN','g.wnnn@wdos-mail.org')):
   r=g.post(B+'/auth/complete-profile',json={'network':net,'first_name':'Gift'})
   chk(f'{net} Google sign-up: half a form is refused', r.status_code==422, r.text)
   chk(f'{net} Google sign-up: still waiting for the details', sql(f"select status from users where email='{em}'")=='pending_profile')
+
+# v109.4: the guide runs on her own pages: words and voice for every step, and no screenshots of anyone's account
+import json as _j, os as _o, glob as _g
+R='/home/claude/wdos-php/assets/tour/'
+for kind in ('leader','envoy','member'):
+  for L in ('ar','en','fr','pt','sw'):
+    m=_j.load(open(f'{R}{kind}/{L}/tour.json'))
+    chk(f'guide {kind} {L}: every step has words and a voice', m['scenes'] and all(sc['text'] and _o.path.getsize(f'{R}voice/{L}/{kind}-{sc["id"]}.mp3')>2000 for sc in m['scenes']))
+chk('guide: welcome and greeting voiced in every language', all(_o.path.exists(f'{R}voice/{L}/{k}.mp3') for L in ('ar','en','fr','pt','sw') for k in ('hello','glad')))
+chk('guide: no screenshots of a sample account are shipped', not _g.glob(R+'*/*/*.webp'))
+js=open('/home/claude/wdos-php/js/pages/guide.js').read()
+chk('guide: the browser voice is no longer used', 'speechSynthesis' not in js)
+chk('guide: every scene of every kind has a plan on her own pages', all(f"id: '{sc['id']}'" in js for kind in ('leader','envoy','member') for sc in _j.load(open(f'{R}{kind}/en/tour.json'))['scenes']))
 print(f'checks {ok+bad}'); print(f'FAILURES {bad}'); sys.exit(1 if bad else 0)

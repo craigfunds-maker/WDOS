@@ -62,7 +62,7 @@ chk('leader cannot read other country', lead.get(B+f'/onboarding?user={nid}').st
 rf=lead.get(B+'/referrals').json(); chk('member link auto', len(rf['links'])==1 and rf['links'][0]['kind']=='member', rf['links'])
 lagos=int(sql("select id from org_units where name='Lagos'")); r=lead.post(B+'/referrals/link',json={'position':'state_secretary','org_unit_id':lagos,'label':'Lagos secretary'}); chk('leader link', r.ok, r.text); code=r.json()['link']['code']
 r=lead.post(B+'/referrals/link',json={'position':'country_rep'}); chk('cannot link own rank', r.status_code==403)
-pub=requests.get(B+f'/ref/{code}').json(); chk('public link info', pub['link']['role']=='State Secretary' and pub['link']['owner']=='Ngunan Addingi', pub)
+pub=requests.get(B+f'/ref/{code}').json(); chk('public link info', pub['link']['role']=='State Secretary' and pub['link']['owner']=='Amara Bello', pub)
 chk('bad link', requests.get(B+'/ref/ZZZZZZZZ').status_code==404)
 def reg(email, ref, net='WGMN', dob='1985-03-03'):
     s=requests.Session(); s.headers.update(H); ng=int(sql("select id from org_units where level='country' and country_code='NG'"))

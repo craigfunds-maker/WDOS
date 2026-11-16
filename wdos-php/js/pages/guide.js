@@ -1,12 +1,12 @@
-/* How to use WDOS: a guided tour played inside the app, in the person's language.
- * It greets her by her first name (the name is spoken by the phone's own voice where it has one), then walks screen by
- * screen through the real WDOS pages, showing exactly what to tap, with a caption and a narrated line for each screen.
- * The screens and the voice are small files (about 50 KB per screen) so it plays on low data. The same steps are written
- * out under "Read the steps instead", each one read aloud on request.
- * A leader or envoy sees it once after her first sign-in; it stays in the menu under How to use WDOS. */
+/* How to use WDOS: a guided tour played on the person's OWN dashboard and pages, in her language.
+ * WDOS opens each of her real pages in turn, rings the exact button to tap with a moving finger, and reads one short
+ * line aloud (natural voice files, small for low data). It never presses anything for her: it only points.
+ * Where she has nothing yet (no task, no report), it says what will appear there instead of pointing.
+ * Her name is shown on screen; nothing about her is sent anywhere. A leader, member or envoy sees it once after her
+ * first sign-in, and can play it again any time from the menu under How to use WDOS. */
 import { h, t, tf, icon, card, i18n, listenBtn, avatar } from '../ui.js';
 import { api } from '../api.js';
-import { app } from '../app.js';
+import { app, go as goTo } from '../app.js';
 
 export const TOUR_LANGS = ['ar', 'en', 'fr', 'pt', 'sw'];
 export const LEADER_STEPS = [
@@ -33,6 +33,41 @@ export const ENVOY_STEPS = [
   ['Tasks', 'Open Tasks to see what HQ has given you. Do it, upload your work if needed, and submit it.'],
 ];
 
+/* each scene: r = page to open, open = follow the first matching link on that page (her own first task, report or
+ * meeting), pre = press first (only harmless buttons that open a menu or a form), sel = what to ring, alt = what to ring
+ * where sel is not shown (a computer has a side menu instead of the bottom bar) */
+const SIDE = (h_) => `#side a[href="${h_}"]`;
+const PLAN = {
+  leader: [
+    { id: 'dash', r: '#/' }, { id: 'more', r: '#/', sel: '[data-tour=more]', alt: SIDE('#/tasks') },
+    { id: 'menu', r: '#/', pre: '[data-tour=more]', sel: SIDE('#/tasks') },
+    { id: 'brief', r: '#/tasks', open: 'a.list__link[href^="#/tasks/"]', sel: '#task-docs a[href^="/api/files/"]' },
+    { id: 'work', sel: '#task-docs button.btn--quiet' }, { id: 'tsubmit', sel: '[data-tour=task-submit]' },
+    { id: 'rtab', r: '#/reporting', sel: '.tabbar a[href="#/reporting"]', alt: SIDE('#/reporting') },
+    { id: 'rdoc', r: '#/reporting', open: 'a[href^="#/reporting/r/"], tr[tabindex]', sel: '#report-doc button.btn--quiet' },
+    { id: 'rsubmit', sel: '[data-tour=report-submit]' },
+    { id: 'dmnew', r: '#/inbox', sel: '[data-tour=dm-new]' }, { id: 'dmto', r: '#/inbox/new', sel: '[data-tour=dm-to]' },
+    { id: 'mrask', r: '#/meetings/requests', sel: '[data-tour=mr-ask]' },
+    { id: 'mrflier', r: '#/meetings/requests', pre: '[data-tour=mr-ask]', sel: '[data-tour=mr-flier]' },
+    { id: 'mrjoin', r: '#/meetings/requests', open: 'a.list__link[href^="#/meetings/requests/"]', sel: '[data-tour=mr-join]' },
+    { id: 'mrtell', sel: '[data-tour=mr-notify]' }, { id: 'mrcopy', sel: '[data-tour=mr-copy]' }, { id: 'mrminutes', sel: '[data-tour=mr-minutes]' },
+    { id: 'bell', r: '#/', sel: '[data-tour=bell]' }, { id: 'lang', sel: 'select.langpick' }, { id: 'listen', sel: 'button.listen' }, { id: 'end', r: '#/' }],
+  envoy: [
+    { id: 'dash', r: '#/' }, { id: 'copy', r: '#/', sel: '[data-tour=envoy-copy]' }, { id: 'wa', sel: '[data-tour=envoy-wa]' }, { id: 'people', sel: '.tablewrap' },
+    { id: 'msg', sel: '[data-tour=envoy-msg]' }, { id: 'tasks', sel: '.tabbar a[href="#/tasks"]', alt: SIDE('#/tasks') },
+    { id: 'bell', sel: '[data-tour=bell]' }, { id: 'lang', sel: 'select.langpick' }, { id: 'end', r: '#/' }],
+  member: [
+    { id: 'dash', r: '#/' }, { id: 'journey', r: '#/', sel: 'a.kpi--link[href="#/journey"]', alt: SIDE('#/journey') },
+    { id: 'chapter', sel: 'a.kpi--link[href="#/chapter"]', alt: SIDE('#/chapter') }, { id: 'invite', sel: 'a.kpi--link[href="#/invite"]', alt: SIDE('#/invite') },
+    { id: 'community', sel: 'a.nudge[href="#/community"]', alt: SIDE('#/community') }, { id: 'messages', sel: '.tabbar a[href="#/messages"]', alt: SIDE('#/messages') },
+    { id: 'bell', sel: '[data-tour=bell]' }, { id: 'lang', sel: 'select.langpick' }, { id: 'end', r: '#/' }],
+};
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const shown = (el) => { if (!el) return false; const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none'; };
+const find = (sel) => (sel ? [...document.querySelectorAll(sel)].find((e) => shown(e) && !e.closest('.ltour')) : null);
+async function waitFor(sel, ms) { const end = Date.now() + ms; while (Date.now() < end) { const e = find(sel); if (e) return e; await sleep(150); } return null; }
+const sameRoute = (r) => (location.hash || '#/') === r || (r === '#/' && ['', '#', '#/'].includes(location.hash));
+
 function stepsList() {
   const steps = app.user?.is_envoy ? ENVOY_STEPS : app.user?.is_leader ? LEADER_STEPS : MEMBER_STEPS;
   const all = () => steps.map(([a, b], i) => `${i + 1}. ${t(a)}. ${t(b)}`).join(' ');
@@ -40,39 +75,37 @@ function stepsList() {
     h('ol', { class: 'guidesteps' }, steps.map(([a, b]) => h('li', {}, h('b', { text: a }), h('p', { text: b }), listenBtn(() => t(a) + '. ' + t(b))))));
 }
 
-/* the phone's own voice says the first name; we never send the name anywhere */
-function sayName(name, lang) {
-  return new Promise((res) => {
-    const ss = window.speechSynthesis; if (!ss || !name) { res(); return; }
-    let done = false; const end = () => { if (!done) { done = true; res(); } };
-    try {
-      const u = new SpeechSynthesisUtterance(name); u.rate = 0.9;
-      const v = ss.getVoices().find((x) => x.lang && x.lang.toLowerCase().startsWith(lang)) || ss.getVoices().find((x) => x.lang && x.lang.toLowerCase().startsWith('en'));
-      if (v) { u.voice = v; u.lang = v.lang; } else u.lang = lang;
-      u.onend = end; u.onerror = end; ss.cancel(); ss.speak(u); setTimeout(end, 2600);
-    } catch { end(); }
-  });
-}
-
-export async function tourPlayer({ onClose, first } = {}) {
+let running = null;
+export async function startTour({ first } = {}) {
+  if (running) return;
   const kind = app.user?.is_envoy ? 'envoy' : app.user?.is_leader ? 'leader' : 'member';
   const lang = TOUR_LANGS.includes(i18n.lang) ? i18n.lang : 'en';
-  const base = `/assets/tour/${kind}/${lang}/`; const voice = `/assets/tour/voice/${lang}/`;
+  const voice = `/assets/tour/voice/${lang}/`;
   let man = { scenes: [] };
-  try { man = await (await fetch(base + 'tour.json')).json(); } catch { /* offline */ }
-  const scenes = man.scenes || [];
+  try { man = await (await fetch(`/assets/tour/${kind}/${lang}/tour.json`, { cache: 'no-cache' })).json(); } catch { /* offline: the words below still show */ }
+  const words = Object.fromEntries((man.scenes || []).map((s) => [s.id, s]));
+  const scenes = PLAN[kind].filter((s) => words[s.id]);
   const name = app.user?.first_name || '';
-  const total = scenes.length + 1; let i = 0; let playing = false; let timer = null; let audio = null; let token = 0;
+  const total = scenes.length + 1; let i = 0; let playing = false; let timer = null; let audio = null; let token = 0; let raf = 0; let target = null;
+  const dir = document.documentElement.dir || 'ltr';
+  const shade = h('div', { class: 'ltour__shade' });
+  const ring = h('div', { class: 'ltour__ring' });
+  const finger = h('div', { class: 'ltour__finger', 'aria-hidden': 'true' }, h('span', { class: 'tour__dot' }), h('span', { class: 'tour__hand', text: '👆' }));
   const bar = h('div', { class: 'tour__bar' }, h('span'));
   const count = h('small', { class: 'tour__count', 'aria-live': 'polite' });
-  const stage = h('div', { class: 'tour__stage' });
-  const cap = h('p', { class: 'tour__cap', dir: 'auto', 'aria-live': 'polite' });
+  const body = h('div', { class: 'ltour__body', dir: 'auto', 'aria-live': 'polite' });
   const playBtn = h('button', { class: 'btn btn--lime tour__play', type: 'button', onclick: () => (playing ? pause() : play()) });
-  const prev = h('button', { class: 'btn btn--ghost tour__nav', type: 'button', 'aria-label': t('Previous'), onclick: () => go(i - 1, true) }, icon('back', 20), h('span', { text: t('Previous') }));
-  const next = h('button', { class: 'btn btn--ghost tour__nav tour__nav--next', type: 'button', 'aria-label': t('Next'), onclick: () => go(i + 1, true) }, h('span', { text: t('Next') }), icon('fwd', 20));
+  const prev = h('button', { class: 'btn btn--ghost tour__nav', type: 'button', 'aria-label': t('Previous'), onclick: () => step(i - 1, true) }, icon('back', 20), h('span', { text: t('Previous') }));
+  const next = h('button', { class: 'btn btn--ghost tour__nav tour__nav--next', type: 'button', 'aria-label': t('Next'), onclick: () => step(i + 1, true) }, h('span', { text: t('Next') }), icon('fwd', 20));
+  const closeBtn = h('button', { class: 'iconbtn ltour__x', type: 'button', 'aria-label': t('Close the guide'), onclick: () => close() }, icon('x'));
+  const readLink = h('a', { href: '#/guide', class: 'ltour__read', text: t('Read the steps instead'), onclick: () => close(true) });
   const note = lang !== i18n.lang ? h('p', { class: 'tour__note', text: t('This guide is not yet narrated in your language, so it plays in English. Read the steps instead to see them in your language.') }) : null;
-  const preload = (k) => { const s = scenes[k]; if (s) { const im = new Image(); im.src = base + s.id + '.webp'; } };
-  const stopSound = () => { token++; clearTimeout(timer); try { audio?.pause(); } catch { /* none */ } audio = null; try { window.speechSynthesis?.cancel(); } catch { /* none */ } };
+  const panel = h('div', { class: 'ltour__panel', role: 'dialog', 'aria-modal': 'false', 'aria-label': t('How to use WDOS'), dir },
+    h('div', { class: 'ltour__top' }, h('div', { class: 'grow' }, bar, count), closeBtn), note, body, h('div', { class: 'tour__controls' }, prev, playBtn, next), readLink);
+  const root = h('div', { class: 'ltour', dir }, shade, ring, finger, panel);
+  running = { stop: () => close() };
+
+  const stopSound = () => { token++; clearTimeout(timer); try { audio?.pause(); } catch { /* none */ } audio = null; };
   const clip = (src, my) => new Promise((res) => {
     if (my !== token) { res(false); return; }
     const a = new Audio(src); audio = a; let ok = true;
@@ -80,71 +113,93 @@ export async function tourPlayer({ onClose, first } = {}) {
     a.play().catch(() => { ok = false; res(false); });
     setTimeout(() => { if (ok && a.paused && a.currentTime === 0) res(false); }, 9000);
   });
-  const paintBtn = () => { playBtn.replaceChildren(icon(playing ? 'pause' : 'play', 18), h('span', { text: t(playing ? 'Pause' : (i === 0 && first ? 'Start the guide' : 'Play')) })); playBtn.setAttribute('aria-pressed', String(playing)); };
-  function draw() {
-    bar.firstChild.style.width = `${Math.round(((i + 1) / total) * 100)}%`;
-    count.textContent = tf('Step {1} of {2}', i + 1, total);
-    prev.disabled = i === 0; next.disabled = i >= total - 1;
-    if (i === 0) {
-      stage.replaceChildren(h('div', { class: 'tour__hello' },
+  const paintBtn = () => { playBtn.replaceChildren(icon(playing ? 'pause' : 'play', 18), h('span', { text: t(playing ? 'Pause' : (i === 0 ? 'Start the guide' : 'Play')) })); playBtn.setAttribute('aria-pressed', String(playing)); };
+  // keep the ring on her real button while the page moves (scrolling, the menu sliding in, a slow phone)
+  function track() {
+    cancelAnimationFrame(raf);
+    const loop = () => {
+      if (target && target.isConnected && shown(target)) {
+        const r = target.getBoundingClientRect(); const pad = 6;
+        Object.assign(ring.style, { display: 'block', left: `${r.left - pad}px`, top: `${r.top - pad}px`, width: `${r.width + pad * 2}px`, height: `${r.height + pad * 2}px` });
+        Object.assign(finger.style, { display: 'block', left: `${r.left + r.width / 2}px`, top: `${r.top + r.height / 2}px` });
+        shade.style.display = 'none';
+        const low = r.top + r.height / 2 > innerHeight * 0.5; panel.classList.toggle('is-top', low);
+      } else { ring.style.display = 'none'; finger.style.display = 'none'; shade.style.display = i === 0 ? 'block' : 'none'; panel.classList.remove('is-top'); }
+      raf = requestAnimationFrame(loop);
+    };
+    loop();
+  }
+  async function show(k) {
+    const my = token; target = null;
+    bar.firstChild.style.width = `${Math.round(((k + 1) / total) * 100)}%`;
+    count.textContent = tf('Step {1} of {2}', k + 1, total);
+    prev.disabled = k === 0; next.disabled = k >= total - 1; paintBtn();
+    if (k === 0) {
+      if (!sameRoute('#/')) { goTo('#/'); await sleep(500); }
+      body.replaceChildren(h('div', { class: 'tour__hello' },
         h('img', { src: '/assets/logos/woddi-disc.png', alt: '', class: 'tour__logo', onerror: (e) => e.target.remove() }),
-        app.user ? avatar(app.user, 88) : null,
+        app.user ? avatar(app.user, 72) : null,
         h('h2', { class: 'display', dir: 'auto' }, h('span', { text: String(man.hello || 'Hello,').replace(/[,،]\s*$/, '') + ' ' }), h('bdi', { text: name + '!' })),
-        h('p', { dir: 'auto', text: man.glad || '' })));
-      cap.textContent = man.intro || '';
-    } else {
-      const s = scenes[i - 1];
-      const shot = h('div', { class: 'tour__phone' }, h('img', { src: base + s.id + '.webp', alt: s.text, draggable: 'false' }));
-      if (s.box) {
-        const [x, y, w, hh] = s.box;
-        shot.append(h('div', { class: 'tour__ring' + (s.action === 'tap' ? ' is-tap' : ''), style: `left:${x}%;top:${y}%;width:${w}%;height:${hh}%` }));
-        if (s.action === 'tap') shot.append(h('div', { class: 'tour__finger', 'aria-hidden': 'true', style: `left:${x + w / 2}%;top:${y + hh / 2}%` }, h('span', { class: 'tour__dot' }), h('span', { class: 'tour__hand', text: '👆' })));
-      }
-      stage.replaceChildren(shot); cap.textContent = s.text; preload(i);
+        h('p', { dir: 'auto', text: [man.glad, man.intro].filter(Boolean).join(' ') })));
+      return;
     }
-    paintBtn();
+    const s = scenes[k - 1]; const w = words[s.id];
+    body.replaceChildren(h('p', { class: 'ltour__text', dir: 'auto', text: w.text }));
+    if (s.r && !sameRoute(s.r)) { goTo(s.r); await sleep(450); }
+    if (my !== token && !playing) return;
+    if (s.open) {
+      const link = await waitFor(s.open, 2500);
+      if (link) { if (link.tagName === 'A') goTo(link.getAttribute('href')); else link.click(); await sleep(500); }
+    }
+    if (s.pre) { const b = find(s.pre); if (b) { b.click(); await sleep(450); } }
+    const el = (await waitFor(s.sel, s.sel ? 3000 : 0)) || find(s.alt);
+    if (k !== i) return;                                         // she moved on while the page was opening
+    if (el) {
+      let fixed = false; for (let n = el; n; n = n.parentElement) { const p = getComputedStyle(n).position; if (p === 'fixed' || p === 'sticky') { fixed = true; break; } }
+      if (!fixed) el.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      target = el; finger.classList.toggle('is-look', w.action !== 'tap');
+    } else if (s.sel) body.append(h('p', { class: 'tour__note', text: t('This is not on your page right now, so there is nothing to point at. You will see it here when you need it.') }));
+    else if (s.id === 'dash' || s.id === 'end') window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   async function speak() {
     stopSound(); const my = token; if (!playing) return;
     let ok;
-    if (i === 0) { await clip(voice + 'hello.mp3', my); if (my !== token) return; await sayName(name, lang); if (my !== token) return; ok = await clip(voice + 'glad.mp3', my); }
-    else ok = await clip(voice + kind + '-' + scenes[i - 1].id + '.mp3', my);
+    if (i === 0) { ok = await clip(voice + 'hello.mp3', my); if (my !== token) return; ok = await clip(voice + 'glad.mp3', my); }
+    else {
+      const nx = scenes[i]; if (nx) { const pre = new Audio(); pre.preload = 'auto'; pre.src = voice + kind + '-' + nx.id + '.mp3'; }   // the next line is ready, no pause to fetch it
+      ok = await clip(voice + kind + '-' + scenes[i - 1].id + '.mp3', my);
+    }
     if (my !== token || !playing) return;
-    const words = (cap.textContent || '').split(/\s+/).length;
-    timer = setTimeout(() => { if (my !== token || !playing) return; if (i < total - 1) { i++; draw(); speak(); } else { playing = false; paintBtn(); } }, ok ? 900 : Math.max(4000, words * 420));
+    const n = (body.textContent || '').split(/\s+/).length;
+    timer = setTimeout(() => { if (my !== token || !playing) return; if (i < total - 1) step(i + 1); else { playing = false; paintBtn(); } }, ok ? 500 : Math.max(4000, n * 400));
   }
-  function go(k, user) { if (k < 0 || k >= total) return; i = k; draw(); if (playing) speak(); else if (user) stopSound(); }
-  function play() { if (i >= total - 1 && !playing) i = 0; playing = true; draw(); speak(); }
+  async function step(k, user) { if (k < 0 || k >= total) return; i = k; stopSound(); const shownAt = show(k); if (playing) { await shownAt; if (i === k) speak(); } else if (user) await shownAt; }
+  function play() { if (i >= total - 1 && !playing) i = 0; playing = true; step(i); }
   function pause() { playing = false; stopSound(); paintBtn(); }
-  const steps = h('details', { class: 'tour__steps' }, h('summary', { text: t('Read the steps instead') }), stepsList());
-  const node = h('div', { class: 'tour', dir: document.documentElement.dir || 'ltr' }, h('div', { class: 'tour__top' }, bar, count), note, stage, cap,
-    h('div', { class: 'tour__controls' }, prev, playBtn, next), steps);
-  node.stop = () => { playing = false; stopSound(); };
-  node.keys = (e) => { if (e.key === 'ArrowRight') go(document.documentElement.dir === 'rtl' ? i - 1 : i + 1, true); else if (e.key === 'ArrowLeft') go(document.documentElement.dir === 'rtl' ? i + 1 : i - 1, true); else if (e.key === ' ' && e.target === document.body) { e.preventDefault(); playing ? pause() : play(); } };
-  if (!scenes.length) { stage.replaceChildren(h('p', { class: 'faint', text: t('The guided tour could not load. Check your connection, or read the steps below.') })); steps.open = true; }
-  draw(); preload(0);
-  return node;
+  function close(toSteps) {
+    playing = false; stopSound(); cancelAnimationFrame(raf); root.remove(); running = null;
+    document.removeEventListener('keydown', keys); document.body.classList.remove('in-ltour');
+    document.querySelector('.shell')?.classList.remove('nav-open');
+    if (first) api('/me/guide-seen', {}).then(() => { if (app.user) app.user.guide_seen = true; }).catch(() => {});
+    if (!toSteps) goTo('#/');
+  }
+  const keys = (e) => {
+    if (e.key === 'Escape') close();
+    else if (e.key === 'ArrowRight') step(dir === 'rtl' ? i - 1 : i + 1, true);
+    else if (e.key === 'ArrowLeft') step(dir === 'rtl' ? i + 1 : i - 1, true);
+  };
+  document.addEventListener('keydown', keys); document.body.append(root); document.body.classList.add('in-ltour');
+  if (!scenes.length) body.replaceChildren(h('p', { text: t('The guided tour could not load. Check your connection, or read the steps instead.') }));
+  track(); await show(0); playBtn.focus();
 }
 
-export async function openGuide(first) {
-  if (document.querySelector('.gmview.is-guide')) return;
-  let player = null;
-  const close = () => { player?.stop(); wrap.remove(); document.removeEventListener('keydown', esc); document.body.classList.remove('in-tour'); api('/me/guide-seen', {}).then(() => { if (app.user) app.user.guide_seen = true; }).catch(() => {}); };
-  const esc = (e) => { if (e.key === 'Escape') close(); else player?.keys(e); };
-  const body = h('div', { class: 'card__body' });
-  const wrap = h('div', { class: 'gmview is-guide', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('How to use WDOS') },
-    h('div', { class: 'card guidebox' }, h('div', { class: 'card__head' }, h('div', { class: 'grow' }, h('h2', { text: first ? t('Welcome to your WDOS dashboard') : t('How to use WDOS') }), h('p', { text: t('Press Play and follow the screens. You can open this again any time from the menu, under How to use WDOS.') })),
-      h('button', { class: 'iconbtn', type: 'button', 'aria-label': t('Close'), onclick: close }, icon('x'))), body));
-  document.addEventListener('keydown', esc); document.body.append(wrap); document.body.classList.add('in-tour');
-  player = await tourPlayer({ first });
-  body.append(player, h('div', { style: 'margin-top:12px' }, h('button', { class: 'btn btn--quiet', type: 'button', onclick: close }, t(first ? 'I am ready' : 'Close'))));
-}
+/* first sign-in: the tour opens on her own dashboard; it is marked as seen when she closes it */
+export function openGuide(first) { return startTour({ first }); }
 
 export async function render(root) {
-  const host = h('div');
-  root.append(card(app.user?.is_envoy ? 'How to use WDOS as a WODDI Envoy' : app.user?.is_leader ? 'How to use WDOS as a volunteer leader' : 'How to use WDOS as a member', 'Press Play. Each screen shows exactly what to tap, with the words read aloud in your language.', host));
-  const p = await tourPlayer({});
-  host.append(p);
-  const off = () => { p.stop(); window.removeEventListener('hashchange', off); document.removeEventListener('keydown', p.keys); };
-  window.addEventListener('hashchange', off); document.addEventListener('keydown', p.keys);
+  root.append(card(app.user?.is_envoy ? 'How to use WDOS as a WODDI Envoy' : app.user?.is_leader ? 'How to use WDOS as a volunteer leader' : 'How to use WDOS as a member',
+    'Press Start. WDOS opens your own pages one by one, points at exactly what to tap, and reads each step aloud in your language.',
+    h('div', { style: 'display:grid;gap:16px' },
+      h('div', {}, h('button', { class: 'btn btn--lime', type: 'button', onclick: () => startTour({}) }, icon('play', 18), h('span', { text: t('Start the guided tour') }))),
+      h('h3', { style: 'margin:0', text: t('The steps, written out') }), stepsList())));
 }
