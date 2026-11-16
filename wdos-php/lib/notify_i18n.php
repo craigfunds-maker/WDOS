@@ -70,6 +70,8 @@ const NOTE_TEMPLATES = [
     'ar' => ['أُلغي: {1}', '{1}'], 'fr' => ['Annulée : {1}', '{1}'], 'pt' => ['Cancelada: {1}', '{1}'], 'sw' => ['Umeghairiwa: {1}', '{1}']]],
   ['/^Minutes: (.+)$/u', '/^(\d+) attended\.$/u', [
     'ar' => ['محضر: {1}', 'عدد الحاضرين: {1}.'], 'fr' => ['Compte rendu : {1}', '{1} participants.'], 'pt' => ['Ata: {1}', '{1} participantes.'], 'sw' => ['Kumbukumbu: {1}', 'Waliohudhuria {1}.']]],
+  ['/^Meeting flier ready: (.+)$/u', '/^Open the meeting to see and share it\.$/u', [
+    'ar' => ['ملصق الاجتماع جاهز: {1}', 'افتحي الاجتماع لتريه وتشاركيه.'], 'fr' => ['Affiche de la réunion prête : {1}', 'Ouvrez la réunion pour la voir et la partager.'], 'pt' => ['Cartaz da reunião pronto: {1}', 'Abra a reunião para o ver e partilhar.'], 'sw' => ['Bango la mkutano liko tayari: {1}', 'Fungua mkutano ulione na kulishiriki.']]],
 ];
 /* One entry per template above, in the same order: its key, its name on the Communications page, the English wording,
  * and what {1} and {2} stand for. WODDI HQ can replace any wording in any language; the change is logged. */
@@ -90,6 +92,7 @@ const NOTE_META = [
   ['meet_hq', 'Video meeting request or cancellation (HQ)', 'Video meeting request: {1}', '{1}', '{1} is the meeting.'],
   ['meet_cancelled', 'Meeting cancelled', 'Cancelled: {1}', '{1}', '{1} is the meeting.'],
   ['meet_minutes', 'Video meeting minutes', 'Minutes: {1}', '{1} attended.', 'Title: {1} is the meeting. Message: {1} is the number who attended.'],
+  ['meet_flier', 'Meeting flier ready', 'Meeting flier ready: {1}', 'Open the meeting to see and share it.', 'Title: {1} is the meeting.'],
 ];
 /** Wordings WODDI HQ has approved in place of the built-in ones: [key][lang] = [title, body]. */
 function note_overrides(): array {

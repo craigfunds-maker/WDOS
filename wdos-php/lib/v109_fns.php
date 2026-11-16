@@ -355,11 +355,29 @@ function mr_out(array $u, array $m): array {
     'graphics' => $m['graphics'], 'other_needs' => $m['other_needs'], 'starts_at' => $m['starts_at'], 'duration_min' => (int) $m['duration_min'], 'tz' => $m['tz'], 'status' => $m['status'], 'hq_note' => $m['hq_note'], 'decided_at' => $m['decided_at'],
     'requester' => $req ? ['id' => (int) $req['id'], 'first_name' => $req['first_name'], 'last_name' => $req['last_name'], 'has_photo' => (int) $req['has_photo']] : null, 'my_role' => $role,
     'gate' => $gate, 'opens_at' => gmdate('Y-m-d H:i:s', $open), 'joins' => (int) val('SELECT COUNT(*) FROM meeting_request_joins WHERE request_id=?', [(int) $m['id']]),
-    'attended' => people_titled(mr_attended($m)), 'minute_files' => doc_list('meeting', (int) $m['id']),
+    'attended' => people_titled(mr_attended($m)), 'minute_files' => array_values(array_filter(doc_list('meeting', (int) $m['id']), fn($f) => $f['role'] !== 'flier')),
+    'flier' => mr_flier((int) $m['id']),
     'joined' => (in_array($role, ['requester', 'hq'], true) && !$m['minutes']) ? people_titled(array_map('intval', array_column(rows('SELECT user_id FROM meeting_request_joins WHERE request_id=?', [(int) $m['id']]), 'user_id'))) : [],
     'minutes' => $m['minutes'], 'attendance_count' => $m['attendance_count'] === null ? null : (int) $m['attendance_count'], 'attendance_names' => $m['attendance_names'], 'minutes_at' => $m['minutes_at'],
     'can_decide' => is_hq($u) && in_array($m['status'], ['pending', 'approved'], true), 'can_cancel' => $role === 'requester' && in_array($m['status'], ['pending', 'approved'], true) && $t < strtotime($m['starts_at'] . ' UTC'),
+    'can_flier' => in_array($role, ['requester', 'hq'], true) && !in_array($m['status'], ['declined', 'cancelled'], true) && $t <= $close,
     'can_notify' => in_array($role, ['requester', 'hq'], true) && $m['status'] === 'approved' && $t <= $close,
     'guest_link' => (in_array($role, ['requester', 'hq'], true) && $m['status'] === 'approved' && $t <= $close && $m['room'] && call_engine(($m['call_domain'] ?? '') ?: jitsi_domain()) !== 'jaas') ? 'https://' . (($m['call_domain'] ?? '') ?: jitsi_domain()) . '/' . rawurlencode($m['room']) : null,
     'can_minutes' => ($role === 'requester' || is_hq($u)) && $m['status'] === 'approved' && $t >= strtotime($m['starts_at'] . ' UTC'), 'created_at' => $m['created_at']];
 }
+
+/** v109.2: the meeting flier, a picture (JPG/PNG) or a PDF, added by the leader with her request or by HQ later */
+const FLIER_TYPES = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'application/pdf' => 'pdf'];
+function mr_flier(int $id): ?array {
+  foreach (doc_list('meeting', $id) as $f) if ($f['role'] === 'flier') return $f;
+  return null;
+}
+function mr_set_flier(array $u, int $meetingId, int $fileId): array {
+  $f = row('SELECT * FROM doc_files WHERE id=? AND uploaded_by=?', [$fileId, (int) $u['id']]);
+  if (!$f) fail(422, 'Upload the flier again.', 'flier_file');
+  if (!isset(FLIER_TYPES[$f['mime']])) fail(422, 'The flier must be a picture (JPG or PNG) or a PDF.', 'flier_file');
+  q("UPDATE doc_links SET removed_at=? WHERE owner_type='meeting' AND owner_id=? AND role='flier' AND removed_at IS NULL", [now(), $meetingId]);
+  doc_link((int) $f['id'], 'meeting', $meetingId, 'flier', (int) $u['id']);
+  return $f;
+}
+

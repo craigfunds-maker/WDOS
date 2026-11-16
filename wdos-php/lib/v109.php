@@ -302,10 +302,12 @@ route('POST', '/meet-requests', function () {
   $ids = array_slice(array_values(array_unique(array_filter(array_map('intval', (array) ($b['people'] ?? []))))), 0, 300);
   if ($ids) { [$w, $p] = dm_allowed_sql($u); $ok = array_map('intval', array_column(rows("SELECT u.id FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND ($w) AND u.id IN (" . implode(',', $ids) . ')', $p), 'id')); $ids = array_values(array_intersect($ids, $ok)); }
   $cc = preg_match('/^[A-Z]{2}$/', strtoupper(str_in('country_code', 2))) ? strtoupper(str_in('country_code', 2)) : ($u['country_code'] ?? null);
+  if ((int) ($b['flier_file'] ?? 0)) { $ff = row('SELECT mime FROM doc_files WHERE id=? AND uploaded_by=?', [(int) $b['flier_file'], (int) $u['id']]); if (!$ff) fail(422, 'Upload the flier again.', 'flier_file'); if (!isset(FLIER_TYPES[$ff['mime']])) fail(422, 'The flier must be a picture (JPG or PNG) or a PDF.', 'flier_file'); }
   $n = now();
   $id = ins('INSERT INTO meeting_requests (requester_id,network,country_code,region,leader_name,title,reason,attendees_text,attendee_ids,expected_count,graphics,other_needs,starts_at,duration_min,tz,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
     [(int) $u['id'], $seat['network'] ?? '', $cc, str_in('region', 190), str_in('leader_name', 190) ?: trim($u['first_name'] . ' ' . $u['last_name']), $title, $reason, $who, implode(',', $ids), max(0, min(100000, (int) ($b['expected_count'] ?? 0))), str_in('graphics', 2000), str_in('other_needs', 2000), gmdate('Y-m-d H:i:s', $start), $dur, str_in('tz', 60), 'pending', $n, $n]);
   $no = 'MR-' . gmdate('Ym') . '-' . str_pad((string) $id, 4, '0', STR_PAD_LEFT); q('UPDATE meeting_requests SET request_no=? WHERE id=?', [$no, $id]);
+  if ((int) ($b['flier_file'] ?? 0)) mr_set_flier($u, $id, (int) $b['flier_file']);
   $who_name = trim($u['first_name'] . ' ' . $u['last_name']); $when = gmdate('j M Y, H:i', $start) . ' GMT';
   notify_hq('meeting', 'Video meeting request: ' . mb_substr($title, 0, 120), $who_name . ' · ' . $when, '#/meetings/requests/' . $id);
   hq_mail('WDOS video meeting request ' . $no . ' from ' . $who_name, 'A leader asks for a video meeting', '<p><b>' . htmlspecialchars($who_name) . '</b>' . ($seat ? ' (' . htmlspecialchars(seat_title($seat)) . ')' : '') . ' asks for a video meeting.</p><p><b>' . htmlspecialchars($title) . '</b><br>' . htmlspecialchars($when) . ', ' . $dur . ' minutes</p><p>' . nl2br(htmlspecialchars($reason)) . '</p><p><b>Attending:</b> ' . htmlspecialchars($who) . '</p>' . (str_in('graphics', 2000) !== '' ? '<p><b>Graphics needed:</b> ' . htmlspecialchars(str_in('graphics', 2000)) . '</p>' : ''), '#/meetings/requests/' . $id);
@@ -390,10 +392,25 @@ route('POST', '/meet-requests/(\d+)/notify', function ($id) {
   $from = trim($u['first_name'] . ' ' . $u['last_name']); $msg = str_in('message', 600);
   notify_many('u.id IN (' . implode(',', $to) . ')', [], 'meeting', 'Video meeting: ' . mb_substr($m['title'], 0, 120), $when . ' · ' . $from . ($msg !== '' ? ': ' . mb_substr($msg, 0, 160) : ''), $url);
   foreach ($to as $i) person_mail($i, 'WDOS video meeting: ' . mb_substr($m['title'], 0, 120), 'You are invited to a video meeting',
-    '<p>' . htmlspecialchars($from) . ' invites you to <b>' . htmlspecialchars($m['title']) . '</b>, ' . htmlspecialchars($when) . '.</p>' . ($msg !== '' ? '<p>' . nl2br(htmlspecialchars($msg)) . '</p>' : '') . '<p>Open the meeting in WDOS and tap <b>Join video meeting</b>. It opens inside WDOS.</p>', $url);
+    '<p>' . htmlspecialchars($from) . ' invites you to <b>' . htmlspecialchars($m['title']) . '</b>, ' . htmlspecialchars($when) . '.</p>' . ($msg !== '' ? '<p>' . nl2br(htmlspecialchars($msg)) . '</p>' : '') . '<p>Open the meeting in WDOS and tap <b>Join video meeting</b>. It opens inside WDOS.</p>' . (mr_flier((int) $id) ? '<p>The meeting flier is on the meeting page in WDOS.</p>' : ''), $url);
   log_activity((int) $u['id'], null, 'meeting_notified', $m['request_no'] . ' · ' . count($to));
   after_response(fn() => push_drain(40));
   return ['ok' => true, 'told' => count($to), 'invited' => count($all)];
+});
+/** v109.2: add or change the meeting flier. The leader who asked (until the meeting ends) or HQ. When HQ adds it, the leader is told. */
+route('POST', '/meet-requests/(\d+)/flier', function ($id) {
+  $u = require_user(); $m = row('SELECT * FROM meeting_requests WHERE id=?', [(int) $id]);
+  $role = $m ? mr_role($u, $m) : '';
+  if (!$m || !in_array($role, ['requester', 'hq'], true)) fail(404, 'That meeting was not found.', 'not_found');
+  if (in_array($m['status'], ['declined', 'cancelled'], true)) fail(409, 'This meeting is not going ahead.', 'state');
+  $f = mr_set_flier($u, (int) $id, (int) (body()['file_id'] ?? 0));
+  if ($role === 'hq' && (int) $m['requester_id'] !== (int) $u['id']) {
+    $url = '#/meetings/requests/' . $id;
+    notify_many('u.id=?', [(int) $m['requester_id']], 'meeting', 'Meeting flier ready: ' . mb_substr($m['title'], 0, 120), 'Open the meeting to see and share it.', $url);
+    person_mail((int) $m['requester_id'], 'WDOS meeting flier: ' . mb_substr($m['title'], 0, 120), 'Your meeting flier is ready', '<p>WODDI HQ added the flier for <b>' . htmlspecialchars($m['title']) . '</b>.</p><p>Open the meeting in WDOS to see it, download it and share it with your people.</p>', $url);
+  }
+  log_activity((int) $u['id'], null, 'meeting_flier', $m['request_no'] . ' · ' . $f['name']);
+  return ['ok' => true, 'flier' => mr_flier((int) $id)];
 });
 /** After the meeting: the minutes, the leaders who attended, the minutes document and the recording go to every volunteer
  *  leader invited or present, the requester, and HQ (HQ dashboard panel, in-app note, phone, and an email to each HQ admin
@@ -444,7 +461,7 @@ route('POST', '/meet-requests/(\d+)/minutes', function ($id) {
 route('GET', '/hq/meeting-minutes', function () {
   $u = require_user(); if (!is_hq($u)) fail(403, 'For WODDI HQ.', 'forbidden');
   return ['items' => array_map(fn($m) => ['id' => (int) $m['id'], 'request_no' => $m['request_no'], 'title' => $m['title'], 'leader_name' => $m['leader_name'], 'country' => country_name($m['country_code']) ?: '', 'network' => $m['network'],
-    'starts_at' => $m['starts_at'], 'minutes_at' => $m['minutes_at'], 'attendance_count' => (int) $m['attendance_count'], 'leaders' => count(mr_attended($m)), 'files' => (int) val("SELECT COUNT(*) FROM doc_links WHERE owner_type='meeting' AND owner_id=? AND removed_at IS NULL", [(int) $m['id']]), 'summary' => mb_substr((string) $m['minutes'], 0, 220)],
+    'starts_at' => $m['starts_at'], 'minutes_at' => $m['minutes_at'], 'attendance_count' => (int) $m['attendance_count'], 'leaders' => count(mr_attended($m)), 'files' => (int) val("SELECT COUNT(*) FROM doc_links WHERE owner_type='meeting' AND owner_id=? AND role<>'flier' AND removed_at IS NULL", [(int) $m['id']]), 'summary' => mb_substr((string) $m['minutes'], 0, 220)],
     rows("SELECT * FROM meeting_requests WHERE status='held' AND minutes IS NOT NULL ORDER BY minutes_at DESC LIMIT 12"))];
 });
 /* -------------------------------------------------- WODDI Envoys sign themselves up -- */

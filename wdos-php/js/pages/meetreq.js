@@ -40,6 +40,8 @@ function requestForm(d, done) {
     date: input({ type: 'datetime-local' }), dur: h('select', { class: 'input' }, [30, 45, 60, 90, 120, 180, 240].map((m) => h('option', { value: m, text: tf('{1} minutes', m) }))),
     graphics: h('textarea', { class: 'input', rows: 2, maxlength: 2000, placeholder: t('For example: a flyer with the date and time, a banner for the call background') }), other: h('textarea', { class: 'input', rows: 2, maxlength: 2000, placeholder: t('Anything else you need from HQ (optional)') }) };
   F.dur.value = '60';
+  let flier = null; const flierShow = h('div', { style: 'display:grid;gap:8px' });
+  const flierBtn = flierPicker((f) => { flier = f; flierBtn.hidden = true; flierShow.replaceChildren(flierPreview(f, true), h('button', { class: 'btn btn--quiet btn--s', type: 'button', style: 'justify-self:start', onclick: () => { flier = null; flierShow.replaceChildren(); flierBtn.hidden = false; } }, icon('x', 16), t('Remove'))); });
   const min = new Date(Date.now() + 2 * 3600e3); min.setMinutes(0, 0, 0); F.date.min = new Date(min.getTime() - min.getTimezoneOffset() * 60e3).toISOString().slice(0, 16);
   const picked = new Map(); const chips = h('div', { class: 'tagrow' }); const results = h('div', { class: 'picklist' }); const q = input({ type: 'search', placeholder: t('Search leaders by name'), 'aria-label': t('Invite people in WDOS') });
   const paint = () => chips.replaceChildren(...[...picked.values()].map((p) => h('span', { class: 'tag' }, `${p.first_name} ${p.last_name}`, h('button', { class: 'tag__x', type: 'button', 'aria-label': t('Remove'), onclick: () => { picked.delete(p.id); paint(); } }, icon('x', 12)))));
@@ -49,13 +51,14 @@ function requestForm(d, done) {
     err.textContent = ''; if (!F.date.value) { err.textContent = t('Choose the date and time of the meeting.'); return; }
     const start = new Date(F.date.value); send.disabled = true;
     try { const r = await api('/meet-requests', { leader_name: F.leader.value, region: F.region.value, country_code: me.country_code || '', title: F.title.value, reason: F.reason.value, attendees_text: F.who.value, people: [...picked.keys()], expected_count: Number(F.count.value) || 0,
-        starts_at: start.toISOString().slice(0, 16).replace('T', ' '), duration_min: Number(F.dur.value), tz: Intl.DateTimeFormat().resolvedOptions().timeZone || '', graphics: F.graphics.value, other_needs: F.other.value });
+        starts_at: start.toISOString().slice(0, 16).replace('T', ' '), duration_min: Number(F.dur.value), tz: Intl.DateTimeFormat().resolvedOptions().timeZone || '', graphics: F.graphics.value, other_needs: F.other.value, flier_file: flier ? flier.id : 0 });
       toast(tf('Request {1} sent to HQ', r.request_no), 'You are told by notification and email when HQ decides.', 'ok'); done(r.id); }
     catch (e) { err.textContent = e.message; send.disabled = false; } } }, t('Send the request to HQ'));
   return card('Ask for a video meeting', 'Every field helps HQ approve quickly. The meeting time is in your own time zone.',
     h('div', { style: 'display:grid;gap:14px' }, h('div', { class: 'row row--2' }, field('Leader asking', F.leader), field('Country and region', F.region)), field('Meeting title', F.title), field('Reason for the meeting', F.reason),
       field('Who will attend', F.who, 'Name the group, or list the people. Leaders in WDOS can also be invited below.'), field('Invite leaders in WDOS (optional)', h('div', { style: 'display:grid;gap:8px' }, chips, q, results), 'They are told when HQ approves, and get the Join button.'),
       h('div', { class: 'row row--2' }, field('Expected number of people', F.count), field('How long', F.dur)), field('Date and time', F.date, tf('Ask at least one hour before. HQ needs time to approve. Times are in this device\'s time zone: {1}.', Intl.DateTimeFormat().resolvedOptions().timeZone || 'GMT')),
+      field('Meeting flier (optional)', h('div', { style: 'display:grid;gap:8px' }, flierShow, flierBtn), 'A picture (JPG or PNG) or a PDF, up to 10 MB. Everyone invited sees it on the meeting page. No flier yet? Ask WODDI for one below.'),
       field('Graphics you need from WODDI', F.graphics), field('Anything else', F.other), err, h('div', {}, send)));
 }
 
@@ -79,6 +82,7 @@ async function detail(root, id) {
     const callCard = card('Video call', 'The call opens here inside WDOS. Allow the camera and microphone when your phone asks. Press Leave the call when you finish.',
       h('div', { style: 'display:grid;gap:10px' }, h('p', { style: 'margin:0', text: t(gate) }), h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, join, m.can_cancel ? h('button', { class: 'btn btn--ghost', type: 'button', onclick: async () => { if (!confirm(t('Cancel this video meeting? HQ and everyone invited are told.'))) return; try { await api(`/meet-requests/${id}/cancel`, {}); load(); } catch (e) { toast('Not cancelled', e.message, 'bad'); } } }, t('Cancel the meeting')) : null),
         h('small', { class: 'faint', text: m.joins === 1 ? t('1 person has opened the room so far.') : tf('{1} people have opened the room so far.', fmt(m.joins)) })));
+    if (m.flier || m.can_flier) out.push(flierCard(m, id, load));
     /* v109.2: once approved, Join and Tell your people come first, above the details */
     if (m.status === 'approved') out.unshift(callCard); else out.push(callCard);
     if (m.can_notify) out.splice(m.status === 'approved' ? 1 : out.length, 0, tellCard(m, id, load));
@@ -172,6 +176,44 @@ function minutesForm(m, id, reload) {
       h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, h('button', { class: 'btn btn--quiet', type: 'button', onclick: () => pickRec.click() }, icon('plus', 18), t('Upload a recording')), pickRec), recShow,
       h('small', { class: 'faint', text: t('Audio (MP3, M4A, OGG, WEBM, WAV) or an MP4 video, up to 15 MB.') }))),
     err, h('div', {}, send)));
+}
+
+/* ---- the meeting flier (v109.2) ---- */
+function flierPicker(onDone, label) {
+  const inp = h('input', { type: 'file', accept: 'image/jpeg,image/png,application/pdf', hidden: true });
+  const btn = h('button', { class: 'btn btn--quiet', 'data-tour': 'mr-flier', type: 'button', onclick: () => inp.click() }, icon('plus', 16), t(label || 'Upload the meeting flier'));
+  inp.addEventListener('change', async () => {
+    const f = inp.files[0]; inp.value = ''; if (!f) return;
+    if (f.size > 10 * 1048576) { toast('That file is too large', 'The limit is 10 MB. Save the flier as a smaller picture.', 'bad'); return; }
+    btn.disabled = true; const old = [...btn.childNodes]; btn.replaceChildren(t('Uploading…'));
+    try { const r = await api('/files', { name: f.name, data: await readB64(f), purpose: 'flier' }); if (!/^(image\/(jpeg|png)|application\/pdf)$/.test(r.file.mime)) throw new Error(t('The flier must be a picture (JPG or PNG) or a PDF.')); onDone(r.file); }
+    catch (e) { toast('The flier did not upload', e.message, 'bad'); }
+    btn.disabled = false; btn.replaceChildren(...old);
+  });
+  return h('div', {}, btn, inp);
+}
+function flierPreview(f, small) {
+  const url = f.url || `/api/files/${f.id}`;
+  return f.mime === 'application/pdf'
+    ? h('a', { class: 'btn btn--ghost', href: url, target: '_blank', rel: 'noopener', style: 'justify-self:start' }, icon('book', 16), tf('Open the flier: {1}', f.name))
+    : h('a', { href: url, target: '_blank', rel: 'noopener', 'aria-label': t('Open the flier full size') }, h('img', { src: url, alt: t('Meeting flier'), loading: 'lazy', style: `display:block;max-width:100%;max-height:${small ? 220 : 520}px;border-radius:12px;border:1px solid var(--line,#e5e5e5)` }));
+}
+async function shareFlier(m) {
+  const url = m.flier.url || `/api/files/${m.flier.id}`;
+  try {
+    const blob = await (await fetch(url, { credentials: 'same-origin' })).blob(); const file = new File([blob], m.flier.name, { type: m.flier.mime });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: m.title, text: tf('{1}, {2}', m.title, whenText(m)) }); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  toast('Sharing a picture is not available here', 'Tap Download the flier, then send it in WhatsApp.', 'info');
+}
+function flierCard(m, id, reload) {
+  const body = h('div', { style: 'display:grid;gap:12px' });
+  if (m.flier) body.append(flierPreview(m.flier, false), h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' },
+    h('a', { class: 'btn btn--ghost', href: (m.flier.url || `/api/files/${m.flier.id}`) + '?dl=1' }, icon('link', 16), t('Download the flier')),
+    h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => shareFlier(m) }, icon('send', 16), t('Share the flier'))));
+  else body.append(h('p', { class: 'faint', style: 'margin:0', text: t('No flier yet. Upload one, or HQ can add it.') }));
+  if (m.can_flier) body.append(flierPicker(async (f) => { try { await api(`/meet-requests/${id}/flier`, { file_id: f.id }); toast('Flier saved', m.my_role === 'hq' ? 'The leader is told by notification and email.' : 'Everyone invited sees it on this page.', 'ok'); reload(); } catch (e) { toast('The flier was not saved', e.message, 'bad'); } }, m.flier ? 'Change the flier' : 'Upload the meeting flier'));
+  return card('Meeting flier', 'Share it with your people before the meeting.', body);
 }
 
 /* ---- telling people about an approved meeting ---- */

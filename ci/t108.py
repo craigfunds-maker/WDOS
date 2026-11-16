@@ -165,6 +165,25 @@ chk('HQ told in the app', int(sql("select count(*) from notifications n join use
 chk('HQ inbox emailed about the request', int(sql("select count(*) from mail_outbox where to_email='woddingo@gmail.com' and subject like 'WDOS video meeting request%'"))==1, sql('select to_email,subject from mail_outbox'))
 chk('a member cannot ask for a video meeting', m.post(B+'/meet-requests',json=form).status_code==403)
 chk('an outsider cannot see it', m.get(B+f'/meet-requests/{mid}').status_code==404)
+# the meeting flier (v109.2): with the request or later; a picture or a PDF; HQ adding it tells the leader
+import io as _io
+from PIL import Image as _Im
+_b=_io.BytesIO(); _Im.new('RGB',(40,60),(212,0,106)).save(_b,'PNG'); PNG=_b.getvalue()
+csvf=ld.post(B+'/files',json={'name':'list.csv','data':base64.b64encode(b'a,b\n1,2\n').decode(),'purpose':'flier'}).json()['file']
+before=int(sql("select count(*) from meeting_requests"))
+r=ld.post(B+'/meet-requests',json=dict(form,flier_file=csvf['id'])); chk('a CSV is refused as the flier, and no request is left behind', r.status_code==422 and r.json().get('field','flier_file') and int(sql("select count(*) from meeting_requests"))==before, r.text)
+fl=ld.post(B+'/files',json={'name':'Lagos flier.png','data':base64.b64encode(PNG).decode(),'purpose':'flier'}).json()['file']
+r=ld.post(B+f'/meet-requests/{mid}/flier',json={'file_id':fl['id']}); chk('the leader adds the flier', r.ok and r.json()['flier']['mime']=='image/png', r.text)
+d=ld.get(B+f'/meet-requests/{mid}').json()['meeting']; chk('the flier shows on the meeting, apart from the minutes files', d['flier'] and d['flier']['name']=='Lagos flier.png' and d['minute_files']==[] and d['can_flier'], d.get('flier'))
+chk('an outsider cannot open the flier', m.get(B+f"/files/{fl['id']}").status_code==404)
+chk('a member cannot change the flier', m.post(B+f'/meet-requests/{mid}/flier',json={'file_id':fl['id']}).status_code==404)
+hf=hq.post(B+'/files',json={'name':'HQ flier.pdf','data':base64.b64encode(PDF).decode(),'purpose':'flier'}).json()['file']
+sql("delete from mail_outbox"); sql("update users set email='ngozi.flier@wdos-mail.org' where email='leader@test.local'")
+r=hq.post(B+f'/meet-requests/{mid}/flier',json={'file_id':hf['id']}); chk('HQ replaces the flier', r.ok and r.json()['flier']['name']=='HQ flier.pdf', r.text)
+chk('the leader is told in the app that the flier is ready', int(sql(f"select count(*) from notifications where user_id=(select requester_id from meeting_requests where id={mid}) and title like 'Meeting flier ready:%'"))==1)
+chk('and by email', int(sql("select count(*) from mail_outbox where to_email='ngozi.flier@wdos-mail.org' and subject like 'WDOS meeting flier:%'"))==1, sql('select to_email,subject from mail_outbox'))
+sql("update users set email='leader@test.local' where email='ngozi.flier@wdos-mail.org'")
+chk('only one flier is kept', int(sql(f"select count(*) from doc_links where owner_type='meeting' and owner_id={mid} and role='flier' and removed_at is null"))==1)
 r=ld.post(B+f'/meet-requests/{mid}/join',json={}); chk('gate stays locked before approval', r.status_code==403 and r.json()['error']=='locked', r.text)
 chk('leader cannot approve her own request', ld.post(B+f'/meet-requests/{mid}/decide',json={'decision':'approve'}).status_code==403)
 chk('HQ sees it waiting', hq.get(B+'/meet-requests?status=pending').json()['pending']>=1)

@@ -50,7 +50,7 @@ tl=hq.get(B+'/tasks?scope=area').json(); chk('task list counts chapter-scoped an
 # reports intelligence
 rp=hq.get(B+'/reports/auto').json(); dd=rp['distribution']; chk('distribution adds up', dd['total']==dd['active']+dd['onboarding']+dd['pending']+dd['inactive'] and 'report_status' in rp, dd)
 # templates
-tp=hq.get(B+'/hq/templates').json()['templates']; chk('templates listed in five languages', len(tp)==16 and set(tp[0]['langs'].keys())=={'en','ar','fr','pt','sw'} and tp[0]['langs']['sw']['title'].startswith('Heri'), [x['key'] for x in tp])
+tp=hq.get(B+'/hq/templates').json()['templates']; chk('templates listed in five languages', len(tp)==17 and set(tp[0]['langs'].keys())=={'en','ar','fr','pt','sw'} and tp[0]['langs']['sw']['title'].startswith('Heri'), [x['key'] for x in tp])
 chk('HQ rewords the placement message in English', hq.post(B+'/hq/templates',json={'key':'chapter_placed','lang':'en','title':'Welcome to your chapter','body':'You are in {1}. Go and greet your sisters.'}).ok)
 s4,r=reg(); u4=r.json()['user']; t=sql(f"select concat(title,'|',body) from notifications where user_id={u4['id']} and kind='account'"); chk('new wording is used with the chapter name filled in', t=='Welcome to your chapter|You are in Dutse WGMN 001. Go and greet your sisters.', t)
 hq.post(B+'/hq/templates',json={'key':'chapter_placed','lang':'en','title':'','body':''}); chk('template change logged, and can go back', len(hq.get(B+'/hq/templates').json()['changes'])==2 and not hq.get(B+'/hq/templates').json()['templates'][7]['langs']['en']['own'])
