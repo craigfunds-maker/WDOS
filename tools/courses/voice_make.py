@@ -21,7 +21,7 @@ elif L in ('sw', 'ar'):
         return sf.read(f'/tmp/_c_{L}.wav')
 else:
     import torch; from transformers import VitsModel, AutoTokenizer
-    name = {'ha': 'facebook/mms-tts-hau', 'yo': 'facebook/mms-tts-yor', 'ig': 'facebook/mms-tts-ibo'}[L]
+    name = {'ha': 'facebook/mms-tts-hau', 'yo': 'facebook/mms-tts-yor', 'ig': 'nexusbert/igbo-mms-tts'}[L]
     M = VitsModel.from_pretrained(name); TK = AutoTokenizer.from_pretrained(name); torch.manual_seed(7)
     M.speaking_rate = 0.95
     def say(s):

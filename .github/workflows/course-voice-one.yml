@@ -1,0 +1,34 @@
+# Narrate the courses again for one language, from the course text already in the branch, and commit the result.
+name: Course voice (one language)
+on:
+  workflow_dispatch:
+    inputs:
+      lang: { description: 'en fr pt sw ar ha yo ig', required: true }
+permissions: { contents: write }
+jobs:
+  voice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: Tools and voices
+        run: |
+          sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg espeak-ng >/dev/null
+          pip install -q numpy soundfile; mkdir -p /tmp/m
+          case "${{ inputs.lang }}" in
+            en|fr|pt) pip install -q kokoro-onnx
+              curl -sSL -o /tmp/m/kokoro-v1.0.onnx https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx
+              curl -sSL -o /tmp/m/voices-v1.0.bin https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin ;;
+            sw|ar) pip install -q piper-tts
+              for v in vits-piper-sw_CD-lanfrica-medium vits-piper-ar_JO-kareem-medium; do curl -sSL https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/$v.tar.bz2 | tar xj -C /tmp/m; done ;;
+            *) pip install -q 'transformers<5' torch --extra-index-url https://download.pytorch.org/whl/cpu ;;
+          esac
+      - name: Narrate
+        run: python tools/courses/voice_make.py ${{ inputs.lang }} wdos-php/assets/courses /tmp/m
+      - name: Commit
+        run: |
+          git config user.name "WDOS course media"; git config user.email "noreply@anthropic.com"
+          git add -A wdos-php/assets/courses/voice/${{ inputs.lang }}
+          git commit -m "Course narration (${{ inputs.lang }})" && for i in 1 2 3; do git pull --rebase -q && git push && break; sleep 5; done || echo "nothing new"
