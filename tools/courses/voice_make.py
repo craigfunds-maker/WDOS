@@ -27,12 +27,15 @@ else:
     def say(s):
         with torch.no_grad(): y = M(**TK(s, return_tensors='pt')).waveform[0].numpy()
         return y, M.config.sampling_rate
+# how the name of the system is said aloud: "W-DOS" (the letter W, then DOS as one word), never spelled out letter by letter
+SAY = {'en': 'W-Doss', 'fr': 'W-Dosse', 'pt': 'W-Dós', 'sw': 'Dablyu-Dos', 'ar': 'دبليو-دوس', 'ha': 'Dablyu-Dos', 'yo': 'Dabulu-Dọọsi', 'ig': 'Dabliu-Dos'}[L]
+def spoken(s): return s.replace('WDOS', SAY)
 made = 0
 for k, ss in J.items():
-    if k in cues and os.path.exists(f'{out}/{k}.mp3'): continue
+    if k in cues and os.path.exists(f'{out}/{k}.mp3') and not (any('WDOS' in x for x in ss) and cues[k].get('say') != SAY): continue
     parts = []; t = 0.0; cue = []; sr = 24000
     for i, s in enumerate(ss):
-        y, sr = say(s); y = np.asarray(y, dtype=np.float32)
+        y, sr = say(spoken(s)); y = np.asarray(y, dtype=np.float32)
         if y.ndim > 1: y = y.mean(axis=1)
         nz = np.where(np.abs(y) > 0.01)[0]; y = y[max(0, nz[0] - int(0.03 * sr)):nz[-1] + int(0.05 * sr)] if len(nz) else y
         gap = np.zeros(int(sr * (0.5 if i == 0 else 0.3)), dtype=np.float32)
@@ -40,7 +43,7 @@ for k, ss in J.items():
     y = np.concatenate(parts); y = y / (np.max(np.abs(y)) or 1) * 0.89
     sf.write(f'/tmp/_cc_{L}.wav', y, sr, subtype='PCM_16')
     subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', f'/tmp/_cc_{L}.wav', '-ac', '1', '-ar', '22050', '-b:a', '40k', f'{out}/{k}.mp3'], check=True)
-    cues[k] = {'d': round(t, 2), 'c': cue}; made += 1
+    cues[k] = {'d': round(t, 2), 'c': cue, 'say': SAY}; made += 1
     if made % 20 == 0: json.dump(cues, open(f'{out}/cues.json', 'w'), ensure_ascii=False, separators=(',', ':')); print(L, made, flush=True)
 # drop clips the plan no longer has (old single-file lessons)
 for k in list(cues):

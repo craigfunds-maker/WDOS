@@ -11,7 +11,8 @@ route('GET', '/courses', function () {
   foreach (COURSE_TITLES as $no => $t) $out[] = ['no' => $no, 'modules_done' => $done[$no] ?? [], 'best' => isset($best[$no]) ? (int) $best[$no]['s'] : null,
     'attempts' => isset($best[$no]) ? (int) $best[$no]['n'] : 0, 'passed' => !empty($best[$no]['p']), 'certificate' => $certs[$no] ?? null];
   $photos = []; foreach (rows("SELECT image_key, updated_at FROM message_photos WHERE image_key LIKE 'course/%'") as $p) $photos[$p['image_key']] = '/api/inspiration/photo?k=' . rawurlencode($p['image_key']) . '&v=' . strtotime($p['updated_at']);
-  return ['courses' => $out, 'programme' => $certs[0] ?? null, 'pass' => COURSE_PASS, 'photos' => $photos, 'name' => trim($u['first_name'] . ' ' . $u['last_name'])];
+  $place = row('SELECT course_no, part, seconds, updated_at FROM course_place WHERE user_id=?', [$id]);
+  return ['courses' => $out, 'place' => $place ? ['course' => (int) $place['course_no'], 'part' => $place['part'], 'seconds' => (int) $place['seconds'], 'at' => $place['updated_at']] : null, 'programme' => $certs[0] ?? null, 'pass' => COURSE_PASS, 'photos' => $photos, 'name' => trim($u['first_name'] . ' ' . $u['last_name'])];
 });
 
 route('POST', '/courses/(\d+)/modules/(\d+)', function ($c, $m) {
@@ -34,6 +35,7 @@ route('POST', '/courses/(\d+)/quiz', function ($c) {
   foreach ($key as $i => $k) { if ($a[$i] === $k) $score++; else $wrong[] = $i; }
   $passed = $score >= COURSE_PASS;
   ins('INSERT INTO course_attempts (user_id,course_no,score,passed,answers,bank_version,created_at) VALUES (?,?,?,?,?,?,?)', [(int) $u['id'], $c, $score, $passed ? 1 : 0, implode('', $a), COURSE_BANK, now()]);
+  q('DELETE FROM course_drafts WHERE user_id=? AND course_no=?', [(int) $u['id'], $c]);
   $cert = null; $programme = null;
   if ($passed) {
     $cert = cert_out(cert_issue($u, $c, $score));
@@ -66,4 +68,31 @@ route('GET', '/hq/courses', function () {
   return ['learners' => (int) val('SELECT COUNT(DISTINCT user_id) FROM course_progress'),
     'per_course' => rows('SELECT course_no, COUNT(DISTINCT user_id) learners, SUM(passed) passes, COUNT(*) attempts FROM course_attempts GROUP BY course_no ORDER BY course_no'),
     'certificates' => (int) val('SELECT COUNT(*) FROM certificates WHERE revoked_at IS NULL')];
+});
+
+/* v109.8: her answers, unsent quiz choices and the place she stopped are kept with her account, so any device continues */
+route('GET', '/courses/(\d+)/notes/(\d+)', function ($c, $m) {
+  $u = require_user(); return ['body' => (string) (val('SELECT body FROM course_notes WHERE user_id=? AND course_no=? AND module_no=?', [(int) $u['id'], (int) $c, (int) $m]) ?? '')];
+});
+route('POST', '/courses/(\d+)/notes/(\d+)', function ($c, $m) {
+  $u = require_user(); $c = (int) $c; $m = (int) $m;
+  if (!isset(COURSE_TITLES[$c]) || $m < 1 || $m > 5) fail(404, 'That lesson was not found.', 'not_found');
+  $b = mb_substr((string) (body()['body'] ?? ''), 0, 4000);
+  q('INSERT INTO course_notes (user_id,course_no,module_no,body,updated_at) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE body=VALUES(body), updated_at=VALUES(updated_at)', [(int) $u['id'], $c, $m, $b, now()]);
+  return ['ok' => true];
+});
+route('GET', '/courses/(\d+)/draft', function ($c) {
+  $u = require_user(); return ['answers' => (string) (val('SELECT answers FROM course_drafts WHERE user_id=? AND course_no=?', [(int) $u['id'], (int) $c]) ?? '')];
+});
+route('POST', '/courses/(\d+)/draft', function ($c) {
+  $u = require_user(); $c = (int) $c; if (!isset(COURSE_TITLES[$c])) fail(404, 'That course was not found.', 'not_found');
+  $a = (string) (body()['answers'] ?? ''); if (!preg_match('/^[ABCD-]{0,10}$/', $a)) fail(422, 'Those answers could not be kept.', 'answers');
+  q('INSERT INTO course_drafts (user_id,course_no,answers,updated_at) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE answers=VALUES(answers), updated_at=VALUES(updated_at)', [(int) $u['id'], $c, $a, now()]);
+  return ['ok' => true];
+});
+route('POST', '/courses/place', function () {
+  $u = require_user(); $b = body(); $c = (int) ($b['course'] ?? 0); $p = (string) ($b['part'] ?? '');
+  if (!isset(COURSE_TITLES[$c]) || !preg_match('/^([1-5]|quiz|)$/', $p)) fail(422, 'That place is not part of the courses.', 'place');
+  q('INSERT INTO course_place (user_id,course_no,part,seconds,updated_at) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE course_no=VALUES(course_no), part=VALUES(part), seconds=VALUES(seconds), updated_at=VALUES(updated_at)', [(int) $u['id'], $c, $p, max(0, min(36000, (int) ($b['seconds'] ?? 0))), now()]);
+  return ['ok' => true];
 });

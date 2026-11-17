@@ -1,5 +1,5 @@
 /* WDOS front end entry: session, router, shell (collapsible sidebar, top bar, notification bell). */
-import { h, clear, icon, avatar, toast, ago, theme, empty, i18n, t, tf, langPicker, chime, listenBtn } from './ui.js';
+import { h, clear, icon, avatar, toast, ago, theme, empty, i18n, t, tf, langPicker, chime, listenBtn, LANGS } from './ui.js';
 import { pushSync } from './api.js';
 import { api } from './api.js';
 
@@ -118,7 +118,14 @@ export const go = (hash) => { if (location.hash === hash) render(); else locatio
 export async function refreshUser() { app.user = (await api('/me')).user; return app.user; }
 export async function setLanguage(lang) { await i18n.set(lang); if (app.user) api('/me/lang', { lang }).catch(() => {}); shellEls = null; render(); }
 export async function signOut() { stopPulse(); await api('/auth/logout', {}).catch(() => {}); try { localStorage.removeItem('wdos.join'); sessionStorage.clear(); if (window.caches) { for (const k of await caches.keys()) if (/api|data|runtime/i.test(k)) await caches.delete(k); } } catch { /* nothing kept */ } app.user = null; shellEls = null; go('#/login'); }
-export function signedIn(user) { app.user = user; shellEls = null; startPulse(); pushSync(app.config.vapid); go('#/'); maybeGuide(); }
+// the language she chose follows her account: a new phone or computer opens in it as soon as she signs in
+async function followAccountLanguage() {
+  let chosen = null; try { chosen = localStorage.getItem('wdos.lang'); } catch { /* private mode */ }
+  const l = app.user?.lang;
+  if (!chosen && l && l !== i18n.lang && LANGS[l]) await i18n.set(l);                       // a new phone: open in her account's language
+  else if (chosen && LANGS[chosen] && chosen !== l && app.user) api('/me/lang', { lang: chosen }).catch(() => {});   // she chose here: her account follows
+}
+export async function signedIn(user) { app.user = user; await followAccountLanguage(); shellEls = null; startPulse(); pushSync(app.config.vapid); go('#/'); maybeGuide(); }
 /* A leader or envoy who has not seen the walkthrough yet gets it once, after sign-in. It stays under How to use WDOS. */
 /* v109.2: a device clock that is hours off (for example a computer set to another country's time zone, with the hour typed in by hand)
  * makes every meeting time and countdown wrong. Compare with the server once per sign-in and say so plainly. */
@@ -252,6 +259,7 @@ window.addEventListener('hashchange', render);
     const [cfg, me] = await Promise.all([api('/config'), api('/me')]);
     app.config = cfg; app.user = me.user;
     if (app.user) pushSync(cfg.vapid);
+    await followAccountLanguage();
   } catch (e) {
     clear(root).append(h('div', { class: 'public' }, h('div', { class: 'signin' }, h('div', { class: 'card' }, empty('x', 'WDOS cannot start', e.message, h('button', { class: 'btn', onclick: () => location.reload() }, 'Reload'))))));
     return;

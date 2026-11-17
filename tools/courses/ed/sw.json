@@ -1,128 +1,562 @@
 {
-"why":{
- "WGMN":"«{topic}» huathiri ubora wa maamuzi, mahusiano na ufuatiliaji. Katika WODDI Good Mother Network, viongozi wajitolea mara nyingi ni akina mama, walezi, wafanyabiashara, wafanyakazi na wanawake wa jamii wanaohudumu pamoja na majukumu ya familia na kazi, katika jamii tofauti, hasa kwa simu. Lengo ni kugeuza somo hili kuwa tabia moja inayoonekana: uamuzi wazi, mazungumzo yenye manufaa, kitendo kilichoandikwa au rufaa ya wakati. Jifunze kanuni kabla ya kuitumia; hamasa haichukui nafasi ya ushahidi wala mamlaka.",
- "WNNN":"«{topic}» huathiri ubora wa maamuzi, mahusiano na ufuatiliaji. Katika WODDI Nurture NextGen Network, viongozi wajitolea ni vijana wa miaka 18 hadi 29: wanafunzi, wahitimu, wanagenzi na wafanyakazi wapya wanaosawazisha masomo, mitihani, kazi ya kwanza na matarajio ya familia, na wanaounganika zaidi mtandaoni. Lengo ni kugeuza somo hili kuwa tabia moja inayoonekana: uamuzi wazi, mazungumzo yenye manufaa, kitendo kilichoandikwa au rufaa ya wakati. Jifunze kanuni kabla ya kuitumia; hamasa haichukui nafasi ya ushahidi wala mamlaka."},
-"outcomes":"Mwisho wa kozi hii unapaswa kuweza kueleza mawazo matano kwa maneno yako, kutofautisha mazoea mazuri na makosa ya kawaida, kufanya shughuli ya vitendo na kuandaa mpango halisi wa kuboresha.",
-"evidence":"Ushahidi wa kujifunza: andika mfano wenye tarehe unaoonyesha jinsi ulivyotumia {topic}. Unaweza kuwa tafakari fupi, kumbukumbu ya kazi isiyo na taarifa binafsi, au kitendo kilichothibitishwa na msimamizi wako.",
-"c":{
-"1":{"WGMN":[["Mama wa sura anayeandika mahudhurio kwa uaminifu anasaidia kuratibu mkutano wa mwezi huku akijifunza kuongoza mijadala.","Andika uwezo mitatu uliouonyesha nyumbani, kazini au katika jamii, mfano mmoja kwa kila mmoja, na ujuzi mmoja unaotaka kukuza."],
- ["Mratibu wa kata anakataa kumpendelea binti wa jirani yake na kuwapeleka waombaji wote kwenye uchujaji ulioidhinishwa na makao makuu.","Andika maadili matano yanayokuongoza kama mama na kiongozi, na tabia moja inayoonyesha kila moja."],
- ["Mjitolea anayependa kuwafundisha wanawake ujuzi wa vitendo anachagua kuwakaribisha na kuwaongoza wanachama wapya.","Andika kwa sentensi moja unataka kumhudumia nani, unaweza kutoa nini na thamani gani inakuongoza. Mwombe mwanachama mwingine aisome."],
- ["Mratibu wa jimbo anapanga kuboresha mapokezi ya wanawake wapya robo hii badala ya kuahidi programu ya kitaifa isiyoidhinishwa.","Andika picha ya kiongozi unayetaka kuwa baada ya miezi sita na hatua tatu zinazoendana na majukumu yako ya familia."],
- ["Kiongozi anapanga kozi moja, shughuli moja ya jamii na tafakari ya kila mwezi kulingana na siku za soko na kupeleka watoto shule, kisha anapitia mpango.","Jaza mpango wa ukurasa mmoja: lengo moja, hatua inayofuata, nani anaweza kukusaidia na tarehe ya mapitio inayofaa nyumbani kwako."]],
- "WNNN":[["Mwanachama wa sura ya chuo anayefuatilia mahudhurio kwa usahihi anasaidia kuendesha mikutano huku akijifunza.","Andika uwezo mitatu uliouonyesha darasani, kazini au mtandaoni, mfano mmoja kwa kila mmoja, na ujuzi mmoja unaotaka kujenga mwaka huu."],
- ["Kiongozi wa sura anakataa kumpa mwenzake wa darasa nafasi kama upendeleo na kuwapeleka waombaji wote kwenye uchujaji wa makao makuu.","Andika maadili matano unayotaka kujulikana nayo miongoni mwa wenzako, na tabia moja inayoonyesha kila moja."],
- ["Mhitimu anayependa kueleza mambo anajitolea kuwasaidia wanachama wapya kuelewa WODDI.","Andika sentensi moja kuhusu unataka kumhudumia nani, unaweza kutoa nini na thamani gani inakusukuma. Mwombe mwenzako aipitie."],
- ["Kiongozi kijana wa jimbo anapanga kuboresha mapokezi muhula huu badala ya kutangaza mradi wa kitaifa wa vijana usioidhinishwa.","Andika maono ya ukuaji wako kwa miezi sita na hatua tatu zinazoendana na masomo au kazi yako."],
- ["Mjitolea anapanga kozi moja, shughuli moja ya huduma na tafakari ya kila mwezi kulingana na ratiba ya mitihani, kisha anarekebisha baada ya matokeo.","Jaza mpango wa ukurasa mmoja: lengo moja, hatua inayofuata, nani anaweza kukusaidia na tarehe ya mapitio inayolingana na kalenda yako."]]},
-"2":{"WGMN":[["Kabla ya mkutano wake wa kwanza wa sura, mama anafanya mazoezi ya ajenda na binti yake na kuthibitisha mambo mawili na makao makuu.","Andaa na fanya mazoezi ya kujieleza kwa dakika mbili kuhusu wewe na jukumu lako kwa mkutano ujao."],
- ["Mratibu anamshukuru bibi mkimya kwa ushauri wake ingawa hajawahi kuwa na cheo.","Andika sentensi tatu kuhusu thamani yako zisizohusiana na vyeo, fedha au maoni ya watu."],
- ["Mjitolea anayeogopa kuzungumza mbele ya wanawake waliosoma anaanza na ripoti ya dakika tano na kukua taratibu.","Chagua changamoto moja, hatua yako ndogo ya kwanza na mwanamke mmoja unayemwamini akupe maoni."],
- ["Mahudhurio hafifu yanaifanya timu kulinganisha saa ya mkutano na siku za soko na muda wa kuchukua watoto shuleni badala ya kuwalaumu wanawake.","Fanya mapitio mafupi ya changamoto ya hivi karibuni: nini kilitokea, nini kilikuwa chini yako, nini kibadilike, nani anaweza kusaidia."],
- ["Mjitolea anaona wajane wa eneo lake hawafikiwi na anatuma pendekezo kwa makao makuu badala ya kutangaza programu mwenyewe.","Eleza uboreshaji mmoja kwa wanawake wa jamii yako utakaoupendekeza kupitia njia iliyoidhinishwa."]],
- "WNNN":[["Kabla ya simu yake ya kwanza ya sura mtandaoni, mwanafunzi anafanya mazoezi ya ajenda na kuthibitisha maelezo na makao makuu badala ya kubahatisha.","Jirekodi ukieleza jukumu lako kwa dakika mbili kisha sikiliza mara moja."],
- ["Kiongozi anathamini mawazo ya mwanachama mpya ambaye hajawahi kuongoza na kumpa nafasi ya kuzungumza.","Andika sentensi tatu kuhusu thamani yako zisizotegemea wafuasi, alama za mitihani au vyeo."],
- ["Mhitimu mwenye wasiwasi wa kuwasilisha anaanza na taarifa ya dakika tano kwenye kikundi chake na kukua hatua kwa hatua.","Chagua changamoto moja, hatua yako ndogo ya kwanza na mwenzako au mshauri atakayekupa maoni ya kweli."],
- ["Mahudhurio hafifu yanaifanya timu ya vijana kulinganisha saa na vipindi vya masomo na wiki za mitihani badala ya kuwalaumu wanachama.","Fanya mapitio mafupi ya kikwazo cha hivi karibuni shuleni, kazini au katika kujitolea: nini kilitokea, ulidhibiti nini, nini kibadilike, nani anaweza kusaidia."],
- ["Mjitolea anaona akina mama vijana wa eneo lake wanakosa shughuli na anatuma pendekezo kwa makao makuu badala ya kuanzisha mradi mitandaoni.","Eleza uboreshaji mmoja kwa vijana wa eneo lako utakaoupendekeza kupitia njia iliyoidhinishwa."]]},
-"3":{"WGMN":[["Mwakilishi wa nchi anamaliza ufuatiliaji wa mapokezi uliochelewa kabla ya kutengeneza upya bango la hiari.","Panga mambo matano ya wiki hii, nyumbani na katika huduma, kwa athari, tarehe ya mwisho na nani anayategemea."],
- ["Mjitolea mwenye duka na watoto wadogo anatenga saa mbili Jumapili jioni kwa ufuatiliaji badala ya kuahidi mikutano ya kila siku.","Tengeneza mpango wa wiki moja wenye majukumu ya familia, kazi na kikomo halisi cha muda wa kujitolea."],
- ["Kiongozi anaangalia kazi zake kwenye WDOS kila Jumatatu asubuhi baada ya kupeleka watoto shule na kusasisha maendeleo kwa mara moja.","Chagua tabia moja ya kila wiki ya dakika kumi na iunganishe na jambo unalofanya tayari kila wiki."],
- ["Badala ya kuahirisha ripoti, mratibu anaanza kwa kukusanya takwimu za mahudhurio kutoka kwa viongozi wa sura.","Gawa jukumu moja lililochelewa katika hatua tatu ndogo za kufanya wiki hii."],
- ["Mratibu wa jimbo anapakia orodha ya mahudhurio na kusema wazi kuwa ripoti ya sura moja bado inakosekana.","Andika taarifa ya kazi yenye mhusika, tarehe ya mwisho, hali, ushahidi na kikwazo."]],
- "WNNN":[["Kiongozi wa sura anamaliza ufuatiliaji uliochelewa kabla ya kutengeneza upya picha ya hiari ya Instagram.","Panga mambo matano ya wiki hii, masomo, kazi na huduma, kwa athari, tarehe ya mwisho na nani anayategemea."],
- ["Mwanafunzi wa mwaka wa mwisho anatenga saa mbili kwa wiki kwa ufuatiliaji badala ya kuahidi simu za kila siku wakati wa mitihani.","Tengeneza mpango wa wiki moja wenye masomo au kazi, kupumzika na kikomo halisi cha muda wa kujitolea."],
- ["Mjitolea anaangalia kazi zake kwenye WDOS kila Jumatatu kabla ya kipindi chake cha kwanza na kusasisha maendeleo kwa mara moja.","Chagua tabia moja ya kila wiki ya dakika kumi na weka kikumbusho kwenye simu."],
- ["Badala ya kuahirisha ripoti, mratibu wa vijana anaanza kwa kukusanya takwimu za mahudhurio kutoka sura za vyuo.","Gawa jukumu moja lililochelewa katika hatua tatu ndogo za kumaliza kabla ya wikendi."],
- ["Kiongozi anapakia orodha ya mahudhurio na kusema wazi kuwa ripoti ya chuo kimoja bado inakosekana.","Andika taarifa ya kazi yenye mhusika, tarehe ya mwisho, hali, ushahidi na kikwazo."]]},
-"4":{"WGMN":[["Mratibu anakasirika ripoti inapochelewa, na anauliza kilichotokea kabla ya kujibu.","Eleza wakati wa msongo nyumbani au katika huduma na swali moja ambalo lingethibitisha dhana yako."],
- ["Naibu anaandika ufuatiliaji wa utulivu badala ya kujibu kwa hasira ujumbe wa sauti alioulewa vibaya.","Andika upya ujumbe wenye mvutano kuhusu mkutano uliokosekana kuwa jibu tulivu, la ukweli na la heshima."],
- ["Kiongozi anagundua kuwa mwanachama alikosa mafunzo kwa sababu alikuwa akimuuguza ndugu, na anampa njia nyingine ya kufidia.","Andika maswali mawili ya wazi ya kumuuliza mwanachama aliyenyamaza."],
- ["Kiongozi anauliza ni sehemu gani ya ripoti yake haikueleweka na kubadilisha muundo mwezi ujao.","Andika jibu la sehemu tatu kwa maoni: asante, swali la kuelewa na hatua yako inayofuata."],
- ["Kiongozi mjitolea anaeleza saa anazopatikana na kumwelekeza mwanachama anayehitaji msaada maalum kwa huduma yenye sifa.","Andika ujumbe wa adabu ukiiambia sura yako ni lini unaweza kujibu."]],
- "WNNN":[["Kiongozi anakasirika mwenzake anaponyamaza kwenye kikundi cha mazungumzo, na anaangalia sababu kabla ya kujibu.","Eleza wakati wa msongo shuleni, kazini au mtandaoni na swali moja ambalo lingethibitisha dhana yako."],
- ["Naibu anaandika ufuatiliaji wa utulivu badala ya kuweka jibu kali kwenye kikundi.","Andika upya ujumbe wa mazungumzo wenye mvutano kuwa jibu tulivu, la ukweli na la heshima."],
- ["Kiongozi anagundua kuwa mwanachama alikosa mafunzo kwa sababu ya gharama za data, na anampa rekodi na muhtasari wa maandishi.","Andika maswali mawili ya wazi ya kumuuliza mwenzako anayeonekana kuwa na shida."],
- ["Kiongozi kijana anauliza ni sehemu gani ya wasilisho lake haikueleweka na kubadilisha slaidi.","Andika jibu la sehemu tatu kwa maoni: asante, swali la kuelewa na hatua yako inayofuata."],
- ["Mjitolea anaeleza kuwa hajibu baada ya saa tatu usiku siku za kusoma, na anampeleka mwenzake anayehitaji ushauri kwa huduma yenye sifa.","Andika ujumbe mfupi wa kirafiki unaoweka saa zako za kujibu kwa kikundi cha sura."]]},
-"5":{"WGMN":[["Mwenyekiti wa mkutano anarudia wasiwasi wa mwanachama kwa maneno yake kabla ya kupendekeza suluhisho.","Fanya mazoezi ya kufupisha alichosema mwanachama mwingine kwa sentensi mbili zisizo na upendeleo."],
- ["Kumbukumbu ya kazi ya makao makuu inaeleza cha kutuma, muundo na tarehe, badala ya kusema tu «haraka».","Andika ombi la sentensi nne kwa viongozi wa sura zako lenye tarehe wazi na jinsi ya kujibu."],
- ["Mratibu wa kanda anatoa hotuba ya dakika tatu katika mkutano wa wanawake wa kanisa kuhusu majukumu yaliyoidhinishwa.","Andaa na fanya mazoezi ya hotuba ya dakika tatu inayomalizika kwa ombi moja wazi."],
- ["Mkutano wa sura unatumia ajenda fupi na kuwaruhusu wanawake kutuma hoja kwa ujumbe wa sauti kama hawawezi kuzungumza moja kwa moja.","Panga mkutano wa dakika 20 wenye muda kwa kila sauti na muhtasari wa hatua."],
- ["Tangazo la bara linataja saa kwa WAT na kuomba kila nchi kuthibitisha saa ya eneo na lugha.","Andika upya tangazo la mkutano kwa maneno rahisi lenye tarehe, saa, mahali au kiungo, na lugha itakayotumika."]],
- "WNNN":[["Mwenyekiti wa sura anarudia wazo la mwanachama kwa maneno yake kabla ya kikundi kujibu.","Fanya mazoezi ya kufupisha hoja ya mwenzako wa darasa au kazini kwa sentensi mbili zisizo na upendeleo."],
- ["Kumbukumbu ya kazi inaeleza cha kuwasilisha, muundo na tarehe, badala ya «haraka iwezekanavyo» isiyo wazi.","Andika ombi la kazi la sentensi nne kwa timu yako lenye tarehe ya mwisho wazi na jinsi ya kuwasilisha."],
- ["Kiongozi wa vijana anatoa hotuba ya dakika tatu katika tukio la chuo kuhusu majukumu yaliyoidhinishwa.","Andika na fanya mazoezi ya hotuba ya dakika tatu yenye wito mmoja wazi wa kuchukua hatua."],
- ["Mkutano wa sura mtandaoni unatumia ajenda fupi na sehemu ya maandishi kwa wanachama wasioweza kuwasha kipaza sauti.","Panga mkutano wa mtandaoni wa dakika 20 wenye muda kwa kila sauti na muhtasari wa hatua."],
- ["Tangazo kwa wanachama wa Afrika na diaspora linataja saa kwa WAT na kumwomba kila mmoja kuangalia saa yake.","Andika upya tangazo la mkutano kwa lugha rahisi lenye tarehe, saa, kiungo na lugha."]]},
-"6":{"WGMN":[["Mratibu anawasaidia kwa subira wanawake wapya kuelewa shughuli badala ya kuona maswali yao kama dharau.","Taja kikwazo kimoja unachoweza kuwaondolea wanawake wa sura yako bila kuvuka jukumu lako."],
- ["Mwakilishi wa nchi anathibitisha idadi ya wanachama iliyohakikiwa kabla ya kupendekeza mahali pa kuelekeza uhamasishaji.","Andika kumbukumbu fupi ya uamuzi yenye ushahidi, chaguo, hatari na nani lazima aidhinishe."],
- ["Mratibu wa kanda anawapa manaibu waliotajwa ufuatiliaji mbili ulioidhinishwa na kutoa msaada wa dashibodi.","Andika mgawo mmoja wenye matokeo yanayotarajiwa, mhusika, tarehe ya mwisho na tarehe ya kufuatilia."],
- ["Mratibu wa sura anasasisha kumbukumbu ya WDOS badala ya kuweka namba za simu za wanachama kwenye kikundi cha WhatsApp.","Orodhesha kanuni tatu za kushughulikia taarifa binafsi za wanachama katika jukumu lako."],
- ["Mratibu wa jimbo anawasilisha mgombea kupitia WDOS na kusubiri mchakato wa uteuzi wa makao makuu.","Chora hatua kuanzia kumtambua kiongozi mtarajiwa hadi uamuzi wa makao makuu."]],
- "WNNN":[["Kiongozi anawasaidia wanachama wapya kuelewa shughuli badala ya kuona maswali kama dharau.","Taja kikwazo kimoja unachoweza kuiondolea timu yako bila kuvuka jukumu lako."],
- ["Kiongozi wa vijana wa nchi anathibitisha takwimu zilizohakikiwa kabla ya kupendekeza vyuo vya kuzingatia.","Andika kumbukumbu fupi ya uamuzi yenye ushahidi, chaguo, hatari na nani lazima aidhinishe."],
- ["Kiongozi wa kanda anagawa ufuatiliaji mbili ulioidhinishwa kwa wahusika wazi na kujitolea kuwaonyesha dashibodi.","Andika mgawo mmoja wenye matokeo yanayotarajiwa, mhusika, tarehe ya mwisho na wakati wa kufuatilia."],
- ["Kiongozi anasasisha WDOS badala ya kushiriki namba za wanachama kwenye mazungumzo ya umma.","Orodhesha kanuni tatu za kushughulikia taarifa binafsi za wanachama katika jukumu lako."],
- ["Kiongozi wa jimbo anawasilisha mgombea kupitia WDOS na kusubiri mchakato wa makao makuu bila kuahidi nafasi.","Chora hatua kuanzia kumtambua kiongozi mtarajiwa hadi uamuzi wa makao makuu."]]},
-"7":{"WGMN":[["Mjitolea anapanga gharama za usafiri bila kudhani lazima alipe mwenyewe gharama zisizorudishwa.","Tengeneza jedwali rahisi la mapato na matumizi ya kila mwezi ya nyumbani kwa takwimu za kubuni."],
- ["Mwanachama anapanga akiba ndogo ya dharura kwa michango anayoweza kutoa kutoka mapato ya soko.","Andika lengo moja la fedha la muda mfupi na hatua mbili katika bajeti ya kubuni ya familia."],
- ["Mjitolea analinganisha bei, ubora na gharama ya usafiri kabla ya kununua bidhaa za biashara yake.","Linganisha manunuzi mawili ya kubuni kwa gharama kamili na manufaa."],
- ["Mjitolea anathibitisha mwenyewe ofa ya uwekezaji iliyoshirikiwa kwenye kikundi cha wanawake badala ya kuituma kwa sura.","Tafuta ishara tatu za hatari katika ujumbe wa fedha wenye shaka wa kubuni."],
- ["Kiongozi wa kanda anatuma pendekezo la gharama kwa makao makuu badala ya kukusanya fedha kutoka kwa wanachama.","Andaa ombi la kubuni lenye lengo, makadirio ya gharama na idhini inayohitajika."]],
- "WNNN":[["Mjitolea mwanafunzi anapanga gharama za usafiri na data bila kudhani lazima afadhili shughuli za sura mwenyewe.","Tengeneza jedwali rahisi la posho au mapato ya mwezi na matumizi kwa takwimu za kubuni."],
- ["Mhitimu kijana anapanga akiba ndogo ya dharura kwa kiasi anachoweza kuweka kutoka mshahara wake wa kwanza.","Andika lengo moja la fedha la muda mfupi na hatua mbili katika bajeti ya kubuni ya mwanafunzi au kazi ya kwanza."],
- ["Mjitolea analinganisha bei, ubora na gharama ya kusafirisha kabla ya kununua kifaa cha simu mtandaoni.","Linganisha manunuzi mawili ya mtandaoni ya kubuni kwa gharama kamili na manufaa."],
- ["Mjitolea anathibitisha mwenyewe ofa ya sarafu ya kidijitali ya «zidisha fedha zako mara mbili» badala ya kuituma kwenye kikundi cha sura.","Tafuta ishara tatu za hatari katika ujumbe wa fedha wenye shaka uliopokewa mtandaoni."],
- ["Kiongozi wa vijana anatuma pendekezo la gharama kwa makao makuu badala ya kuwaomba wanachama kuchanga fedha.","Andaa ombi la kubuni lenye lengo, makadirio ya gharama na idhini inayohitajika."]]},
-"8":{"WGMN":[["Mjitolea anaangalia kazi zake na kusasisha wasifu wake badala ya kuomba nywila ya kiongozi mwingine.","Chora sehemu za dashibodi unazohitaji na andika ufikiaji unaokosekana."],
- ["Mratibu anapakia muhtasari wa mahudhurio uliokamilika kama alivyoombwa na kuweka alama iliyobaki kuwa inasubiri.","Andika mfano wa uwasilishaji wa kazi wenye hali, ushahidi na kikwazo."],
- ["Kiongozi anaripoti ujumbe wenye shaka wa kubadilisha nywila bila kufungua kiungo, na kumwomba mwanawe asitumie akaunti yake.","Andika orodha ya ukaguzi kwa ujumbe usiotarajiwa kuhusu akaunti yako."],
- ["Mjitolea anathibitisha ridhaa ya picha na maelezo yaliyoidhinishwa kabla ya kuweka muhtasari Facebook.","Andika orodha ya ukaguzi ya kuchapisha tukio kwa usalama: ukweli, ridhaa na chapa iliyoidhinishwa."],
- ["Mwakilishi wa nchi anaripoti waliojisajili 40 na waliohudhuria 22 badala ya kutangaza washiriki 40.","Tengeneza mfano wa ripoti yenye sehemu tofauti: waliojisajili, waliohudhuria na waliokamilisha."]],
- "WNNN":[["Mjitolea anaangalia kazi zake na kusasisha wasifu wake badala ya kutumia taarifa za kuingia za rafiki.","Chora sehemu za dashibodi unazohitaji na andika ufikiaji unaokosekana."],
- ["Kiongozi anapakia muhtasari wa mahudhurio uliokamilika kama alivyoombwa na kuweka alama iliyobaki kuwa inasubiri.","Andika mfano wa uwasilishaji wa kazi wenye hali, ushahidi na kikwazo."],
- ["Kiongozi kijana anaripoti tahadhari ya kuingia yenye shaka na kuwasha uthibitisho wa hatua mbili badala ya kushiriki msimbo.","Andika orodha ya ukaguzi kwa ujumbe usiotarajiwa kuhusu akaunti zako, ikiwemo mitandao ya kijamii."],
- ["Mjitolea anathibitisha ridhaa na maelezo yaliyoidhinishwa kabla ya kuweka tukio Instagram au TikTok.","Andika orodha ya ukaguzi ya kuchapisha tukio kwa usalama: ukweli, ridhaa na chapa iliyoidhinishwa."],
- ["Kiongozi wa vijana wa nchi anaripoti waliojisajili 40 na waliohudhuria 22 badala ya kutangaza washiriki 40.","Tengeneza mfano wa ripoti yenye sehemu tofauti: waliojisajili, waliohudhuria na waliokamilisha."]]},
-"9":{"WGMN":[["Waratibu wawili hawakubaliani kuhusu tarehe ya mwisho na wanasoma pamoja maelekezo ya maandishi kabla ya kujadili nia.","Eleza kutokubaliana kwa kubuni ukitenganisha ukweli, tafsiri na hatua inayofuata."],
- ["Msimamizi anazungumza faraghani kwa upole na mwanachama anayechelewa mara nyingi na kuuliza kuhusu mzigo wake nyumbani.","Andika maoni ya heshima kwa sentensi nne."],
- ["Sura mbili zinakubaliana kushiriki mwongozaji mmoja baada ya makao makuu kuidhinisha ratiba mpya.","Andika chaguo mbili za kutatua mgongano wa tarehe za mikutano wa kubuni."],
- ["Mratibu wa kata anashiriki taarifa iliyothibitishwa na mratibu wa wilaya badala ya kutuma maelekezo tofauti kwa kila sura.","Chora njia rahisi ya kupeleka masuala na kuripoti katika nafasi yako."],
- ["Kiongozi anakiri ahadi aliyoshindwa kutimiza, anarekebisha kumbukumbu na kuweka ufuatiliaji wa mara kwa mara.","Andika mpango wa kurekebisha wenye kukiri, marekebisho na tarehe ya kufuatilia."]],
- "WNNN":[["Viongozi wawili hawakubaliani kuhusu tarehe ya mwisho na wanasoma tena maelekezo ya maandishi kabla ya kubishana kuhusu nia.","Eleza kutokubaliana kwa kubuni ukitenganisha ukweli, tafsiri na hatua inayofuata."],
- ["Msimamizi wa vijana anazungumza faraghani na mwanachama anayechelewa mara nyingi na kuuliza kuhusu mitihani na mzigo wake.","Andika maoni ya heshima kwa sentensi nne."],
- ["Sura mbili za vyuo zinakubaliana kushiriki mwongozaji mmoja baada ya makao makuu kuidhinisha ratiba mpya.","Andika chaguo mbili za kutatua mgongano wa ratiba wa kubuni."],
- ["Kiongozi anashiriki taarifa iliyothibitishwa na kiongozi wake wa wilaya badala ya kuweka maelekezo yanayopingana kwenye vikundi kadhaa.","Chora njia rahisi ya kupeleka masuala na kuripoti katika nafasi yako."],
- ["Kiongozi anakiri ahadi aliyoshindwa kutimiza, anarekebisha kumbukumbu na kuweka ufuatiliaji wa kila wiki.","Andika mpango wa kurekebisha wenye kukiri, marekebisho na tarehe ya kufuatilia."]]},
-"10":{"WGMN":[["Mjitolea mwenye majukumu ya familia na tarehe kadhaa za mwisho anamjulisha msimamizi na kujadili upya kazi zake.","Chora mzigo wako: majukumu ya lazima nyumbani na katika huduma, uwezo wako na msaada unaohitaji."],
- ["Mratibu anapanga mkutano unaofuata kwa saa inayofaa badala ya simu za usiku kila siku.","Panga wiki yenye uwiano yenye muda wa kupumzika, familia na huduma."],
- ["Kiongozi anamsaidia mwanachama kupata huduma ya afya au ushauri yenye sifa bila kujaribu kumtambua ugonjwa.","Andika mipaka ya msaada unaoweza kutoa na watu wa rufaa wa kuthibitisha na makao makuu."],
- ["Mjitolea anaijulisha timu mapema kuhusu kutokuwepo kwa ajili ya shughuli ya familia na kupanga makabidhiano yaliyoidhinishwa.","Andika dokezo fupi la muda unaopatikana na mpango rahisi wa makabidhiano."],
- ["Mwongozaji wa mkutano anamtumia muhtasari wa maandishi mjitolea mwenye mtandao usio wa uhakika.","Pendekeza mabadiliko mawili yanayofanya mkutano wa sura wa kubuni kuwa rahisi kwa kila mwanamke."]],
- "WNNN":[["Mjitolea katika kipindi cha mitihani mwenye tarehe kadhaa za mwisho anamjulisha msimamizi na kujadili upya kazi zake.","Chora mzigo wako: masomo, kazi na huduma, uwezo wako na msaada unaohitaji."],
- ["Kiongozi anapanga simu inayofuata kwa saa inayofaa badala ya simu za usiku kila siku.","Panga wiki yenye uwiano yenye muda wa kusoma, kupumzika, marafiki na huduma."],
- ["Kiongozi anamsaidia mwenzake kupata huduma ya ushauri yenye sifa bila kujaribu kumtambua ugonjwa.","Andika mipaka ya msaada unaoweza kutoa na watu wa rufaa wa kuthibitisha na makao makuu."],
- ["Mjitolea anaijulisha timu mapema kuhusu wiki ya mitihani na kupanga makabidhiano yaliyoidhinishwa.","Andika dokezo fupi la muda unaopatikana na mpango rahisi wa makabidhiano."],
- ["Mwongozaji anashiriki rekodi na maelezo na mwanachama ambaye data yake inaisha wakati wa simu.","Pendekeza mabadiliko mawili yanayofanya mkutano wa mtandaoni wa kubuni kuwa rahisi kwa kila mwanachama."]]},
-"11":{"WGMN":[["Kiongozi anawauliza wanawake wa eneo lake jinsi wanavyojifunza vizuri kabla ya kupendekeza mafunzo kwa simu.","Andaa maswali matano yasiyo na upendeleo kwa kikao cha kusikiliza wanawake wa jamii yako."],
- ["Mratibu wa jimbo anaalika vyama vya wanawake wa soko na wa kanisa kupendekeza wanawake wanaovutiwa kupitia mchakato ulioidhinishwa na makao makuu.","Andika mwaliko wa ukarimu wenye vigezo wazi na kiungo cha rufaa kilichoidhinishwa."],
- ["Timu ya jamii inapendekeza kipindi kimoja cha ujuzi kilichoidhinishwa chenye mwongozaji na mpango wa mahudhurio.","Jaza wazo la shughuli la ukurasa mmoja kwa makao makuu: hitaji, wanawake wanaohudumiwa, matokeo, usalama, rasilimali na idhini."],
- ["Ripoti ya mafunzo inaandika mahudhurio 35 na jaribio la maswali kumi, bila kudai biashara mpya 35.","Chagua kipimo kimoja cha shughuli na kimoja cha mabadiliko kwa warsha ya wanawake ya kubuni."],
- ["Baada ya ushiriki mdogo, mratibu anajaribu saa baada ya soko kabla ya kurudia muundo uleule.","Andika mapitio mafupi: kilichopangwa, kilichotokea, ulichojifunza, kinachofuata."]],
- "WNNN":[["Kiongozi wa vijana anawauliza wanachama wanavyopenda kujifunza kabla ya kupendekeza kipindi cha ujuzi wa kidijitali.","Andaa maswali matano yasiyo na upendeleo kwa kikao cha kusikiliza vijana wa chuo au eneo lako."],
- ["Kiongozi wa jimbo anaalika vyama vya wanafunzi na vikundi vya vijana kupendekeza wanachama wanaovutiwa kupitia mchakato ulioidhinishwa na makao makuu.","Andika mwaliko jumuishi wenye vigezo wazi na kiungo cha rufaa kilichoidhinishwa."],
- ["Timu ya chuo inapendekeza kipindi kimoja kilichoidhinishwa cha ujuzi wa kazi chenye mwongozaji na mpango wa mahudhurio.","Jaza wazo la shughuli la ukurasa mmoja kwa makao makuu: hitaji, wanaohudumiwa, matokeo, usalama, rasilimali na idhini."],
- ["Ripoti ya mafunzo inaandika mahudhurio 35 na jaribio la maswali kumi, bila kudai kazi mpya 35.","Chagua kipimo kimoja cha shughuli na kimoja cha mabadiliko kwa warsha ya vijana ya kubuni."],
- ["Baada ya ushiriki mdogo, mratibu wa vijana anajaribu saa ya wikendi kabla ya kurudia muundo uleule.","Andika mapitio mafupi: kilichopangwa, kilichotokea, ulichojifunza, kinachofuata."]]},
-"12":{"WGMN":[["Naibu anajitolea kukamilisha ufuatiliaji mitatu wa mapokezi ulioidhinishwa kabla ya tarehe fulani na kuuandika kwenye WDOS.","Geuza tumaini lisilo wazi kuwa lengo la SMART linaloendana na maisha yako ya familia na kazi."],
- ["Mjitolea anachagua mafunzo ya kuongoza mijadala na kufanya mazoezi katika mkutano wa sura unaosimamiwa.","Jenga mpango wa siku 90 wenye ujuzi miwili na nafasi moja ya mazoezi kwa kila mmoja."],
- ["Mratibu wa jimbo mwenye uzoefu anamsaidia mratibu mpya wa sura kuandaa mkutano kisha wanatafakari pamoja.","Andika mpango wa mazungumzo ya ushauri na hatua mbili za kufuatilia."],
- ["Mjitolea anapitia mahudhurio ya mikutano pamoja na vikwazo vya usafiri na malezi ya watoto na kurekebisha uhamasishaji.","Andaa mapitio ya ukuaji ya kila mwezi yenye mafanikio, vikwazo na hatua zinazofuata."],
- ["Mjitolea anakamilisha maelekezo ya awali, anasaidia mradi ulioidhinishwa na kupendekezwa kwa makao makuu bila ahadi ya uteuzi.","Andika tafakari ya utayari wa uongozi yenye ushahidi, mahitaji ya mafunzo na mapendeleo yako."]],
- "WNNN":[["Naibu wa vijana anajitolea kukamilisha ufuatiliaji mitatu ulioidhinishwa kabla ya tarehe fulani na kuuandika kwenye WDOS.","Geuza tamaa isiyo wazi kuwa lengo la SMART linaloendana na masomo au kazi yako."],
- ["Mjitolea anachagua mafunzo ya kuongoza mijadala na kufanya mazoezi katika mkutano wa sura ya chuo unaosimamiwa.","Jenga mpango wa siku 90 wenye ujuzi miwili na nafasi moja ya mazoezi kwa kila mmoja."],
- ["Kiongozi wa jimbo mwenye uzoefu anamsaidia kiongozi mpya wa sura kuandaa mkutano kisha wanatafakari pamoja.","Andika mpango wa mazungumzo ya ushauri na hatua mbili za kufuatilia."],
- ["Mjitolea anapitia mahudhurio pamoja na vipindi vya mitihani na gharama za data, kisha anarekebisha mpango wa uhamasishaji.","Andaa mapitio ya ukuaji ya kila mwezi yenye mafanikio, vikwazo na hatua zinazofuata."],
- ["Mjitolea anakamilisha maelekezo ya awali, anasaidia mradi ulioidhinishwa na kupendekezwa kwa makao makuu bila ahadi ya uteuzi.","Andika tafakari ya utayari wa uongozi yenye ushahidi, mahitaji ya mafunzo na mapendeleo ya kazi."]]}
-}}
+"why": {
+"WGMN": "«{topic}» huathiri ubora wa maamuzi, mahusiano na ufuatiliaji. Katika WODDI Good Mother Network, viongozi wajitolea mara nyingi ni akina mama, walezi, wafanyabiashara, wafanyakazi na wanawake wa jamii wanaohudumu pamoja na majukumu ya familia na kazi, katika jamii tofauti, hasa kwa simu. Lengo ni kugeuza somo hili kuwa tabia moja inayoonekana: uamuzi wazi, mazungumzo yenye manufaa, kitendo kilichoandikwa au rufaa ya wakati. Jifunze kanuni kabla ya kuitumia; hamasa haichukui nafasi ya ushahidi wala mamlaka.",
+"WNNN": "«{topic}» huathiri ubora wa maamuzi, mahusiano na ufuatiliaji. Katika WODDI Nurture NextGen Network, viongozi wajitolea ni vijana wa miaka 18 hadi 29: wanafunzi, wahitimu, wanagenzi na wafanyakazi wapya wanaosawazisha masomo, mitihani, kazi ya kwanza na matarajio ya familia, na wanaounganika zaidi mtandaoni. Lengo ni kugeuza somo hili kuwa tabia moja inayoonekana: uamuzi wazi, mazungumzo yenye manufaa, kitendo kilichoandikwa au rufaa ya wakati. Jifunze kanuni kabla ya kuitumia; hamasa haichukui nafasi ya ushahidi wala mamlaka."
+},
+"outcomes": "Mwisho wa kozi hii unapaswa kuweza kueleza mawazo matano kwa maneno yako, kutofautisha mazoea mazuri na makosa ya kawaida, kufanya shughuli ya vitendo na kuandaa mpango halisi wa kuboresha.",
+"evidence": "Ushahidi wa kujifunza: andika mfano wenye tarehe unaoonyesha jinsi ulivyotumia {topic}. Unaweza kuwa tafakari fupi, kumbukumbu ya kazi isiyo na taarifa binafsi, au kitendo kilichothibitishwa na msimamizi wako.",
+"c": {
+"1": {
+"WGMN": [
+[
+"Mama wa sura anayeandika mahudhurio kwa uaminifu anasaidia kuratibu mkutano wa mwezi huku akijifunza kuongoza mijadala.",
+"Andika uwezo mitatu uliouonyesha nyumbani, kazini au katika jamii, mfano mmoja kwa kila mmoja, na ujuzi mmoja unaotaka kukuza."
+],
+[
+"Mratibu wa kata anakataa kumpendelea binti wa jirani yake na kuwapeleka waombaji wote kwenye uchujaji ulioidhinishwa na makao makuu.",
+"Andika maadili matano yanayokuongoza kama mama na kiongozi, na tabia moja inayoonyesha kila moja."
+],
+[
+"Mjitolea anayependa kuwafundisha wanawake ujuzi wa vitendo anachagua kuwakaribisha na kuwaongoza wanachama wapya.",
+"Andika kwa sentensi moja unataka kumhudumia nani, unaweza kutoa nini na thamani gani inakuongoza. Mwombe mwanachama mwingine aisome."
+],
+[
+"Mratibu wa jimbo anapanga kuboresha mapokezi ya wanawake wapya robo hii badala ya kuahidi programu ya kitaifa isiyoidhinishwa.",
+"Andika picha ya kiongozi unayetaka kuwa baada ya miezi sita na hatua tatu zinazoendana na majukumu yako ya familia."
+],
+[
+"Kiongozi anapanga kozi moja, shughuli moja ya jamii na tafakari ya kila mwezi kulingana na siku za soko na kupeleka watoto shule, kisha anapitia mpango.",
+"Jaza mpango wa ukurasa mmoja: lengo moja, hatua inayofuata, nani anaweza kukusaidia na tarehe ya mapitio inayofaa nyumbani kwako."
+]
+],
+"WNNN": [
+[
+"Mwanachama wa sura ya chuo anayefuatilia mahudhurio kwa usahihi anasaidia kuendesha mikutano huku akijifunza.",
+"Andika uwezo mitatu uliouonyesha darasani, kazini au mtandaoni, mfano mmoja kwa kila mmoja, na ujuzi mmoja unaotaka kujenga mwaka huu."
+],
+[
+"Kiongozi wa sura anakataa kumpa mwenzake wa darasa nafasi kama upendeleo na kuwapeleka waombaji wote kwenye uchujaji wa makao makuu.",
+"Andika maadili matano unayotaka kujulikana nayo miongoni mwa wenzako, na tabia moja inayoonyesha kila moja."
+],
+[
+"Mhitimu anayependa kueleza mambo anajitolea kuwasaidia wanachama wapya kuelewa WODDI.",
+"Andika sentensi moja kuhusu unataka kumhudumia nani, unaweza kutoa nini na thamani gani inakusukuma. Mwombe mwenzako aipitie."
+],
+[
+"Kiongozi kijana wa jimbo anapanga kuboresha mapokezi muhula huu badala ya kutangaza mradi wa kitaifa wa vijana usioidhinishwa.",
+"Andika maono ya ukuaji wako kwa miezi sita na hatua tatu zinazoendana na masomo au kazi yako."
+],
+[
+"Mjitolea anapanga kozi moja, shughuli moja ya huduma na tafakari ya kila mwezi kulingana na ratiba ya mitihani, kisha anarekebisha baada ya matokeo.",
+"Jaza mpango wa ukurasa mmoja: lengo moja, hatua inayofuata, nani anaweza kukusaidia na tarehe ya mapitio inayolingana na kalenda yako."
+]
+]
+},
+"2": {
+"WGMN": [
+[
+"Kabla ya mkutano wake wa kwanza wa sura, mama anafanya mazoezi ya ajenda na binti yake na kuthibitisha mambo mawili na makao makuu.",
+"Andaa na fanya mazoezi ya kujieleza kwa dakika mbili kuhusu wewe na jukumu lako kwa mkutano ujao."
+],
+[
+"Mratibu anamshukuru bibi mkimya kwa ushauri wake ingawa hajawahi kuwa na cheo.",
+"Andika sentensi tatu kuhusu thamani yako zisizohusiana na vyeo, fedha au maoni ya watu."
+],
+[
+"Mjitolea anayeogopa kuzungumza mbele ya wanawake waliosoma anaanza na ripoti ya dakika tano na kukua taratibu.",
+"Chagua changamoto moja, hatua yako ndogo ya kwanza na mwanamke mmoja unayemwamini akupe maoni."
+],
+[
+"Mahudhurio hafifu yanaifanya timu kulinganisha saa ya mkutano na siku za soko na muda wa kuchukua watoto shuleni badala ya kuwalaumu wanawake.",
+"Fanya mapitio mafupi ya changamoto ya hivi karibuni: nini kilitokea, nini kilikuwa chini yako, nini kibadilike, nani anaweza kusaidia."
+],
+[
+"Mjitolea anaona wajane wa eneo lake hawafikiwi na anatuma pendekezo kwa makao makuu badala ya kutangaza programu mwenyewe.",
+"Eleza uboreshaji mmoja kwa wanawake wa jamii yako utakaoupendekeza kupitia njia iliyoidhinishwa."
+]
+],
+"WNNN": [
+[
+"Kabla ya simu yake ya kwanza ya sura mtandaoni, mwanafunzi anafanya mazoezi ya ajenda na kuthibitisha maelezo na makao makuu badala ya kubahatisha.",
+"Jirekodi ukieleza jukumu lako kwa dakika mbili kisha sikiliza mara moja."
+],
+[
+"Kiongozi anathamini mawazo ya mwanachama mpya ambaye hajawahi kuongoza na kumpa nafasi ya kuzungumza.",
+"Andika sentensi tatu kuhusu thamani yako zisizotegemea wafuasi, alama za mitihani au vyeo."
+],
+[
+"Mhitimu mwenye wasiwasi wa kuwasilisha anaanza na taarifa ya dakika tano kwenye kikundi chake na kukua hatua kwa hatua.",
+"Chagua changamoto moja, hatua yako ndogo ya kwanza na mwenzako au mshauri atakayekupa maoni ya kweli."
+],
+[
+"Mahudhurio hafifu yanaifanya timu ya vijana kulinganisha saa na vipindi vya masomo na wiki za mitihani badala ya kuwalaumu wanachama.",
+"Fanya mapitio mafupi ya kikwazo cha hivi karibuni shuleni, kazini au katika kujitolea: nini kilitokea, ulidhibiti nini, nini kibadilike, nani anaweza kusaidia."
+],
+[
+"Mjitolea anaona akina mama vijana wa eneo lake wanakosa shughuli na anatuma pendekezo kwa makao makuu badala ya kuanzisha mradi mitandaoni.",
+"Eleza uboreshaji mmoja kwa vijana wa eneo lako utakaoupendekeza kupitia njia iliyoidhinishwa."
+]
+]
+},
+"3": {
+"WGMN": [
+[
+"Mwakilishi wa nchi anamaliza ufuatiliaji wa mapokezi uliochelewa kabla ya kutengeneza upya bango la hiari.",
+"Panga mambo matano ya wiki hii, nyumbani na katika huduma, kwa athari, tarehe ya mwisho na nani anayategemea."
+],
+[
+"Mjitolea mwenye duka na watoto wadogo anatenga saa mbili Jumapili jioni kwa ufuatiliaji badala ya kuahidi mikutano ya kila siku.",
+"Tengeneza mpango wa wiki moja wenye majukumu ya familia, kazi na kikomo halisi cha muda wa kujitolea."
+],
+[
+"Kiongozi anaangalia kazi zake kwenye WDOS kila Jumatatu asubuhi baada ya kupeleka watoto shule na kusasisha maendeleo kwa mara moja.",
+"Chagua tabia moja ya kila wiki ya dakika kumi na iunganishe na jambo unalofanya tayari kila wiki."
+],
+[
+"Badala ya kuahirisha ripoti, mratibu anaanza kwa kukusanya takwimu za mahudhurio kutoka kwa viongozi wa sura.",
+"Gawa jukumu moja lililochelewa katika hatua tatu ndogo za kufanya wiki hii."
+],
+[
+"Mratibu wa jimbo anapakia orodha ya mahudhurio na kusema wazi kuwa ripoti ya sura moja bado inakosekana.",
+"Andika taarifa ya kazi yenye mhusika, tarehe ya mwisho, hali, ushahidi na kikwazo."
+]
+],
+"WNNN": [
+[
+"Kiongozi wa sura anamaliza ufuatiliaji uliochelewa kabla ya kutengeneza upya picha ya hiari ya Instagram.",
+"Panga mambo matano ya wiki hii, masomo, kazi na huduma, kwa athari, tarehe ya mwisho na nani anayategemea."
+],
+[
+"Mwanafunzi wa mwaka wa mwisho anatenga saa mbili kwa wiki kwa ufuatiliaji badala ya kuahidi simu za kila siku wakati wa mitihani.",
+"Tengeneza mpango wa wiki moja wenye masomo au kazi, kupumzika na kikomo halisi cha muda wa kujitolea."
+],
+[
+"Mjitolea anaangalia kazi zake kwenye WDOS kila Jumatatu kabla ya kipindi chake cha kwanza na kusasisha maendeleo kwa mara moja.",
+"Chagua tabia moja ya kila wiki ya dakika kumi na weka kikumbusho kwenye simu."
+],
+[
+"Badala ya kuahirisha ripoti, mratibu wa vijana anaanza kwa kukusanya takwimu za mahudhurio kutoka sura za vyuo.",
+"Gawa jukumu moja lililochelewa katika hatua tatu ndogo za kumaliza kabla ya wikendi."
+],
+[
+"Kiongozi anapakia orodha ya mahudhurio na kusema wazi kuwa ripoti ya chuo kimoja bado inakosekana.",
+"Andika taarifa ya kazi yenye mhusika, tarehe ya mwisho, hali, ushahidi na kikwazo."
+]
+]
+},
+"4": {
+"WGMN": [
+[
+"Mratibu anakasirika ripoti inapochelewa, na anauliza kilichotokea kabla ya kujibu.",
+"Eleza wakati wa msongo nyumbani au katika huduma na swali moja ambalo lingethibitisha dhana yako."
+],
+[
+"Naibu anaandika ufuatiliaji wa utulivu badala ya kujibu kwa hasira ujumbe wa sauti alioulewa vibaya.",
+"Andika upya ujumbe wenye mvutano kuhusu mkutano uliokosekana kuwa jibu tulivu, la ukweli na la heshima."
+],
+[
+"Kiongozi anagundua kuwa mwanachama alikosa mafunzo kwa sababu alikuwa akimuuguza ndugu, na anampa njia nyingine ya kufidia.",
+"Andika maswali mawili ya wazi ya kumuuliza mwanachama aliyenyamaza."
+],
+[
+"Kiongozi anauliza ni sehemu gani ya ripoti yake haikueleweka na kubadilisha muundo mwezi ujao.",
+"Andika jibu la sehemu tatu kwa maoni: asante, swali la kuelewa na hatua yako inayofuata."
+],
+[
+"Kiongozi mjitolea anaeleza saa anazopatikana na kumwelekeza mwanachama anayehitaji msaada maalum kwa huduma yenye sifa.",
+"Andika ujumbe wa adabu ukiiambia sura yako ni lini unaweza kujibu."
+]
+],
+"WNNN": [
+[
+"Kiongozi anakasirika mwenzake anaponyamaza kwenye kikundi cha mazungumzo, na anaangalia sababu kabla ya kujibu.",
+"Eleza wakati wa msongo shuleni, kazini au mtandaoni na swali moja ambalo lingethibitisha dhana yako."
+],
+[
+"Naibu anaandika ufuatiliaji wa utulivu badala ya kuweka jibu kali kwenye kikundi.",
+"Andika upya ujumbe wa mazungumzo wenye mvutano kuwa jibu tulivu, la ukweli na la heshima."
+],
+[
+"Kiongozi anagundua kuwa mwanachama alikosa mafunzo kwa sababu ya gharama za data, na anampa rekodi na muhtasari wa maandishi.",
+"Andika maswali mawili ya wazi ya kumuuliza mwenzako anayeonekana kuwa na shida."
+],
+[
+"Kiongozi kijana anauliza ni sehemu gani ya wasilisho lake haikueleweka na kubadilisha slaidi.",
+"Andika jibu la sehemu tatu kwa maoni kuhusu wasilisho darasani au chapisho ulilotoa: shukrani, swali la kuelewa, na hatua yako inayofuata."
+],
+[
+"Mjitolea anaeleza kuwa hajibu baada ya saa tatu usiku siku za kusoma, na anampeleka mwenzake anayehitaji ushauri kwa huduma yenye sifa.",
+"Andika ujumbe mfupi wa kirafiki unaoweka saa zako za kujibu kwa kikundi cha sura."
+]
+]
+},
+"5": {
+"WGMN": [
+[
+"Mwenyekiti wa mkutano anarudia wasiwasi wa mwanachama kwa maneno yake kabla ya kupendekeza suluhisho.",
+"Fanya mazoezi ya kufupisha alichosema mwanachama mwingine kwa sentensi mbili zisizo na upendeleo."
+],
+[
+"Kumbukumbu ya kazi ya makao makuu inaeleza cha kutuma, muundo na tarehe, badala ya kusema tu «haraka».",
+"Andika ombi la sentensi nne kwa viongozi wa sura zako lenye tarehe wazi na jinsi ya kujibu."
+],
+[
+"Mratibu wa kanda anatoa hotuba ya dakika tatu katika mkutano wa wanawake wa kanisa kuhusu majukumu yaliyoidhinishwa.",
+"Andaa na fanya mazoezi ya hotuba ya dakika tatu inayomalizika kwa ombi moja wazi."
+],
+[
+"Mkutano wa sura unatumia ajenda fupi na kuwaruhusu wanawake kutuma hoja kwa ujumbe wa sauti kama hawawezi kuzungumza moja kwa moja.",
+"Panga mkutano wa dakika 20 wenye muda kwa kila sauti na muhtasari wa hatua."
+],
+[
+"Tangazo la bara linataja saa kwa WAT na kuomba kila nchi kuthibitisha saa ya eneo na lugha.",
+"Andika upya tangazo la mkutano kwa maneno rahisi lenye tarehe, saa, mahali au kiungo, na lugha itakayotumika."
+]
+],
+"WNNN": [
+[
+"Mwenyekiti wa sura anarudia wazo la mwanachama kwa maneno yake kabla ya kikundi kujibu.",
+"Fanya mazoezi ya kufupisha hoja ya mwenzako wa darasa au kazini kwa sentensi mbili zisizo na upendeleo."
+],
+[
+"Kumbukumbu ya kazi inaeleza cha kuwasilisha, muundo na tarehe, badala ya «haraka iwezekanavyo» isiyo wazi.",
+"Andika ombi la kazi la sentensi nne kwa timu yako lenye tarehe ya mwisho wazi na jinsi ya kuwasilisha."
+],
+[
+"Kiongozi wa vijana anatoa hotuba ya dakika tatu katika tukio la chuo kuhusu majukumu yaliyoidhinishwa.",
+"Andika na fanya mazoezi ya hotuba ya dakika tatu yenye wito mmoja wazi wa kuchukua hatua."
+],
+[
+"Mkutano wa sura mtandaoni unatumia ajenda fupi na sehemu ya maandishi kwa wanachama wasioweza kuwasha kipaza sauti.",
+"Panga mkutano wa mtandaoni wa dakika 20 wenye muda kwa kila sauti na muhtasari wa hatua."
+],
+[
+"Tangazo kwa wanachama wa Afrika na diaspora linataja saa kwa WAT na kumwomba kila mmoja kuangalia saa yake.",
+"Andika upya tangazo la mkutano kwa lugha rahisi lenye tarehe, saa, kiungo na lugha."
+]
+]
+},
+"6": {
+"WGMN": [
+[
+"Mratibu anawasaidia kwa subira wanawake wapya kuelewa shughuli badala ya kuona maswali yao kama dharau.",
+"Taja kikwazo kimoja unachoweza kuwaondolea wanawake wa sura yako bila kuvuka jukumu lako."
+],
+[
+"Mwakilishi wa nchi anathibitisha idadi ya wanachama iliyohakikiwa kabla ya kupendekeza mahali pa kuelekeza uhamasishaji.",
+"Andika kumbukumbu fupi ya uamuzi yenye ushahidi, chaguo, hatari na nani lazima aidhinishe."
+],
+[
+"Mratibu wa kanda anawapa manaibu waliotajwa ufuatiliaji mbili ulioidhinishwa na kutoa msaada wa dashibodi.",
+"Andika mgawo mmoja wenye matokeo yanayotarajiwa, mhusika, tarehe ya mwisho na tarehe ya kufuatilia."
+],
+[
+"Mratibu wa sura anasasisha kumbukumbu ya WDOS badala ya kuweka namba za simu za wanachama kwenye kikundi cha WhatsApp.",
+"Orodhesha kanuni tatu za kushughulikia taarifa binafsi za wanachama katika jukumu lako."
+],
+[
+"Mratibu wa jimbo anawasilisha mgombea kupitia WDOS na kusubiri mchakato wa uteuzi wa makao makuu.",
+"Chora hatua kuanzia kumtambua kiongozi mtarajiwa hadi uamuzi wa makao makuu."
+]
+],
+"WNNN": [
+[
+"Kiongozi anawasaidia wanachama wapya kuelewa shughuli badala ya kuona maswali kama dharau.",
+"Taja kikwazo kimoja unachoweza kuiondolea timu yako bila kuvuka jukumu lako."
+],
+[
+"Kiongozi wa vijana wa nchi anathibitisha takwimu zilizohakikiwa kabla ya kupendekeza vyuo vya kuzingatia.",
+"Andika kumbukumbu fupi ya uamuzi kuhusu mahali pa kufanya uhamasishaji chuoni, yenye ushahidi, chaguo, hatari na nani anapaswa kuidhinisha."
+],
+[
+"Kiongozi wa kanda anagawa ufuatiliaji mbili ulioidhinishwa kwa wahusika wazi na kujitolea kuwaonyesha dashibodi.",
+"Andika mgawo mmoja wenye matokeo yanayotarajiwa, mhusika, tarehe ya mwisho na wakati wa kufuatilia."
+],
+[
+"Kiongozi anasasisha WDOS badala ya kushiriki namba za wanachama kwenye mazungumzo ya umma.",
+"Orodhesha kanuni tatu za kushughulikia namba za simu na picha za wanachama katika vikundi vya mazungumzo, vikundi vya darasa na mitandao ya kijamii."
+],
+[
+"Kiongozi wa jimbo anawasilisha mgombea kupitia WDOS na kusubiri mchakato wa makao makuu bila kuahidi nafasi.",
+"Chora hatua kuanzia kumtambua mwanafunzi mwenye uwezo wa kuongoza hadi uamuzi wa makao makuu, na weka alama mahali usipopaswa kutoa ahadi."
+]
+]
+},
+"7": {
+"WGMN": [
+[
+"Mjitolea anapanga gharama za usafiri bila kudhani lazima alipe mwenyewe gharama zisizorudishwa.",
+"Tengeneza jedwali rahisi la mapato na matumizi ya kila mwezi ya nyumbani kwa takwimu za kubuni."
+],
+[
+"Mwanachama anapanga akiba ndogo ya dharura kwa michango anayoweza kutoa kutoka mapato ya soko.",
+"Andika lengo moja la fedha la muda mfupi na hatua mbili katika bajeti ya kubuni ya familia."
+],
+[
+"Mjitolea analinganisha bei, ubora na gharama ya usafiri kabla ya kununua bidhaa za biashara yake.",
+"Linganisha manunuzi mawili ya kubuni kwa gharama kamili na manufaa."
+],
+[
+"Mjitolea anathibitisha mwenyewe ofa ya uwekezaji iliyoshirikiwa kwenye kikundi cha wanawake badala ya kuituma kwa sura.",
+"Tafuta ishara tatu za hatari katika ujumbe wa fedha wenye shaka wa kubuni."
+],
+[
+"Kiongozi wa kanda anatuma pendekezo la gharama kwa makao makuu badala ya kukusanya fedha kutoka kwa wanachama.",
+"Andaa ombi la kubuni lenye lengo, makadirio ya gharama na idhini inayohitajika."
+]
+],
+"WNNN": [
+[
+"Mjitolea mwanafunzi anapanga gharama za usafiri na data bila kudhani lazima afadhili shughuli za sura mwenyewe.",
+"Tengeneza jedwali rahisi la posho au mapato ya mwezi na matumizi kwa takwimu za kubuni."
+],
+[
+"Mhitimu kijana anapanga akiba ndogo ya dharura kwa kiasi anachoweza kuweka kutoka mshahara wake wa kwanza.",
+"Andika lengo moja la fedha la muda mfupi na hatua mbili katika bajeti ya kubuni ya mwanafunzi au kazi ya kwanza."
+],
+[
+"Mjitolea analinganisha bei, ubora na gharama ya kusafirisha kabla ya kununua kifaa cha simu mtandaoni.",
+"Linganisha manunuzi mawili ya mtandaoni ya kubuni kwa gharama kamili na manufaa."
+],
+[
+"Mjitolea anathibitisha mwenyewe ofa ya sarafu ya kidijitali ya «zidisha fedha zako mara mbili» badala ya kuituma kwenye kikundi cha sura.",
+"Tafuta ishara tatu za hatari katika ujumbe wa fedha wenye shaka uliopokewa mtandaoni."
+],
+[
+"Kiongozi wa vijana anatuma pendekezo la gharama kwa makao makuu badala ya kuwaomba wanachama kuchanga fedha.",
+"Andaa ombi la mfano kwa tukio la chuoni: lengo, makadirio ya gharama, na idhini ya makao makuu inayohitajika kabla mtu yeyote hajalipa."
+]
+]
+},
+"8": {
+"WGMN": [
+[
+"Mjitolea anaangalia kazi zake na kusasisha wasifu wake badala ya kuomba nywila ya kiongozi mwingine.",
+"Chora sehemu za dashibodi unazohitaji na andika ufikiaji unaokosekana."
+],
+[
+"Mratibu anapakia muhtasari wa mahudhurio uliokamilika kama alivyoombwa na kuweka alama iliyobaki kuwa inasubiri.",
+"Andika mfano wa uwasilishaji wa kazi wenye hali, ushahidi na kikwazo."
+],
+[
+"Kiongozi anaripoti ujumbe wenye shaka wa kubadilisha nywila bila kufungua kiungo, na kumwomba mwanawe asitumie akaunti yake.",
+"Andika orodha ya ukaguzi kwa ujumbe usiotarajiwa kuhusu akaunti yako."
+],
+[
+"Mjitolea anathibitisha ridhaa ya picha na maelezo yaliyoidhinishwa kabla ya kuweka muhtasari Facebook.",
+"Andika orodha ya ukaguzi ya kuchapisha tukio kwa usalama: ukweli, ridhaa na chapa iliyoidhinishwa."
+],
+[
+"Mwakilishi wa nchi anaripoti waliojisajili 40 na waliohudhuria 22 badala ya kutangaza washiriki 40.",
+"Tengeneza mfano wa ripoti yenye sehemu tofauti: waliojisajili, waliohudhuria na waliokamilisha."
+]
+],
+"WNNN": [
+[
+"Mjitolea anaangalia kazi zake na kusasisha wasifu wake badala ya kutumia taarifa za kuingia za rafiki.",
+"Kwenye simu yako, tafuta kazi zako, wasifu wako na ukurasa wa msaada katika WDOS, kisha andika ufikiaji unaokosekana kwa jukumu lako."
+],
+[
+"Kiongozi anapakia muhtasari wa mahudhurio uliokamilika kama alivyoombwa na kuweka alama iliyobaki kuwa inasubiri.",
+"Andika mfano wa uwasilishaji wa kazi wenye hali, ushahidi na kikwazo."
+],
+[
+"Kiongozi kijana anaripoti tahadhari ya kuingia yenye shaka na kuwasha uthibitisho wa hatua mbili badala ya kushiriki msimbo.",
+"Andika orodha ya ukaguzi kwa ujumbe usiotarajiwa kuhusu akaunti zako, ikiwemo mitandao ya kijamii."
+],
+[
+"Mjitolea anathibitisha ridhaa na maelezo yaliyoidhinishwa kabla ya kuweka tukio Instagram au TikTok.",
+"Andika orodha ya ukaguzi ya kuchapisha tukio kwenye Instagram, TikTok au X: ukweli, ridhaa ya kila anayeonekana, na chapa iliyoidhinishwa."
+],
+[
+"Kiongozi wa vijana wa nchi anaripoti waliojisajili 40 na waliohudhuria 22 badala ya kutangaza washiriki 40.",
+"Tengeneza mfano wa ripoti ya kipindi cha chuoni yenye sehemu tofauti: waliojisajili, waliohudhuria na waliokamilisha, na dokezo moja la kweli kuhusu data inayokosekana."
+]
+]
+},
+"9": {
+"WGMN": [
+[
+"Waratibu wawili hawakubaliani kuhusu tarehe ya mwisho na wanasoma pamoja maelekezo ya maandishi kabla ya kujadili nia.",
+"Eleza kutokubaliana kwa kubuni ukitenganisha ukweli, tafsiri na hatua inayofuata."
+],
+[
+"Msimamizi anazungumza faraghani kwa upole na mwanachama anayechelewa mara nyingi na kuuliza kuhusu mzigo wake nyumbani.",
+"Andika maoni ya heshima kwa sentensi nne."
+],
+[
+"Sura mbili zinakubaliana kushiriki mwongozaji mmoja baada ya makao makuu kuidhinisha ratiba mpya.",
+"Andika chaguo mbili za kutatua mgongano wa tarehe za mikutano wa kubuni."
+],
+[
+"Mratibu wa kata anashiriki taarifa iliyothibitishwa na mratibu wa wilaya badala ya kutuma maelekezo tofauti kwa kila sura.",
+"Chora njia rahisi ya kupeleka masuala na kuripoti katika nafasi yako."
+],
+[
+"Kiongozi anakiri ahadi aliyoshindwa kutimiza, anarekebisha kumbukumbu na kuweka ufuatiliaji wa mara kwa mara.",
+"Andika mpango wa kurekebisha wenye kukiri, marekebisho na tarehe ya kufuatilia."
+]
+],
+"WNNN": [
+[
+"Viongozi wawili hawakubaliani kuhusu tarehe ya mwisho na wanasoma tena maelekezo ya maandishi kabla ya kubishana kuhusu nia.",
+"Eleza kutokubaliana katika kikundi cha kusoma au mazungumzo ya timu, ukitenganisha ukweli, tafsiri na hatua inayofuata."
+],
+[
+"Msimamizi wa vijana anazungumza faraghani na mwanachama anayechelewa mara nyingi na kuuliza kuhusu mitihani na mzigo wake.",
+"Andika ujumbe wa heshima wa sentensi nne kwa mwenzako ambaye taarifa zake za sura huchelewa, ukiuliza kwanza kuhusu mitihani na mzigo wa kazi."
+],
+[
+"Sura mbili za vyuo zinakubaliana kushiriki mwongozaji mmoja baada ya makao makuu kuidhinisha ratiba mpya.",
+"Andika chaguo mbili za kutatua mgongano wa ratiba wa kubuni."
+],
+[
+"Kiongozi anashiriki taarifa iliyothibitishwa na kiongozi wake wa wilaya badala ya kuweka maelekezo yanayopingana kwenye vikundi kadhaa.",
+"Chora unayemripoti na wanaokuripoti, na kikundi kipi cha mazungumzo ni rasmi kwa kila aina ya ujumbe."
+],
+[
+"Kiongozi anakiri ahadi aliyoshindwa kutimiza, anarekebisha kumbukumbu na kuweka ufuatiliaji wa kila wiki.",
+"Andika mpango wa kurekebisha ahadi uliyoshindwa kutimiza wakati wa mitihani: kukiri, kusahihisha na tarehe ya kufuatilia."
+]
+]
+},
+"10": {
+"WGMN": [
+[
+"Mjitolea mwenye majukumu ya familia na tarehe kadhaa za mwisho anamjulisha msimamizi na kujadili upya kazi zake.",
+"Chora mzigo wako: majukumu ya lazima nyumbani na katika huduma, uwezo wako na msaada unaohitaji."
+],
+[
+"Mratibu anapanga mkutano unaofuata kwa saa inayofaa badala ya simu za usiku kila siku.",
+"Panga wiki yenye uwiano yenye muda wa kupumzika, familia na huduma."
+],
+[
+"Kiongozi anamsaidia mwanachama kupata huduma ya afya au ushauri yenye sifa bila kujaribu kumtambua ugonjwa.",
+"Andika mipaka ya msaada unaoweza kutoa na watu wa rufaa wa kuthibitisha na makao makuu."
+],
+[
+"Mjitolea anaijulisha timu mapema kuhusu kutokuwepo kwa ajili ya shughuli ya familia na kupanga makabidhiano yaliyoidhinishwa.",
+"Andika dokezo fupi la muda unaopatikana na mpango rahisi wa makabidhiano."
+],
+[
+"Mwongozaji wa mkutano anamtumia muhtasari wa maandishi mjitolea mwenye mtandao usio wa uhakika.",
+"Pendekeza mabadiliko mawili yanayofanya mkutano wa sura wa kubuni kuwa rahisi kwa kila mwanamke."
+]
+],
+"WNNN": [
+[
+"Mjitolea katika kipindi cha mitihani mwenye tarehe kadhaa za mwisho anamjulisha msimamizi na kujadili upya kazi zake.",
+"Chora mzigo wako: masomo, kazi na huduma, uwezo wako na msaada unaohitaji."
+],
+[
+"Kiongozi anapanga simu inayofuata kwa saa inayofaa badala ya simu za usiku kila siku.",
+"Panga wiki yenye uwiano yenye muda wa kusoma, kupumzika, marafiki na huduma."
+],
+[
+"Kiongozi anamsaidia mwenzake kupata huduma ya ushauri yenye sifa bila kujaribu kumtambua ugonjwa.",
+"Orodhesha huduma za msaada za chuoni au za eneo ambazo mwenzako anaweza kutumia, mipaka ya msaada unaoweza kutoa, na watu wa kuwasiliana nao wa kuthibitisha na makao makuu."
+],
+[
+"Mjitolea anaijulisha timu mapema kuhusu wiki ya mitihani na kupanga makabidhiano yaliyoidhinishwa.",
+"Andika dokezo fupi kuhusu muda unaopatikana kati ya masomo, mitihani na kazi, na mpango rahisi wa makabidhiano wakati wa wiki za mitihani."
+],
+[
+"Mwongozaji anashiriki rekodi na maelezo na mwanachama ambaye data yake inaisha wakati wa simu.",
+"Pendekeza mabadiliko mawili yanayofanya mkutano wa mtandaoni wa kubuni kuwa rahisi kwa kila mwanachama."
+]
+]
+},
+"11": {
+"WGMN": [
+[
+"Kiongozi anawauliza wanawake wa eneo lake jinsi wanavyojifunza vizuri kabla ya kupendekeza mafunzo kwa simu.",
+"Andaa maswali matano yasiyo na upendeleo kwa kikao cha kusikiliza wanawake wa jamii yako."
+],
+[
+"Mratibu wa jimbo anaalika vyama vya wanawake wa soko na wa kanisa kupendekeza wanawake wanaovutiwa kupitia mchakato ulioidhinishwa na makao makuu.",
+"Andika mwaliko wa ukarimu wenye vigezo wazi na kiungo cha rufaa kilichoidhinishwa."
+],
+[
+"Timu ya jamii inapendekeza kipindi kimoja cha ujuzi kilichoidhinishwa chenye mwongozaji na mpango wa mahudhurio.",
+"Jaza wazo la shughuli la ukurasa mmoja kwa makao makuu: hitaji, wanawake wanaohudumiwa, matokeo, usalama, rasilimali na idhini."
+],
+[
+"Ripoti ya mafunzo inaandika mahudhurio 35 na jaribio la maswali kumi, bila kudai biashara mpya 35.",
+"Chagua kipimo kimoja cha shughuli na kimoja cha mabadiliko kwa warsha ya wanawake ya kubuni."
+],
+[
+"Baada ya ushiriki mdogo, mratibu anajaribu saa baada ya soko kabla ya kurudia muundo uleule.",
+"Andika mapitio mafupi: kilichopangwa, kilichotokea, ulichojifunza, kinachofuata."
+]
+],
+"WNNN": [
+[
+"Kiongozi wa vijana anawauliza wanachama wanavyopenda kujifunza kabla ya kupendekeza kipindi cha ujuzi wa kidijitali.",
+"Andaa maswali matano yasiyo na upendeleo kwa kikao cha kusikiliza vijana wa chuo au eneo lako."
+],
+[
+"Kiongozi wa jimbo anaalika vyama vya wanafunzi na vikundi vya vijana kupendekeza wanachama wanaovutiwa kupitia mchakato ulioidhinishwa na makao makuu.",
+"Andika mwaliko jumuishi wenye vigezo wazi na kiungo cha rufaa kilichoidhinishwa."
+],
+[
+"Timu ya chuo inapendekeza kipindi kimoja kilichoidhinishwa cha ujuzi wa kazi chenye mwongozaji na mpango wa mahudhurio.",
+"Jaza wazo la shughuli la ukurasa mmoja kwa makao makuu: hitaji, wanaohudumiwa, matokeo, usalama, rasilimali na idhini."
+],
+[
+"Ripoti ya mafunzo inaandika mahudhurio 35 na jaribio la maswali kumi, bila kudai kazi mpya 35.",
+"Chagua kipimo kimoja cha shughuli na kimoja cha mabadiliko kwa warsha ya vijana ya kubuni."
+],
+[
+"Baada ya ushiriki mdogo, mratibu wa vijana anajaribu saa ya wikendi kabla ya kurudia muundo uleule.",
+"Andika mapitio mafupi ya tukio la chuoni au la vijana: kilichopangwa, kilichotokea, ulichojifunza, na utakachojaribu baadaye."
+]
+]
+},
+"12": {
+"WGMN": [
+[
+"Naibu anajitolea kukamilisha ufuatiliaji mitatu wa mapokezi ulioidhinishwa kabla ya tarehe fulani na kuuandika kwenye WDOS.",
+"Geuza tumaini lisilo wazi kuwa lengo la SMART linaloendana na maisha yako ya familia na kazi."
+],
+[
+"Mjitolea anachagua mafunzo ya kuongoza mijadala na kufanya mazoezi katika mkutano wa sura unaosimamiwa.",
+"Jenga mpango wa siku 90 wenye ujuzi miwili na nafasi moja ya mazoezi kwa kila mmoja."
+],
+[
+"Mratibu wa jimbo mwenye uzoefu anamsaidia mratibu mpya wa sura kuandaa mkutano kisha wanatafakari pamoja.",
+"Andika mpango wa mazungumzo ya ushauri na hatua mbili za kufuatilia."
+],
+[
+"Mjitolea anapitia mahudhurio ya mikutano pamoja na vikwazo vya usafiri na malezi ya watoto na kurekebisha uhamasishaji.",
+"Andaa mapitio ya ukuaji ya kila mwezi yenye mafanikio, vikwazo na hatua zinazofuata."
+],
+[
+"Mjitolea anakamilisha maelekezo ya awali, anasaidia mradi ulioidhinishwa na kupendekezwa kwa makao makuu bila ahadi ya uteuzi.",
+"Andika tafakari ya utayari wa uongozi yenye ushahidi, mahitaji ya mafunzo na mapendeleo yako."
+]
+],
+"WNNN": [
+[
+"Naibu wa vijana anajitolea kukamilisha ufuatiliaji mitatu ulioidhinishwa kabla ya tarehe fulani na kuuandika kwenye WDOS.",
+"Geuza tamaa isiyo wazi kuwa lengo la SMART linaloendana na masomo au kazi yako."
+],
+[
+"Mjitolea anachagua mafunzo ya kuongoza mijadala na kufanya mazoezi katika mkutano wa sura ya chuo unaosimamiwa.",
+"Jenga mpango wa siku 90 wenye ujuzi miwili inayosaidia masomo au kazi yako na kujitolea, na fursa moja ya mazoezi kwa kila mmoja."
+],
+[
+"Kiongozi wa jimbo mwenye uzoefu anamsaidia kiongozi mpya wa sura kuandaa mkutano kisha wanatafakari pamoja.",
+"Andika maswali ambayo ungemuuliza mshauri kuhusu kuongoza ukiwa unasoma au unaanza kazi, na hatua mbili za kufuatilia."
+],
+[
+"Mjitolea anapitia mahudhurio pamoja na vipindi vya mitihani na gharama za data, kisha anarekebisha mpango wa uhamasishaji.",
+"Andaa mapitio ya kila mwezi yanayoweka kujitolea kwako pamoja na mitihani na kazi: mafanikio, vikwazo na hatua zinazofuata."
+],
+[
+"Mwanafunzi wa mwaka wa mwisho anakamilisha maelekezo ya awali, anasaidia mradi ulioidhinishwa chuoni na kupendekezwa kwa makao makuu bila ahadi ya uteuzi.",
+"Andika tafakari ya utayari wa uongozi yenye ushahidi, mahitaji ya mafunzo na mapendeleo ya kazi."
+]
+]
+}
+}
+}

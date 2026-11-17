@@ -228,13 +228,15 @@ export function linkify(text) {
  * device's own voice, not a recorded WODDI voice. Where a device has no voice, the button is not shown. */
 const VOICE = { ar: 'ar-SA', en: 'en-GB', fr: 'fr-FR', ha: 'ha-NG', ig: 'ig-NG', pt: 'pt-PT', sw: 'sw-KE', yo: 'yo-NG' };
 /* Listening. A language the phone has no voice for is never read out in the wrong language: she is told, and the words stay on the screen. */
+const SAY_WDOS = { en: 'W Doss', fr: 'W Dosse', pt: 'W Dós', sw: 'Dablyu Dos', ar: 'دبليو دوس', ha: 'Dablyu Dos', yo: 'Dabulu Dọọsi', ig: 'Dabliu Dos' };
 const voiceFor = (lang) => { const vs = speechSynthesis.getVoices(); if (!vs.length) return undefined; return vs.find((v) => v.lang.toLowerCase().startsWith(lang)) || null; };
 let guideAudio = null;
 const stopAllListening = () => { try { speechSynthesis.cancel(); } catch { /* no voice engine */ } if (guideAudio) { guideAudio.pause(); guideAudio = null; }
   document.querySelectorAll('.listen[aria-pressed="true"]').forEach((x) => { x.setAttribute('aria-pressed', 'false'); x.lastChild.textContent = t(x.dataset.label || 'Listen'); }); };
 function speak(b, raw, stop) {
   if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') { toast('This phone cannot read aloud', 'The words are on the screen.'); return false; }
-  const text = (Array.isArray(raw) ? raw : [raw]).filter(Boolean).map((x) => t(String(x))).join('. ');
+  // the system's name is said "W-DOS" (the letter W, then DOS as one word), not spelled out letter by letter
+  const text = (Array.isArray(raw) ? raw : [raw]).filter(Boolean).map((x) => t(String(x))).join('. ').replace(/\bWDOS\b/g, SAY_WDOS[i18n.lang] || 'W Doss');
   const v = voiceFor(i18n.lang);
   if (v === null && i18n.lang !== 'en') { toast(t('This phone has no voice for') + ' ' + LANGS[i18n.lang], 'The words are on the screen.'); return false; }
   const u = new SpeechSynthesisUtterance(text); u.lang = VOICE[i18n.lang] || 'en-GB'; if (v) u.voice = v; u.rate = 0.92; u.onend = stop; u.onerror = stop; speechSynthesis.speak(u); return true;

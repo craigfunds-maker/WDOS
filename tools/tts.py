@@ -9,6 +9,13 @@ def mp3(y,sr,path):
     sf.write('/tmp/_t.wav',y,sr,subtype='PCM_16')
     subprocess.run(['ffmpeg','-y','-loglevel','error','-i','/tmp/_t.wav','-af','silenceremove=start_periods=1:start_threshold=-50dB,areverse,silenceremove=start_periods=1:start_threshold=-50dB,areverse,apad=pad_dur=0.15','-ac','1','-ar','24000','-b:a','48k',path],check=True)
 K=None
+# the system's name is said "W-DOS" (the letter W, then DOS as one word); lines naming it are voiced again with WREDO=1
+SAYW={'en':'W-Doss','fr':'W-Dosse','pt':'W-Dós','sw':'Dablyu-Dos','ar':'دبليو-دوس'}
+if os.environ.get('WREDO'):
+    for L in ONLY:
+        for k,txt in jobs[L]:
+            if 'WDOS' in txt and os.path.exists(f'{OUT}/{L}/{k}.mp3'): os.remove(f'{OUT}/{L}/{k}.mp3')
+jobs={L:[(k,t.replace('WDOS',SAYW[L])) for k,t in jobs[L]] for L in ONLY}
 for L in ONLY:
     os.makedirs(f'{OUT}/{L}',exist_ok=True)
     if L in ('en','fr','pt'):

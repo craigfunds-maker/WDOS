@@ -55,6 +55,7 @@ function listView(C, st) {
       h('p', { class: 'muted', text: t('Twelve short courses for WGMN Coordinators, WNNN Leads, Country Representatives, Deputies and every volunteer leader. Each has five lessons you can listen to, then a ten-question quiz. Score 7 or more to earn a certificate.') }),
       h('div', { class: 'pdx-meter', role: 'img', 'aria-label': tf('{1} of 12 courses passed', passed) }, h('span', { style: `width:${(passed / 12) * 100}%` })),
       h('b', { text: tf('{1} of 12 courses passed', passed) }),
+      st.place && C.data.courses.find((x) => x.no === st.place.course) ? h('a', { class: 'btn', href: `#/courses/${st.place.course}${st.place.part ? '/' + st.place.part : ''}` }, icon('play', 18), t('Continue where you stopped'), h('small', { style: 'opacity:.8;margin-inline-start:6px', text: st.place.part === 'quiz' ? tf('Course {1}: quiz', st.place.course) : st.place.part ? tf('Lesson {1}.{2}', st.place.course, st.place.part) : tf('Course {1} of 12', st.place.course) })) : null,
       st.programme ? h('a', { class: 'btn btn--lime', href: `#/certificate/${st.programme.code}` }, icon('award', 18), t('Your programme certificate')) : null),
     h('img', { class: 'pdx-hero__img', src: hero(st, C.net) || '/assets/logos/woddi-disc.png', alt: '', loading: 'lazy' }));
   const grid = h('div', { class: 'pdx-grid' }, C.data.courses.map((c) => {
@@ -138,8 +139,24 @@ function lessonView(C, st, c, s, mNo) {
   audio.onended = () => { if (part + 1 < keys.length) { load(part + 1); audio.play().catch(() => playing(false)); } else { playing(false); bar.firstChild.style.width = '100%'; load(0); } };
   window.addEventListener('hashchange', () => audio.pause(), { once: true });
 
-  const noteKey = `wdos.pdnote.${c.no}.${mNo}`; let saved = ''; try { saved = localStorage.getItem(noteKey) || ''; } catch { /* private mode */ }
-  const notes = h('textarea', { class: 'input', rows: 5, maxlength: 2000, placeholder: t('Write your answer here. It stays on this phone only.'), oninput: (e) => { try { localStorage.setItem(noteKey, e.target.value); } catch { /* full */ } } }); notes.value = saved;
+  // her answer is kept with her account, so it is there on any phone or computer she signs in on
+  const noteKey = `wdos.pdnote.${c.no}.${mNo}`; let timer = 0;
+  const saveNote = (v) => api(`/courses/${c.no}/notes/${mNo}`, { body: v }).then(() => { noteState.textContent = t('Saved to your account'); }).catch(() => { noteState.textContent = t('Not saved yet. It will try again when you type.'); });
+  const noteState = h('small', { class: 'faint', 'aria-live': 'polite' });
+  const notes = h('textarea', { class: 'input', rows: 5, maxlength: 4000, placeholder: t('Write your answer here. It is saved to your account.'), oninput: (e) => { noteState.textContent = t('Saving…'); clearTimeout(timer); timer = setTimeout(() => saveNote(e.target.value), 800); } });
+  api(`/courses/${c.no}/notes/${mNo}`).then((r) => {
+    let local = ''; try { local = localStorage.getItem(noteKey) || ''; } catch { /* private mode */ }
+    if (r.body) notes.value = r.body; else if (local) { notes.value = local; saveNote(local); }
+    try { localStorage.removeItem(noteKey); } catch { /* */ }
+  }).catch(() => {});
+  // the place she stopped: this lesson, and the second of the narration (saved every few seconds while it plays)
+  const placeAt = () => Math.round((starts[part] || 0) + (audio.currentTime || 0));
+  const savePlace = () => api('/courses/place', { course: c.no, part: String(mNo), seconds: placeAt() }).catch(() => {});
+  savePlace(); let lastSaved = 0;
+  audio.addEventListener('timeupdate', () => { const n = placeAt(); if (Math.abs(n - lastSaved) >= 10) { lastSaved = n; savePlace(); } });
+  audio.addEventListener('pause', savePlace);
+  const resumeAt = st.place && st.place.course === c.no && st.place.part === String(mNo) ? st.place.seconds : 0;
+  if (resumeAt > 5 && keys.length) { let acc = 0; for (let i = 0; i < keys.length; i++) { if (acc + C.cues[keys[i]].d > resumeAt) { load(i); audio.addEventListener('loadedmetadata', () => { try { audio.currentTime = resumeAt - acc; } catch { /* */ } paint(); }, { once: true }); break; } acc += C.cues[keys[i]].d; } }
   const done = s.modules_done.includes(mNo);
   const finish = h('button', { class: 'btn btn--lime', type: 'button', onclick: async () => {
     finish.disabled = true;
@@ -156,7 +173,7 @@ function lessonView(C, st, c, s, mNo) {
       sec('spark', t('Why it matters for a volunteer leader'), h('p', { text: T.why.replace('{topic}', m.title) })),
       sec('route', t('How to apply it, step by step'), h('ol', { class: 'pdx-howto' }, T.steps.map((x) => h('li', { text: x.replace('{topic}', tp) })))),
       sec('users', t('A WODDI leadership example'), h('blockquote', { class: 'pdx-quote', text: m.scenario }), h('p', { class: 'faint', text: T.think })),
-      sec('tasks', t('Your practice'), h('p', { class: 'pdx-lead', text: m.exercise }), h('p', { class: 'faint', text: T.parts }), notes),
+      sec('tasks', t('Your practice'), h('p', { class: 'pdx-lead', text: m.exercise }), h('p', { class: 'faint', text: T.parts }), notes, noteState),
       sec('target', t('Take it into your service'), h('p', { text: T.reflect.replace('{topic}', tp) }), T.evidence ? h('p', { class: 'faint', text: T.evidence.replace('{topic}', tp) }) : null),
       h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap;margin-top:6px' },
         mNo > 1 ? h('a', { class: 'btn btn--ghost', href: `#/courses/${c.no}/${mNo - 1}` }, icon('back', 16), t('Previous lesson')) : null, finish,
@@ -167,11 +184,14 @@ function lessonView(C, st, c, s, mNo) {
 function quizView(C, st, c, s) {
   if (s.modules_done.length < 5) { setTimeout(() => go(`#/courses/${c.no}`), 0); return h('div'); }
   const ans = Array(10).fill(null); let i = 0;
+  const keep = () => api(`/courses/${c.no}/draft`, { answers: ans.map((a) => a || '-').join('') }).catch(() => {});
+  api('/courses/place', { course: c.no, part: 'quiz', seconds: 0 }).catch(() => {});
+  api(`/courses/${c.no}/draft`).then((r) => { [...(r.answers || '')].forEach((x, k) => { if ('ABCD'.includes(x) && k < 10) ans[k] = x; }); const n = ans.findIndex((a) => !a); i = n < 0 ? 9 : n; paint(); }).catch(() => {});
   const wrap = h('div', { style: 'display:grid;gap:16px' });
   const paint = () => {
     const q = c.quiz[i];
     const opts = q.o.map((o, k) => { const L = 'ABCD'[k];
-      return h('button', { type: 'button', class: 'pdx-opt' + (ans[i] === L ? ' is-on' : ''), 'aria-pressed': String(ans[i] === L), onclick: () => { ans[i] = L; paint(); } }, h('span', { class: 'pdx-opt__l', text: L }), h('span', { text: o })); });
+      return h('button', { type: 'button', class: 'pdx-opt' + (ans[i] === L ? ' is-on' : ''), 'aria-pressed': String(ans[i] === L), onclick: () => { ans[i] = L; keep(); paint(); } }, h('span', { class: 'pdx-opt__l', text: L }), h('span', { text: o })); });
     wrap.replaceChildren(
       h('a', { href: `#/courses/${c.no}`, class: 'btn btn--quiet btn--s', style: 'justify-self:start' }, icon('back', 16), c.title),
       h('section', { class: 'card pdx-quiz' },

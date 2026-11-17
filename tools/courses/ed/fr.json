@@ -1,128 +1,562 @@
 {
-"why":{
- "WGMN":"« {topic} » influence la qualité des décisions, des relations et du suivi. Dans le WODDI Good Mother Network, les responsables bénévoles sont souvent des mères, des aidantes, des commerçantes, des travailleuses et des femmes de la communauté qui servent en plus de leurs charges familiales et professionnelles, dans des communautés différentes, surtout par téléphone. Le but est de transformer cette leçon en un comportement visible : une décision claire, une conversation utile, une action documentée ou une orientation faite à temps. Apprenez le principe avant de l'appliquer ; l'enthousiasme ne remplace ni les preuves ni l'autorité.",
- "WNNN":"« {topic} » influence la qualité des décisions, des relations et du suivi. Dans le WODDI Nurture NextGen Network, les responsables bénévoles sont des jeunes de 18 à 29 ans : étudiantes, diplômées, apprenties et jeunes travailleuses qui jonglent entre cours, examens, premier emploi et attentes familiales, et qui se retrouvent surtout en ligne. Le but est de transformer cette leçon en un comportement visible : une décision claire, une conversation utile, une action documentée ou une orientation faite à temps. Apprenez le principe avant de l'appliquer ; l'enthousiasme ne remplace ni les preuves ni l'autorité."},
-"outcomes":"À la fin de ce cours, vous devriez pouvoir expliquer les cinq idées avec vos propres mots, distinguer les bonnes pratiques des erreurs courantes, faire une activité pratique et établir un plan d'amélioration réaliste.",
-"evidence":"Preuve d'apprentissage : notez un exemple daté montrant comment vous avez mis en pratique {topic}. Cela peut être une courte réflexion, une trace de tâche sans détails privés, ou une action confirmée par votre superviseure.",
-"c":{
-"1":{"WGMN":[["Une mère du chapitre qui tient les présences avec soin aide à coordonner la réunion mensuelle tout en apprenant à animer.","Notez trois forces que vous avez montrées à la maison, au travail ou dans votre communauté, un exemple pour chacune, et une compétence à développer."],
- ["Une coordinatrice de quartier refuse de favoriser la fille de sa voisine et fait passer toutes les candidates par la sélection approuvée du siège.","Écrivez cinq valeurs qui vous guident comme mère et comme responsable, et un comportement qui montre chacune."],
- ["Une bénévole qui aime apprendre des savoir-faire pratiques aux femmes choisit d'accueillir et de guider les nouvelles membres.","Écrivez en une phrase qui vous voulez servir, ce que vous pouvez donner et la valeur qui vous guide. Demandez à une autre membre de la lire."],
- ["Une coordinatrice d'État prévoit d'améliorer l'accueil des nouvelles femmes ce trimestre au lieu de promettre un programme national non approuvé.","Écrivez l'image de la responsable que vous voulez être dans six mois et trois étapes compatibles avec vos charges familiales."],
- ["Une responsable prévoit un cours, une activité communautaire et une réflexion mensuelle autour des jours de marché et des trajets d'école, puis revoit son plan.","Remplissez un plan d'une page : un objectif, la prochaine étape, qui peut vous aider et une date de bilan adaptée à votre foyer."]],
- "WNNN":[["Une membre d'un chapitre universitaire qui suit les présences avec précision aide à animer les réunions tout en apprenant.","Notez trois forces que vous avez montrées en cours, au travail ou en ligne, un exemple pour chacune, et une compétence à développer cette année."],
- ["Une responsable de chapitre refuse de donner un rôle à une camarade de promo par faveur et fait passer chaque candidate par la sélection du siège.","Écrivez cinq valeurs pour lesquelles vous voulez être connue parmi vos pairs, et un comportement qui montre chacune."],
- ["Une diplômée qui aime expliquer se porte volontaire pour aider les nouvelles membres à comprendre WODDI.","Écrivez une phrase sur qui vous voulez servir, ce que vous pouvez offrir et la valeur qui vous anime. Demandez à une pair de la relire."],
- ["Une jeune responsable d'État prévoit d'améliorer l'accueil ce semestre au lieu d'annoncer un projet jeunesse national non approuvé.","Écrivez une vision de votre progression sur six mois et trois étapes compatibles avec vos études ou votre emploi."],
- ["Une bénévole prévoit un cours, une activité de service et une réflexion mensuelle autour de son calendrier d'examens, puis ajuste après les résultats.","Remplissez un plan d'une page : un objectif, la prochaine étape, qui peut vous aider et une date de bilan adaptée à votre calendrier."]]},
-"2":{"WGMN":[["Avant sa première réunion de chapitre, une mère répète l'ordre du jour avec sa fille et vérifie deux informations auprès du siège.","Préparez et répétez une présentation de deux minutes de vous-même et de votre rôle pour la prochaine réunion."],
- ["Une coordinatrice remercie une grand-mère discrète pour son conseil, même si elle n'a jamais eu de titre.","Écrivez trois phrases sur votre valeur qui n'ont rien à voir avec les titres, l'argent ou l'avis des autres."],
- ["Une bénévole qui a peur de parler devant des femmes instruites commence par un compte rendu de cinq minutes et progresse.","Choisissez un défi, votre première petite étape et une femme de confiance pour vous donner un retour."],
- ["Une faible participation pousse l'équipe à comparer l'heure de réunion avec les jours de marché et la sortie d'école au lieu de blâmer les femmes.","Faites un court bilan d'une difficulté récente : ce qui s'est passé, ce qui dépendait de vous, ce qu'il faut changer, qui peut aider."],
- ["Une bénévole remarque que les veuves de sa zone ne sont pas touchées et envoie une proposition au siège au lieu d'annoncer elle-même un programme.","Décrivez une amélioration pour les femmes de votre communauté que vous proposerez par le canal approuvé."]],
- "WNNN":[["Avant son premier appel de chapitre en ligne, une étudiante répète l'ordre du jour et confirme les détails avec le siège au lieu de deviner.","Enregistrez-vous en présentant votre rôle en deux minutes et réécoutez une fois."],
- ["Une responsable valorise les idées d'une nouvelle membre qui n'a jamais rien dirigé et lui donne la parole.","Écrivez trois phrases sur votre valeur qui ne dépendent ni des abonnés, ni des notes, ni des titres."],
- ["Une diplômée stressée à l'idée de présenter commence par une mise à jour de cinq minutes dans son groupe et progresse étape par étape.","Choisissez un défi, votre première petite étape et une pair ou mentore qui peut vous donner un retour honnête."],
- ["Une faible présence pousse l'équipe jeunesse à comparer l'heure avec les cours et les semaines d'examens au lieu de blâmer les membres.","Faites un court bilan d'un revers récent à l'école, au travail ou en bénévolat : ce qui s'est passé, ce qui dépendait de vous, quoi changer, qui peut aider."],
- ["Une bénévole voit que les jeunes mères de sa zone manquent les activités et envoie une proposition au siège au lieu de lancer un projet sur les réseaux sociaux.","Décrivez une amélioration pour les jeunes de votre zone que vous proposerez par le canal approuvé."]]},
-"3":{"WGMN":[["Une représentante pays termine les suivis d'accueil en retard avant de refaire une affiche facultative.","Classez cinq choses de votre semaine, à la maison et au service, selon l'impact, l'échéance et qui en dépend."],
- ["Une bénévole qui tient une boutique et a de jeunes enfants réserve deux heures le dimanche soir aux suivis au lieu de promettre des réunions quotidiennes.","Faites un plan d'une semaine avec les charges familiales, le travail et une limite réaliste de temps bénévole."],
- ["Une responsable consulte ses tâches WDOS chaque lundi matin après l'école et met à jour son avancement en une fois.","Choisissez une habitude hebdomadaire de dix minutes et reliez-la à quelque chose que vous faites déjà chaque semaine."],
- ["Au lieu de repousser un rapport, une coordinatrice commence par rassembler les chiffres de présence auprès de ses responsables de chapitre.","Découpez une responsabilité en retard en trois petites actions à faire cette semaine."],
- ["Une coordinatrice d'État téléverse la feuille de présence et dit clairement qu'il manque encore le rapport d'un chapitre.","Rédigez une mise à jour de tâche avec responsable, échéance, état, preuve et blocage."]],
- "WNNN":[["Une responsable de chapitre termine les suivis en retard avant de refaire un visuel Instagram facultatif.","Classez cinq choses de votre semaine, études, travail et service, selon l'impact, l'échéance et qui en dépend."],
- ["Une étudiante de dernière année réserve deux heures par semaine aux suivis au lieu de promettre des appels quotidiens pendant les examens.","Faites un plan d'une semaine avec cours ou travail, repos et une limite réaliste de temps bénévole."],
- ["Une bénévole consulte ses tâches WDOS chaque lundi avant son premier cours et met à jour son avancement en une fois.","Choisissez une habitude hebdomadaire de dix minutes et programmez un rappel sur votre téléphone."],
- ["Au lieu de repousser un rapport, une coordinatrice jeunesse commence par rassembler les chiffres de présence des chapitres universitaires.","Découpez une responsabilité en retard en trois petites actions à finir avant le week-end."],
- ["Une responsable téléverse la feuille de présence et dit clairement qu'il manque encore le rapport d'un campus.","Rédigez une mise à jour de tâche avec responsable, échéance, état, preuve et blocage."]]},
-"4":{"WGMN":[["Une coordinatrice est contrariée par un rapport en retard et demande ce qui s'est passé avant de répondre.","Décrivez un moment stressant à la maison ou au service et une question qui aurait vérifié votre supposition."],
- ["Une adjointe écrit un suivi calme au lieu de répondre avec colère à un message vocal mal compris.","Réécrivez un message tendu sur une réunion manquée en une réponse calme, factuelle et respectueuse."],
- ["Une responsable apprend qu'une membre a manqué la formation pour soigner un parent malade et lui propose une autre façon de rattraper.","Écrivez deux questions ouvertes à poser à une membre devenue silencieuse."],
- ["Une responsable demande quelle partie de son rapport n'était pas claire et change le format le mois suivant.","Écrivez une réponse en trois parties à un retour : merci, une question pour comprendre, votre prochaine étape."],
- ["Une responsable bénévole indique ses heures de disponibilité et oriente une membre qui a besoin d'aide spécialisée vers un service qualifié.","Écrivez un message poli indiquant à votre chapitre quand vous pouvez répondre."]],
- "WNNN":[["Une responsable est frustrée quand une coéquipière se tait dans le groupe et vérifie la raison avant de réagir.","Décrivez un moment stressant à l'école, au travail ou en ligne et une question qui aurait vérifié votre supposition."],
- ["Une adjointe rédige un suivi calme au lieu de publier une réponse sèche dans le groupe.","Réécrivez un message de discussion tendu en une réponse calme, factuelle et respectueuse."],
- ["Une responsable apprend qu'une membre a manqué la formation à cause du coût des données et lui propose un enregistrement et un résumé écrit.","Écrivez deux questions ouvertes à poser à une pair qui semble en difficulté."],
- ["Une jeune responsable demande quelle partie de sa présentation n'était pas claire et modifie ses diapositives.","Écrivez une réponse en trois parties à un retour : merci, une question pour comprendre, votre prochaine étape."],
- ["Une bénévole explique qu'elle ne répond pas après 21 h les soirs d'étude et oriente une pair qui a besoin d'un accompagnement vers un service qualifié.","Écrivez un court message amical fixant vos heures de réponse pour le groupe du chapitre."]]},
-"5":{"WGMN":[["Une présidente de réunion reformule la préoccupation d'une membre avant de proposer une solution.","Entraînez-vous à résumer en deux phrases neutres ce qu'a dit une autre membre."],
- ["Une note de tâche du siège dit quoi envoyer, sous quel format et avant quelle date, au lieu de dire seulement « urgent ».","Écrivez une demande de quatre phrases à vos responsables de chapitre avec une date claire et la façon de répondre."],
- ["Une coordinatrice régionale fait un exposé de trois minutes à une réunion de femmes d'église sur les rôles bénévoles approuvés.","Préparez et répétez un exposé de trois minutes qui se termine par une demande claire."],
- ["Une réunion de chapitre utilise un ordre du jour court et permet aux femmes d'envoyer leurs idées par message vocal si elles ne peuvent pas parler en direct.","Préparez une réunion de 20 minutes avec du temps pour chaque voix et un résumé des actions."],
- ["Un avis continental donne l'heure en WAT et demande à chaque pays de confirmer l'heure locale et la langue.","Réécrivez un avis de réunion en mots simples avec date, heure, lieu ou lien, et la langue utilisée."]],
- "WNNN":[["Une présidente de chapitre reformule l'idée d'une membre avant que le groupe réponde.","Entraînez-vous à résumer en deux phrases neutres l'idée d'une camarade ou collègue."],
- ["Une note de tâche dit quoi remettre, sous quel format et avant quelle date, au lieu d'un vague « au plus vite ».","Écrivez une demande de tâche de quatre phrases à votre équipe avec une échéance claire et la façon de remettre."],
- ["Une responsable jeunesse fait un exposé de trois minutes lors d'un événement sur le campus à propos des rôles bénévoles approuvés.","Rédigez et répétez un pitch de trois minutes avec un appel à l'action clair."],
- ["Une réunion de chapitre en ligne utilise un ordre du jour court et la discussion écrite pour les membres qui ne peuvent pas activer leur micro.","Préparez une réunion en ligne de 20 minutes avec du temps pour chaque voix et un résumé des actions."],
- ["Un avis pour les membres d'Afrique et de la diaspora donne l'heure en WAT et demande à chacune de vérifier son heure locale.","Réécrivez une publication de réunion en langage simple avec date, heure, lien et langue."]]},
-"6":{"WGMN":[["Une coordinatrice aide patiemment les nouvelles femmes à comprendre une activité au lieu de voir leurs questions comme un manque de respect.","Nommez un obstacle que vous pouvez lever pour les femmes de votre chapitre sans dépasser votre rôle."],
- ["Une représentante pays vérifie les effectifs confirmés avant de recommander où concentrer la sensibilisation.","Rédigez une courte note de décision avec les preuves, les options, les risques et qui doit approuver."],
- ["Une coordinatrice régionale confie deux suivis approuvés à des adjointes nommées et propose de l'aide pour le tableau de bord.","Rédigez une affectation avec le résultat attendu, la responsable, l'échéance et la date de suivi."],
- ["Une coordinatrice de chapitre met à jour la fiche WDOS au lieu de publier les numéros des membres dans le groupe WhatsApp.","Notez trois règles pour traiter les données personnelles des membres dans votre rôle."],
- ["Une coordinatrice d'État présente une candidate par WDOS et attend la procédure de nomination du siège.","Dessinez les étapes, du repérage d'une future responsable jusqu'à la décision du siège."]],
- "WNNN":[["Une responsable aide les nouvelles membres à comprendre une activité au lieu de voir les questions comme un manque de respect.","Nommez un obstacle que vous pouvez lever pour votre équipe sans dépasser votre rôle."],
- ["Une responsable jeunesse pays vérifie des données confirmées avant de recommander les campus prioritaires.","Rédigez une courte note de décision avec les preuves, les options, les risques et qui doit approuver."],
- ["Une responsable régionale confie deux suivis approuvés à des responsables claires et propose de leur montrer le tableau de bord.","Rédigez une affectation avec le résultat attendu, la responsable, l'échéance et le point de suivi."],
- ["Une responsable met à jour WDOS au lieu de partager les numéros des membres dans une discussion publique.","Notez trois règles pour traiter les données personnelles des membres dans votre rôle."],
- ["Une responsable d'État présente une candidate par WDOS et attend la procédure du siège sans promettre le poste.","Dessinez les étapes, du repérage d'une future responsable jusqu'à la décision du siège."]]},
-"7":{"WGMN":[["Une bénévole prévoit ses frais de transport sans supposer qu'elle doit payer elle-même les dépenses non remboursées.","Faites un tableau simple des revenus et dépenses mensuels du foyer avec des chiffres fictifs."],
- ["Une membre prévoit une petite épargne d'urgence avec des versements possibles grâce à ses revenus du marché.","Écrivez un objectif d'argent à court terme et deux actions dans un budget familial fictif."],
- ["Une bénévole compare prix, qualité et transport avant d'acheter des fournitures pour son commerce.","Comparez deux achats fictifs selon le coût total et l'utilité."],
- ["Une bénévole vérifie elle-même une offre d'investissement partagée dans un groupe de femmes au lieu de la transférer au chapitre.","Trouvez trois signaux d'alerte dans un message d'argent suspect fictif."],
- ["Une responsable régionale envoie une proposition de coûts au siège au lieu de collecter de l'argent auprès des membres.","Préparez une demande fictive avec le but, le coût estimé et l'approbation nécessaire."]],
- "WNNN":[["Une étudiante bénévole prévoit ses frais de transport et de données sans supposer qu'elle doit financer seule les activités du chapitre.","Faites un tableau simple de votre argent de poche ou revenu mensuel et de vos dépenses, avec des chiffres fictifs."],
- ["Une jeune diplômée prévoit une petite épargne d'urgence avec ce qu'elle peut mettre de côté sur son premier salaire.","Écrivez un objectif d'argent à court terme et deux actions dans un budget fictif d'étudiante ou de premier emploi."],
- ["Une bénévole compare prix, qualité et frais de livraison avant d'acheter un accessoire de téléphone en ligne.","Comparez deux achats en ligne fictifs selon le coût total et l'utilité."],
- ["Une bénévole vérifie elle-même une offre crypto « doublez votre argent » au lieu de la transférer au groupe du chapitre.","Trouvez trois signaux d'alerte dans un message d'argent suspect reçu en ligne."],
- ["Une responsable jeunesse envoie une proposition de coûts au siège au lieu de demander aux membres de cotiser.","Préparez une demande fictive avec le but, le coût estimé et l'approbation nécessaire."]]},
-"8":{"WGMN":[["Une bénévole consulte ses tâches et met à jour son profil au lieu de demander le mot de passe d'une autre responsable.","Dessinez les parties du tableau de bord dont vous avez besoin et notez les accès qui manquent."],
- ["Une coordinatrice téléverse un résumé de présence terminé comme demandé et marque le reste comme en attente.","Rédigez un exemple de remise de tâche avec l'état, la preuve et le blocage."],
- ["Une responsable signale un message suspect de réinitialisation sans ouvrir le lien et demande à son fils de ne pas utiliser son compte.","Écrivez une liste de vérification pour les messages inattendus concernant votre compte."],
- ["Une bénévole vérifie le consentement pour les photos et les détails approuvés avant de publier un résumé sur Facebook.","Écrivez une liste de vérification pour publier un événement en sécurité : faits, consentement et image approuvée."],
- ["Une représentante pays indique 40 inscrites et 22 présentes au lieu d'annoncer 40 participantes.","Faites un exemple de rapport avec des champs séparés : inscrites, présentes, ayant terminé."]],
- "WNNN":[["Une bénévole consulte ses tâches et met à jour son profil au lieu d'utiliser les identifiants d'une amie.","Dessinez les parties du tableau de bord dont vous avez besoin et notez les accès qui manquent."],
- ["Une responsable téléverse un résumé de présence terminé comme demandé et marque le reste comme en attente.","Rédigez un exemple de remise de tâche avec l'état, la preuve et le blocage."],
- ["Une jeune responsable signale une alerte de connexion suspecte et active la double vérification au lieu de partager son code.","Écrivez une liste de vérification pour les messages inattendus concernant vos comptes, réseaux sociaux compris."],
- ["Une bénévole vérifie le consentement et les détails approuvés avant de publier un événement sur Instagram ou TikTok.","Écrivez une liste de vérification pour publier un événement en sécurité : faits, consentement et image approuvée."],
- ["Une responsable jeunesse pays indique 40 inscrites et 22 présentes au lieu d'annoncer 40 participantes.","Faites un exemple de rapport avec des champs séparés : inscrites, présentes, ayant terminé."]]},
-"9":{"WGMN":[["Deux coordinatrices ne sont pas d'accord sur une échéance et relisent ensemble la consigne écrite avant de parler d'intentions.","Décrivez un désaccord fictif en séparant les faits, les interprétations et la prochaine étape."],
- ["Une superviseure parle en privé et avec douceur à une membre souvent en retard, et l'interroge sur sa charge à la maison.","Écrivez un retour respectueux en quatre phrases."],
- ["Deux chapitres conviennent de partager une animatrice après l'approbation d'un nouvel horaire par le siège.","Écrivez deux options pour régler un conflit de dates de réunion fictif."],
- ["Une coordinatrice de quartier partage une information vérifiée avec la coordinatrice de district au lieu d'envoyer des consignes différentes à chaque chapitre.","Dessinez un circuit simple pour faire remonter les problèmes et rendre compte dans votre poste."],
- ["Une responsable reconnaît un engagement non tenu, corrige le dossier et fixe des points réguliers.","Écrivez un plan de réparation : reconnaissance, correction et date de suivi."]],
- "WNNN":[["Deux responsables ne sont pas d'accord sur une échéance et relisent la consigne écrite avant de discuter des intentions.","Décrivez un désaccord fictif en séparant les faits, les interprétations et la prochaine étape."],
- ["Une superviseure jeunesse parle en privé à une membre souvent en retard et l'interroge sur ses examens et sa charge.","Écrivez un retour respectueux en quatre phrases."],
- ["Deux chapitres universitaires conviennent de partager une animatrice après l'approbation d'un nouvel horaire par le siège.","Écrivez deux options pour régler un conflit d'emploi du temps fictif."],
- ["Une responsable partage une information vérifiée avec sa responsable de district au lieu de publier des consignes contradictoires dans plusieurs groupes.","Dessinez un circuit simple pour faire remonter les problèmes et rendre compte dans votre poste."],
- ["Une responsable reconnaît un engagement non tenu, corrige le dossier et fixe un point chaque semaine.","Écrivez un plan de réparation : reconnaissance, correction et date de suivi."]]},
-"10":{"WGMN":[["Une bénévole qui a des charges familiales et plusieurs échéances prévient sa superviseure et renégocie ses tâches.","Faites la carte de votre charge : tâches essentielles à la maison et au service, votre disponibilité et l'aide nécessaire."],
- ["Une coordinatrice fixe la prochaine réunion à une heure raisonnable au lieu d'appels tardifs tous les soirs.","Prévoyez une semaine équilibrée avec du temps pour le repos, la famille et le service."],
- ["Une responsable aide une membre à trouver un service de santé ou d'écoute qualifié sans essayer de poser un diagnostic.","Notez les limites du soutien que vous pouvez donner et les contacts d'orientation à confirmer avec le siège."],
- ["Une bénévole prévient son équipe à l'avance d'une absence pour un événement familial et organise une passation approuvée.","Écrivez une courte note sur vos disponibilités et un plan de passation simple."],
- ["Une animatrice envoie un résumé écrit à une bénévole dont le réseau est instable.","Proposez deux changements qui rendent une réunion de chapitre fictive plus facile à suivre pour chaque femme."]],
- "WNNN":[["Une bénévole en période d'examens avec plusieurs échéances prévient sa superviseure et renégocie ses tâches.","Faites la carte de votre charge : études, travail et service, votre disponibilité et l'aide nécessaire."],
- ["Une responsable fixe le prochain appel à une heure raisonnable au lieu d'appels tardifs tous les jours.","Prévoyez une semaine équilibrée avec du temps pour étudier, se reposer, voir ses amis et servir."],
- ["Une responsable aide une pair à trouver un service d'écoute qualifié sans essayer de poser un diagnostic.","Notez les limites du soutien que vous pouvez donner et les contacts d'orientation à confirmer avec le siège."],
- ["Une bénévole prévient son équipe à l'avance de sa semaine d'examens et organise une passation approuvée.","Écrivez une courte note sur vos disponibilités et un plan de passation simple."],
- ["Une animatrice partage l'enregistrement et des notes avec une membre dont les données s'épuisent pendant les appels.","Proposez deux changements qui rendent une réunion en ligne fictive plus facile à suivre pour chaque membre."]]},
-"11":{"WGMN":[["Une responsable demande aux femmes de sa zone comment elles apprennent le mieux avant de proposer une formation par téléphone.","Préparez cinq questions neutres pour une séance d'écoute avec les femmes de votre communauté."],
- ["Une coordinatrice d'État invite les associations de femmes du marché et des églises à proposer des femmes intéressées par un processus approuvé par le siège.","Écrivez une invitation chaleureuse avec des conditions claires et le lien de recommandation approuvé."],
- ["Une équipe communautaire propose une séance de compétences approuvée avec une animatrice et un plan de présence.","Remplissez une idée d'activité d'une page pour le siège : besoin, femmes concernées, résultats, sécurité, moyens et approbation."],
- ["Un rapport de formation note 35 participantes et un test de dix questions, sans prétendre à 35 nouvelles entreprises.","Choisissez un indicateur d'activité et un indicateur de changement pour un atelier de femmes fictif."],
- ["Après une faible participation, une coordinatrice essaie un horaire après le marché avant de répéter le même format.","Écrivez un court bilan : prévu, réalisé, appris, suite."]],
- "WNNN":[["Une responsable jeunesse demande aux membres comment elles préfèrent apprendre avant de proposer une séance de compétences numériques.","Préparez cinq questions neutres pour une séance d'écoute avec des jeunes sur le campus ou dans votre zone."],
- ["Une responsable d'État invite les associations étudiantes et groupes de jeunes à proposer des membres intéressées par un processus approuvé par le siège.","Écrivez une invitation inclusive avec des conditions claires et le lien de recommandation approuvé."],
- ["Une équipe de campus propose une séance approuvée sur les compétences professionnelles avec une animatrice et un plan de présence.","Remplissez une idée d'activité d'une page pour le siège : besoin, personnes concernées, résultats, sécurité, moyens et approbation."],
- ["Un rapport de formation note 35 participantes et un test de dix questions, sans prétendre à 35 nouveaux emplois.","Choisissez un indicateur d'activité et un indicateur de changement pour un atelier jeunesse fictif."],
- ["Après une faible participation, une coordinatrice jeunesse teste un horaire le week-end avant de répéter le même format.","Écrivez un court bilan : prévu, réalisé, appris, suite."]]},
-"12":{"WGMN":[["Une adjointe s'engage à terminer trois suivis d'accueil approuvés avant une date fixée et à les enregistrer dans WDOS.","Transformez un vague espoir en objectif SMART compatible avec votre vie familiale et professionnelle."],
- ["Une bénévole choisit une formation à l'animation et s'exerce lors d'une réunion de chapitre encadrée.","Construisez un plan de 90 jours avec deux compétences et une occasion de pratiquer chacune."],
- ["Une coordinatrice d'État expérimentée aide une nouvelle coordinatrice de chapitre à préparer une réunion, puis elles font le bilan.","Écrivez un plan d'entretien de mentorat et deux actions de suivi."],
- ["Une bénévole examine la présence aux réunions avec les obstacles de transport et de garde d'enfants et ajuste sa sensibilisation.","Préparez un bilan mensuel de progression : réussites, obstacles et prochaines étapes."],
- ["Une bénévole termine son orientation, soutient un projet approuvé et est recommandée au siège sans promesse de nomination.","Rédigez une réflexion sur votre préparation au leadership : preuves, besoins de formation et préférences."]],
- "WNNN":[["Une adjointe jeunesse s'engage à terminer trois suivis approuvés avant une date fixée et à les enregistrer dans WDOS.","Transformez une ambition vague en objectif SMART compatible avec vos études ou votre emploi."],
- ["Une bénévole choisit une formation à l'animation et s'exerce lors d'une réunion de chapitre universitaire encadrée.","Construisez un plan de 90 jours avec deux compétences et une occasion de pratiquer chacune."],
- ["Une responsable d'État expérimentée aide une nouvelle responsable de chapitre à préparer une réunion, puis elles font le bilan.","Écrivez un plan d'entretien de mentorat et deux actions de suivi."],
- ["Une bénévole examine la présence en tenant compte des examens et du coût des données, puis ajuste son plan de sensibilisation.","Préparez un bilan mensuel de progression : réussites, obstacles et prochaines étapes."],
- ["Une bénévole termine son orientation, soutient un projet approuvé et est recommandée au siège sans promesse de nomination.","Rédigez une réflexion sur votre préparation au leadership : preuves, besoins de formation et préférences de carrière."]]}
-}}
+"why": {
+"WGMN": "« {topic} » influence la qualité des décisions, des relations et du suivi. Dans le WODDI Good Mother Network, les responsables bénévoles sont souvent des mères, des aidantes, des commerçantes, des travailleuses et des femmes de la communauté qui servent en plus de leurs charges familiales et professionnelles, dans des communautés différentes, surtout par téléphone. Le but est de transformer cette leçon en un comportement visible : une décision claire, une conversation utile, une action documentée ou une orientation faite à temps. Apprenez le principe avant de l'appliquer ; l'enthousiasme ne remplace ni les preuves ni l'autorité.",
+"WNNN": "« {topic} » influence la qualité des décisions, des relations et du suivi. Dans le WODDI Nurture NextGen Network, les responsables bénévoles sont des jeunes de 18 à 29 ans : étudiantes, diplômées, apprenties et jeunes travailleuses qui jonglent entre cours, examens, premier emploi et attentes familiales, et qui se retrouvent surtout en ligne. Le but est de transformer cette leçon en un comportement visible : une décision claire, une conversation utile, une action documentée ou une orientation faite à temps. Apprenez le principe avant de l'appliquer ; l'enthousiasme ne remplace ni les preuves ni l'autorité."
+},
+"outcomes": "À la fin de ce cours, vous devriez pouvoir expliquer les cinq idées avec vos propres mots, distinguer les bonnes pratiques des erreurs courantes, faire une activité pratique et établir un plan d'amélioration réaliste.",
+"evidence": "Preuve d'apprentissage : notez un exemple daté montrant comment vous avez mis en pratique {topic}. Cela peut être une courte réflexion, une trace de tâche sans détails privés, ou une action confirmée par votre superviseure.",
+"c": {
+"1": {
+"WGMN": [
+[
+"Une mère du chapitre qui tient les présences avec soin aide à coordonner la réunion mensuelle tout en apprenant à animer.",
+"Notez trois forces que vous avez montrées à la maison, au travail ou dans votre communauté, un exemple pour chacune, et une compétence à développer."
+],
+[
+"Une coordinatrice de quartier refuse de favoriser la fille de sa voisine et fait passer toutes les candidates par la sélection approuvée du siège.",
+"Écrivez cinq valeurs qui vous guident comme mère et comme responsable, et un comportement qui montre chacune."
+],
+[
+"Une bénévole qui aime apprendre des savoir-faire pratiques aux femmes choisit d'accueillir et de guider les nouvelles membres.",
+"Écrivez en une phrase qui vous voulez servir, ce que vous pouvez donner et la valeur qui vous guide. Demandez à une autre membre de la lire."
+],
+[
+"Une coordinatrice d'État prévoit d'améliorer l'accueil des nouvelles femmes ce trimestre au lieu de promettre un programme national non approuvé.",
+"Écrivez l'image de la responsable que vous voulez être dans six mois et trois étapes compatibles avec vos charges familiales."
+],
+[
+"Une responsable prévoit un cours, une activité communautaire et une réflexion mensuelle autour des jours de marché et des trajets d'école, puis revoit son plan.",
+"Remplissez un plan d'une page : un objectif, la prochaine étape, qui peut vous aider et une date de bilan adaptée à votre foyer."
+]
+],
+"WNNN": [
+[
+"Une membre d'un chapitre universitaire qui suit les présences avec précision aide à animer les réunions tout en apprenant.",
+"Notez trois forces que vous avez montrées en cours, au travail ou en ligne, un exemple pour chacune, et une compétence à développer cette année."
+],
+[
+"Une responsable de chapitre refuse de donner un rôle à une camarade de promo par faveur et fait passer chaque candidate par la sélection du siège.",
+"Écrivez cinq valeurs pour lesquelles vous voulez être connue parmi vos pairs, et un comportement qui montre chacune."
+],
+[
+"Une diplômée qui aime expliquer se porte volontaire pour aider les nouvelles membres à comprendre WODDI.",
+"Écrivez une phrase sur qui vous voulez servir, ce que vous pouvez offrir et la valeur qui vous anime. Demandez à une pair de la relire."
+],
+[
+"Une jeune responsable d'État prévoit d'améliorer l'accueil ce semestre au lieu d'annoncer un projet jeunesse national non approuvé.",
+"Écrivez une vision de votre progression sur six mois et trois étapes compatibles avec vos études ou votre emploi."
+],
+[
+"Une bénévole prévoit un cours, une activité de service et une réflexion mensuelle autour de son calendrier d'examens, puis ajuste après les résultats.",
+"Remplissez un plan d'une page : un objectif, la prochaine étape, qui peut vous aider et une date de bilan adaptée à votre calendrier."
+]
+]
+},
+"2": {
+"WGMN": [
+[
+"Avant sa première réunion de chapitre, une mère répète l'ordre du jour avec sa fille et vérifie deux informations auprès du siège.",
+"Préparez et répétez une présentation de deux minutes de vous-même et de votre rôle pour la prochaine réunion."
+],
+[
+"Une coordinatrice remercie une grand-mère discrète pour son conseil, même si elle n'a jamais eu de titre.",
+"Écrivez trois phrases sur votre valeur qui n'ont rien à voir avec les titres, l'argent ou l'avis des autres."
+],
+[
+"Une bénévole qui a peur de parler devant des femmes instruites commence par un compte rendu de cinq minutes et progresse.",
+"Choisissez un défi, votre première petite étape et une femme de confiance pour vous donner un retour."
+],
+[
+"Une faible participation pousse l'équipe à comparer l'heure de réunion avec les jours de marché et la sortie d'école au lieu de blâmer les femmes.",
+"Faites un court bilan d'une difficulté récente : ce qui s'est passé, ce qui dépendait de vous, ce qu'il faut changer, qui peut aider."
+],
+[
+"Une bénévole remarque que les veuves de sa zone ne sont pas touchées et envoie une proposition au siège au lieu d'annoncer elle-même un programme.",
+"Décrivez une amélioration pour les femmes de votre communauté que vous proposerez par le canal approuvé."
+]
+],
+"WNNN": [
+[
+"Avant son premier appel de chapitre en ligne, une étudiante répète l'ordre du jour et confirme les détails avec le siège au lieu de deviner.",
+"Enregistrez-vous en présentant votre rôle en deux minutes et réécoutez une fois."
+],
+[
+"Une responsable valorise les idées d'une nouvelle membre qui n'a jamais rien dirigé et lui donne la parole.",
+"Écrivez trois phrases sur votre valeur qui ne dépendent ni des abonnés, ni des notes, ni des titres."
+],
+[
+"Une diplômée stressée à l'idée de présenter commence par une mise à jour de cinq minutes dans son groupe et progresse étape par étape.",
+"Choisissez un défi, votre première petite étape et une pair ou mentore qui peut vous donner un retour honnête."
+],
+[
+"Une faible présence pousse l'équipe jeunesse à comparer l'heure avec les cours et les semaines d'examens au lieu de blâmer les membres.",
+"Faites un court bilan d'un revers récent à l'école, au travail ou en bénévolat : ce qui s'est passé, ce qui dépendait de vous, quoi changer, qui peut aider."
+],
+[
+"Une bénévole voit que les jeunes mères de sa zone manquent les activités et envoie une proposition au siège au lieu de lancer un projet sur les réseaux sociaux.",
+"Décrivez une amélioration pour les jeunes de votre zone que vous proposerez par le canal approuvé."
+]
+]
+},
+"3": {
+"WGMN": [
+[
+"Une représentante pays termine les suivis d'accueil en retard avant de refaire une affiche facultative.",
+"Classez cinq choses de votre semaine, à la maison et au service, selon l'impact, l'échéance et qui en dépend."
+],
+[
+"Une bénévole qui tient une boutique et a de jeunes enfants réserve deux heures le dimanche soir aux suivis au lieu de promettre des réunions quotidiennes.",
+"Faites un plan d'une semaine avec les charges familiales, le travail et une limite réaliste de temps bénévole."
+],
+[
+"Une responsable consulte ses tâches WDOS chaque lundi matin après l'école et met à jour son avancement en une fois.",
+"Choisissez une habitude hebdomadaire de dix minutes et reliez-la à quelque chose que vous faites déjà chaque semaine."
+],
+[
+"Au lieu de repousser un rapport, une coordinatrice commence par rassembler les chiffres de présence auprès de ses responsables de chapitre.",
+"Découpez une responsabilité en retard en trois petites actions à faire cette semaine."
+],
+[
+"Une coordinatrice d'État téléverse la feuille de présence et dit clairement qu'il manque encore le rapport d'un chapitre.",
+"Rédigez une mise à jour de tâche avec responsable, échéance, état, preuve et blocage."
+]
+],
+"WNNN": [
+[
+"Une responsable de chapitre termine les suivis en retard avant de refaire un visuel Instagram facultatif.",
+"Classez cinq choses de votre semaine, études, travail et service, selon l'impact, l'échéance et qui en dépend."
+],
+[
+"Une étudiante de dernière année réserve deux heures par semaine aux suivis au lieu de promettre des appels quotidiens pendant les examens.",
+"Faites un plan d'une semaine avec cours ou travail, repos et une limite réaliste de temps bénévole."
+],
+[
+"Une bénévole consulte ses tâches WDOS chaque lundi avant son premier cours et met à jour son avancement en une fois.",
+"Choisissez une habitude hebdomadaire de dix minutes et programmez un rappel sur votre téléphone."
+],
+[
+"Au lieu de repousser un rapport, une coordinatrice jeunesse commence par rassembler les chiffres de présence des chapitres universitaires.",
+"Découpez une responsabilité en retard en trois petites actions à finir avant le week-end."
+],
+[
+"Une responsable téléverse la feuille de présence et dit clairement qu'il manque encore le rapport d'un campus.",
+"Rédigez une mise à jour de tâche avec responsable, échéance, état, preuve et blocage."
+]
+]
+},
+"4": {
+"WGMN": [
+[
+"Une coordinatrice est contrariée par un rapport en retard et demande ce qui s'est passé avant de répondre.",
+"Décrivez un moment stressant à la maison ou au service et une question qui aurait vérifié votre supposition."
+],
+[
+"Une adjointe écrit un suivi calme au lieu de répondre avec colère à un message vocal mal compris.",
+"Réécrivez un message tendu sur une réunion manquée en une réponse calme, factuelle et respectueuse."
+],
+[
+"Une responsable apprend qu'une membre a manqué la formation pour soigner un parent malade et lui propose une autre façon de rattraper.",
+"Écrivez deux questions ouvertes à poser à une membre devenue silencieuse."
+],
+[
+"Une responsable demande quelle partie de son rapport n'était pas claire et change le format le mois suivant.",
+"Écrivez une réponse en trois parties à un retour : merci, une question pour comprendre, votre prochaine étape."
+],
+[
+"Une responsable bénévole indique ses heures de disponibilité et oriente une membre qui a besoin d'aide spécialisée vers un service qualifié.",
+"Écrivez un message poli indiquant à votre chapitre quand vous pouvez répondre."
+]
+],
+"WNNN": [
+[
+"Une responsable est frustrée quand une coéquipière se tait dans le groupe et vérifie la raison avant de réagir.",
+"Décrivez un moment stressant à l'école, au travail ou en ligne et une question qui aurait vérifié votre supposition."
+],
+[
+"Une adjointe rédige un suivi calme au lieu de publier une réponse sèche dans le groupe.",
+"Réécrivez un message de discussion tendu en une réponse calme, factuelle et respectueuse."
+],
+[
+"Une responsable apprend qu'une membre a manqué la formation à cause du coût des données et lui propose un enregistrement et un résumé écrit.",
+"Écrivez deux questions ouvertes à poser à une pair qui semble en difficulté."
+],
+[
+"Une jeune responsable demande quelle partie de sa présentation n'était pas claire et modifie ses diapositives.",
+"Écrivez une réponse en trois parties à un retour sur un exposé en classe ou une publication : merci, une question pour comprendre, et votre prochaine étape."
+],
+[
+"Une bénévole explique qu'elle ne répond pas après 21 h les soirs d'étude et oriente une pair qui a besoin d'un accompagnement vers un service qualifié.",
+"Écrivez un court message amical fixant vos heures de réponse pour le groupe du chapitre."
+]
+]
+},
+"5": {
+"WGMN": [
+[
+"Une présidente de réunion reformule la préoccupation d'une membre avant de proposer une solution.",
+"Entraînez-vous à résumer en deux phrases neutres ce qu'a dit une autre membre."
+],
+[
+"Une note de tâche du siège dit quoi envoyer, sous quel format et avant quelle date, au lieu de dire seulement « urgent ».",
+"Écrivez une demande de quatre phrases à vos responsables de chapitre avec une date claire et la façon de répondre."
+],
+[
+"Une coordinatrice régionale fait un exposé de trois minutes à une réunion de femmes d'église sur les rôles bénévoles approuvés.",
+"Préparez et répétez un exposé de trois minutes qui se termine par une demande claire."
+],
+[
+"Une réunion de chapitre utilise un ordre du jour court et permet aux femmes d'envoyer leurs idées par message vocal si elles ne peuvent pas parler en direct.",
+"Préparez une réunion de 20 minutes avec du temps pour chaque voix et un résumé des actions."
+],
+[
+"Un avis continental donne l'heure en WAT et demande à chaque pays de confirmer l'heure locale et la langue.",
+"Réécrivez un avis de réunion en mots simples avec date, heure, lieu ou lien, et la langue utilisée."
+]
+],
+"WNNN": [
+[
+"Une présidente de chapitre reformule l'idée d'une membre avant que le groupe réponde.",
+"Entraînez-vous à résumer en deux phrases neutres l'idée d'une camarade ou collègue."
+],
+[
+"Une note de tâche dit quoi remettre, sous quel format et avant quelle date, au lieu d'un vague « au plus vite ».",
+"Écrivez une demande de tâche de quatre phrases à votre équipe avec une échéance claire et la façon de remettre."
+],
+[
+"Une responsable jeunesse fait un exposé de trois minutes lors d'un événement sur le campus à propos des rôles bénévoles approuvés.",
+"Rédigez et répétez un pitch de trois minutes avec un appel à l'action clair."
+],
+[
+"Une réunion de chapitre en ligne utilise un ordre du jour court et la discussion écrite pour les membres qui ne peuvent pas activer leur micro.",
+"Préparez une réunion en ligne de 20 minutes avec du temps pour chaque voix et un résumé des actions."
+],
+[
+"Un avis pour les membres d'Afrique et de la diaspora donne l'heure en WAT et demande à chacune de vérifier son heure locale.",
+"Réécrivez une publication de réunion en langage simple avec date, heure, lien et langue."
+]
+]
+},
+"6": {
+"WGMN": [
+[
+"Une coordinatrice aide patiemment les nouvelles femmes à comprendre une activité au lieu de voir leurs questions comme un manque de respect.",
+"Nommez un obstacle que vous pouvez lever pour les femmes de votre chapitre sans dépasser votre rôle."
+],
+[
+"Une représentante pays vérifie les effectifs confirmés avant de recommander où concentrer la sensibilisation.",
+"Rédigez une courte note de décision avec les preuves, les options, les risques et qui doit approuver."
+],
+[
+"Une coordinatrice régionale confie deux suivis approuvés à des adjointes nommées et propose de l'aide pour le tableau de bord.",
+"Rédigez une affectation avec le résultat attendu, la responsable, l'échéance et la date de suivi."
+],
+[
+"Une coordinatrice de chapitre met à jour la fiche WDOS au lieu de publier les numéros des membres dans le groupe WhatsApp.",
+"Notez trois règles pour traiter les données personnelles des membres dans votre rôle."
+],
+[
+"Une coordinatrice d'État présente une candidate par WDOS et attend la procédure de nomination du siège.",
+"Dessinez les étapes, du repérage d'une future responsable jusqu'à la décision du siège."
+]
+],
+"WNNN": [
+[
+"Une responsable aide les nouvelles membres à comprendre une activité au lieu de voir les questions comme un manque de respect.",
+"Nommez un obstacle que vous pouvez lever pour votre équipe sans dépasser votre rôle."
+],
+[
+"Une responsable jeunesse pays vérifie des données confirmées avant de recommander les campus prioritaires.",
+"Rédigez une courte note de décision sur le lieu d'une sensibilisation sur le campus, avec les preuves, les options, les risques et qui doit approuver."
+],
+[
+"Une responsable régionale confie deux suivis approuvés à des responsables claires et propose de leur montrer le tableau de bord.",
+"Rédigez une affectation avec le résultat attendu, la responsable, l'échéance et le point de suivi."
+],
+[
+"Une responsable met à jour WDOS au lieu de partager les numéros des membres dans une discussion publique.",
+"Notez trois règles pour gérer les numéros et les photos des membres dans les groupes de discussion, les groupes de classe et les réseaux sociaux."
+],
+[
+"Une responsable d'État présente une candidate par WDOS et attend la procédure du siège sans promettre le poste.",
+"Dessinez les étapes, du repérage d'une étudiante prometteuse jusqu'à la décision du siège, et marquez où vous ne devez rien promettre."
+]
+]
+},
+"7": {
+"WGMN": [
+[
+"Une bénévole prévoit ses frais de transport sans supposer qu'elle doit payer elle-même les dépenses non remboursées.",
+"Faites un tableau simple des revenus et dépenses mensuels du foyer avec des chiffres fictifs."
+],
+[
+"Une membre prévoit une petite épargne d'urgence avec des versements possibles grâce à ses revenus du marché.",
+"Écrivez un objectif d'argent à court terme et deux actions dans un budget familial fictif."
+],
+[
+"Une bénévole compare prix, qualité et transport avant d'acheter des fournitures pour son commerce.",
+"Comparez deux achats fictifs selon le coût total et l'utilité."
+],
+[
+"Une bénévole vérifie elle-même une offre d'investissement partagée dans un groupe de femmes au lieu de la transférer au chapitre.",
+"Trouvez trois signaux d'alerte dans un message d'argent suspect fictif."
+],
+[
+"Une responsable régionale envoie une proposition de coûts au siège au lieu de collecter de l'argent auprès des membres.",
+"Préparez une demande fictive avec le but, le coût estimé et l'approbation nécessaire."
+]
+],
+"WNNN": [
+[
+"Une étudiante bénévole prévoit ses frais de transport et de données sans supposer qu'elle doit financer seule les activités du chapitre.",
+"Faites un tableau simple de votre argent de poche ou revenu mensuel et de vos dépenses, avec des chiffres fictifs."
+],
+[
+"Une jeune diplômée prévoit une petite épargne d'urgence avec ce qu'elle peut mettre de côté sur son premier salaire.",
+"Écrivez un objectif d'argent à court terme et deux actions dans un budget fictif d'étudiante ou de premier emploi."
+],
+[
+"Une bénévole compare prix, qualité et frais de livraison avant d'acheter un accessoire de téléphone en ligne.",
+"Comparez deux achats en ligne fictifs selon le coût total et l'utilité."
+],
+[
+"Une bénévole vérifie elle-même une offre crypto « doublez votre argent » au lieu de la transférer au groupe du chapitre.",
+"Trouvez trois signaux d'alerte dans un message d'argent suspect reçu en ligne."
+],
+[
+"Une responsable jeunesse envoie une proposition de coûts au siège au lieu de demander aux membres de cotiser.",
+"Préparez une demande fictive pour un événement sur le campus : but, coût estimé et approbation du siège nécessaire avant tout paiement."
+]
+]
+},
+"8": {
+"WGMN": [
+[
+"Une bénévole consulte ses tâches et met à jour son profil au lieu de demander le mot de passe d'une autre responsable.",
+"Dessinez les parties du tableau de bord dont vous avez besoin et notez les accès qui manquent."
+],
+[
+"Une coordinatrice téléverse un résumé de présence terminé comme demandé et marque le reste comme en attente.",
+"Rédigez un exemple de remise de tâche avec l'état, la preuve et le blocage."
+],
+[
+"Une responsable signale un message suspect de réinitialisation sans ouvrir le lien et demande à son fils de ne pas utiliser son compte.",
+"Écrivez une liste de vérification pour les messages inattendus concernant votre compte."
+],
+[
+"Une bénévole vérifie le consentement pour les photos et les détails approuvés avant de publier un résumé sur Facebook.",
+"Écrivez une liste de vérification pour publier un événement en sécurité : faits, consentement et image approuvée."
+],
+[
+"Une représentante pays indique 40 inscrites et 22 présentes au lieu d'annoncer 40 participantes.",
+"Faites un exemple de rapport avec des champs séparés : inscrites, présentes, ayant terminé."
+]
+],
+"WNNN": [
+[
+"Une bénévole consulte ses tâches et met à jour son profil au lieu d'utiliser les identifiants d'une amie.",
+"Sur votre téléphone, trouvez vos tâches, votre profil et la page d'aide dans WDOS, et notez les accès qui manquent à votre rôle."
+],
+[
+"Une responsable téléverse un résumé de présence terminé comme demandé et marque le reste comme en attente.",
+"Rédigez un exemple de remise de tâche avec l'état, la preuve et le blocage."
+],
+[
+"Une jeune responsable signale une alerte de connexion suspecte et active la double vérification au lieu de partager son code.",
+"Écrivez une liste de vérification pour les messages inattendus concernant vos comptes, réseaux sociaux compris."
+],
+[
+"Une bénévole vérifie le consentement et les détails approuvés avant de publier un événement sur Instagram ou TikTok.",
+"Rédigez une liste de vérification pour publier un événement sur Instagram, TikTok ou X : faits, consentement de chaque personne visible et image de marque approuvée."
+],
+[
+"Une responsable jeunesse pays indique 40 inscrites et 22 présentes au lieu d'annoncer 40 participantes.",
+"Faites un exemple de rapport pour une séance sur le campus avec des champs séparés : inscrites, présentes, ayant terminé, et une note honnête sur les données manquantes."
+]
+]
+},
+"9": {
+"WGMN": [
+[
+"Deux coordinatrices ne sont pas d'accord sur une échéance et relisent ensemble la consigne écrite avant de parler d'intentions.",
+"Décrivez un désaccord fictif en séparant les faits, les interprétations et la prochaine étape."
+],
+[
+"Une superviseure parle en privé et avec douceur à une membre souvent en retard, et l'interroge sur sa charge à la maison.",
+"Écrivez un retour respectueux en quatre phrases."
+],
+[
+"Deux chapitres conviennent de partager une animatrice après l'approbation d'un nouvel horaire par le siège.",
+"Écrivez deux options pour régler un conflit de dates de réunion fictif."
+],
+[
+"Une coordinatrice de quartier partage une information vérifiée avec la coordinatrice de district au lieu d'envoyer des consignes différentes à chaque chapitre.",
+"Dessinez un circuit simple pour faire remonter les problèmes et rendre compte dans votre poste."
+],
+[
+"Une responsable reconnaît un engagement non tenu, corrige le dossier et fixe des points réguliers.",
+"Écrivez un plan de réparation : reconnaissance, correction et date de suivi."
+]
+],
+"WNNN": [
+[
+"Deux responsables ne sont pas d'accord sur une échéance et relisent la consigne écrite avant de discuter des intentions.",
+"Décrivez un désaccord dans un groupe d'étude ou une discussion d'équipe, en séparant les faits, les interprétations et la prochaine étape."
+],
+[
+"Une superviseure jeunesse parle en privé à une membre souvent en retard et l'interroge sur ses examens et sa charge.",
+"Écrivez un message respectueux de quatre phrases à une camarade dont les mises à jour sont en retard, en demandant d'abord des nouvelles de ses examens et de sa charge."
+],
+[
+"Deux chapitres universitaires conviennent de partager une animatrice après l'approbation d'un nouvel horaire par le siège.",
+"Écrivez deux options pour régler un conflit d'emploi du temps fictif."
+],
+[
+"Une responsable partage une information vérifiée avec sa responsable de district au lieu de publier des consignes contradictoires dans plusieurs groupes.",
+"Dessinez à qui vous rendez compte, qui vous rend compte, et quel groupe de discussion est officiel pour chaque type de message."
+],
+[
+"Une responsable reconnaît un engagement non tenu, corrige le dossier et fixe un point chaque semaine.",
+"Rédigez un plan de réparation pour un engagement manqué pendant les examens : reconnaissance, correction et date de suivi."
+]
+]
+},
+"10": {
+"WGMN": [
+[
+"Une bénévole qui a des charges familiales et plusieurs échéances prévient sa superviseure et renégocie ses tâches.",
+"Faites la carte de votre charge : tâches essentielles à la maison et au service, votre disponibilité et l'aide nécessaire."
+],
+[
+"Une coordinatrice fixe la prochaine réunion à une heure raisonnable au lieu d'appels tardifs tous les soirs.",
+"Prévoyez une semaine équilibrée avec du temps pour le repos, la famille et le service."
+],
+[
+"Une responsable aide une membre à trouver un service de santé ou d'écoute qualifié sans essayer de poser un diagnostic.",
+"Notez les limites du soutien que vous pouvez donner et les contacts d'orientation à confirmer avec le siège."
+],
+[
+"Une bénévole prévient son équipe à l'avance d'une absence pour un événement familial et organise une passation approuvée.",
+"Écrivez une courte note sur vos disponibilités et un plan de passation simple."
+],
+[
+"Une animatrice envoie un résumé écrit à une bénévole dont le réseau est instable.",
+"Proposez deux changements qui rendent une réunion de chapitre fictive plus facile à suivre pour chaque femme."
+]
+],
+"WNNN": [
+[
+"Une bénévole en période d'examens avec plusieurs échéances prévient sa superviseure et renégocie ses tâches.",
+"Faites la carte de votre charge : études, travail et service, votre disponibilité et l'aide nécessaire."
+],
+[
+"Une responsable fixe le prochain appel à une heure raisonnable au lieu d'appels tardifs tous les jours.",
+"Prévoyez une semaine équilibrée avec du temps pour étudier, se reposer, voir ses amis et servir."
+],
+[
+"Une responsable aide une pair à trouver un service d'écoute qualifié sans essayer de poser un diagnostic.",
+"Notez les services d'aide du campus ou locaux qu'une camarade pourrait utiliser, les limites de votre aide et les contacts à confirmer avec le siège."
+],
+[
+"Une bénévole prévient son équipe à l'avance de sa semaine d'examens et organise une passation approuvée.",
+"Écrivez une courte note sur vos disponibilités autour des cours, des examens et du travail, et un plan de passation simple pour les semaines d'examens."
+],
+[
+"Une animatrice partage l'enregistrement et des notes avec une membre dont les données s'épuisent pendant les appels.",
+"Proposez deux changements qui rendent une réunion en ligne fictive plus facile à suivre pour chaque membre."
+]
+]
+},
+"11": {
+"WGMN": [
+[
+"Une responsable demande aux femmes de sa zone comment elles apprennent le mieux avant de proposer une formation par téléphone.",
+"Préparez cinq questions neutres pour une séance d'écoute avec les femmes de votre communauté."
+],
+[
+"Une coordinatrice d'État invite les associations de femmes du marché et des églises à proposer des femmes intéressées par un processus approuvé par le siège.",
+"Écrivez une invitation chaleureuse avec des conditions claires et le lien de recommandation approuvé."
+],
+[
+"Une équipe communautaire propose une séance de compétences approuvée avec une animatrice et un plan de présence.",
+"Remplissez une idée d'activité d'une page pour le siège : besoin, femmes concernées, résultats, sécurité, moyens et approbation."
+],
+[
+"Un rapport de formation note 35 participantes et un test de dix questions, sans prétendre à 35 nouvelles entreprises.",
+"Choisissez un indicateur d'activité et un indicateur de changement pour un atelier de femmes fictif."
+],
+[
+"Après une faible participation, une coordinatrice essaie un horaire après le marché avant de répéter le même format.",
+"Écrivez un court bilan : prévu, réalisé, appris, suite."
+]
+],
+"WNNN": [
+[
+"Une responsable jeunesse demande aux membres comment elles préfèrent apprendre avant de proposer une séance de compétences numériques.",
+"Préparez cinq questions neutres pour une séance d'écoute avec des jeunes sur le campus ou dans votre zone."
+],
+[
+"Une responsable d'État invite les associations étudiantes et groupes de jeunes à proposer des membres intéressées par un processus approuvé par le siège.",
+"Écrivez une invitation inclusive avec des conditions claires et le lien de recommandation approuvé."
+],
+[
+"Une équipe de campus propose une séance approuvée sur les compétences professionnelles avec une animatrice et un plan de présence.",
+"Remplissez une idée d'activité d'une page pour le siège : besoin, personnes concernées, résultats, sécurité, moyens et approbation."
+],
+[
+"Un rapport de formation note 35 participantes et un test de dix questions, sans prétendre à 35 nouveaux emplois.",
+"Choisissez un indicateur d'activité et un indicateur de changement pour un atelier jeunesse fictif."
+],
+[
+"Après une faible participation, une coordinatrice jeunesse teste un horaire le week-end avant de répéter le même format.",
+"Rédigez un court bilan d'un événement sur le campus ou pour les jeunes : prévu, passé, appris, et ce que vous essaierez ensuite."
+]
+]
+},
+"12": {
+"WGMN": [
+[
+"Une adjointe s'engage à terminer trois suivis d'accueil approuvés avant une date fixée et à les enregistrer dans WDOS.",
+"Transformez un vague espoir en objectif SMART compatible avec votre vie familiale et professionnelle."
+],
+[
+"Une bénévole choisit une formation à l'animation et s'exerce lors d'une réunion de chapitre encadrée.",
+"Construisez un plan de 90 jours avec deux compétences et une occasion de pratiquer chacune."
+],
+[
+"Une coordinatrice d'État expérimentée aide une nouvelle coordinatrice de chapitre à préparer une réunion, puis elles font le bilan.",
+"Écrivez un plan d'entretien de mentorat et deux actions de suivi."
+],
+[
+"Une bénévole examine la présence aux réunions avec les obstacles de transport et de garde d'enfants et ajuste sa sensibilisation.",
+"Préparez un bilan mensuel de progression : réussites, obstacles et prochaines étapes."
+],
+[
+"Une bénévole termine son orientation, soutient un projet approuvé et est recommandée au siège sans promesse de nomination.",
+"Rédigez une réflexion sur votre préparation au leadership : preuves, besoins de formation et préférences."
+]
+],
+"WNNN": [
+[
+"Une adjointe jeunesse s'engage à terminer trois suivis approuvés avant une date fixée et à les enregistrer dans WDOS.",
+"Transformez une ambition vague en objectif SMART compatible avec vos études ou votre emploi."
+],
+[
+"Une bénévole choisit une formation à l'animation et s'exerce lors d'une réunion de chapitre universitaire encadrée.",
+"Construisez un plan de 90 jours avec deux compétences utiles à vos études ou à votre carrière et à votre bénévolat, et une occasion de pratiquer chacune."
+],
+[
+"Une responsable d'État expérimentée aide une nouvelle responsable de chapitre à préparer une réunion, puis elles font le bilan.",
+"Écrivez les questions que vous poseriez à une mentore sur le fait de diriger tout en étudiant ou en débutant une carrière, et deux actions de suivi."
+],
+[
+"Une bénévole examine la présence en tenant compte des examens et du coût des données, puis ajuste son plan de sensibilisation.",
+"Préparez un bilan mensuel qui met votre bénévolat à côté de vos examens et de votre travail : réussites, obstacles et prochaines étapes."
+],
+[
+"Une étudiante en dernière année termine son orientation, aide à mener un projet approuvé sur le campus et est recommandée au siège sans promesse de nomination.",
+"Rédigez une réflexion sur votre préparation au leadership : preuves, besoins de formation et préférences de carrière."
+]
+]
+}
+}
+}
