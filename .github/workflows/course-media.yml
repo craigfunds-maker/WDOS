@@ -23,11 +23,41 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: { name: 'mt-${{ matrix.lang }}', path: mt-out }
   voice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy: { fail-fast: false, matrix: { lang: [en, fr, pt, sw, ar] } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: Translated course text (Hausa, Yoruba, Igbo)
+        if: contains('ha yo ig', matrix.lang)
+        uses: actions/download-artifact@v4
+        with: { name: 'mt-${{ matrix.lang }}', path: mt-out }
+      - name: Tools and voices
+        run: |
+          sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg espeak-ng >/dev/null
+          pip install -q numpy soundfile
+          mkdir -p /tmp/m
+          case "${{ matrix.lang }}" in
+            en|fr|pt) pip install -q kokoro-onnx
+              curl -sSL -o /tmp/m/kokoro-v1.0.onnx https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx
+              curl -sSL -o /tmp/m/voices-v1.0.bin https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin ;;
+            sw|ar) pip install -q piper-tts
+              for v in vits-piper-sw_CD-lanfrica-medium vits-piper-ar_JO-kareem-medium; do curl -sSL https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/$v.tar.bz2 | tar xj -C /tmp/m; done ;;
+            *) pip install -q 'transformers<5' torch --extra-index-url https://download.pytorch.org/whl/cpu
+              mkdir -p wdos-php/assets/courses/${{ matrix.lang }} && cp mt-out/${{ matrix.lang }}/wgmn.json mt-out/${{ matrix.lang }}/wnnn.json wdos-php/assets/courses/${{ matrix.lang }}/ ;;
+          esac
+      - name: Narrate
+        run: python tools/courses/voice_make.py ${{ matrix.lang }} wdos-php/assets/courses /tmp/m
+      - uses: actions/upload-artifact@v4
+        with: { name: 'voice-${{ matrix.lang }}', path: 'wdos-php/assets/courses/voice/${{ matrix.lang }}' }
+  voice-mt:
     needs: mt
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 340
-    strategy: { fail-fast: false, matrix: { lang: [en, fr, pt, sw, ar, ha, yo, ig] } }
+    strategy: { fail-fast: false, matrix: { lang: [ha, yo, ig] } }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

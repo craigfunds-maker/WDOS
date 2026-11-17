@@ -97,7 +97,7 @@ export async function render(root, params) {
   const NOT_LISTED = '__type__';
   F.state = h('select', { class: 'input', id: 'f-state' }); F.stateText = h('input', { class: 'input', id: 'f-state', maxlength: 120, autocomplete: 'address-level1' });
   F.lgaSel = h('select', { class: 'input', id: 'f-lga' }); F.lga = h('input', { class: 'input', id: 'f-lga', maxlength: 120 });
-  let countries = [], stateMode = 'text', lgaMode = 'text', geoStates = null, geoLgas = null, worldStates = {};
+  let countries = [], stateMode = 'text', lgaMode = 'text', geoStates = null, geoLgas = null, worldStates = {}, elList = null;
   const getJson = (url) => fetch(url).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
   const stateSlot = h('div'), lgaSlot = h('div');
   const paintState = () => stateSlot.replaceChildren(h('label', { class: 'field', for: 'f-state' }, h('span', { text: 'State or region' }), stateMode === 'text' ? F.stateText : F.state));
@@ -108,7 +108,7 @@ export async function render(root, params) {
   /* Community Clusters already known in the chosen LGA or city are offered as she types, so the same cluster is not spelled three ways */
   const clusterList = h('datalist', { id: 'f-clusters' });
   const fillClusters = async () => { const c = countries.find((x) => String(x.id) === F.country.value); if (!c) return; const lga = lgaMode === 'select' ? F.lgaSel.value : F.lga.value; ngWards = null; if (!lga || lga === NOT_LISTED) { paintCommunity([]); paintBooth(); return; }
-    if (c.code === 'NG' && lgaMode === 'select' && stateName()) { const w = await getJson(`/assets/geo/ng/${geoSlug(stateName())}/${geoSlug(lga)}.json`); if (w && Object.keys(w).length) { ngWards = w; clusterList.replaceChildren(); paintCommunity(Object.keys(w)); paintBooth(); return; } } try { const r = await api(`/geo/clusters?country=${c.code}&lga=${encodeURIComponent(lga)}`); clusterList.replaceChildren(...r.clusters.map((n) => opt(n, n))); paintCommunity(r.clusters); } catch { paintCommunity([]); } };
+    if ((c.code === 'NG' || (elList || []).includes(c.code)) && lgaMode === 'select' && stateName()) { const w = await getJson(c.code === 'NG' ? `/assets/geo/ng/${geoSlug(stateName())}/${geoSlug(lga)}.json` : `/assets/geo/el/${c.code}/${geoSlug(stateName())}/${geoSlug(lga)}.json`); if (w && Object.keys(w).length) { ngWards = w; clusterList.replaceChildren(); paintCommunity(Object.keys(w)); paintBooth(); return; } } try { const r = await api(`/geo/clusters?country=${c.code}&lga=${encodeURIComponent(lga)}`); clusterList.replaceChildren(...r.clusters.map((n) => opt(n, n))); paintCommunity(r.clusters); } catch { paintCommunity([]); } };
   /* v109.5: Nigeria's wards (Community cluster) and polling units (Booth), from the INEC register, one small file per LGA */
   let ngWards = null;
   const curCountry = () => countries.find((x) => String(x.id) === F.country.value);
@@ -132,6 +132,12 @@ export async function render(root, params) {
     if (c && c.code === 'NG' && stateMode !== 'text' && stateName()) {
       geoLgas = geoLgas || await getJson('/assets/geo/ng-lgas.json'); const list = geoLgas[stateName()];
       if (list && list.length) { F.lgaSel.replaceChildren(h('option', { value: '', text: 'Choose your LGA' }), ...list.map((n) => opt(n, n)), h('option', { value: NOT_LISTED, text: 'My LGA is not listed' })); lgaMode = 'select'; }
+    }
+    // other countries with an official electoral register (Kenya: IEBC counties, constituencies, wards, polling stations)
+    if (c && lgaMode === 'text' && stateMode !== 'text' && stateName()) {
+      elList = elList || await getJson('/assets/geo/el/index.json') || [];
+      if (elList.includes(c.code)) { const idx = await getJson(`/assets/geo/el/${c.code}/index.json`); const list = idx && idx[stateName()];
+        if (list && list.length) { F.lgaSel.replaceChildren(h('option', { value: '', text: t('Choose your constituency or district') }), ...list.map((n) => opt(n, n)), h('option', { value: NOT_LISTED, text: 'My LGA or district is not listed' })); lgaMode = 'select'; } }
     }
     if (c && lgaMode === 'text' && stateMode === 'list' && worldStates[stateName()]) {
       const list = await getJson(`/assets/geo/world/${c.code}/${worldStates[stateName()]}.json`);
