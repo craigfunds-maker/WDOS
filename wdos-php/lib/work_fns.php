@@ -141,7 +141,7 @@ function meeting_is_invited(array $u, array $m): bool {
 function work_automations(array &$done): void {
   try {
     // v109.5: the course photographs come from Pexels to this server a few at a time, until all are kept
-    if (function_exists('course_photos_seed') && (int) val("SELECT COUNT(*) FROM message_photos WHERE image_key LIKE 'course/%'") < 60) { $n = course_photos_seed(6); if ($n) $done[] = "course photos +$n"; }
+    if (function_exists('course_photos_seed') && (int) val("SELECT COUNT(*) FROM message_photos WHERE image_key LIKE 'course/%'") < count(course_photo_list())) { $n = course_photos_seed(8); if ($n) $done[] = "course photos +$n"; }
     // once a day from 07:00 Lagos time: tasks due today, and tasks that became overdue yesterday
     if ((int) (new DateTimeImmutable('now', new DateTimeZone('Africa/Lagos')))->format('G') >= 7) {
       $r = cron_once('task_due', function () {

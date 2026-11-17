@@ -14,12 +14,15 @@ KEY={int(a):b for a,b in re.findall(r"(\d+)\s*=>\s*'([ABCD]{10})'",src)}
 chk('answer key for all twelve courses', sorted(KEY)==list(range(1,13)), KEY)
 # content in all five languages, same shape, and the even-question right answer lines up with the key in every language
 EN=json.load(open(W+'assets/courses/en/index.json'))
+ENW={n:json.load(open(W+f'assets/courses/en/{n}.json')) for n in ('wgmn','wnnn')}
+chk('the two network editions differ in examples and practice', all(a['scenario']!=b['scenario'] and a['exercise']!=b['exercise'] for c1,c2 in zip(ENW['wgmn']['courses'],ENW['wnnn']['courses']) for a,b in zip(c1['modules'],c2['modules'])))
+chk('WNNN edition speaks to ages 18 to 29', '18' in ENW['wnnn']['t']['why'] and 'Nurture NextGen' in ENW['wnnn']['t']['why'] and 'Good Mother' in ENW['wgmn']['t']['why'])
 chk('answer key not shipped to the phone', not any('key' in m for c in EN['courses'] for m in c['modules']))
-for L in ('ar','en','fr','pt','sw'):
-  D=json.load(open(W+f'assets/courses/{L}/index.json'))
-  chk(f'{L}: twelve courses', len(D['courses'])==12)
+for L,NET in [(l,n) for l in ('ar','en','fr','pt','sw') for n in ('wgmn','wnnn')]:
+  D=json.load(open(W+f'assets/courses/{L}/{NET}.json'))
+  chk(f'{L} {NET}: twelve courses', len(D['courses'])==12)
   shape=all(len(c['modules'])==5 and len(c['quiz'])==10 and all(len(q['o'])==4 and len(set(q['o']))==4 for q in c['quiz']) for c in D['courses'])
-  chk(f'{L}: five lessons and ten four-option questions each', shape)
+  chk(f'{L} {NET}: five lessons and ten four-option questions each', shape)
   if L!='en':
     good=True
     for c,e in zip(D['courses'],EN['courses']):
@@ -29,15 +32,15 @@ for L in ('ar','en','fr','pt','sw'):
         if not e['quiz'][i]['o'][ai].startswith('Use the practice of'): good=False
         if c['quiz'][i]['o'][ai] in e['quiz'][i]['o']: good=False   # really translated
       if c['title']==e['title']: good=False
-    chk(f'{L}: translated, and the right answers sit where the key says', good)
-    chk(f'{L}: lesson topic phrase for the templates', all(m.get('topic') for c in D['courses'] for m in c['modules']))
-  vd=W+f'assets/courses/voice/{L}/'
-  if os.path.exists(vd+'cues.json'):
-    cues=json.load(open(vd+'cues.json')); need=[f'c{c:02d}-{m}' for c in range(1,13) for m in ['intro',1,2,3,4,5]]
+    chk(f'{L} {NET}: translated, and the right answers sit where the key says', good)
+    chk(f'{L} {NET}: lesson topic phrase for the templates', all(m.get('topic') for c in D['courses'] for m in c['modules']))
+  if NET=='wnnn':
+    import sys as _s; _s.path.insert(0,'/home/claude/wdos/tools/courses') if os.path.exists('/home/claude/wdos/tools/courses') else _s.path.insert(0,os.environ.get('GITHUB_WORKSPACE','')+'/tools/courses')
+    from voice_plan import plan
+    need=plan(L,json.load(open(W+f'assets/courses/{L}/wgmn.json')),D)
+    vd=W+f'assets/courses/voice/{L}/'; cues=json.load(open(vd+'cues.json')) if os.path.exists(vd+'cues.json') else {}
     miss=[k for k in need if k not in cues or not os.path.exists(vd+k+'.mp3')]
-    chk(f'{L}: narration for every lesson ({72-len(miss)}/72)', not miss, miss[:5])
-  else: chk(f'{L}: narration folder', False, 'no cues.json')
-
+    chk(f'{L}: the whole lesson is narrated, both networks ({len(need)-len(miss)}/{len(need)} clips)', not miss, miss[:4])
 ld=login('leader@test.local','leader-pass-1'); hq=login('hq@test.local','hq-password-1')
 d=ld.get(B+'/courses').json()
 chk('course list', len(d.get('courses',[]))==12 and d['pass']==7, d)

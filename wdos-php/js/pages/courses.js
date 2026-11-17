@@ -4,22 +4,27 @@
  * when all five are done. The right answers stay on the server. */
 import { h, t, tf, icon, card, sk, empty, toast, i18n } from '../ui.js';
 import { api } from '../api.js';
-import { go } from '../app.js';
+import { go, app } from '../app.js';
 
-const LANGS = ['ar', 'en', 'fr', 'pt', 'sw'];
-let cache = { lang: '', data: null, cues: null };
+const LANGS = ['ar', 'en', 'fr', 'ha', 'ig', 'pt', 'sw', 'yo'];
+// WGMN and WNNN each have their own edition: the same twelve courses, with examples and practice for her network and age
+export const courseNet = () => { const u = app.user || {}; let n = (u.network || '').toUpperCase(); if (u.is_hq) { try { n = sessionStorage.getItem('wdos.pdnet') || 'WGMN'; } catch { n = 'WGMN'; } } return n === 'WNNN' ? 'WNNN' : 'WGMN'; };
+let cache = { key: '', data: null, cues: null };
 async function content() {
-  const lang = LANGS.includes(i18n.lang) ? i18n.lang : 'en';
-  if (cache.lang === lang && cache.data) return cache;
-  const get = async (l) => { const r = await fetch(`/assets/courses/${l}/index.json`, { cache: 'no-cache' }); if (!r.ok) throw new Error('content'); return r.json(); };
+  const lang = LANGS.includes(i18n.lang) ? i18n.lang : 'en'; const net = courseNet().toLowerCase();
+  if (cache.key === lang + net && cache.data) return cache;
+  const get = async (l) => { const r = await fetch(`/assets/courses/${l}/${net}.json`, { cache: 'no-cache' }); if (!r.ok) throw new Error('content'); return r.json(); };
   let data; let used = lang;
   try { data = await get(lang); } catch { data = await get('en'); used = 'en'; }
   let cues = {}; try { cues = await (await fetch(`/assets/courses/voice/${used}/cues.json`, { cache: 'no-cache' })).json(); } catch { /* text only */ }
-  cache = { lang, used, data, cues };
+  cache = { key: lang + net, lang, used, net: courseNet(), data, cues };
   return cache;
 }
 const pad = (n) => String(n).padStart(2, '0');
 const photo = (st, c, i) => st.photos[`course/c${pad(c)}-${((i - 1) % 5) + 1}`] || '';
+// the course card and hero picture for her network: WNNN has its own pictures of young people
+const thumb = (st, net, c) => (net === 'WNNN' && st.photos[`course/wnnn-c${pad(c)}`]) || photo(st, c, 1);
+const hero = (st, net) => st.photos[`course/hero-${net.toLowerCase()}`] || photo(st, 1, 1);
 const topic = (title) => title.charAt(0).toLowerCase() + title.slice(1);
 
 export async function render(root, params = {}) {
@@ -45,16 +50,18 @@ function listView(C, st) {
   const passed = st.courses.filter((x) => x.passed).length;
   const head = h('section', { class: 'card pdx-hero' },
     h('div', { class: 'pdx-hero__text' }, h('span', { class: 'gmc__kicker', text: t('Volunteer Leadership') }), h('h2', { class: 'display', text: t('Personal Development Courses') }),
+      h('span', { class: 'tag', text: C.net === 'WNNN' ? t('WNNN edition: young people aged 18 to 29') : t('WGMN edition: women and mothers in the community') }),
+      app.user?.is_hq ? h('div', { class: 'seg' }, ['WGMN', 'WNNN'].map((n) => h('button', { type: 'button', class: 'btn btn--s ' + (C.net === n ? '' : 'btn--ghost'), onclick: () => { try { sessionStorage.setItem('wdos.pdnet', n); } catch { /* */ } cache.key = ''; window.dispatchEvent(new HashChangeEvent('hashchange')); }, text: n }))) : null,
       h('p', { class: 'muted', text: t('Twelve short courses for WGMN Coordinators, WNNN Leads, Country Representatives, Deputies and every volunteer leader. Each has five lessons you can listen to, then a ten-question quiz. Score 7 or more to earn a certificate.') }),
       h('div', { class: 'pdx-meter', role: 'img', 'aria-label': tf('{1} of 12 courses passed', passed) }, h('span', { style: `width:${(passed / 12) * 100}%` })),
       h('b', { text: tf('{1} of 12 courses passed', passed) }),
       st.programme ? h('a', { class: 'btn btn--lime', href: `#/certificate/${st.programme.code}` }, icon('award', 18), t('Your programme certificate')) : null),
-    h('img', { class: 'pdx-hero__img', src: photo(st, 1, 1) || '/assets/logos/woddi-disc.png', alt: '', loading: 'lazy' }));
+    h('img', { class: 'pdx-hero__img', src: hero(st, C.net) || '/assets/logos/woddi-disc.png', alt: '', loading: 'lazy' }));
   const grid = h('div', { class: 'pdx-grid' }, C.data.courses.map((c) => {
     const s = st.courses.find((x) => x.no === c.no); const n = s.modules_done.length;
     const badge = s.passed ? [t('Passed'), 'tag--wnnn'] : n === 5 ? [t('Quiz ready'), 'tag--wgmn'] : n ? [t('In progress'), ''] : [t('Not started'), ''];
     return h('a', { class: 'pdx-card', href: `#/courses/${c.no}` },
-      h('div', { class: 'pdx-card__img' }, photo(st, c.no, 1) ? h('img', { src: photo(st, c.no, 1), alt: '', loading: 'lazy' }) : null, h('span', { class: 'pdx-card__no', text: pad(c.no) })),
+      h('div', { class: 'pdx-card__img' }, thumb(st, C.net, c.no) ? h('img', { src: thumb(st, C.net, c.no), alt: '', loading: 'lazy' }) : null, h('span', { class: 'pdx-card__no', text: pad(c.no) })),
       h('div', { class: 'pdx-card__body' }, h('b', { text: c.title }),
         h('div', { class: 'pdx-meter pdx-meter--s' }, h('span', { style: `width:${s.passed ? 100 : n * 18}%` })),
         h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, h('span', { class: 'tag ' + badge[1], text: badge[0] }), h('small', { class: 'faint', text: tf('{1} of 5 lessons', n) }),
@@ -85,8 +92,9 @@ function courseView(C, st, c, s) {
     h('section', { class: 'card pdx-hero' },
       h('div', { class: 'pdx-hero__text' }, h('span', { class: 'gmc__kicker', text: tf('Course {1} of 12', c.no) }), h('h2', { class: 'display', text: c.title }), h('p', { text: c.purpose }),
         h('div', { class: 'pdx-process' }, h('small', { class: 'faint', text: t('The leadership process in this course') }), h('b', { text: c.process.replace(/->/g, '→') })),
+        C.data.t.outcomes ? h('p', { class: 'faint', text: C.data.t.outcomes }) : null,
         h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' }, next ? h('a', { class: 'btn btn--lime', href: `#/courses/${c.no}/${next}` }, icon('play', 18), n ? t('Continue the course') : t('Start the course')) : quiz, listen)),
-      h('img', { class: 'pdx-hero__img', src: photo(st, c.no, 1) || '/assets/logos/woddi-disc.png', alt: '', loading: 'lazy' })),
+      h('img', { class: 'pdx-hero__img', src: thumb(st, C.net, c.no) || '/assets/logos/woddi-disc.png', alt: '', loading: 'lazy' })),
     card(t('Lessons'), tf('{1} of 5 finished', n), steps),
     card(t('Quiz and certificate'), tf('Ten questions. Score {1} or more to pass. You can try again after reviewing the lessons.', st.pass), h('div', { style: 'display:grid;gap:12px' },
       s.attempts ? h('p', { style: 'margin:0' }, h('b', { text: tf('Best score: {1} of 10', s.best) }), ' ', h('span', { class: 'faint', text: tf('({1} attempts)', s.attempts) })) : null,
@@ -97,28 +105,37 @@ function courseView(C, st, c, s) {
 /* -------------------------------------------------------------- lesson -- */
 function lessonView(C, st, c, s, mNo) {
   const m = c.modules.find((x) => x.no === mNo); const T = C.data.t; const tp = m.topic || topic(m.title);
-  const key = `c${pad(c.no)}-${mNo}`; const cue = C.cues[key];
-  // the picture video: the course photographs drift slowly while the narration plays; captions follow the voice
-  const imgs = [1, 2, 3, 4, 5].map((i) => photo(st, c.no, mNo + i - 1)).filter(Boolean);
+  const k0 = `c${pad(c.no)}-${mNo}`; const nt = C.net.toLowerCase();
+  // the whole lesson, in the order it is written below: the idea, why it matters, the steps, the example for her network,
+  // questions to think about, her practice, how to answer, taking it into service, and the learning evidence
+  const keys = [k0, `g-why-${nt}`, 'g-steps', `${k0}-${nt}-ex`, 'g-think', `${k0}-${nt}-pr`, 'g-parts', 'g-reflect', 'g-evidence'].filter((k) => C.cues[k]);
+  const starts = []; let total = 0; keys.forEach((k) => { starts.push(total); total += C.cues[k].d; });
+  // photographs for this lesson: the course set first, then the other courses' sets, so the picture keeps changing
+  const imgs = [nt === 'wnnn' ? st.photos[`course/wnnn-c${pad(c.no)}`] : ''].concat([0, 1, 2, 3, 4, 5, 6, 7].map((i) => photo(st, c.no, mNo + i))).concat([1, 2, 3, 4].map((i) => photo(st, ((c.no + i - 1) % 12) + 1, mNo))).filter((x, i, a) => x && a.indexOf(x) === i);
   const frames = imgs.map((src, i) => h('img', { class: 'pdx-vid__img' + (i === 0 ? ' is-on' : ''), src, alt: '', loading: i ? 'lazy' : 'eager' }));
   const cap = h('div', { class: 'pdx-vid__cap', dir: 'auto', 'aria-live': 'polite' }, h('span', { text: m.title }));
   const bar = h('div', { class: 'pdx-vid__bar' }, h('span'));
-  const audio = new Audio(`/assets/courses/voice/${C.used}/${key}.mp3`); audio.preload = 'metadata';
+  const clock = h('small', { class: 'pdx-vid__clock', text: total ? `${Math.round(total / 60)} min` : '' });
+  let part = 0; const audio = new Audio(); audio.preload = 'metadata';
+  const load = (i) => { part = i; audio.src = `/assets/courses/voice/${C.used}/${keys[i]}.mp3`; };
+  if (keys.length) load(0);
   const play = h('button', { class: 'pdx-vid__play', type: 'button', 'aria-label': t('Play the lesson') }, icon('play', 34));
   const title = h('div', { class: 'pdx-vid__title' }, h('small', { text: tf('Lesson {1}.{2}', c.no, mNo) }), h('b', { text: m.title }));
-  const stage = h('div', { class: 'pdx-vid' + (imgs.length ? '' : ' pdx-vid--plain') }, ...frames, h('div', { class: 'pdx-vid__shade' }), title, cap, play, bar);
-  let shown = -1, frame = 0;
+  const stage = h('div', { class: 'pdx-vid' + (imgs.length ? '' : ' pdx-vid--plain') }, ...frames, h('div', { class: 'pdx-vid__shade' }), title, cap, play, bar, clock);
+  let shown = '', frame = 0;
   const paint = () => {
-    const tm = audio.currentTime; const d = cue?.d || audio.duration || 1;
-    bar.firstChild.style.width = `${Math.min(100, (tm / d) * 100)}%`;
-    if (cue) { let i = 0; while (i + 1 < cue.c.length && cue.c[i + 1][0] <= tm) i++; if (i !== shown) { shown = i; cap.replaceChildren(h('span', { text: cue.c[i][1] })); } }
-    const f = frames.length ? Math.min(frames.length - 1, Math.floor((tm / d) * frames.length)) : 0;
+    const cue = C.cues[keys[part]]; if (!cue) return; const tm = audio.currentTime; const at = starts[part] + tm;
+    bar.firstChild.style.width = `${Math.min(100, (at / (total || 1)) * 100)}%`;
+    let i = 0; while (i + 1 < cue.c.length && cue.c[i + 1][0] <= tm) i++;
+    const id = part + ':' + i; if (id !== shown) { shown = id; cap.replaceChildren(h('span', { text: cue.c[i][1] })); }
+    const f = frames.length ? Math.min(frames.length - 1, Math.floor((at / (total || 1)) * frames.length)) : 0;
     if (f !== frame && frames[f]) { frames[frame]?.classList.remove('is-on'); frames[f].classList.add('is-on'); frame = f; }
   };
   audio.ontimeupdate = paint;
-  const toggle = () => { if (audio.paused) { audio.play().then(() => { stage.classList.add('is-playing'); play.replaceChildren(icon('pause', 34)); play.setAttribute('aria-label', t('Pause the lesson')); }).catch(() => toast(t('The voice did not play'), t('Read the lesson below. The voice may still be downloading.'), 'info')); } else { audio.pause(); stage.classList.remove('is-playing'); play.replaceChildren(icon('play', 34)); play.setAttribute('aria-label', t('Play the lesson')); } };
-  play.onclick = toggle; stage.addEventListener('click', (e) => { if (e.target === stage || e.target.classList.contains('pdx-vid__shade')) toggle(); });
-  audio.onended = () => { stage.classList.remove('is-playing'); play.replaceChildren(icon('play', 34)); bar.firstChild.style.width = '100%'; };
+  const playing = (on) => { stage.classList.toggle('is-playing', on); play.replaceChildren(icon(on ? 'pause' : 'play', 34)); play.setAttribute('aria-label', on ? t('Pause the lesson') : t('Play the lesson')); };
+  const toggle = () => { if (!keys.length) { toast(t('The voice did not play'), t('Read the lesson below. The voice may still be downloading.'), 'info'); return; } if (audio.paused) { audio.play().then(() => playing(true)).catch(() => toast(t('The voice did not play'), t('Read the lesson below. The voice may still be downloading.'), 'info')); } else { audio.pause(); playing(false); } };
+  play.onclick = toggle; stage.addEventListener('click', (e) => { if (e.target === stage || e.target.classList.contains('pdx-vid__shade') || e.target.classList.contains('pdx-vid__img')) toggle(); });
+  audio.onended = () => { if (part + 1 < keys.length) { load(part + 1); audio.play().catch(() => playing(false)); } else { playing(false); bar.firstChild.style.width = '100%'; load(0); } };
   window.addEventListener('hashchange', () => audio.pause(), { once: true });
 
   const noteKey = `wdos.pdnote.${c.no}.${mNo}`; let saved = ''; try { saved = localStorage.getItem(noteKey) || ''; } catch { /* private mode */ }
@@ -140,7 +157,7 @@ function lessonView(C, st, c, s, mNo) {
       sec('route', t('How to apply it, step by step'), h('ol', { class: 'pdx-howto' }, T.steps.map((x) => h('li', { text: x.replace('{topic}', tp) })))),
       sec('users', t('A WODDI leadership example'), h('blockquote', { class: 'pdx-quote', text: m.scenario }), h('p', { class: 'faint', text: T.think })),
       sec('tasks', t('Your practice'), h('p', { class: 'pdx-lead', text: m.exercise }), h('p', { class: 'faint', text: T.parts }), notes),
-      sec('target', t('Take it into your service'), h('p', { text: T.reflect.replace('{topic}', tp) })),
+      sec('target', t('Take it into your service'), h('p', { text: T.reflect.replace('{topic}', tp) }), T.evidence ? h('p', { class: 'faint', text: T.evidence.replace('{topic}', tp) }) : null),
       h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap;margin-top:6px' },
         mNo > 1 ? h('a', { class: 'btn btn--ghost', href: `#/courses/${c.no}/${mNo - 1}` }, icon('back', 16), t('Previous lesson')) : null, finish,
         done ? h('small', { class: 'faint', style: 'align-self:center', text: t('You finished this lesson before.') }) : null)));

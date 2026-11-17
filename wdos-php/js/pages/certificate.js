@@ -11,7 +11,7 @@ export async function render(root, params = {}) {
   const box = h('div', { style: 'display:grid;gap:18px' }, h('div', { class: 'card' }, sk.rows(3))); root.append(box);
   let c; try { c = (await api('/certificates/' + encodeURIComponent(params.code || ''))).certificate; } catch (e) { box.replaceChildren(h('div', { class: 'card' }, empty('x', 'This certificate was not found', e.message))); return; }
   let title = c.course;
-  try { const L = ['ar', 'en', 'fr', 'pt', 'sw'].includes(i18n.lang) ? i18n.lang : 'en'; const d = await (await fetch(`/assets/courses/${L}/index.json`)).json(); const x = d.courses.find((y) => y.no === c.course_no); if (x) title = x.title; } catch { /* English title */ }
+  try { const L = ['ar', 'en', 'fr', 'ha', 'ig', 'pt', 'sw', 'yo'].includes(i18n.lang) ? i18n.lang : 'en'; let r = await fetch(`/assets/courses/${L}/wgmn.json`); if (!r.ok) r = await fetch('/assets/courses/en/wgmn.json'); const d = await r.json(); const x = d.courses.find((y) => y.no === c.course_no); if (x) title = x.title; } catch { /* English title */ }
   if (!c.course_no) title = t('Volunteer Leadership Personal Development Programme');
   const canvas = await draw(c, title);
   canvas.className = 'cert-canvas'; canvas.setAttribute('role', 'img'); canvas.setAttribute('aria-label', tf('Certificate for {1}: {2}', c.name, title));

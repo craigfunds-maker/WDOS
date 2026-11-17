@@ -40,6 +40,25 @@ L={
  q1="أي تصرف يُظهر على أفضل وجه {topic} في القيادة التطوعية؟",q2="تأملي هذا الموقف: {s} ما مبدأ القيادة الأنسب؟",ok="تطبيق {topic} بمسؤولية",
  d=["تقديم الظهور العام على الأداء المسؤول","اعتبار كل القرارات خارج الحوكمة المعتمدة","افتراض أنه لا حاجة إلى مزيد من التواصل أو المراجعة"]),
 }
+def build_net(lang):
+  import os
+  ED=json.load(open(f'/home/claude/courses/ed/{lang}.json'))
+  base=json.load(open(f'{ROOT}/{lang}/index.json')) if lang!='en' else EN
+  P=L.get(lang)
+  for net in ('WGMN','WNNN'):
+    out={'lang':lang,'net':net,'t':dict(base['t'],why=ED['why'][net],outcomes=ED['outcomes'],evidence=ED['evidence']),'courses':[]}
+    for c,ce in zip(base['courses'],EN['courses']):
+      mods=[]; quiz=[]
+      for i,m in enumerate(c['modules']):
+        sc,ex=ED['c'][str(c['no'])][net][i]
+        mods.append(dict(m,scenario=sc,exercise=ex,topic=m.get('topic') or (m['title'][0].lower()+m['title'][1:])))
+        quiz.append(c['quiz'][2*i])
+        q2=c['quiz'][2*i+1]
+        tmpl=P['q2'] if P else 'Consider this situation: {s} What is the most appropriate leadership principle?'
+        quiz.append({'q':tmpl.replace('{s}',sc),'o':q2['o']})
+      out['courses'].append(dict(c,modules=mods,quiz=quiz))
+    json.dump(out,open(f'{ROOT}/{lang}/{net.lower()}.json','w'),ensure_ascii=False,separators=(',',':'))
+    print(lang,net,os.path.getsize(f'{ROOT}/{lang}/{net.lower()}.json'))
 def build(lang):
   P=L[lang]; T={}
   for f in sorted(glob.glob(f'/home/claude/courses/tr/{lang}_*.json')): T.update(json.load(open(f)))
@@ -60,4 +79,8 @@ def build(lang):
   import os; os.makedirs(f'{ROOT}/{lang}',exist_ok=True)
   json.dump(out,open(f'{ROOT}/{lang}/index.json','w'),ensure_ascii=False,separators=(',',':'))
   print(lang,'ok',os.path.getsize(f'{ROOT}/{lang}/index.json'))
-for l in (sys.argv[1:] or L): build(l)
+args=sys.argv[1:]
+if args and args[0]=='net':
+  for l in (args[1:] or ['en','fr','pt','ar','sw']): build_net(l)
+else:
+  for l in (args or L): build(l)

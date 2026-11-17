@@ -1,8 +1,9 @@
 /* Referral links, the people who came through them, and (for HQ) the activation register. Wording follows the current WDOS. */
-import { h, icon, avatar, flag, card, sk, empty, fmt, fmtDate, toast, input, field, tabs, netTag } from '../ui.js';
+import { h, t, tf, icon, avatar, flag, card, sk, empty, fmt, fmtDate, toast, input, field, tabs, netTag } from '../ui.js';
 import { api } from '../api.js';
 import { app } from '../app.js';
 import { kpi } from './hq.js';
+import { INSTITUTE } from './invite.js';
 
 const urlOf = (code) => `${location.origin}/#/r/${code}`;
 const ACT_ST = { in_progress: 'In progress', submitted: 'Awaiting review', returned: 'Returned', completed: 'Decided', incomplete: 'Incomplete' };
@@ -28,7 +29,7 @@ function links(body, d, reload) {
   const areaWrap = h('div', { hidden: true }, field('Name of the place', area)); pos.addEventListener('change', () => { const p = d.positions.find((x) => x.code === pos.value); areaWrap.hidden = !p || !['lga', 'community_cluster', 'chapter'].includes(p.level); });
   const make = h('button', { class: 'btn', type: 'button', onclick: async () => { err.textContent = '';
     try { await api('/referrals/link', { network: net?.value, position: pos.value, org_unit_id: Number(state?.value || country?.value || 0), area_label: area.value, label: label.value, campaign: campaign.value }); toast('Link ready.', '', 'ok'); reload(); } catch (e) { err.textContent = e.message; } } }, 'Create link');
-  const copy = async (l, btn) => { const text = l.kind === 'leader' ? tf('You have been referred for WODDI volunteer leadership. Open this link to create your WDOS account and begin your three day activation: {1}', urlOf(l.code)) : tf('You are invited to join WODDI. Register here: {1}', urlOf(l.code));
+  const copy = async (l, btn) => { const text = (l.kind === 'leader' ? tf('You have been referred for WODDI volunteer leadership. Open this link to create your WDOS account and begin your three day activation: {1}', urlOf(l.code)) : tf('You are invited to join WODDI. Register here: {1}', urlOf(l.code))) + '\n' + t('Learn with the WODDI Institute:') + ' ' + INSTITUTE;
     try { if (navigator.share) await navigator.share({ text }); else { await navigator.clipboard.writeText(urlOf(l.code)); btn.textContent = 'Link copied'; } } catch { /* cancelled */ } };
   const row = (l) => { const share = h('button', { class: 'btn btn--quiet btn--s', type: 'button', onclick: () => copy(l, share) }, 'Copy link');
     return h('div', {}, h('div', { class: 'nrow__ico' }, icon('link', 18)), h('div', { class: 'grow' }, h('b', { text: l.kind === 'leader' ? `${l.role}, ${l.place || 'any location'}` : (l.label || 'Join as a member') + (l.place ? `, ${l.place}` : '') }),
@@ -37,6 +38,10 @@ function links(body, d, reload) {
   body.replaceChildren(
     card(d.is_hq ? 'All referral links' : 'My referral links', d.is_hq ? 'Campaign links for any network, country, unit or position. Every visit and every registration through a link is recorded with its source.' : 'Share a link for each vacant seat under you. Anyone who registers through it is recorded as your referral; Headquarters decides selection and appointment.',
       d.links.length ? h('div', { class: 'list reveal' }, d.links.map(row)) : empty('link', 'No links yet', 'Create the first link below and share it.')),
+    card('Learn with the WODDI Institute', 'Courses for members and leaders. Share it with the women you invite.', h('div', { class: 'jref' }, h('code', { text: INSTITUTE }),
+      h('a', { class: 'btn', href: INSTITUTE, target: '_blank', rel: 'noopener' }, icon('book', 17), t('Open the Institute')),
+      h('button', { class: 'btn btn--ghost', type: 'button', onclick: async (e) => { try { if (navigator.share) await navigator.share({ text: t('Learn with the WODDI Institute:') + ' ' + INSTITUTE }); else { await navigator.clipboard.writeText(INSTITUTE); e.target.textContent = t('Link copied'); } } catch { /* cancelled */ } } }, icon('link', 17), t('Copy link')),
+      h('a', { class: 'btn btn--ghost', href: 'https://wa.me/?text=' + encodeURIComponent(t('Learn with the WODDI Institute:') + ' ' + INSTITUTE), target: '_blank', rel: 'noopener' }, t('Send on WhatsApp')))),
     card(d.is_hq ? 'Create a campaign link' : 'Create a link for a position under me', 'A link with a position starts the three day Referral Activation for whoever registers through it. A link without one is for women joining as ordinary members.',
       h('div', { style: 'display:grid;gap:14px' }, h('div', { class: 'grid2' }, net ? field('Network', net) : null, field('Position', pos), country ? field('Country', country) : null, state ? field('State or region', state) : null, field('Label', label), d.is_hq ? field('Campaign', campaign) : null), areaWrap, err, h('div', {}, make))));
 }

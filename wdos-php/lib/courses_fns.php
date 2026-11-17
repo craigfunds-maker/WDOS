@@ -49,13 +49,24 @@ const COURSE_PHOTOS = [
   11 => [20853361, 38166105, 28702872, 17902867, 11679893],
   12 => [3869639, 32103502, 5306434, 30690403, 7552367]
 ];
+/* v109.8: each network has its own course pictures. WNNN shows young people (18 to 29) on its course cards, and each
+ * network has its own hero picture on the course list. WGMN cards use the first picture of each course set. */
+const COURSE_HERO = ['WGMN' => 20853361, 'WNNN' => 7849436];
+const COURSE_THUMBS_WNNN = [1 => 32711379, 2 => 33664024, 3 => 5311453, 4 => 5050355, 5 => 29328857, 6 => 39942530, 7 => 9430881, 8 => 1181667, 9 => 34211750, 10 => 7113357, 11 => 8061641, 12 => 8093007];
+function course_photo_list(): array {
+  $l = [];
+  foreach (COURSE_HERO as $n => $id) $l['course/hero-' . strtolower($n)] = [$id, 'WODDI ' . $n . ' volunteer leaders'];
+  foreach (COURSE_THUMBS_WNNN as $c => $id) $l[sprintf('course/wnnn-c%02d', $c)] = [$id, COURSE_TITLES[$c]];
+  foreach (COURSE_PHOTOS as $c => $ids) foreach ($ids as $i => $id) $l[sprintf('course/c%02d-%d', $c, $i + 1)] = [$id, COURSE_TITLES[$c]];
+  return $l;
+}
 function course_photos_seed(int $max = 8): int {
   require_once __DIR__ . '/inspire_fns.php'; $n = 0;
-  foreach (COURSE_PHOTOS as $c => $ids) foreach ($ids as $i => $id) {
-    $key = sprintf('course/c%02d-%d', $c, $i + 1);
+  foreach (course_photo_list() as $key => [$id, $alt]) {
     if (val('SELECT 1 FROM message_photos WHERE image_key=?', [$key])) continue;
     if ($n++ >= $max) return $n;
-    insp_photo_fetch($key, (int) $id, '', COURSE_TITLES[$c]);
+    $e = insp_photo_fetch($key, (int) $id, '', $alt);
+    if ($e !== '') error_log('[wdos course photos] ' . $key . ': ' . $e);
   }
   return $n;
 }
