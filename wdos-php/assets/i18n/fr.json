@@ -3173,5 +3173,6 @@
 "Not saved yet. It will try again when you type.": "Pas encore enregistré. Un nouvel essai aura lieu quand vous taperez.",
 "Continue where you stopped": "Reprendre là où vous vous êtes arrêtée",
 "Course {1}: quiz": "Cours {1} : quiz",
-"Saved to your account": "Enregistré dans votre compte"
+"Saved to your account": "Enregistré dans votre compte",
+"WDOS could not reach the server just now. Check your connection and try again.": "WDOS n'a pas pu joindre le serveur pour le moment. Vérifiez votre connexion et réessayez."
 }

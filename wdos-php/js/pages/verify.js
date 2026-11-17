@@ -22,7 +22,7 @@ export async function render(root, params = {}) {
   };
   root.append(h('main', { class: 'verify-page' },
     h('div', { class: 'verify-page__top' }, h('img', { src: '/assets/logos/woddi.png', alt: 'WODDI', style: 'height:56px' }), langPicker ? langPicker() : null),
-    h('section', { class: 'card', style: 'display:grid;gap:14px' },
+    h('section', { class: 'card', style: 'display:grid;gap:14px;padding:clamp(16px,2.4vw,26px)' },
       h('h1', { class: 'display', style: 'margin:0', text: t('Check a WODDI certificate') }),
       h('p', { class: 'muted', style: 'margin:0', text: t('WODDI certificates carry a QR code. Scanning it opens this page. You can also type the certificate number.') }),
       h('form', { style: 'display:flex;gap:10px;flex-wrap:wrap', onsubmit: (e) => { e.preventDefault(); const v = input.value.trim().toUpperCase(); history.replaceState(null, '', '#/verify/' + v); check(v); } }, input, h('button', { class: 'btn', type: 'submit' }, t('Check'))),

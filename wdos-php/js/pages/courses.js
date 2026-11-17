@@ -13,7 +13,12 @@ let cache = { key: '', data: null, cues: null };
 async function content() {
   const lang = LANGS.includes(i18n.lang) ? i18n.lang : 'en'; const net = courseNet().toLowerCase();
   if (cache.key === lang + net && cache.data) return cache;
-  const get = async (l) => { const r = await fetch(`/assets/courses/${l}/${net}.json`, { cache: 'no-cache' }); if (!r.ok) throw new Error('content'); return r.json(); };
+  const get = async (l) => {   // tried three times: one dropped request on a weak signal should not stop the lesson
+    for (let i = 0; ; i++) {
+      try { const r = await fetch(`/assets/courses/${l}/${net}.json`, { cache: 'no-cache' }); if (r.status === 404) throw Object.assign(new Error('missing'), { missing: true }); if (!r.ok) throw new Error('content'); return await r.json(); }
+      catch (e) { if (e.missing || i >= 2) throw new Error(t('WDOS could not reach the server just now. Check your connection and try again.')); await new Promise((r) => setTimeout(r, 700 * (i + 1))); }
+    }
+  };
   let data; let used = lang;
   try { data = await get(lang); } catch { data = await get('en'); used = 'en'; }
   let cues = {}; try { cues = await (await fetch(`/assets/courses/voice/${used}/cues.json`, { cache: 'no-cache' })).json(); } catch { /* text only */ }

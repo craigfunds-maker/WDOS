@@ -3173,5 +3173,6 @@
 "Not saved yet. It will try again when you type.": "Bado halijahifadhiwa. Litajaribu tena utakapoandika.",
 "Continue where you stopped": "Endelea ulipoachia",
 "Course {1}: quiz": "Kozi {1}: jaribio",
-"Saved to your account": "Imehifadhiwa kwenye akaunti yako"
+"Saved to your account": "Imehifadhiwa kwenye akaunti yako",
+"WDOS could not reach the server just now. Check your connection and try again.": "WDOS haikuweza kufikia seva kwa sasa. Angalia muunganisho wako na ujaribu tena."
 }

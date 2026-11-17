@@ -21,11 +21,28 @@ function insp_month(?DateTimeImmutable $d = null): int {
   return max(0, $n);
 }
 const INSP_TONES = ['celebration', 'gratitude', 'courage', 'calm', 'growth', 'purpose'];
+/** v109.9: the stock photographs (Pexels, nothing private) are also written as plain files under assets/media, so the web
+ *  server sends them directly. Through PHP, a page with a dozen pictures held a dozen PHP workers at once on shared
+ *  hosting, and the page's own data requests could be dropped ("You appear to be offline"). */
+function media_file(string $key, string $mime): string {
+  $ext = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'][$mime] ?? 'jpg';
+  return __DIR__ . '/../assets/media/' . trim((string) preg_replace('/[^a-z0-9]+/', '-', strtolower($key)), '-') . '.' . $ext;
+}
+function media_write(string $key, string $mime, string $bytes): void {
+  $f = media_file($key, $mime); if (is_file($f) && filesize($f) === strlen($bytes)) return;
+  if (!is_dir(dirname($f))) @mkdir(dirname($f), 0755, true);
+  $tmp = $f . '.' . getmypid() . '.tmp'; if (@file_put_contents($tmp, $bytes) === strlen($bytes)) @rename($tmp, $f); else @unlink($tmp);
+}
+/** The address to show for a stored photograph: the plain file when it is there, otherwise through PHP (which writes it). */
+function media_url(string $key, string $mime, int $ts): string {
+  $f = media_file($key, $mime);
+  return is_file($f) ? '/assets/media/' . basename($f) . '?v=' . $ts : '/api/inspiration/photo?k=' . rawurlencode($key) . '&v=' . $ts;
+}
 /** Address of the photograph for a message, or '' when none is loaded yet. One query for the whole request. */
 function insp_photo(string $key): string {
   static $have = null;
-  if ($have === null) { $have = []; try { foreach (rows('SELECT image_key, updated_at FROM message_photos') as $r) $have[$r['image_key']] = strtotime($r['updated_at']); } catch (PDOException $e) { /* table arrives with the next migration run */ } }
-  return isset($have[$key]) ? '/api/inspiration/photo?k=' . rawurlencode($key) . '&v=' . $have[$key] : '';
+  if ($have === null) { $have = []; try { foreach (rows('SELECT image_key, mime, updated_at FROM message_photos') as $r) $have[$r['image_key']] = [$r['mime'], strtotime($r['updated_at'])]; } catch (PDOException $e) { /* table arrives with the next migration run */ } }
+  return isset($have[$key]) ? media_url($key, $have[$key][0], $have[$key][1]) : '';
 }
 /** Fetch one photograph from Pexels, cropped wide for the card, and keep it. Returns '' or the reason it failed. */
 function insp_photo_fetch(string $key, int $pexelsId, string $photographer = '', string $alt = ''): string {
@@ -41,6 +58,7 @@ function insp_photo_fetch(string $key, int $pexelsId, string $photographer = '',
   $st->bindValue(1, $key); $st->bindValue(2, $info['mime']); $st->bindValue(3, $bin, PDO::PARAM_LOB); $st->bindValue(4, $pexelsId, PDO::PARAM_INT);
   $st->bindValue(5, mb_substr($photographer, 0, 160)); $st->bindValue(6, "https://www.pexels.com/photo/$pexelsId/"); $st->bindValue(7, mb_substr($alt, 0, 300)); $st->bindValue(8, ''); $st->bindValue(9, now());
   $st->execute();
+  media_write($key, $info['mime'], $bin);
   return '';
 }
 /** The chosen photographs (lib/message_photos.json) load themselves: a few at a time, after a reply has been sent,

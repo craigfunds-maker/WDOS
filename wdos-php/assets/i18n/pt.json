@@ -3173,5 +3173,6 @@
 "Not saved yet. It will try again when you type.": "Ainda não guardado. Vai tentar de novo quando escrever.",
 "Continue where you stopped": "Continuar onde parou",
 "Course {1}: quiz": "Curso {1}: questionário",
-"Saved to your account": "Guardado na sua conta"
+"Saved to your account": "Guardado na sua conta",
+"WDOS could not reach the server just now. Check your connection and try again.": "O WDOS não conseguiu contactar o servidor agora. Verifique a ligação e tente de novo."
 }

@@ -10,7 +10,7 @@ route('GET', '/courses', function () {
   $out = [];
   foreach (COURSE_TITLES as $no => $t) $out[] = ['no' => $no, 'modules_done' => $done[$no] ?? [], 'best' => isset($best[$no]) ? (int) $best[$no]['s'] : null,
     'attempts' => isset($best[$no]) ? (int) $best[$no]['n'] : 0, 'passed' => !empty($best[$no]['p']), 'certificate' => $certs[$no] ?? null];
-  $photos = []; foreach (rows("SELECT image_key, updated_at FROM message_photos WHERE image_key LIKE 'course/%'") as $p) $photos[$p['image_key']] = '/api/inspiration/photo?k=' . rawurlencode($p['image_key']) . '&v=' . strtotime($p['updated_at']);
+  $photos = []; foreach (rows("SELECT image_key, mime, updated_at FROM message_photos WHERE image_key LIKE 'course/%'") as $p) $photos[$p['image_key']] = media_url($p['image_key'], $p['mime'], strtotime($p['updated_at']));
   $place = row('SELECT course_no, part, seconds, updated_at FROM course_place WHERE user_id=?', [$id]);
   return ['courses' => $out, 'place' => $place ? ['course' => (int) $place['course_no'], 'part' => $place['part'], 'seconds' => (int) $place['seconds'], 'at' => $place['updated_at']] : null, 'programme' => $certs[0] ?? null, 'pass' => COURSE_PASS, 'photos' => $photos, 'name' => trim($u['first_name'] . ' ' . $u['last_name'])];
 });

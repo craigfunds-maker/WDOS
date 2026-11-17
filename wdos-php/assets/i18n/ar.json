@@ -3173,5 +3173,6 @@
 "Not saved yet. It will try again when you type.": "لم يُحفظ بعد. ستتم المحاولة مجددًا عندما تكتبين.",
 "Continue where you stopped": "تابعي من حيث توقفتِ",
 "Course {1}: quiz": "الدورة {1}: الاختبار",
-"Saved to your account": "حُفظ في حسابك"
+"Saved to your account": "حُفظ في حسابك",
+"WDOS could not reach the server just now. Check your connection and try again.": "تعذّر على WDOS الوصول إلى الخادم الآن. تحقّقي من الاتصال وحاولي مرة أخرى."
 }

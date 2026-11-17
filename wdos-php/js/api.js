@@ -1,14 +1,22 @@
 /* Talks to /api. Also the device features: push subscription and fingerprint. */
 export class ApiError extends Error { constructor(m, code, status, data) { super(m); this.code = code; this.status = status; this.data = data; } }
 export async function api(path, body, method) {
-  let res;
-  try {
-    res = await fetch('/api' + path, {
-      method: method || (body === undefined ? 'GET' : 'POST'), credentials: 'same-origin',
-      headers: body === undefined ? { 'X-WDOS': '1' } : { 'Content-Type': 'application/json', 'X-WDOS': '1' },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-  } catch { throw new ApiError('You appear to be offline. Check your connection and try again.', 'offline', 0); }
+  let res; const verb = method || (body === undefined ? 'GET' : 'POST');
+  // a weak mobile signal or a busy server can drop one request: reading is tried three times before giving up
+  for (let tryNo = 0; ; tryNo++) {
+    try {
+      res = await fetch('/api' + path, {
+        method: verb, credentials: 'same-origin',
+        headers: body === undefined ? { 'X-WDOS': '1' } : { 'Content-Type': 'application/json', 'X-WDOS': '1' },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+      if (verb === 'GET' && [502, 503, 504, 508].includes(res.status) && tryNo < 2) { await new Promise((r) => setTimeout(r, 700 * (tryNo + 1))); continue; }
+      break;
+    } catch {
+      if (verb === 'GET' && tryNo < 2) { await new Promise((r) => setTimeout(r, 700 * (tryNo + 1))); continue; }
+      throw new ApiError(navigator.onLine === false ? 'You appear to be offline. Check your connection and try again.' : 'WDOS could not reach the server just now. Check your connection and try again.', 'offline', 0);
+    }
+  }
   let data = null; try { data = await res.json(); } catch { /* not JSON */ }
   if (!res.ok || (data && data.ok === false)) {
     if (res.status === 401 && data?.error === 'signed_out') window.dispatchEvent(new Event('wdos:signed-out'));

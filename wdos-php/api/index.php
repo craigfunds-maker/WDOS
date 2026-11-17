@@ -317,8 +317,9 @@ if ($METHOD === 'GET' && preg_match('#^/library/(\d+)/file$#', $PATH, $m)) {
 }
 if ($METHOD === 'GET' && $PATH === '/inspiration/photo') {
   require_user();
-  $p = row('SELECT mime, bytes FROM message_photos WHERE image_key=?', [(string) ($_GET['k'] ?? '')]);
+  $k = (string) ($_GET['k'] ?? ''); $p = row('SELECT mime, bytes FROM message_photos WHERE image_key=?', [$k]);
   if (!$p) { http_response_code(404); exit; }
+  media_write($k, $p['mime'], $p['bytes']);   // next time the web server sends the plain file
   header('Content-Type: ' . $p['mime']); header('Cache-Control: private, max-age=2592000, immutable'); echo $p['bytes']; exit;
 }
 if ($METHOD === 'GET' && preg_match('#^/photo/(\d+)$#', $PATH, $m)) {
