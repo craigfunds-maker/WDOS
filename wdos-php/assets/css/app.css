@@ -613,3 +613,6 @@ a.pdx-step__link:hover{background:color-mix(in srgb,#D4006A 7%,transparent)}
 .cert-wrap{overflow:auto;border-radius:14px;background:#efe7eb;padding:10px}.cert-canvas{width:100%;height:auto;display:block;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
 .verify-page{max-width:640px;margin:0 auto;padding:28px 16px;display:grid;gap:18px}.verify-page__top{display:flex;justify-content:space-between;align-items:center}
 .verify{display:flex;gap:14px;align-items:flex-start;padding:16px;border-radius:14px}.verify--ok{background:color-mix(in srgb,#7CB518 16%,transparent)}.verify--bad{background:color-mix(in srgb,#D4006A 12%,transparent)}
+/* v109.12 work check */
+.wc--flag{border-color:var(--bad)}.wc__points{margin:0;padding-inline-start:20px;display:grid;gap:6px}
+.wc--ok{display:flex;gap:8px;align-items:center}

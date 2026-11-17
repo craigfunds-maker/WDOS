@@ -32,4 +32,5 @@ o=$(python3 t96.py 2>&1); echo "$o" | tail -1; echo "$o" | grep -aq "FAILURES 0"
 echo "== t106 (email off)"; run t106.py
 echo "== t107 without an AI key"; run t107.py nokey
 start "AI_MOCK_URL=http://127.0.0.1:8099"; echo "== t107 with the stand-in AI"; run t107.py mock
+echo "== t113 work check (stand-in AI)"; run t113.py
 echo "suites failed: $fails"; exit $fails

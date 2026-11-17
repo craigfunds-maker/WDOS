@@ -89,7 +89,8 @@ route('GET', '/reporting/report/(\d+)', function ($id) {
     'snapshot' => $snap, 'rights' => $rights,
     'evidence' => rows("SELECT e.id, e.url, e.note, e.created_at, CONCAT(u.first_name,' ',u.last_name) by_name FROM report_evidence e JOIN users u ON u.id=e.by_user WHERE e.report_id=? ORDER BY e.id", [(int) $id]),
     'contributions' => rows("SELECT c.id, c.note, c.created_at, CONCAT(u.first_name,' ',u.last_name) by_name FROM report_contributions c JOIN users u ON u.id=c.user_id WHERE c.report_id=? ORDER BY c.id", [(int) $id]),
-    'reviews' => rows("SELECT v.action, v.note, v.version, v.created_at, CONCAT(u.first_name,' ',u.last_name) by_name FROM report_reviews v JOIN users u ON u.id=v.by_user WHERE v.report_id=? ORDER BY v.id", [(int) $id])];
+    'check' => function_exists('wc_latest') ? wc_latest('report', (int) $id) : null,
+    'reviews' => rows("SELECT v.action, v.note, v.version, v.created_at, COALESCE(CONCAT(u.first_name,' ',u.last_name), 'WDOS work check') by_name FROM report_reviews v LEFT JOIN users u ON u.id=v.by_user WHERE v.report_id=? ORDER BY v.id", [(int) $id])];
 });
 
 route('POST', '/reporting/report/(\d+)/save', function ($id) {
@@ -150,6 +151,7 @@ route('POST', '/reporting/report/(\d+)/submit', function ($id) {
   if (function_exists('hq_mail')) hq_mail('WDOS report submitted: ' . $r['report_no'] . ' · ' . trim($u['first_name'] . ' ' . $u['last_name']), 'A leader submitted a report', '<p><b>' . htmlspecialchars(trim($u['first_name'] . ' ' . $u['last_name'])) . '</b>' . ($again ? ' resubmitted ' : ' submitted ') . '<b>' . htmlspecialchars($r['report_no']) . '</b>.</p><p>' . htmlspecialchars($r['unit_label']) . '</p><p>' . ($docs ? 'Attached: ' . htmlspecialchars(implode(', ', array_column($docs, 'name'))) : 'No document attached (no-activity declaration).') . '</p>', '#/reporting/r/' . $id);
   log_activity((int) $u['id'], (int) $u['id'], 'report_submitted', $r['report_no'] . ' · ' . $r['unit_label']);
   after_response(fn() => push_drain(20)); after_response(fn() => mail_drain(6));
+  if (function_exists('wc_check_report')) after_response(fn() => wc_check_report((int) $id));   // v109.12: the AI work check
   return ['ok' => true, 'submitted' => true, 'report_no' => $r['report_no'], 'warnings' => $warn];
 });
 

@@ -82,7 +82,9 @@ final class Ai {
     $class = $o['class'] ?? 'aggregate'; $uid = $o['user_id'] ?? null; $ttl = (int) ($o['ttl'] ?? 86400);
     if ($why = self::refuse($class)) return ['ok' => false, 'reason' => $why];
     $last = 'no_lane';
-    foreach (self::allowed($class) as $name => $l) {
+    $lanes = self::allowed($class); $pref = (string) ($o['prefer'] ?? '');
+    if ($pref !== '' && isset($lanes[$pref])) $lanes = [$pref => $lanes[$pref]] + $lanes;   // a feature may ask for one lane first (the work check asks for Hugging Face)
+    foreach ($lanes as $name => $l) {
       $text = $l['redact'] ? self::redact($user, $o['names'] ?? []) : $user;
       $key = hash('sha256', $feature . '|' . $l['chat'] . '|' . $system . '|' . $text);
       if ($ttl > 0) { $hit = row('SELECT result, lane, model FROM ai_cache WHERE cache_key=? AND expires_at>?', [$key, now()]); if ($hit) { self::log($feature, 'chat', $hit['lane'], $hit['model'], 0, true, '', mb_strlen($text), mb_strlen($hit['result']), $uid, true); return ['ok' => true, 'text' => $hit['result'], 'lane' => $hit['lane'], 'model' => $hit['model'], 'cached' => true, 'redacted' => $l['redact']]; } }

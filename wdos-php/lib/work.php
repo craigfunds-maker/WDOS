@@ -89,7 +89,7 @@ route('POST', '/tasks', function () {
 });
 route('GET', '/tasks/(\d+)', function ($id) {
   $u = require_user(); $t = task_get((int) $id); $rights = task_rights($u, $t);
-  return ['task' => task_shape($t), 'rights' => $rights,
+  return ['task' => task_shape($t), 'rights' => $rights, 'check' => function_exists('wc_latest') ? wc_latest('task', (int) $id) : null,
     'items' => rows('SELECT id, label, done FROM task_items WHERE task_id=? ORDER BY id', [(int) $id]),
     'comments' => rows('SELECT c.id, c.body, c.kind, c.url, c.created_at, c.user_id, u.first_name, u.last_name, u.has_photo FROM task_comments c JOIN users u ON u.id=c.user_id WHERE c.task_id=? ORDER BY c.id', [(int) $id])];
 });
@@ -120,6 +120,8 @@ route('POST', '/tasks/(\d+)/status', function ($id) {
     person_mail((int) $t['assigned_by'], 'WDOS task ' . ($to === 'submitted' ? 'submitted' : 'completed') . ': ' . mb_substr($t['title'], 0, 110), 'Work was handed in', $html, $url);
     if (val("SELECT 1 FROM users WHERE id=? AND role IN ('hq_admin','super_admin')", [(int) $t['assigned_by']])) { hq_mail('WDOS task ' . ($to === 'submitted' ? 'submitted' : 'completed') . ': ' . mb_substr($t['title'], 0, 100) . ' · ' . $me, 'Work was handed in to HQ', $html, $url); notify_hq('task', ($to === 'submitted' ? 'Submitted for review: ' : 'Completed: ') . mb_substr($t['title'], 0, 100), $me, $url); }
   }
+  // v109.12: work HQ gave is checked by the AI service after the reply; clear gaps send it back with corrections
+  if (in_array($to, ['submitted', 'completed'], true) && (int) $u['id'] === (int) $t['assignee_id'] && function_exists('wc_check_task')) after_response(fn() => wc_check_task((int) $id));
   return ['ok' => true, 'status' => $to];
 });
 /* Evidence: what shows the work was done. A short note, with a link to a document or photograph where there is one. */

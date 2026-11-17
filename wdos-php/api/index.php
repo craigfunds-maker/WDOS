@@ -17,6 +17,7 @@ require __DIR__ . '/../lib/ops_fns.php';
 require __DIR__ . '/../lib/ai_fns.php';
 require __DIR__ . '/../lib/v109_fns.php';
 require __DIR__ . '/../lib/followup_fns.php';
+require __DIR__ . '/../lib/workcheck_fns.php';
 require __DIR__ . '/../lib/courses_fns.php';   // before any route: the 5-minute timer (in inspire.php) fetches the course photographs
 
 set_exception_handler(function (Throwable $e) {
@@ -422,5 +423,6 @@ require __DIR__ . '/../lib/ai.php';
 require __DIR__ . '/../lib/v109.php';
 require __DIR__ . '/../lib/legacy.php';
 require __DIR__ . '/../lib/courses.php';
+require __DIR__ . '/../lib/workcheck.php';
 
 fail(404, 'No such WDOS endpoint.', 'not_found');

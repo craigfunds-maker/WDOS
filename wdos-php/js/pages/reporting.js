@@ -3,6 +3,7 @@
  * from the approved WDOS templates; system figures inside a report are counted, never typed. */
 import { h, icon, avatar, flag, card, sk, empty, ago, fmt, fmtDate, toast, netTag } from '../ui.js';
 import { api } from '../api.js';
+import { checkCard } from '../workcheck.js';
 import { uploadButton, docList } from '../files.js';
 import { app, go } from '../app.js';
 import { kpi } from './hq.js';
@@ -91,6 +92,7 @@ async function reportView(root, id) {
     h('div', { class: 'hero__meta' }, tag(r.status), h('span', { class: 'tag num', text: `${r.report_no} · v${r.version}` }), r.due_on ? h('span', { class: 'tag', text: 'Due ' + fmtDate(r.due_on) }) : null, h('span', { class: 'tag', text: 'Accountable leader: ' + (r.owner || '') }), h('span', { class: 'tag', text: 'Supervisor: ' + r.supervisor }), r.on_time === false ? h('span', { class: 'tag tag--bad', text: 'Submitted late' }) : null)),
     h('button', { class: 'btn btn--quiet btn--s', type: 'button', onclick: () => window.print() }, 'Print or save as PDF')));
   if (!t) { out.push(h('div', { class: 'card' }, empty('inbox', 'This report\'s form is not loaded', 'The template for this report type is missing. HQ can load it from /api/setup, section 7.'))); host.replaceChildren(...out); return; }
+  { const cc = checkCard(d.check, () => { root.replaceChildren(); reportView(root, id); }); if (cc) out.push(cc); }
   const returned = [...d.reviews].reverse().find((v) => v.action === 'return');
   if (r.status === 'returned' && returned) out.push(h('div', { class: 'panel', style: 'border-color:var(--bad)' }, h('b', { text: tf('Returned by {1}', returned.by_name) }), h('p', { text: returned.note })));
 

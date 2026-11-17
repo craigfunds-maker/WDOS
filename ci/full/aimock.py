@@ -10,7 +10,11 @@ class H(BaseHTTPRequestHandler):
         if 'smtp' in self.path:
             d=b'{"messageId":"mock"}'; self.send_response(201); self.send_header('Content-Type','application/json'); self.end_headers(); self.wfile.write(d); return
         if self.path.endswith('/chat/completions'):
-            sysm=b['messages'][0]['content']; out='ready' if 'one word' in sysm else ('DONE\n- Mock digest line.\nSTUCK\n- Mock.\nREPEATING ISSUES\n- Mock.' if 'DONE' in sysm else 'GROWTH\n- Mock.\nACTIVITY\n- Mock.\nCONCERNS\n- Mock.\nWINS\n- Mock.')
+            sysm=b['messages'][0]['content']; usr=b['messages'][1]['content']
+            if 'You check volunteer work' in sysm:
+                out=json.dumps({'verdict':'needs_correction','summary':'The attendance list asked for is missing.','points':['Attach the attendance list for the meeting.','Say how many women attended.']}) if 'MOCK-INCOMPLETE' in usr else json.dumps({'verdict':'ok','summary':'Complete.','points':[]})
+                r={'choices':[{'message':{'role':'assistant','content':out}}]}; d=json.dumps(r).encode(); self.send_response(200); self.send_header('Content-Type','application/json'); self.end_headers(); self.wfile.write(d); return
+            out='ready' if 'one word' in sysm else ('DONE\n- Mock digest line.\nSTUCK\n- Mock.\nREPEATING ISSUES\n- Mock.' if 'DONE' in sysm else 'GROWTH\n- Mock.\nACTIVITY\n- Mock.\nCONCERNS\n- Mock.\nWINS\n- Mock.')
             r={'choices':[{'message':{'role':'assistant','content':out}}]}
         else:
             def vec(t):

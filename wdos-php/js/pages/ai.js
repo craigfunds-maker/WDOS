@@ -25,11 +25,18 @@ const LABEL = { members_total: 'All members', joined_last_7_days: 'Joined in the
   reports_overdue: 'Reports overdue', issues_open: 'Issues open', issues_open_red_or_critical: 'Issues open, red or critical', private_reports_open: 'Private reports open', members_waiting_for_a_chapter: 'Members waiting for a chapter', chapters_with_no_leader: 'Chapters with no leader', phone_notifications_failed_last_7_days: 'Phone notifications failed, 7 days' };
 
 export async function render(root) {
+  const checks = h('div', {}, sk.rows(3));
   const status = h('div', {}, sk.rows(3)), digest = h('div', {}, sk.rows(4)), brief = h('div', {}, sk.rows(4)), gaps = h('div', {}, sk.rows(4));
   root.append(card('AI assistant', 'AI writes drafts and points to where to look. It never appoints, sanctions, publishes or sends. Every number on this page is counted by WDOS from its own records.', status),
+    card('Work check: handed-in work that needs correction', 'Tasks HQ gave and reports leaders submitted are checked against what was asked. When something clear is missing, the work goes back to the leader with the corrections and she is reminded every two days. Open an item to read it, or mark it as done.', checks),
     card('Monthly report digest', 'What the leadership reports of one country say for one month: done, stuck and repeating issues.', digest),
     card('Weekly brief', 'One page from live counts: growth, activity, concerns and wins. Written every Monday when an AI key is set, or on request.', brief),
     card('Coverage gap finder', 'Where to recruit and appoint next. This is arithmetic on WDOS records, not a model: areas with members and thin structure come first.', gaps));
+
+  /* ---- work check ---- */
+  api('/hq/work-checks').then((d) => checks.replaceChildren(
+    h('p', { class: 'small', style: 'margin:0 0 8px', text: tf('{1} waiting for correction · {2} passed the check in the last 7 days', d.counts.open, d.counts.passed_7d) }),
+    d.checks.length ? h('div', { class: 'list' }, d.checks.map((c) => h('a', { href: c.url, class: 'nrow' }, h('div', { class: 'grow' }, h('b', { text: c.title }), h('small', { text: `${c.owner} · ${c.points.length} correction(s) · ${fmtDate(c.created_at)}` }), h('small', { class: 'faint', text: c.summary }))))) : h('p', { class: 'faint', text: 'Nothing is waiting for correction.' }))).catch((e) => checks.replaceChildren(empty('x', 'The work check list did not load', e.message)));
 
   /* ---- status and usage ---- */
   async function loadStatus() {

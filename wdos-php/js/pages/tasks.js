@@ -1,5 +1,6 @@
 /* Tasks: what I must do, what I assigned, and what is open in my area. Wording follows the current WDOS. */
 import { h, icon, avatar, card, sk, empty, ago, fmt, fmtDate, toast, input, field, tabs } from '../ui.js';
+import { checkCard } from '../workcheck.js';
 import { api } from '../api.js';
 import { app, go } from '../app.js';
 import { kpi } from './hq.js';
@@ -124,6 +125,7 @@ async function detail(root, id) {
     const comments = h('div', { style: 'display:grid;gap:12px' }, d.comments.length ? h('div', { class: 'list' }, d.comments.map((c) => h('div', {}, avatar({ id: c.user_id, first_name: c.first_name, last_name: c.last_name, has_photo: c.has_photo }, 34), h('div', { class: 'grow' }, h('b', { text: `${c.first_name} ${c.last_name}` }), h('p', { style: 'margin:2px 0;white-space:pre-wrap', text: c.body }), h('small', { text: ago(c.created_at) }))))) : h('p', { class: 'faint', text: 'No comments yet.' }),
       cIn, h('div', {}, h('button', { class: 'btn btn--quiet btn--s', type: 'button', onclick: async () => { try { await api(`/tasks/${id}/comment`, { body: cIn.value }); load(); } catch (e) { toast('Not sent', e.message, 'bad'); } } }, 'Comment')));
     box.replaceChildren(
+      ...[checkCard(d.check, load)].filter(Boolean),
       h('section', { class: 'card' }, h('div', { class: 'card__body', style: 'display:grid;gap:14px' }, h('div', { class: 'tagrow' }, taskTag(t.status), t.overdue ? h('span', { class: 'tag tag--bad', text: 'Overdue' }) : null, h('span', { class: 'tag', text: 'Priority: ' + PRI[t.priority] }), t.requires_approval ? h('span', { class: 'tag', text: 'Approval required' }) : null, t.network ? h('span', { class: 'tag', text: t.network }) : null, t.chapter_id ? h('a', { class: 'tag', href: '#/chapter/' + t.chapter_id, text: 'Chapter task' }) : h('span', { class: 'tag', text: 'Area task' }), t.parent_id ? h('a', { class: 'tag', href: '#/tasks/' + t.parent_id, text: 'Delegated from another task' }) : null),
         h('small', { class: 'faint num', text: `${t.ref} · ${t.scope}` }), h('h2', { class: 'display', style: 'font-size:26px;margin:0', text: t.title }), dSlot, t.details ? h('p', { style: 'white-space:pre-wrap;margin:0', text: t.details }) : null,
         h('dl', { class: 'dl' }, [['Accountable owner', `${t.assignee.first_name} ${t.assignee.last_name}`], ['Assigned by', t.by.name], ['Due', t.due_on ? fmtDate(t.due_on) : 'No due date'], ['Created', fmtDate(t.created_at)], t.completed_at ? ['Completed', fmtDate(t.completed_at)] : null].filter(Boolean).flatMap(([k, v]) => [h('dt', { text: k }), h('dd', { text: v })])),
