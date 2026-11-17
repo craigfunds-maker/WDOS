@@ -1,6 +1,8 @@
 # Narrate the courses again for one language, from the course text already in the branch, and commit the result.
 name: Course voice (one language)
 on:
+  push:
+    paths: ['tools/courses/voice-one.json']
   workflow_dispatch:
     inputs:
       lang: { description: 'en fr pt sw ar ha yo ig', required: true }
@@ -9,15 +11,17 @@ jobs:
   voice:
     runs-on: ubuntu-latest
     timeout-minutes: 340
+    env: { LANG_ONE: '${{ inputs.lang }}' }
     steps:
       - uses: actions/checkout@v4
+      - run: test -n "$LANG_ONE" || echo "LANG_ONE=$(jq -r .lang tools/courses/voice-one.json)" >> $GITHUB_ENV
       - uses: actions/setup-python@v5
         with: { python-version: '3.11' }
       - name: Tools and voices
         run: |
           sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg espeak-ng >/dev/null
           pip install -q numpy soundfile; mkdir -p /tmp/m
-          case "${{ inputs.lang }}" in
+          case "$LANG_ONE" in
             en|fr|pt) pip install -q kokoro-onnx
               curl -sSL -o /tmp/m/kokoro-v1.0.onnx https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx
               curl -sSL -o /tmp/m/voices-v1.0.bin https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin ;;
@@ -26,9 +30,9 @@ jobs:
             *) pip install -q 'transformers<5' torch --extra-index-url https://download.pytorch.org/whl/cpu ;;
           esac
       - name: Narrate
-        run: python tools/courses/voice_make.py ${{ inputs.lang }} wdos-php/assets/courses /tmp/m
+        run: python tools/courses/voice_make.py $LANG_ONE wdos-php/assets/courses /tmp/m
       - name: Commit
         run: |
           git config user.name "WDOS course media"; git config user.email "noreply@anthropic.com"
-          git add -A wdos-php/assets/courses/voice/${{ inputs.lang }}
-          git commit -m "Course narration (${{ inputs.lang }})" && for i in 1 2 3; do git pull --rebase -q && git push && break; sleep 5; done || echo "nothing new"
+          git add -A wdos-php/assets/courses/voice/$LANG_ONE
+          git commit -m "Course narration ($LANG_ONE)" && for i in 1 2 3; do git pull --rebase -q && git push && break; sleep 5; done || echo "nothing new"

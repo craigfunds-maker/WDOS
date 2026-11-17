@@ -2,6 +2,8 @@
 # Hausa, Yoruba and Igbo course text and screen texts. Start it by hand with the run number of the media run.
 name: Course media collect
 on:
+  push:
+    paths: ['tools/courses/collect.json']
   workflow_dispatch:
     inputs:
       run_id: { description: 'Course media run id', required: true }
@@ -11,8 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - id: rid
+        run: echo "id=${{ inputs.run_id || '' }}$(test -z '${{ inputs.run_id }}' && jq -r .run_id tools/courses/collect.json)" >> $GITHUB_OUTPUT
       - uses: actions/download-artifact@v4
-        with: { run-id: '${{ inputs.run_id }}', github-token: '${{ secrets.GITHUB_TOKEN }}', path: art }
+        with: { run-id: '${{ steps.rid.outputs.id }}', github-token: '${{ secrets.GITHUB_TOKEN }}', path: art }
       - name: Place the files
         run: |
           set -e; ls art
@@ -21,4 +25,4 @@ jobs:
             mkdir -p wdos-php/assets/courses/$L; cp $S/wgmn.json $S/wnnn.json wdos-php/assets/courses/$L/ 2>/dev/null || true
             if [ -f $S/i18n.json ]; then cp $S/i18n.json wdos-php/assets/i18n/$L.json; fi; done
           git config user.name "WDOS course media"; git config user.email "noreply@anthropic.com"
-          git add -A wdos-php/assets && git commit -m "Course media from run ${{ inputs.run_id }}: narration and Hausa, Yoruba, Igbo texts" && git push || echo "nothing new"
+          git add -A wdos-php/assets && git commit -m "Course media from run ${{ steps.rid.outputs.id }}: narration and Hausa, Yoruba, Igbo texts" && git push || echo "nothing new"
