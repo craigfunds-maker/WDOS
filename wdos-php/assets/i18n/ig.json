@@ -2988,5 +2988,7 @@
 "Not saved yet. It will try again when you type.": "A zọpụtabeghị ya. Ọ ga-anwale ọzọ mgbe ị pịnyere ya.",
 "Continue where you stopped": "Gaa n'ihu ebe ị kwụsịrị",
 "Course {1}: quiz": "Ihe ọmụmụ {1}: ajụjụ",
-"Saved to your account": "Echekwara na akaụntụ gị"
+"Saved to your account": "Echekwara na akaụntụ gị",
+"WDOS could not reach the server just now. Check your connection and try again.": "WDOS enweghị ike iru sava ugbu a. Lelee njikọ gị ma nwaa ọzọ.",
+"Question {1} of 10": "Ajụjụ {1} n'ime 10"
 }

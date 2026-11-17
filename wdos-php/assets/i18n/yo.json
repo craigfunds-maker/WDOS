@@ -3010,5 +3010,10 @@
 "Not saved yet. It will try again when you type.": "A ò tíì gbà á là. Ó tún máa gbìyànjú nígbà tó o bá kọ ọ́.",
 "Continue where you stopped": "Máa bá a lọ láti ibi tó o dé",
 "Course {1}: quiz": "Ẹ̀kọ́ {1}: ìdánwò",
-"Saved to your account": "Wọ́n fi sí àkọsílẹ̀ rẹ"
+"Saved to your account": "Wọ́n fi sí àkọsílẹ̀ rẹ",
+"WDOS could not reach the server just now. Check your connection and try again.": "WDOS kò lè dé ọ̀dọ̀ sáfà báyìí. Ṣàyẹ̀wò ìsopọ̀ rẹ kí o tún gbìyànjú.",
+"Lesson {1}.{2}": "Ẹ̀kọ́ {1}.{2}",
+"Lesson {1} of 5": "Ẹ̀kọ́ {1} nínú 5",
+"Lesson {1}: {2}": "Ẹ̀kọ́ {1}: {2}",
+"Question {1} of 10": "Ìbéèrè {1} nínú 10"
 }

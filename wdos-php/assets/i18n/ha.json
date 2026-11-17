@@ -3082,5 +3082,9 @@
 "Not saved yet. It will try again when you type.": "Ba a ceto shi ba tukuna. Zai sake gwadawa idan ka buga.",
 "Continue where you stopped": "Ci gaba daga inda ka tsaya",
 "Course {1}: quiz": "Darasi {1}: jarrabawa",
-"Saved to your account": "An ajiye zuwa asusunka"
+"Saved to your account": "An ajiye zuwa asusunka",
+"WDOS could not reach the server just now. Check your connection and try again.": "WDOS ba ta iya kaiwa ga sabar ba yanzu. Duba haɗin intanet ɗinki ki sake gwadawa.",
+"Lesson {1}.{2}": "Darasi {1}.{2}",
+"Lesson {1}: {2}": "Darasi {1}: {2}",
+"Question {1} of 10": "Tambaya ta {1} cikin 10"
 }
