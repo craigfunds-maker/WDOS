@@ -419,5 +419,7 @@ require __DIR__ . '/../lib/ops.php';
 require __DIR__ . '/../lib/ai.php';
 require __DIR__ . '/../lib/v109.php';
 require __DIR__ . '/../lib/legacy.php';
+require __DIR__ . '/../lib/courses_fns.php';
+require __DIR__ . '/../lib/courses.php';
 
 fail(404, 'No such WDOS endpoint.', 'not_found');

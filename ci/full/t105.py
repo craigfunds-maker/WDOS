@@ -42,14 +42,14 @@ r=S().post(B+'/auth/register',json={**b1,'email':'someone.new@example.org','pass
 # ---- the volunteering choice at registration
 roles=S().get(B+'/public/volunteer-roles'); R=roles.json().get('roles',[]); codes=[x['code'] for x in R]
 chk('the role list is public, and offers chapter and LGA roles with both network titles', roles.ok and 'chapter_lead' in codes and all(x['title_wgmn'] and x['title_wnnn'] for x in R), roles.text[:200])
-chk('no state, country or continental seat is offered on a registration form', not any(x['level'] in ('state_region','country','region','continent','global') for x in R), [x['level'] for x in R])
+chk('the registration form offers the Volunteer Leadership Framework roles (country to chapter), and no continental or global seat', {x['level'] for x in R}=={'country','state_region','lga','community_cluster','chapter'} and not any(x['level'] in ('region','continent','global') for x in R), [x['level'] for x in R])
 s3,r,b3=reg(volunteer_interest=''); u3=r.json()['user']; chk('joining as a member: no volunteer mark, no assignments', not u3.get('volunteer') and u3.get('volunteer_interest')=='' and s3.get(B+'/tasks').json()['total']==0, u3.get('volunteer_interest'))
 s4,r,b4=reg(volunteer_interest='volunteer'); u4=r.json()['user']
 me4=s4.get(B+'/me').json()['user']; chk('choosing to volunteer at registration marks her a volunteer', me4.get('volunteer') and me4.get('volunteer_interest')=='volunteer' and me4.get('volunteer_interest_label')=='Volunteer in the chapter', me4.get('volunteer_interest_label'))
 chk('and gives her the three development assignments, tied to her chapter', s4.get(B+'/tasks').json()['total']==3 and sql(f"select count(*) from tasks where assignee_id={u4['id']} and chapter_id={u4['chapter']['id']}")=='3', s4.get(B+'/tasks').text[:200])
 chk('and thanks her once', sql(f"select count(*) from notifications where user_id={u4['id']} and title='Thank you for volunteering'")=='1')
-s5,r,b5=reg(volunteer_interest='chapter_secretary',network='WNNN',dob='2001-05-05'); u5=r.json()['user']; me5=s5.get(B+'/me').json()['user']
-chk('choosing a leadership role records the interest with the title of her own network', me5.get('volunteer_interest')=='chapter_secretary' and me5.get('volunteer_interest_label')=='Interested in: Chapter Administrative Secretary' and me5.get('volunteer'), me5.get('volunteer_interest_label'))
+s5,r,b5=reg(volunteer_interest='assistant_cluster_coordinator',network='WNNN',dob='2001-05-05'); u5=r.json()['user']; me5=s5.get(B+'/me').json()['user']
+chk('choosing a leadership role records the interest with the title of her own network', me5.get('volunteer_interest')=='assistant_cluster_coordinator' and me5.get('volunteer_interest_label')=='Interested in: Assistant Ward / Community / Cluster Lead' and me5.get('volunteer'), me5.get('volunteer_interest_label'))
 chk('interest in a role gives no seat and no leader access', not me5.get('is_leader') and me5.get('seat') is None and sql(f"select count(*) from seats where user_id={u5['id']}")=='0' and s5.get(B+'/leader/dashboard').status_code in (403,404), s5.get(B+'/leader/dashboard').status_code)
 s6,r,b6=reg(volunteer_interest='country_coordinator'); me6=s6.get(B+'/me').json()['user']; chk('a role that is not offered cannot be slipped in: it is kept as plain volunteering', me6.get('volunteer_interest')=='volunteer', me6.get('volunteer_interest'))
 s7,r,b7=reg(volunteer_interest="x' OR 1=1 --"); me7=s7.get(B+'/me').json()['user']; chk('a made-up role code is kept as plain volunteering, and nothing breaks', r.ok and me7.get('volunteer_interest')=='volunteer')
@@ -63,9 +63,9 @@ chk('the Institute button after a registration choice says already, with no seco
 # ---- HQ sees it; nobody else does
 chk('the volunteer list is for HQ only', s4.get(B+'/hq/volunteers').status_code==403 and S().get(B+'/hq/volunteers').status_code==401)
 v=hq.get(B+'/hq/volunteers').json(); it={x['id']:x for x in v['items']}
-chk('HQ list holds every volunteer with her choice', v['total']==6 and it[u5['id']]['interest']=='Chapter Administrative Secretary' and it[u5['id']]['leadership'] and it[u4['id']]['interest']=='Volunteer in the chapter' and not it[u4['id']]['leadership'] and u2['id'] not in it and it[u1['id']]['interest']=='Volunteer in the chapter', {k:x['interest'] for k,x in it.items()})
+chk('HQ list holds every volunteer with her choice', v['total']==6 and it[u5['id']]['interest']=='Assistant Ward / Community / Cluster Lead' and it[u5['id']]['leadership'] and it[u4['id']]['interest']=='Volunteer in the chapter' and not it[u4['id']]['leadership'] and u2['id'] not in it and it[u1['id']]['interest']=='Volunteer in the chapter', {k:x['interest'] for k,x in it.items()})
 chk('the list carries no email, phone or password', not any(k in json.dumps(v) for k in ('@example.org','+23481','password')), '')
-m=hq.get(B+f"/hq/members/{u5['id']}").json()['member']; chk('HQ member page shows the choice', m.get('volunteer_interest_label')=='Interested in: Chapter Administrative Secretary', m.get('volunteer_interest_label'))
+m=hq.get(B+f"/hq/members/{u5['id']}").json()['member']; chk('HQ member page shows the choice', m.get('volunteer_interest_label')=='Interested in: Assistant Ward / Community / Cluster Lead', m.get('volunteer_interest_label'))
 chk('her chapter leaders were not sent anyone’s contact details', sql("select count(*) from notifications where title='A member of your chapter is now a volunteer' and (body like '%@%' or body like '%+234%')")=='0')
 # ---- drafts keep the new fields, and never a password
 d=S().post(B+'/public/draft',json={'data':{'network':'WGMN','email':'draft@example.org','contact':'+2348011112222','vol':'lead','vol_role':'chapter_lead','password':'246810'}})

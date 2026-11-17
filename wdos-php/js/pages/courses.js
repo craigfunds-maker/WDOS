@@ -1,0 +1,190 @@
+/* Volunteer Leadership Personal Development Courses: 12 courses, five short lessons each, a ten-question quiz and a
+ * certificate that anyone can check with its QR code. Every lesson has a narrated picture "video" with captions in her
+ * language, the full written lesson below it, and a private note box. Lessons open one after another; the quiz opens
+ * when all five are done. The right answers stay on the server. */
+import { h, t, tf, icon, card, sk, empty, toast, i18n } from '../ui.js';
+import { api } from '../api.js';
+import { go } from '../app.js';
+
+const LANGS = ['ar', 'en', 'fr', 'pt', 'sw'];
+let cache = { lang: '', data: null, cues: null };
+async function content() {
+  const lang = LANGS.includes(i18n.lang) ? i18n.lang : 'en';
+  if (cache.lang === lang && cache.data) return cache;
+  const get = async (l) => { const r = await fetch(`/assets/courses/${l}/index.json`, { cache: 'no-cache' }); if (!r.ok) throw new Error('content'); return r.json(); };
+  let data; let used = lang;
+  try { data = await get(lang); } catch { data = await get('en'); used = 'en'; }
+  let cues = {}; try { cues = await (await fetch(`/assets/courses/voice/${used}/cues.json`, { cache: 'no-cache' })).json(); } catch { /* text only */ }
+  cache = { lang, used, data, cues };
+  return cache;
+}
+const pad = (n) => String(n).padStart(2, '0');
+const photo = (st, c, i) => st.photos[`course/c${pad(c)}-${((i - 1) % 5) + 1}`] || '';
+const topic = (title) => title.charAt(0).toLowerCase() + title.slice(1);
+
+export async function render(root, params = {}) {
+  const box = h('div', { style: 'display:grid;gap:18px' }, h('div', { class: 'card' }, sk.rows(5))); root.append(box);
+  let C, st;
+  try { [C, st] = await Promise.all([content(), api('/courses')]); } catch (e) { box.replaceChildren(h('div', { class: 'card' }, empty('x', 'The courses did not load', e.message || 'Check your connection and try again.'))); return; }
+  const no = Number(params.course) || 0; const course = no ? C.data.courses.find((x) => x.no === no) : null;
+  const sc = no ? st.courses.find((x) => x.no === no) : null;
+  const note = C.used !== C.lang ? h('p', { class: 'notice', text: t('These lessons are not yet translated into your language, so they show in English.') }) : null;
+  if (!course) return box.replaceChildren(...[note, listView(C, st)].filter(Boolean));
+  if (params.part === 'quiz') return box.replaceChildren(...[note, quizView(C, st, course, sc)].filter(Boolean));
+  const m = Number(params.part) || 0;
+  if (m >= 1 && m <= 5) {
+    const open = m === 1 || sc.modules_done.includes(m - 1);
+    if (!open) { go(`#/courses/${no}`); toast(t('Finish the lessons in order'), t('Each lesson opens when the one before it is finished.'), 'info'); return; }
+    return box.replaceChildren(...[note, lessonView(C, st, course, sc, m)].filter(Boolean));
+  }
+  box.replaceChildren(...[note, courseView(C, st, course, sc)].filter(Boolean));
+}
+
+/* ---------------------------------------------------------------- list -- */
+function listView(C, st) {
+  const passed = st.courses.filter((x) => x.passed).length;
+  const head = h('section', { class: 'card pdx-hero' },
+    h('div', { class: 'pdx-hero__text' }, h('span', { class: 'gmc__kicker', text: t('Volunteer Leadership') }), h('h2', { class: 'display', text: t('Personal Development Courses') }),
+      h('p', { class: 'muted', text: t('Twelve short courses for WGMN Coordinators, WNNN Leads, Country Representatives, Deputies and every volunteer leader. Each has five lessons you can listen to, then a ten-question quiz. Score 7 or more to earn a certificate.') }),
+      h('div', { class: 'pdx-meter', role: 'img', 'aria-label': tf('{1} of 12 courses passed', passed) }, h('span', { style: `width:${(passed / 12) * 100}%` })),
+      h('b', { text: tf('{1} of 12 courses passed', passed) }),
+      st.programme ? h('a', { class: 'btn btn--lime', href: `#/certificate/${st.programme.code}` }, icon('award', 18), t('Your programme certificate')) : null),
+    h('img', { class: 'pdx-hero__img', src: photo(st, 1, 1) || '/assets/logos/woddi-disc.png', alt: '', loading: 'lazy' }));
+  const grid = h('div', { class: 'pdx-grid' }, C.data.courses.map((c) => {
+    const s = st.courses.find((x) => x.no === c.no); const n = s.modules_done.length;
+    const badge = s.passed ? [t('Passed'), 'tag--wnnn'] : n === 5 ? [t('Quiz ready'), 'tag--wgmn'] : n ? [t('In progress'), ''] : [t('Not started'), ''];
+    return h('a', { class: 'pdx-card', href: `#/courses/${c.no}` },
+      h('div', { class: 'pdx-card__img' }, photo(st, c.no, 1) ? h('img', { src: photo(st, c.no, 1), alt: '', loading: 'lazy' }) : null, h('span', { class: 'pdx-card__no', text: pad(c.no) })),
+      h('div', { class: 'pdx-card__body' }, h('b', { text: c.title }),
+        h('div', { class: 'pdx-meter pdx-meter--s' }, h('span', { style: `width:${s.passed ? 100 : n * 18}%` })),
+        h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, h('span', { class: 'tag ' + badge[1], text: badge[0] }), h('small', { class: 'faint', text: tf('{1} of 5 lessons', n) }),
+          s.certificate ? h('span', { class: 'tag tag--wnnn' }, icon('award', 13), ' ', t('Certificate')) : null)));
+  }));
+  return h('div', { style: 'display:grid;gap:18px' }, head, grid,
+    h('p', { class: 'faint', style: 'margin:0', text: t('A certificate shows that you completed the course. It does not appoint anyone to a leadership role: appointments remain with WODDI Headquarters.') }));
+}
+
+/* -------------------------------------------------------------- course -- */
+function courseView(C, st, c, s) {
+  const n = s.modules_done.length;
+  const next = n < 5 ? n + 1 : 0;
+  const intro = new Audio(`/assets/courses/voice/${C.used}/c${pad(c.no)}-intro.mp3`); intro.preload = 'none';
+  const listen = h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => { if (intro.paused) { intro.play().catch(() => {}); listen.replaceChildren(icon('pause', 16), t('Pause')); } else { intro.pause(); listen.replaceChildren(icon('play', 16), t('Listen to the introduction')); } } }, icon('play', 16), t('Listen to the introduction'));
+  intro.onended = () => listen.replaceChildren(icon('play', 16), t('Listen to the introduction'));
+  const steps = h('ol', { class: 'pdx-steps' }, c.modules.map((m) => {
+    const done = s.modules_done.includes(m.no); const open = m.no === 1 || s.modules_done.includes(m.no - 1);
+    return h('li', { class: 'pdx-step' + (done ? ' is-done' : open ? ' is-open' : ' is-locked') },
+      h('span', { class: 'pdx-step__dot' }, done ? icon('check', 16) : open ? String(m.no) : icon('shield', 14)),
+      open ? h('a', { href: `#/courses/${c.no}/${m.no}`, class: 'pdx-step__link' }, h('b', { text: m.title }), h('small', { class: 'faint', text: done ? t('Finished. Open it again any time.') : t('About 5 minutes, with a narrated video') }))
+        : h('div', { class: 'pdx-step__link' }, h('b', { text: m.title }), h('small', { class: 'faint', text: t('Opens when the lesson before it is finished') })));
+  }));
+  const quiz = n === 5 ? h('a', { class: 'btn btn--lime', href: `#/courses/${c.no}/quiz` }, icon('check', 18), s.passed ? t('Take the quiz again') : t('Take the quiz'))
+    : h('button', { class: 'btn', type: 'button', disabled: true }, icon('shield', 16), t('The quiz opens after the five lessons'));
+  return h('div', { style: 'display:grid;gap:18px' },
+    h('a', { href: '#/courses', class: 'btn btn--quiet btn--s', style: 'justify-self:start' }, icon('back', 16), t('All courses')),
+    h('section', { class: 'card pdx-hero' },
+      h('div', { class: 'pdx-hero__text' }, h('span', { class: 'gmc__kicker', text: tf('Course {1} of 12', c.no) }), h('h2', { class: 'display', text: c.title }), h('p', { text: c.purpose }),
+        h('div', { class: 'pdx-process' }, h('small', { class: 'faint', text: t('The leadership process in this course') }), h('b', { text: c.process.replace(/->/g, '→') })),
+        h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' }, next ? h('a', { class: 'btn btn--lime', href: `#/courses/${c.no}/${next}` }, icon('play', 18), n ? t('Continue the course') : t('Start the course')) : quiz, listen)),
+      h('img', { class: 'pdx-hero__img', src: photo(st, c.no, 1) || '/assets/logos/woddi-disc.png', alt: '', loading: 'lazy' })),
+    card(t('Lessons'), tf('{1} of 5 finished', n), steps),
+    card(t('Quiz and certificate'), tf('Ten questions. Score {1} or more to pass. You can try again after reviewing the lessons.', st.pass), h('div', { style: 'display:grid;gap:12px' },
+      s.attempts ? h('p', { style: 'margin:0' }, h('b', { text: tf('Best score: {1} of 10', s.best) }), ' ', h('span', { class: 'faint', text: tf('({1} attempts)', s.attempts) })) : null,
+      h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' }, quiz, s.certificate ? h('a', { class: 'btn btn--ghost', href: `#/certificate/${s.certificate.code}` }, icon('award', 18), t('View your certificate')) : null))),
+    h('p', { class: 'notice', text: c.boundaries }));
+}
+
+/* -------------------------------------------------------------- lesson -- */
+function lessonView(C, st, c, s, mNo) {
+  const m = c.modules.find((x) => x.no === mNo); const T = C.data.t; const tp = m.topic || topic(m.title);
+  const key = `c${pad(c.no)}-${mNo}`; const cue = C.cues[key];
+  // the picture video: the course photographs drift slowly while the narration plays; captions follow the voice
+  const imgs = [1, 2, 3, 4, 5].map((i) => photo(st, c.no, mNo + i - 1)).filter(Boolean);
+  const frames = imgs.map((src, i) => h('img', { class: 'pdx-vid__img' + (i === 0 ? ' is-on' : ''), src, alt: '', loading: i ? 'lazy' : 'eager' }));
+  const cap = h('div', { class: 'pdx-vid__cap', dir: 'auto', 'aria-live': 'polite' }, h('span', { text: m.title }));
+  const bar = h('div', { class: 'pdx-vid__bar' }, h('span'));
+  const audio = new Audio(`/assets/courses/voice/${C.used}/${key}.mp3`); audio.preload = 'metadata';
+  const play = h('button', { class: 'pdx-vid__play', type: 'button', 'aria-label': t('Play the lesson') }, icon('play', 34));
+  const title = h('div', { class: 'pdx-vid__title' }, h('small', { text: tf('Lesson {1}.{2}', c.no, mNo) }), h('b', { text: m.title }));
+  const stage = h('div', { class: 'pdx-vid' + (imgs.length ? '' : ' pdx-vid--plain') }, ...frames, h('div', { class: 'pdx-vid__shade' }), title, cap, play, bar);
+  let shown = -1, frame = 0;
+  const paint = () => {
+    const tm = audio.currentTime; const d = cue?.d || audio.duration || 1;
+    bar.firstChild.style.width = `${Math.min(100, (tm / d) * 100)}%`;
+    if (cue) { let i = 0; while (i + 1 < cue.c.length && cue.c[i + 1][0] <= tm) i++; if (i !== shown) { shown = i; cap.replaceChildren(h('span', { text: cue.c[i][1] })); } }
+    const f = frames.length ? Math.min(frames.length - 1, Math.floor((tm / d) * frames.length)) : 0;
+    if (f !== frame && frames[f]) { frames[frame]?.classList.remove('is-on'); frames[f].classList.add('is-on'); frame = f; }
+  };
+  audio.ontimeupdate = paint;
+  const toggle = () => { if (audio.paused) { audio.play().then(() => { stage.classList.add('is-playing'); play.replaceChildren(icon('pause', 34)); play.setAttribute('aria-label', t('Pause the lesson')); }).catch(() => toast(t('The voice did not play'), t('Read the lesson below. The voice may still be downloading.'), 'info')); } else { audio.pause(); stage.classList.remove('is-playing'); play.replaceChildren(icon('play', 34)); play.setAttribute('aria-label', t('Play the lesson')); } };
+  play.onclick = toggle; stage.addEventListener('click', (e) => { if (e.target === stage || e.target.classList.contains('pdx-vid__shade')) toggle(); });
+  audio.onended = () => { stage.classList.remove('is-playing'); play.replaceChildren(icon('play', 34)); bar.firstChild.style.width = '100%'; };
+  window.addEventListener('hashchange', () => audio.pause(), { once: true });
+
+  const noteKey = `wdos.pdnote.${c.no}.${mNo}`; let saved = ''; try { saved = localStorage.getItem(noteKey) || ''; } catch { /* private mode */ }
+  const notes = h('textarea', { class: 'input', rows: 5, maxlength: 2000, placeholder: t('Write your answer here. It stays on this phone only.'), oninput: (e) => { try { localStorage.setItem(noteKey, e.target.value); } catch { /* full */ } } }); notes.value = saved;
+  const done = s.modules_done.includes(mNo);
+  const finish = h('button', { class: 'btn btn--lime', type: 'button', onclick: async () => {
+    finish.disabled = true;
+    try { await api(`/courses/${c.no}/modules/${mNo}`, {}); audio.pause(); go(mNo < 5 ? `#/courses/${c.no}/${mNo + 1}` : `#/courses/${c.no}/quiz`); toast(t('Lesson finished'), mNo < 5 ? t('The next lesson is open.') : t('All five lessons are finished. The quiz is open.'), 'ok'); }
+    catch (e) { finish.disabled = false; toast(t('Not saved'), e.message, 'bad'); }
+  } }, icon('check', 18), mNo < 5 ? t('I have finished this lesson') : t('Finish and go to the quiz'));
+  const sec = (ic, title2, ...body) => h('section', { class: 'pdx-sec' }, h('h3', {}, icon(ic, 18), ' ', h('span', { text: title2 })), ...body);
+  return h('div', { style: 'display:grid;gap:16px' },
+    h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, h('a', { href: `#/courses/${c.no}`, class: 'btn btn--quiet btn--s' }, icon('back', 16), c.title),
+      h('div', { class: 'pdx-dots', 'aria-label': tf('Lesson {1} of 5', mNo) }, [1, 2, 3, 4, 5].map((i) => h('span', { class: (s.modules_done.includes(i) ? 'is-done' : '') + (i === mNo ? ' is-here' : '') })))),
+    stage,
+    h('section', { class: 'card pdx-lesson' },
+      sec('book', t('Understand the idea'), h('p', { class: 'pdx-lead', text: m.concept })),
+      sec('spark', t('Why it matters for a volunteer leader'), h('p', { text: T.why.replace('{topic}', m.title) })),
+      sec('route', t('How to apply it, step by step'), h('ol', { class: 'pdx-howto' }, T.steps.map((x) => h('li', { text: x.replace('{topic}', tp) })))),
+      sec('users', t('A WODDI leadership example'), h('blockquote', { class: 'pdx-quote', text: m.scenario }), h('p', { class: 'faint', text: T.think })),
+      sec('tasks', t('Your practice'), h('p', { class: 'pdx-lead', text: m.exercise }), h('p', { class: 'faint', text: T.parts }), notes),
+      sec('target', t('Take it into your service'), h('p', { text: T.reflect.replace('{topic}', tp) })),
+      h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap;margin-top:6px' },
+        mNo > 1 ? h('a', { class: 'btn btn--ghost', href: `#/courses/${c.no}/${mNo - 1}` }, icon('back', 16), t('Previous lesson')) : null, finish,
+        done ? h('small', { class: 'faint', style: 'align-self:center', text: t('You finished this lesson before.') }) : null)));
+}
+
+/* ---------------------------------------------------------------- quiz -- */
+function quizView(C, st, c, s) {
+  if (s.modules_done.length < 5) { setTimeout(() => go(`#/courses/${c.no}`), 0); return h('div'); }
+  const ans = Array(10).fill(null); let i = 0;
+  const wrap = h('div', { style: 'display:grid;gap:16px' });
+  const paint = () => {
+    const q = c.quiz[i];
+    const opts = q.o.map((o, k) => { const L = 'ABCD'[k];
+      return h('button', { type: 'button', class: 'pdx-opt' + (ans[i] === L ? ' is-on' : ''), 'aria-pressed': String(ans[i] === L), onclick: () => { ans[i] = L; paint(); } }, h('span', { class: 'pdx-opt__l', text: L }), h('span', { text: o })); });
+    wrap.replaceChildren(
+      h('a', { href: `#/courses/${c.no}`, class: 'btn btn--quiet btn--s', style: 'justify-self:start' }, icon('back', 16), c.title),
+      h('section', { class: 'card pdx-quiz' },
+        h('div', { class: 'pdx-dots pdx-dots--q' }, ans.map((a, k) => h('span', { class: (a ? 'is-done' : '') + (k === i ? ' is-here' : '') }))),
+        h('small', { class: 'gmc__kicker', text: tf('Question {1} of 10', i + 1) }),
+        h('h2', { class: 'pdx-q', dir: 'auto', text: q.q }),
+        h('div', { class: 'pdx-opts' }, opts),
+        h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between' },
+          i > 0 ? h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => { i--; paint(); } }, icon('back', 16), t('Previous')) : h('span'),
+          i < 9 ? h('button', { class: 'btn', type: 'button', disabled: !ans[i], onclick: () => { i++; paint(); } }, t('Next'), icon('fwd', 16))
+            : h('button', { class: 'btn btn--lime', type: 'button', disabled: ans.some((a) => !a), onclick: submit }, icon('check', 18), t('Submit my answers')))));
+  };
+  const submit = async () => {
+    let r; try { r = await api(`/courses/${c.no}/quiz`, { answers: ans }); } catch (e) { toast(t('Not submitted'), e.message, 'bad'); return; }
+    const lessons = [...new Set(r.wrong.map((k) => Math.floor(k / 2) + 1))];
+    wrap.replaceChildren(
+      h('a', { href: `#/courses/${c.no}`, class: 'btn btn--quiet btn--s', style: 'justify-self:start' }, icon('back', 16), c.title),
+      h('section', { class: 'card pdx-result ' + (r.passed ? 'is-pass' : 'is-retry') },
+        h('div', { class: 'pdx-score' }, h('b', { text: String(r.score) }), h('small', { text: t('out of 10') })),
+        h('h2', { class: 'display', text: r.passed ? t('Well done. You passed.') : t('Not yet. Review and try again.') }),
+        h('p', { class: 'muted', text: r.passed ? t('Your certificate is ready. Anyone can check it with the QR code printed on it.') : tf('You need {1} or more. The questions you missed come from the lessons below. Read them again, then retake the quiz.', r.pass) }),
+        r.wrong.length ? h('div', { style: 'display:grid;gap:8px' }, h('b', { text: tf('Questions to look at again: {1}', r.wrong.map((k) => k + 1).join(', ')) }),
+          h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, lessons.map((l) => h('a', { class: 'btn btn--ghost btn--s', href: `#/courses/${c.no}/${l}` }, tf('Lesson {1}: {2}', l, c.modules[l - 1].title))))) : null,
+        h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' },
+          r.certificate ? h('a', { class: 'btn btn--lime', href: `#/certificate/${r.certificate.code}` }, icon('award', 18), t('View my certificate')) : null,
+          r.programme ? h('a', { class: 'btn btn--lime', href: `#/certificate/${r.programme.code}` }, icon('award', 18), t('My programme certificate')) : null,
+          !r.passed ? h('button', { class: 'btn', type: 'button', onclick: () => { ans.fill(null); i = 0; paint(); } }, t('Retake the quiz')) : null,
+          h('a', { class: 'btn btn--ghost', href: '#/courses' }, t('All courses')))));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  paint();
+  return wrap;
+}

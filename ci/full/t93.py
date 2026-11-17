@@ -68,7 +68,7 @@ def reg(email, ref, net='WGMN', dob='1985-03-03'):
     s=requests.Session(); s.headers.update(H); ng=int(sql("select id from org_units where level='country' and country_code='NG'"))
     r=s.post(B+'/auth/register',json={'network':net,'first_name':'Cand','last_name':email.split('@')[0],'dob':dob,'phone':'+2348012345678','country_id':ng,'state_id':lagos,'lga':'Ikeja','community':'Alausa','email':email,'password':'candidate-1','consent':True,'referral':ref}); assert r.ok, r.text; return s, r.json()['user']
 c1,u1=reg('c1@test.local',{'code':code}); chk('candidate has activation', u1['todo']['activation'], u1['todo'])
-c2,u2=reg('c2@test.local',{'position':'district_coordinator','category':'individual','name':'Mrs Ade'}); a2=c2.get(B+'/activation').json()['activation']; chk('form referral', a2['role_title']=='LGA Coordinator' and a2['unit']=='Ikeja, Lagos' and a2['referrer']=='Mrs Ade', a2 and (a2['role_title'],a2['unit']))
+c2,u2=reg('c2@test.local',{'position':'district_coordinator','category':'individual','name':'Mrs Ade'}); a2=c2.get(B+'/activation').json()['activation']; chk('form referral', a2['role_title']=='LGA / District Coordinator' and a2['unit']=='Ikeja, Lagos' and a2['referrer']=='Mrs Ade', a2 and (a2['role_title'],a2['unit']))
 c3,u3=reg('c3@test.local',{'code':rf['links'][0]['code']}); chk('member link no activation', not u3['todo']['activation'] and sql("select count(*) from referrals where user_id=%d"%u3['id'])=='1')
 c4,u4=reg('c4@test.local',None); chk('plain signup', not u4['todo']['activation'])
 a=c1.get(B+'/activation').json()['activation']; chk('activation view', a['route']=='ref3' and len(a['days'])==1 and not a['content']['complete'] and a['unit']=='Lagos', a['content'])
