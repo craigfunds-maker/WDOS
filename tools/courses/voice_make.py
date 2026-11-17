@@ -31,7 +31,9 @@ else:
     names = sorted(SY.tts_model.speaker_manager.speaker_names); SPK = os.environ.get('OB_SPEAKER') or names[0]
     print(L, 'speakers', names, 'using', SPK, flush=True)
     def say(s):
-        y = SY.tts(text=s, speaker_name=SPK, split_sentences=False)
+        import inspect
+        kw = 'speaker' if 'speaker' in inspect.signature(SY.tts).parameters else 'speaker_name'   # the coqui-tts fork renamed it
+        y = SY.tts(text=s, split_sentences=False, **{kw: SPK})
         return np.asarray(y, dtype=np.float32), SY.output_sample_rate
 # how the name of the system is said aloud: "W-DOS" (the letter W, then DOS as one word), never spelled out letter by letter
 SAY = {'en': 'W-Doss', 'fr': 'W-Dosse', 'pt': 'W-Dós', 'sw': 'Dablyu-Dos', 'ar': 'دبليو-دوس', 'ha': 'Dablyu-Dos', 'yo': 'Dabulu-Dọọsi', 'ig': 'Dabliu-Dos'}[L]
