@@ -27,7 +27,7 @@ jobs:
               curl -sSL -o /tmp/m/voices-v1.0.bin https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin ;;
             sw|ar) pip install -q piper-tts
               for v in vits-piper-sw_CD-lanfrica-medium vits-piper-ar_JO-kareem-medium; do curl -sSL https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/$v.tar.bz2 | tar xj -C /tmp/m; done ;;
-            *) pip install -q 'transformers<5' torch --extra-index-url https://download.pytorch.org/whl/cpu ;;
+            *) pip install -q coqui-tts huggingface_hub torch torchaudio --extra-index-url https://download.pytorch.org/whl/cpu ;;
           esac
       - name: Narrate
         run: python tools/courses/voice_make.py $LANG_ONE wdos-php/assets/courses /tmp/m

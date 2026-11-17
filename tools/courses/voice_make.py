@@ -1,7 +1,7 @@
 """Narrate every clip of voice_plan for one language, with caption timings.
   python voice_make.py <lang> <assets/courses dir> <models dir>
 Kokoro v1.0 (af_heart, ff_siwis, pf_dora) for English, French, Portuguese; Piper for Swahili and Arabic;
-Meta MMS (facebook/mms-tts-hau, -yor, -ibo) for Hausa, Yoruba and Igbo. Skips clips already made."""
+VITS Open Bible voices (Hugging Face, multilingual-tts) for Hausa, Yoruba and Igbo. Skips clips already made."""
 import sys, os, json, wave, subprocess, numpy as np, soundfile as sf
 sys.path.insert(0, os.path.dirname(__file__)); from voice_plan import plan
 L, ROOT, MOD = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -20,13 +20,19 @@ elif L in ('sw', 'ar'):
         with wave.open(f'/tmp/_c_{L}.wav', 'wb') as w: V.synthesize_wav(s, w, syn_config=cfg)
         return sf.read(f'/tmp/_c_{L}.wav')
 else:
-    import torch; from transformers import VitsModel, AutoTokenizer
-    name = {'ha': 'facebook/mms-tts-hau', 'yo': 'facebook/mms-tts-yor', 'ig': 'nexusbert/igbo-mms-tts'}[L]
-    M = VitsModel.from_pretrained(name); TK = AutoTokenizer.from_pretrained(name); torch.manual_seed(7)
-    M.speaking_rate = 0.95
+    # Hausa, Yoruba, Igbo: VITS Open Bible voices (Coqui TTS, trained on studio Bible readings by native speakers, CC BY-SA 4.0).
+    # They read the language's own spelling (tone marks included), so they speak naturally where Meta MMS sounded robotic or garbled.
+    import torch; from huggingface_hub import hf_hub_download
+    from TTS.utils.synthesizer import Synthesizer; from TTS.tts.utils.speakers import SpeakerManager
+    repo = {'ha': 'multilingual-tts/VITS-OpenBible-Hausa', 'yo': 'multilingual-tts/VITS-OpenBible-Yoruba', 'ig': 'multilingual-tts/VITS-OpenBible-Igbo'}[L]
+    spk_file = hf_hub_download(repo, 'speakers.pth')
+    SY = Synthesizer(tts_checkpoint=hf_hub_download(repo, 'model_last.pth'), tts_config_path=hf_hub_download(repo, 'config.json'), tts_speakers_file=spk_file, use_cuda=False)
+    if SY.tts_model.speaker_manager is None: SY.tts_model.speaker_manager = SpeakerManager(speaker_id_file_path=spk_file)
+    names = sorted(SY.tts_model.speaker_manager.speaker_names); SPK = os.environ.get('OB_SPEAKER') or names[0]
+    print(L, 'speakers', names, 'using', SPK, flush=True)
     def say(s):
-        with torch.no_grad(): y = M(**TK(s, return_tensors='pt')).waveform[0].numpy()
-        return y, M.config.sampling_rate
+        y = SY.tts(text=s, speaker_name=SPK, split_sentences=False)
+        return np.asarray(y, dtype=np.float32), SY.output_sample_rate
 # how the name of the system is said aloud: "W-DOS" (the letter W, then DOS as one word), never spelled out letter by letter
 SAY = {'en': 'W-Doss', 'fr': 'W-Dosse', 'pt': 'W-Dós', 'sw': 'Dablyu-Dos', 'ar': 'دبليو-دوس', 'ha': 'Dablyu-Dos', 'yo': 'Dabulu-Dọọsi', 'ig': 'Dabliu-Dos'}[L]
 def spoken(s): return s.replace('WDOS', SAY)
