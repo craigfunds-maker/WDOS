@@ -144,6 +144,8 @@ function work_automations(array &$done): void {
     if (function_exists('media_write')) { $n = 0; foreach (rows('SELECT image_key, mime FROM message_photos') as $p) { if (is_file(media_file($p['image_key'], $p['mime']))) continue; $b = val('SELECT bytes FROM message_photos WHERE image_key=?', [$p['image_key']]); if ($b) media_write($p['image_key'], $p['mime'], $b); if (++$n >= 20) break; } if ($n) $done[] = "photo files +$n"; }
     // v109.5: the course photographs come from Pexels to this server a few at a time, until all are kept
     if (function_exists('course_photos_seed') && (int) val("SELECT COUNT(*) FROM message_photos WHERE image_key LIKE 'course/%'") < count(course_photo_list())) { $n = course_photos_seed(8); if ($n) $done[] = "course photos +$n"; }
+    // v109.10: the lesson video clips from Pexels, two at a time, until all are kept as plain files
+    if (function_exists('course_videos_tick') && !getenv('WDOS_NO_VIDEO_FETCH')) { $n = course_videos_tick(2); if ($n) $done[] = "course videos +$n"; }
     // once a day from 07:00 Lagos time: tasks due today, and tasks that became overdue yesterday
     if ((int) (new DateTimeImmutable('now', new DateTimeZone('Africa/Lagos')))->format('G') >= 7) {
       $r = cron_once('task_due', function () {

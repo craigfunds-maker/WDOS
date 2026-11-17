@@ -118,7 +118,14 @@ function lessonView(C, st, c, s, mNo) {
   const starts = []; let total = 0; keys.forEach((k) => { starts.push(total); total += C.cues[k].d; });
   // photographs for this lesson: the course set first, then the other courses' sets, so the picture keeps changing
   const imgs = [nt === 'wnnn' ? st.photos[`course/wnnn-c${pad(c.no)}`] : ''].concat([0, 1, 2, 3, 4, 5, 6, 7].map((i) => photo(st, c.no, mNo + i))).concat([1, 2, 3, 4].map((i) => photo(st, ((c.no + i - 1) % 12) + 1, mNo))).filter((x, i, a) => x && a.indexOf(x) === i);
-  const frames = imgs.map((src, i) => h('img', { class: 'pdx-vid__img' + (i === 0 ? ' is-on' : ''), src, alt: '', loading: i ? 'lazy' : 'eager' }));
+  // moving pictures: the course's Pexels video clips (and young people's clips for WNNN) are mixed between the photographs;
+  // on a data-saver or a slow (2G) connection the lesson keeps to photographs only
+  const cn = navigator.connection || {}; const lite = cn.saveData || /(^|-)2g$/.test(cn.effectiveType || '');
+  const vids = lite ? [] : [...((st.videos || {})['c' + c.no] || []), ...(nt === 'wnnn' ? ((st.videos || {}).wnnn || []).filter((x, i) => (i + c.no + mNo) % 3 === 0) : [])];
+  const seq = []; let vi = (mNo - 1) % Math.max(1, vids.length); imgs.forEach((src, i) => { if (vids.length && i % 2 === 0) { seq.push({ v: vids[vi % vids.length] }); vi++; } seq.push({ i: src }); });
+  if (!imgs.length) vids.forEach((v) => seq.push({ v }));
+  const frames = seq.map((x, i) => x.v ? h('video', { class: 'pdx-vid__img' + (i === 0 ? ' is-on' : ''), src: x.v, muted: true, loop: true, playsinline: true, preload: i === 0 ? 'auto' : 'none', 'aria-hidden': 'true' }) : h('img', { class: 'pdx-vid__img' + (i === 0 ? ' is-on' : ''), src: x.i, alt: '', loading: i ? 'lazy' : 'eager' }));
+  frames.forEach((f) => { if (f.tagName === 'VIDEO') { f.muted = true; f.defaultMuted = true; f.setAttribute('muted', ''); f.setAttribute('playsinline', ''); } });
   const cap = h('div', { class: 'pdx-vid__cap', dir: 'auto', 'aria-live': 'polite' }, h('span', { text: m.title }));
   const bar = h('div', { class: 'pdx-vid__bar' }, h('span'));
   const clock = h('small', { class: 'pdx-vid__clock', text: total ? `${Math.round(total / 60)} min` : '' });
@@ -127,7 +134,7 @@ function lessonView(C, st, c, s, mNo) {
   if (keys.length) load(0);
   const play = h('button', { class: 'pdx-vid__play', type: 'button', 'aria-label': t('Play the lesson') }, icon('play', 34));
   const title = h('div', { class: 'pdx-vid__title' }, h('small', { text: tf('Lesson {1}.{2}', c.no, mNo) }), h('b', { text: m.title }));
-  const stage = h('div', { class: 'pdx-vid' + (imgs.length ? '' : ' pdx-vid--plain') }, ...frames, h('div', { class: 'pdx-vid__shade' }), title, cap, play, bar, clock);
+  const stage = h('div', { class: 'pdx-vid' + (frames.length ? '' : ' pdx-vid--plain') }, ...frames, h('div', { class: 'pdx-vid__shade' }), title, cap, play, bar, clock);
   let shown = '', frame = 0;
   const paint = () => {
     const cue = C.cues[keys[part]]; if (!cue) return; const tm = audio.currentTime; const at = starts[part] + tm;
@@ -135,10 +142,10 @@ function lessonView(C, st, c, s, mNo) {
     let i = 0; while (i + 1 < cue.c.length && cue.c[i + 1][0] <= tm) i++;
     const id = part + ':' + i; if (id !== shown) { shown = id; cap.replaceChildren(h('span', { text: cue.c[i][1] })); }
     const f = frames.length ? Math.min(frames.length - 1, Math.floor((at / (total || 1)) * frames.length)) : 0;
-    if (f !== frame && frames[f]) { frames[frame]?.classList.remove('is-on'); frames[f].classList.add('is-on'); frame = f; }
+    if (f !== frame && frames[f]) { const o = frames[frame]; o?.classList.remove('is-on'); if (o?.tagName === 'VIDEO') o.pause(); frames[f].classList.add('is-on'); if (frames[f].tagName === 'VIDEO' && !audio.paused) frames[f].play().catch(() => {}); frame = f; }
   };
   audio.ontimeupdate = paint;
-  const playing = (on) => { stage.classList.toggle('is-playing', on); play.replaceChildren(icon(on ? 'pause' : 'play', 34)); play.setAttribute('aria-label', on ? t('Pause the lesson') : t('Play the lesson')); };
+  const playing = (on) => { const fv = frames[frame]; if (fv && fv.tagName === 'VIDEO') { if (on) fv.play().catch(() => {}); else fv.pause(); } stage.classList.toggle('is-playing', on); play.replaceChildren(icon(on ? 'pause' : 'play', 34)); play.setAttribute('aria-label', on ? t('Pause the lesson') : t('Play the lesson')); };
   const toggle = () => { if (!keys.length) { toast(t('The voice did not play'), t('Read the lesson below. The voice may still be downloading.'), 'info'); return; } if (audio.paused) { audio.play().then(() => playing(true)).catch(() => toast(t('The voice did not play'), t('Read the lesson below. The voice may still be downloading.'), 'info')); } else { audio.pause(); playing(false); } };
   play.onclick = toggle; stage.addEventListener('click', (e) => { if (e.target === stage || e.target.classList.contains('pdx-vid__shade') || e.target.classList.contains('pdx-vid__img')) toggle(); });
   audio.onended = () => { if (part + 1 < keys.length) { load(part + 1); audio.play().catch(() => playing(false)); } else { playing(false); bar.firstChild.style.width = '100%'; load(0); } };
