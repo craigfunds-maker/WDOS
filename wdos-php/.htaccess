@@ -12,6 +12,11 @@ RewriteRule ^privacy/?$ privacy.html [L]
   <FilesMatch "^(sw\.js|index\.html)$">
     Header set Cache-Control "no-cache"
   </FilesMatch>
+  # code, styles and texts: the browser asks the server each time (a quick "not changed" when nothing changed), so a
+  # release is never hidden behind an old copy the browser kept on its own
+  <FilesMatch "\.(js|css|json)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
   Header always set X-Content-Type-Options "nosniff"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>

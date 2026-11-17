@@ -1,6 +1,6 @@
 /* WDOS service worker: installable offline shell + push notifications.
  * Bump BUILD with every release. The page reloads itself once per build. */
-const BUILD = 'v109.6';
+const BUILD = 'v109.7';
 const CACHE = 'wdos-' + BUILD;
 const SHELL = ['/', '/index.html', '/manifest.json', '/assets/css/app.css', '/assets/favicon.svg',
   '/assets/fonts/inter-latin-wght-normal.woff2', '/assets/fonts/fraunces-latin-wght-normal.woff2',
@@ -9,7 +9,7 @@ const SHELL = ['/', '/index.html', '/manifest.json', '/assets/css/app.css', '/as
   '/js/pages/welcome.js', '/js/pages/login.js', '/js/pages/hq.js', '/js/pages/members.js', '/js/pages/announcements.js',
   '/js/pages/leader.js', '/js/pages/home.js', '/js/pages/notifications.js', '/js/pages/settings.js', '/js/pages/reporting.js', '/js/pages/tasks.js', '/js/pages/messages.js', '/js/pages/library.js', '/js/pages/help.js', '/js/pages/voices.js', '/js/pages/staff.js', '/js/pages/cases.js', '/js/pages/calendar.js', '/js/pages/coverage.js', '/js/pages/handoff.js', '/js/pages/journey.js', '/js/pages/community.js', '/js/pages/leadership.js', '/js/pages/reports.js', '/js/pages/communications.js', '/js/pages/institute.js', '/js/pages/integrations.js', '/js/pages/invite.js', '/js/pages/chapter.js', '/js/pages/chapters.js', '/js/pages/rules.js', '/js/pages/meetings.js', '/js/pages/structure.js', '/js/pages/onboarding.js', '/js/pages/referrals.js', '/js/pages/activation.js', '/js/goodmother.js', '/js/pushnudge.js', '/js/pages/inspiration.js'];
 
-self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
+self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {
   e.waitUntil((async () => {
     const had = (await caches.keys()).filter((k) => k.startsWith('wdos-') && k !== CACHE);
@@ -22,7 +22,8 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin || url.pathname.startsWith('/api/')) return;   // the API is never cached
   if (e.request.mode === 'navigate') { e.respondWith(fetch(e.request).catch(() => caches.match('/index.html'))); return; }
-  e.respondWith(caches.match(e.request).then((hit) => hit || fetch(e.request).then((res) => {
+  e.respondWith(caches.match(e.request).then((hit) => hit || fetch(e.request, /\.(js|json|css)$/.test(url.pathname) ? { cache: 'no-cache' } : {}).then((res) => {   // code and texts are checked with the server, never taken from a stale browser copy
+
     if (res.ok && (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/js/'))) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
     return res;
   })));
