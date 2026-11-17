@@ -5,6 +5,24 @@ import { api } from './api.js';
 export const kb = (n) => n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
 const KIND = { 'application/pdf': 'PDF', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word', 'application/msword': 'Word', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'Excel', 'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PowerPoint', 'text/csv': 'CSV', 'image/jpeg': 'Picture', 'image/png': 'Picture' };
 export const readB64 = (file) => new Promise((ok, bad) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.onerror = () => bad(new Error(tr('That file could not be read. Choose it again.'))); r.readAsDataURL(file); });
+/* v109.5: the live server refuses one request over about 1.5 MB, so a file larger than 600 KB goes up in 600 KB pieces
+ * and the call that saves it names the upload ('upload:<id>') instead of carrying the data. Small files go inline. */
+const PART = 600 * 1024;
+const b64of = (buf) => { let s = ''; const u = new Uint8Array(buf); for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
+export async function packFile(file, onProgress) {
+  if (file.size <= PART) return readB64(file);
+  const buf = await file.arrayBuffer(); const total = Math.ceil(buf.byteLength / PART);
+  const id = [...crypto.getRandomValues(new Uint8Array(16))].map((x) => x.toString(16).padStart(2, '0')).join('');
+  for (let seq = 0; seq < total; seq++) {
+    let tries = 0;
+    for (;;) {
+      try { await api('/uploads/part', { upload: id, seq, total, data: b64of(buf.slice(seq * PART, (seq + 1) * PART)) }); break; }
+      catch (e) { if (++tries >= 3) throw e; await new Promise((r) => setTimeout(r, 1500 * tries)); }   // a weak connection: try that piece again
+    }
+    onProgress?.(Math.round(((seq + 1) / total) * 100));
+  }
+  return 'upload:' + id;
+}
 const tr = (s) => (globalThis.tr ? globalThis.tr(s) : s);
 
 /** A button that opens the file chooser and uploads. purpose 'report' accepts PDF and Word only. onDone(file) runs after the upload. */
@@ -18,7 +36,7 @@ export function uploadButton(label, purpose, onDone, opts = {}) {
     for (const f of files) {
       if (f.size > 10 * 1048576) { toast(tr('That file is too large'), tr('The limit is 10 MB. Save the report as a PDF, or make the pictures in it smaller.'), 'bad'); continue; }
       btn.disabled = true; state.textContent = tf('Uploading {1}…', f.name);
-      try { const r = await api('/files', { name: f.name, data: await readB64(f), purpose }); await onDone(r.file); state.textContent = ''; }
+      try { const r = await api('/files', { name: f.name, data: await packFile(f, (p) => { state.textContent = tf('Uploading {1}… {2}%', f.name, p); }), purpose }); await onDone(r.file); state.textContent = ''; }
       catch (e) { state.textContent = ''; toast(tr('Not uploaded'), e.message, 'bad'); }
       btn.disabled = false;
     }

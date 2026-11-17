@@ -91,6 +91,20 @@ function doc_sniff(string $bin, string $name): string {
   if (preg_match('/\.csv$/i', $name) && mb_check_encoding(substr($bin, 0, 4000), 'UTF-8')) return 'text/csv';
   return 'application/octet-stream';
 }
+/** The bytes of a file the browser sent: either inline (a data: URL or plain base64) or, for a large file, 'upload:<id>'
+ * naming pieces already sent to /uploads/part by this same person. The pieces are joined in order and then deleted. */
+function upload_bytes(array $u, string $data, int $max = 16000000): string {
+  if (preg_match('/^upload:([a-f0-9]{32})$/', $data, $m)) {
+    $parts = rows('SELECT seq, total, user_id, bytes FROM upload_parts WHERE upload_id=? ORDER BY seq', [$m[1]]);
+    if (!$parts || (int) $parts[0]['user_id'] !== (int) $u['id'] || count($parts) !== (int) $parts[0]['total']) fail(422, 'The file did not arrive completely. Choose it again.', 'file');
+    $bin = ''; foreach ($parts as $i => $p) { if ((int) $p['seq'] !== $i) fail(422, 'The file did not arrive completely. Choose it again.', 'file'); $bin .= $p['bytes']; if (strlen($bin) > $max) fail(422, 'That file is too large.', 'size'); }
+    q('DELETE FROM upload_parts WHERE upload_id=?', [$m[1]]);
+    return $bin;
+  }
+  $bin = base64_decode((string) preg_replace('#^data:[^;]*;base64,#', '', $data), true);
+  if ($bin === false) fail(422, 'That file could not be read. Choose it again.', 'file');
+  return $bin;
+}
 function doc_store(array $u, string $name, string $bin, bool $reportOnly, bool $media = false): array {
   if ($bin === '') fail(422, 'Choose a file first.', 'file');
   if ($media) {

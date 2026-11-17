@@ -82,7 +82,7 @@ export async function render(root) {
       h('div', { class: 'row row--2' }, card('Chapter sizes', 'How many chapters hold how many members', h('div', { style: 'display:grid;gap:8px' }, d.distribution.map(([l, n]) => h('div', { style: 'display:grid;grid-template-columns:90px 1fr 50px;gap:10px;align-items:center' }, h('small', { text: l }), h('div', { class: 'meter is-ok' }, h('span', { style: `width:${Math.round((n / max) * 100)}%` })), h('b', { class: 'num', style: 'text-align:end', text: fmt(n) }))))),
         card('Areas that need a chapter', 'Where members with a location are still waiting', d.needs.length ? h('div', { class: 'list' }, d.needs.map((x) => h('div', {}, h('div', { class: 'grow' }, h('b', { text: [x.community, x.lga].filter(Boolean).join(', ') || 'Not stated' }), h('small', { text: x.network })), flag(x.country_code), h('span', { class: 'tag num', text: fmt(x.waiting) + ' waiting' })))) : h('p', { class: 'muted', style: 'margin:0', text: 'No area has members waiting with a location.' }))),
       card('Pending placement', 'Members with no chapter yet, and the reason. Nobody is dropped.', qBox, h('div', { class: 'toolbar' }, qSel)),
-      card('Community Clusters', 'The WODDI operational grouping, kept apart from the official ward. A cluster name is not treated as an official ward until it is verified.', clBox),
+      card('Community Clusters', 'The community cluster is the ward, or its local equivalent, below the LGA or district. Several chapters of 30 to 50 women can sit in one cluster.', clBox),
       card('Operational zones', 'Optional. A zone groups chapters of one network under a supervisor. It is not a leadership tier.', zBox));
     loadQ(); loadCl(); loadZ();
   }

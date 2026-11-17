@@ -1,5 +1,5 @@
 /* A member's home: her membership, what is left to set up, and the latest from HQ. */
-import { h, t as tr, tf, icon, avatar, flag, netTag, card, sk, empty, ago, greeting, fmtDate, NETS, inspCard, toast, choices } from '../ui.js';
+import { h, t as tr, tf, icon, avatar, flag, netTag, card, sk, empty, ago, greeting, fmtDate, NETS, inspCard, toast, choices, roleOptions } from '../ui.js';
 import { bio } from '../api.js';
 import { pushNudge } from '../pushnudge.js';
 import { goodMotherCard } from '../goodmother.js';
@@ -34,7 +34,7 @@ export async function render(root) {
   if (!u.seat) { const vol = choices('vol-choice', 'Would you like to volunteer with WODDI?', [u.volunteer ? null : ['', 'Not now. I am a member'], ['volunteer', 'Yes, I want to volunteer in my chapter'], ['lead', 'Yes, and I am interested in a leadership role']], (v) => { roleBox.hidden = v !== 'lead'; });
     const role = h('select', { class: 'input', id: 'vol-role', style: 'max-width:420px;font-size:15px' }, h('option', { value: '', text: 'Choose a role' })); const roleBox = h('label', { class: 'field', for: 'vol-role', hidden: true }, h('span', { text: 'Which role are you interested in?' }), role);
     const cur = u.volunteer_interest || ''; vol.value = cur === '' ? (u.volunteer ? 'volunteer' : '') : cur === 'volunteer' ? 'volunteer' : 'lead';
-    api('/public/volunteer-roles').then((r) => { role.append(...r.roles.map((p) => h('option', { value: p.code, text: u.network === 'WNNN' ? p.title_wnnn : p.title_wgmn }))); if (vol.value === 'lead') { role.value = cur; roleBox.hidden = false; } }).catch(() => {});
+    api('/public/volunteer-roles').then((r) => { role.append(...roleOptions(r.roles, u.network)); if (vol.value === 'lead') { role.value = cur; roleBox.hidden = false; } }).catch(() => {});
     root.append(card('Volunteer with WODDI', 'Tell WODDI if you would like to volunteer, and in which role', h('div', { style: 'display:grid;gap:12px' }, u.volunteer ? h('p', { class: 'okmsg', style: 'margin:0' }, h('span', { text: 'You are a WODDI volunteer. Your development assignments are in your task list.' }), ' ', h('a', { href: '#/tasks', text: 'Open my assignments' })) : null, vol, roleBox,
       h('small', { class: 'muted', text: 'This records your interest. WODDI Headquarters appoints leaders after you are an active member.' }),
       h('div', {}, h('button', { class: 'btn', type: 'button', onclick: async () => { if (vol.value === 'lead' && !role.value) { toast('Choose a role', 'Choose the leadership role you are interested in.', 'bad'); role.focus(); return; } try { await api('/me/volunteer-role', { choice: vol.value === 'lead' ? role.value : vol.value }); await refreshUser(); toast('Your choice has been saved', vol.value ? 'Thank you. WODDI has recorded your choice.' : 'You are recorded as a member.', 'ok'); reload(location.hash); } catch (e) { toast('That did not save', e.message, 'bad'); } } }, 'Save my choice')))));

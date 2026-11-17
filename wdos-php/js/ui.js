@@ -316,3 +316,11 @@ export function said(el) {
   Object.defineProperty(el, 'textContent', { get() { return d.get.call(this); }, set(v) { d.set.call(this, v ? t(String(v)) : ''); } });
   return el;
 }
+
+/* v109.5: the leadership roles of the WGMN & WNNN Volunteer Leadership Framework, grouped by level, top to bottom.
+ * WGMN titles say Coordinator, WNNN titles say Lead; both networks have a Country Representative and a Deputy. */
+const ROLE_LEVELS = [['country', 'Country'], ['state_region', 'State / Region'], ['lga', 'LGA / District'], ['community_cluster', 'Ward / Community / Cluster'], ['chapter', 'Chapter']];
+export function roleOptions(roles, network) {
+  return ROLE_LEVELS.map(([lv, name]) => { const rs = roles.filter((p) => p.level === lv); return rs.length ? h('optgroup', { label: t(name) }, ...rs.map((p) => h('option', { value: p.code, text: network === 'WNNN' ? p.title_wnnn : p.title_wgmn }))) : null; }).filter(Boolean);
+}
+

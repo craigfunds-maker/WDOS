@@ -3,6 +3,7 @@ import { h, icon, card, sk, empty, fmtDate, toast, input, field, docReader } fro
 import { api } from '../api.js';
 
 const AUD = { all: 'Everyone', leaders: 'Leaders', hq: 'HQ only' };
+import { packFile } from '../files.js';
 const toData = (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); });
 
 export async function render(root) {
@@ -22,7 +23,7 @@ export async function render(root) {
     if (!d.items.length) parts.push(h('div', { class: 'card' }, empty('book', 'No documents yet', 'Documents shared by WODDI HQ appear here.')));
     if (d.is_hq) { const title = input({ maxlength: 190 }), desc = input({ maxlength: 600 }), cat = input({ maxlength: 60, placeholder: 'e.g. Leadership, Templates, Policies' }), url = input({ type: 'url', placeholder: 'https://' }); const file = h('input', { type: 'file', class: 'input' }); const aud = h('select', { class: 'input' }, Object.entries(AUD).map(([v, l]) => h('option', { value: v, text: l }))); aud.value = 'leaders'; const err = h('p', { class: 'err', role: 'alert' });
       const add = h('button', { class: 'btn', type: 'button', onclick: async () => { err.textContent = ''; add.disabled = true; try { const f = file.files[0]; if (f && f.size > 6000000) throw new Error('That file is too large. The limit is 6 MB.');
-        await api('/library', { title: title.value, description: desc.value, category: cat.value, audience: aud.value, url: url.value, data: f ? await toData(f) : '', file_name: f ? f.name : '' }); toast('Added to the library', '', 'ok'); load(); } catch (e) { err.textContent = e.message; add.disabled = false; } } }, 'Add to the library');
+        await api('/library', { title: title.value, description: desc.value, category: cat.value, audience: aud.value, url: url.value, data: f ? await packFile(f) : '', file_name: f ? f.name : '' }); toast('Added to the library', '', 'ok'); load(); } catch (e) { err.textContent = e.message; add.disabled = false; } } }, 'Add to the library');
       parts.push(card('Add a document', 'Upload a file up to 6 MB, or paste a link (for example to Google Drive). Choose who can see it.', h('div', { style: 'display:grid;gap:14px' }, h('div', { class: 'grid2' }, field('Title', title), field('Section', cat), field('Short description', desc), field('Who can see it', aud), field('File', file), field('Or a link', url)), err, h('div', {}, add)))); }
     body.replaceChildren(...parts);
   }

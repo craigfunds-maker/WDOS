@@ -229,7 +229,7 @@ route('GET', '/hq/health', function () {
 route('GET', '/hq/handoff', function () { require_hq(); $r = json_decode((string) @file_get_contents(__DIR__ . '/handoff_register.json'), true); if (!is_array($r)) fail(500, 'The register file is missing.', 'missing'); return $r + ['decisions' => decisions_state()]; });
 
 /* ------------------------------------------------ the volunteering choice -- */
-route('GET', '/public/volunteer-roles', fn() => ['roles' => rows("SELECT code, title_wgmn, title_wnnn, level FROM positions WHERE level IN ('chapter','community','lga','city') OR code='campus_ambassador' ORDER BY rank_no DESC")]);
+route('GET', '/public/volunteer-roles', fn() => ['roles' => rows("SELECT code, title_wgmn, title_wnnn, level FROM positions WHERE in_framework=1 ORDER BY rank_no, code")]);
 route('POST', '/me/volunteer-role', function () { $u = require_user(); $c = volunteer_interest_save((int) $u['id'], (string) (body()['choice'] ?? '')); return ['ok' => true, 'choice' => $c]; });
 route('GET', '/hq/volunteers', function () {
   require_hq();

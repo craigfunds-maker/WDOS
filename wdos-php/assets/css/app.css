@@ -554,3 +554,4 @@ body.in-call{overflow:hidden}
 .ltour .tour__logo{display:none}
 .ltour .tour__hello h2{font-size:26px}
 @media (prefers-reduced-motion:reduce){.ltour__ring{animation:none;transition:none}}
+.gm--world .gm__svg{width:100%;height:auto} .joinmap__map .gm--world .gm__svg{max-height:clamp(200px,34vh,330px)}

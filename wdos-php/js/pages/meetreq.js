@@ -3,7 +3,7 @@
  * meet.jit.si server cuts embedded calls after 5 minutes, so the stage also offers the same room in a new tab. Minutes and attendance go to everyone invited and to HQ. */
 import { h, t, icon, avatar, card, sk, empty, ago, fmt, toast, input, field, tabs, i18n } from '../ui.js';
 import { api } from '../api.js';
-import { uploadButton, readB64 } from '../files.js';
+import { uploadButton, packFile } from '../files.js';
 import { app, go } from '../app.js';
 import { countdown } from './meetings.js';
 
@@ -156,7 +156,7 @@ function minutesForm(m, id, reload) {
   const upRec = async (f) => {
     if (f.size > 15 * 1048576) { toast('That recording is too large', 'The limit is 15 MB. Record a shorter voice note.', 'bad'); return; }
     recShow.textContent = tf('Uploading {1}…', f.name);
-    try { const r = await api('/files', { name: f.name, data: await readB64(f), purpose: 'recording' }); recFile = r.file; recShow.textContent = tf('Recording ready: {1}', r.file.name); }
+    try { const r = await api('/files', { name: f.name, data: await packFile(f), purpose: 'recording' }); recFile = r.file; recShow.textContent = tf('Recording ready: {1}', r.file.name); }
     catch (e) { recShow.textContent = ''; toast('Not uploaded', e.message, 'bad'); }
   };
   const pickRec = h('input', { type: 'file', accept: 'audio/*,video/mp4,.mp3,.m4a,.ogg,.webm,.wav,.mp4', hidden: true, onchange: (e) => { const f = e.target.files[0]; e.target.value = ''; if (f) upRec(f); } });
@@ -188,7 +188,7 @@ function flierPicker(onDone, label) {
     const f = inp.files[0]; inp.value = ''; if (!f) return;
     if (f.size > 10 * 1048576) { toast('That file is too large', 'The limit is 10 MB. Save the flier as a smaller picture.', 'bad'); return; }
     btn.disabled = true; const old = [...btn.childNodes]; btn.replaceChildren(t('Uploading…'));
-    try { const r = await api('/files', { name: f.name, data: await readB64(f), purpose: 'flier' }); if (!/^(image\/(jpeg|png)|application\/pdf)$/.test(r.file.mime)) throw new Error(t('The flier must be a picture (JPG or PNG) or a PDF.')); onDone(r.file); }
+    try { const r = await api('/files', { name: f.name, data: await packFile(f, (p) => btn.replaceChildren(tf('Uploading… {1}%', p))), purpose: 'flier' }); if (!/^(image\/(jpeg|png)|application\/pdf)$/.test(r.file.mime)) throw new Error(t('The flier must be a picture (JPG or PNG) or a PDF.')); onDone(r.file); }
     catch (e) { toast('The flier did not upload', e.message, 'bad'); }
     btn.disabled = false; btn.replaceChildren(...old);
   });

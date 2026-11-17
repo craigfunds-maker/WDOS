@@ -1,7 +1,8 @@
 /* The front door. A newcomer picks her network by its logo, and the form that
  * opens carries that network all the way into her record. The same form
  * finishes a Google sign-up (complete = true). */
-import { h, t, clear, icon, NETS, googleMark, theme, toast, langPills, langPicker, listenBtn, guideBtn, stopAllListening, GUIDE, GUIDE_AUDIO, GUIDE_VIDEO, i18n, choices, said } from '../ui.js';
+import { geoEq, geoSlug } from '../geoeq.js';
+import { h, t, tf, clear, icon, NETS, googleMark, theme, toast, langPills, langPicker, listenBtn, guideBtn, stopAllListening, GUIDE, GUIDE_AUDIO, GUIDE_VIDEO, i18n, choices, said, roleOptions } from '../ui.js';
 import { api } from '../api.js';
 import { app, signedIn, refreshUser, go, signOut, setLanguage } from '../app.js';
 
@@ -101,17 +102,30 @@ export async function render(root, params) {
   const stateSlot = h('div'), lgaSlot = h('div');
   const paintState = () => stateSlot.replaceChildren(h('label', { class: 'field', for: 'f-state' }, h('span', { text: 'State or region' }), stateMode === 'text' ? F.stateText : F.state));
   const diaspora = () => { const c = countries.find((x) => String(x.id) === F.country.value); return !!c && !AFRICA.includes(c.code); };
-  const paintLga = () => { lgaSlot.replaceChildren(h('label', { class: 'field', for: 'f-lga' }, h('span', { text: diaspora() ? 'City' : 'LGA or district' }), lgaMode === 'select' ? F.lgaSel : F.lga)); const cl = document.querySelector('label[for="f-community"] > span'); if (cl) cl.textContent = diaspora() ? 'Neighbourhood (optional)' : 'Community or ward'; const wl = document.querySelector('label[for="f-ward"]'); if (wl) wl.hidden = diaspora(); const sl = document.querySelector('label[for="f-state"] > span'); if (sl) sl.textContent = diaspora() ? 'State or province (optional)' : 'State or region'; };
+  const paintLga = () => { lgaSlot.replaceChildren(h('label', { class: 'field', for: 'f-lga' }, h('span', { text: diaspora() ? 'City' : 'LGA or district' }), lgaMode === 'select' ? F.lgaSel : F.lga)); const cl = document.querySelector('label[for="f-community"] > span'); if (cl) cl.textContent = t(diaspora() ? 'Community cluster (optional)' : 'Community cluster'); paintEq(); const sl = document.querySelector('label[for="f-state"] > span'); if (sl) sl.textContent = diaspora() ? 'State or province (optional)' : 'State or region'; };
   const opt = (value, text) => { const o = document.createElement('option'); o.value = value; o.textContent = text; return o; };
   const stateName = () => (stateMode === 'text' ? F.stateText.value.trim() : F.state.value && F.state.value !== NOT_LISTED ? F.state.selectedOptions[0].textContent : '');
   /* Community Clusters already known in the chosen LGA or city are offered as she types, so the same cluster is not spelled three ways */
   const clusterList = h('datalist', { id: 'f-clusters' });
-  const fillClusters = async () => { const c = countries.find((x) => String(x.id) === F.country.value); if (!c) return; const lga = lgaMode === 'select' ? F.lgaSel.value : F.lga.value; if (!lga || lga === NOT_LISTED) { paintCommunity([]); return; } try { const r = await api(`/geo/clusters?country=${c.code}&lga=${encodeURIComponent(lga)}`); clusterList.replaceChildren(...r.clusters.map((n) => opt(n, n))); paintCommunity(r.clusters); } catch { paintCommunity([]); } };
+  const fillClusters = async () => { const c = countries.find((x) => String(x.id) === F.country.value); if (!c) return; const lga = lgaMode === 'select' ? F.lgaSel.value : F.lga.value; ngWards = null; if (!lga || lga === NOT_LISTED) { paintCommunity([]); paintBooth(); return; }
+    if (c.code === 'NG' && lgaMode === 'select' && stateName()) { const w = await getJson(`/assets/geo/ng/${geoSlug(stateName())}/${geoSlug(lga)}.json`); if (w && Object.keys(w).length) { ngWards = w; clusterList.replaceChildren(); paintCommunity(Object.keys(w)); paintBooth(); return; } } try { const r = await api(`/geo/clusters?country=${c.code}&lga=${encodeURIComponent(lga)}`); clusterList.replaceChildren(...r.clusters.map((n) => opt(n, n))); paintCommunity(r.clusters); } catch { paintCommunity([]); } };
+  /* v109.5: Nigeria's wards (Community cluster) and polling units (Booth), from the INEC register, one small file per LGA */
+  let ngWards = null;
+  const curCountry = () => countries.find((x) => String(x.id) === F.country.value);
+  const paintEq = () => { const c = curCountry(); const [cl, bo] = geoEq(c?.code); const cn = c?.name || '';
+    const ch = document.querySelector('label[for="f-community"] > small'); if (ch) ch.textContent = c ? tf('In {1}, this is your {2}.', cn, t(cl)) : '';
+    const bh = document.querySelector('label[for="f-ward"] > small'); if (bh) bh.textContent = c ? tf('In {1}, this is your {2}.', cn, t(bo)) : ''; };
+  F.boothSel = h('select', { class: 'input', id: 'f-boothsel', hidden: true, onchange: () => { const t2 = F.boothSel.value === NOT_LISTED; F.ward.hidden = !t2; F.ward.value = t2 ? '' : F.boothSel.value; if (t2) F.ward.focus(); } });
+  const paintBooth = () => { if (!F.ward) return; if (!F.boothSel.isConnected) F.ward.before(F.boothSel);
+    const list = ngWards && F.community && ngWards[F.community.value]; const cur = F.ward.value;
+    if (!list || !list.length) { F.boothSel.hidden = true; F.ward.hidden = false; return; }
+    F.boothSel.replaceChildren(h('option', { value: '', text: t('Choose your polling unit (optional)') }), ...list.map((n) => opt(n, n)), h('option', { value: NOT_LISTED, text: t('My polling unit is not listed') })); F.boothSel.hidden = false;
+    if (cur && list.includes(cur)) { F.boothSel.value = cur; F.ward.hidden = true; } else if (cur) { F.boothSel.value = NOT_LISTED; F.ward.hidden = false; } else { F.boothSel.value = ''; F.ward.hidden = true; } };
   /* Community or ward: a list wherever WDOS already knows the communities of that LGA or city; typing where it does not, or when hers is not on the list. */
-  F.commSel = h('select', { class: 'input', id: 'f-commsel', hidden: true, onchange: () => { const t2 = F.commSel.value === NOT_LISTED; F.community.hidden = !t2; F.community.value = t2 ? '' : F.commSel.value; if (t2) F.community.focus(); } });
+  F.commSel = h('select', { class: 'input', id: 'f-commsel', hidden: true, onchange: () => { const t2 = F.commSel.value === NOT_LISTED; F.community.hidden = !t2; F.community.value = t2 ? '' : F.commSel.value; if (t2) F.community.focus(); F.ward.value = ''; paintBooth(); } });
   const paintCommunity = (list) => { if (!F.community) return; const cur = F.community.value; if (!F.commSel.isConnected) F.community.before(F.commSel);
     if (!list.length) { F.commSel.hidden = true; F.community.hidden = false; return; }
-    F.commSel.replaceChildren(h('option', { value: '', text: 'Choose your community' }), ...list.map((n) => opt(n, n)), h('option', { value: NOT_LISTED, text: 'My community is not listed' })); F.commSel.hidden = false;
+    F.commSel.replaceChildren(h('option', { value: '', text: ngWards ? 'Choose your ward' : 'Choose your community cluster' }), ...list.map((n) => opt(n, n)), h('option', { value: NOT_LISTED, text: ngWards ? 'My ward is not listed' : 'My community cluster is not listed' })); F.commSel.hidden = false;
     if (cur && list.includes(cur)) { F.commSel.value = cur; F.community.hidden = true; } else if (cur) { F.commSel.value = NOT_LISTED; F.community.hidden = false; } else { F.commSel.value = ''; F.community.hidden = true; } };
   async function fillLgas() {
     const c = countries.find((x) => String(x.id) === F.country.value); lgaMode = 'text';
@@ -166,7 +180,7 @@ export async function render(root, params) {
     let refBlock = null;
     if (candidate && refMeta) {
       F.position = F.position || h('select', { class: 'input', id: 'f-position' }); F.refCat = F.refCat || h('select', { class: 'input', id: 'f-refcat' }, h('option', { value: '', text: 'Choose' }), Object.entries(refMeta.categories).map(([v, l]) => h('option', { value: v, text: l }))); F.refName = F.refName || h('input', { class: 'input', id: 'f-refname', maxlength: 160 });
-      const keep = F.position.value; F.position.replaceChildren(h('option', { value: '', text: 'Choose the position' }), ...refMeta.positions.map((p) => h('option', { value: p.code, text: chosen === 'WNNN' ? p.title_wnnn : p.title_wgmn }))); F.position.value = keep;
+      const keep = F.position.value; F.position.replaceChildren(h('option', { value: '', text: 'Choose the position' }), ...roleOptions(refMeta.positions, chosen)); F.position.value = keep;
       refBlock = h('fieldset', {}, h('legend', { text: 'The position and where you will serve' }),
         envoyLink ? h('div', { style: 'display:grid;gap:12px' }, h('p', { class: 'muted', style: 'margin:0', text: tf('You were invited by {1}, a WODDI Envoy. Choose the position you would like to be considered for. Your 3-day Referral Activation starts as soon as your account is made.', link.owner) }), h('label', { class: 'field', for: 'f-position' }, h('span', { text: 'Position being considered for' }), F.position))
         : link ? h('p', { class: 'muted', style: 'margin:0 0 12px', text: tf('You have been referred by {1} for consideration as {2}.', link.owner, link.role + (link.place ? ', ' + link.place : '')) })
@@ -185,7 +199,7 @@ export async function render(root, params) {
               field('contact', 'Phone number', { type: 'tel', inputmode: 'tel', required: true, maxlength: 24, autocomplete: 'tel', placeholder: '+234 801 234 5678', value: String(saved.contact || '').includes('@') ? '' : saved.contact || '' }, 'With the country code. If you have no email, you sign in with this number.')))),
       h('fieldset', { 'data-eyebrow': 'Find your community' }, h('legend', { text: 'Your location' }), h('p', { class: 'muted', style: 'margin:0 0 12px', text: tf('Your location helps WDOS place you in a suitable {1} chapter. No woman is turned away because her chapter is full.', chosen) }), h('div', { class: 'grid2' },
         h('label', { class: 'field', for: 'f-country' }, h('span', { text: 'Country' }), F.country), stateSlot,
-        lgaSlot, field('community', 'Community or ward', { maxlength: 120, value: saved.community || '', list: 'f-clusters' }), clusterList, field('ward', 'Official ward (optional)', { maxlength: 120, value: saved.ward || '' }, 'Only if it is different from your community.')), h('p', { class: 'notice', style: 'margin-top:14px', text: 'Official ward and WODDI community cluster are separate records. A neighbourhood name is not assumed to be an official government ward.' })),
+        lgaSlot, field('community', 'Community cluster', { maxlength: 120, value: saved.community || '', list: 'f-clusters' }, ' '), clusterList, field('ward', 'Booth (optional)', { maxlength: 160, value: saved.ward || '' }, ' ')), h('p', { class: 'notice', style: 'margin-top:14px', text: 'Your community cluster is your ward, or what it is called where you live. Your booth is your polling unit or polling station inside it. Together they help WDOS place you in a chapter close to you.' })),
       refBlock,
       h('fieldset', { 'data-eyebrow': 'Your agreement' }, h('legend', { text: 'Your agreement' }), h('p', { class: 'muted', style: 'margin:0 0 6px', text: 'A simple summary of membership and privacy information. Press Listen to hear it.' }),
         h('div', { class: 'panel', style: 'margin-bottom:14px' }, h('b', { text: 'Membership summary' }), h('p', { style: 'margin:6px 0 0', text: 'WODDI uses information to manage membership, learning, chapters and approved communications. Participation is voluntary. Unauthorised dues, local accounts and fundraising are not permitted.' }), h('p', { class: 'muted', style: 'margin:6px 0 0;font-size:14px', text: 'WODDI keeps your name, phone number and location so your chapter and your leaders can reach you. WODDI does not sell or share them outside WODDI.' })),
@@ -255,7 +269,7 @@ export async function render(root, params) {
         else err.scrollIntoView({ block: 'center', behavior: 'smooth' });
       }
     });
-    if (F.vol) { F.vol.value = saved.vol || ''; api('/public/volunteer-roles').then((r) => { F.volRole.append(...r.roles.map((p) => h('option', { value: p.code, text: chosen === 'WNNN' ? p.title_wnnn : p.title_wgmn }))); if (saved.vol_role) F.volRole.value = saved.vol_role; volRoleBox.hidden = F.vol.value !== 'lead'; }).catch(() => {}); }
+    if (F.vol) { F.vol.value = saved.vol || ''; api('/public/volunteer-roles').then((r) => { F.volRole.append(...roleOptions(r.roles, chosen)); if (saved.vol_role) F.volRole.value = saved.vol_role; volRoleBox.hidden = F.vol.value !== 'lead'; }).catch(() => {}); }
     if (F.source) api('/public/sources').then((r) => { F.source.append(...Object.entries(r.sources).map(([k, l]) => h('option', { value: k, text: l }))); if (saved.source) F.source.value = saved.source; }).catch(() => {});
     const steps = [...form.querySelectorAll(':scope > fieldset')]; const bar = h('div', { class: 'jbar jbar--form', role: 'img' }); const stepLabel = h('small', { class: 'faint' });
     const back = h('button', { class: 'btn btn--ghost', type: 'button', text: 'Back' }); const next = h('button', { class: 'btn', type: 'button', text: 'Continue' });
@@ -290,7 +304,7 @@ export async function render(root, params) {
        It lights up her country once she has chosen it. */
     if (plain && chosen === 'WGMN') {
       const mapSlot = h('aside', { class: 'joinmap__map', 'aria-label': 'WODDI Good Mother Network map of Africa' }); let shown = null;
-      const paintMap = () => { const code = countries.find((x) => String(x.id) === F.country.value)?.code || ''; if (code === shown) return; shown = code; import('../goodmother.js').then((m) => mapSlot.replaceChildren(m.africaMap(code || undefined))).catch(() => {}); };
+      const paintMap = () => { const code = countries.find((x) => String(x.id) === F.country.value)?.code || ''; if (code === shown) return; shown = code; import('../goodmother.js').then((m) => mapSlot.replaceChildren(m.worldMap(code || undefined))).catch(() => {}); };
       paintMap(); F.country.addEventListener('change', paintMap); F.paintMap = paintMap;
       inner.replaceChildren(h('div', { class: 'joinmap' }, mapSlot, form)); wrap.classList.add('formwrap--map'); document.querySelector('main.join')?.classList.add('join--map');
     } else { F.paintMap = null; inner.replaceChildren(form); wrap.classList.remove('formwrap--map'); document.querySelector('main.join')?.classList.remove('join--map'); }

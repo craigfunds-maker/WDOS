@@ -107,7 +107,7 @@ function member_export(array $u): array {
 /* ---- the volunteering choice (Q05, Q10): member, volunteer, or interested in a leadership position. It records interest only: WODDI HQ appoints leaders. */
 function volunteer_interest_save(int $userId, string $choice): string {
   $choice = trim($choice); $u = row('SELECT * FROM users WHERE id=?', [$userId]); if (!$u) return '';
-  if ($choice !== '' && $choice !== 'volunteer' && !val("SELECT 1 FROM positions WHERE code=? AND (level IN ('chapter','community','lga','city') OR code='campus_ambassador')", [$choice])) $choice = 'volunteer';   // only the roles offered on the form
+  if ($choice !== '' && $choice !== 'volunteer' && !val("SELECT 1 FROM positions WHERE code=? AND in_framework=1", [$choice])) $choice = 'volunteer';   // only the roles offered on the form
   if ($choice === '' && !empty($u['volunteer_since'])) $choice = 'volunteer';                 // she is a volunteer already: an empty choice only clears a leadership interest
   if ($choice === (string) ($u['volunteer_interest'] ?? '') && ($choice === '' || !empty($u['volunteer_since']))) return $choice;
   q('UPDATE users SET volunteer_interest=? WHERE id=?', [$choice, $userId]);

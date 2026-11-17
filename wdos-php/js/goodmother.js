@@ -52,12 +52,12 @@ const loadShapes = () => shapes || (shapes = fetch('/assets/geo/africa.json').th
 const nameOf = (code) => (GOOD_MOTHER[code] ? GOOD_MOTHER[code][0] : OTHER[code] || '');
 
 /* The whole continent. Large countries carry their phrases on the map; every country answers a tap. */
-function drawAfrica(M, pick, highlight) {
-  const svg = s('svg', { viewBox: `0 0 ${M.w} ${M.h}`, class: 'gm__svg', role: 'img', 'aria-label': 'Map of Africa showing what Good Mother is called in each country' });
+function drawAfrica(M, pick, highlight, label) {
+  const svg = s('svg', { viewBox: `0 0 ${M.w} ${M.h}`, class: 'gm__svg', role: 'img', 'aria-label': label || 'Map of Africa showing what Good Mother is called in each country' });
   const land = s('g'), labels = s('g', { 'pointer-events': 'none' }); let on = null;
   for (const [code, c] of Object.entries(M.c)) {
     const real = !code.startsWith('_'); const fill = real ? TONES[c.t][0] : code === '_SOL' && M.c.SO ? TONES[M.c.SO.t][0] : '#5d5560';
-    const p = s('path', { d: c.d, fill, class: 'gm__c' + (code === highlight ? ' is-on' : '') + (real ? '' : ' gm__c--plain'), tabindex: real ? '0' : null, 'aria-label': real ? nameOf(code) : null });
+    const p = s('path', { d: c.d, fill, class: 'gm__c' + (code === highlight ? ' is-on' : '') + (real ? '' : ' gm__c--plain'), tabindex: real ? '0' : null, 'aria-label': real ? (nameOf(code) || countryName(code)) : null });
     if (real) { const go = () => { if (on) on.classList.remove('is-on'); on = p; p.classList.add('is-on'); land.append(p); pick(code); };
       p.addEventListener('click', go); p.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }); if (code === highlight) on = p; }
     land.append(p);
@@ -143,4 +143,21 @@ export function goodMotherArt(code, countryName) {
     art.replaceChildren(svg);
   }).catch(() => { if (g) art.replaceChildren(h('div', { class: 'gmc__list' }, g[1].map(([p, l]) => h('div', { class: 'gmc__ph' }, h('b', { text: p }), h('small', { text: l }))))); });
   return art;
+}
+
+/* v109.5: the joining form shows the whole world, because the WODDI Good Mother Network is in Africa and the diaspora.
+ * Shapes: Natural Earth 1:110m through world-atlas (public domain), drawn once into assets/geo/world.json. */
+let worldShapes = null;
+const loadWorld = () => worldShapes || (worldShapes = fetch('/assets/geo/world.json').then((r) => { if (!r.ok) throw new Error('map'); return r.json(); }).catch((e) => { worldShapes = null; throw e; }));
+export const PLAQUE_WORLD = 'This map represents the WODDI Good Mother Network across Africa and the diaspora, capturing the meaning of “Good Mother” in diverse languages and dialects around the world, ensuring that every woman, regardless of local culture or background, lives up to the identity of her calling A Good Mother.';
+export function worldMap(highlight) {
+  const stage = h('div', { class: 'gm__stage gm__stage--world' }, h('div', { class: 'gm__wait', text: 'Drawing the map…' }));
+  const cap = h('div', { class: 'gm__cap', 'aria-live': 'polite' });
+  const show = (code) => { const g = GOOD_MOTHER[code];
+    cap.replaceChildren(h('b', { text: nameOf(code) || countryName(code) }), ...(g ? g[1].map(([p, l]) => h('span', { class: 'gm__ph' }, p, h('small', { text: l }))) : [h('span', { class: 'gm__none', text: hasGoodMotherMap(code) ? 'Her country map, with what a Good Mother is called there, opens on her dashboard after she joins.' : 'Tap a country to read what a Good Mother is called there.' })])); };
+  cap.append(h('span', { class: 'gm__none', text: 'Tap a country to read what a Good Mother is called there.' }));
+  loadWorld().then((M) => { stage.replaceChildren(drawAfrica(M, show, highlight, 'Map of the world showing the countries of the WODDI Good Mother Network')); if (highlight) show(highlight); }).catch(() => stage.replaceChildren(h('div', { class: 'gm__wait', text: 'The map did not load. The form below still works.' })));
+  return h('figure', { class: 'gm gm--world' },
+    h('div', { class: 'gm__head' }, h('img', { src: '/assets/logos/woddi.png', alt: 'WODDI, The Nurturer' }), h('div', { class: 'gm__title', text: 'WODDI Good Mother Network' }), h('img', { class: 'gm__disc', src: '/assets/logos/wgmn-disc.png', alt: '' })),
+    h('div', { class: 'gm__body' }, h('div', {}, stage, cap), h('figcaption', { class: 'gm__plaque' }, h('span', { 'aria-hidden': 'true', text: '❦' }), h('p', { text: PLAQUE_WORLD }), h('span', { 'aria-hidden': 'true', text: '❦' }))));
 }

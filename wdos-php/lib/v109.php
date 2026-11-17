@@ -3,11 +3,25 @@ declare(strict_types=1);
 /* v109 routes: documents, direct messages, WODDI Envoys, HQ staff access, the leader guide. */
 
 /* ------------------------------------------------------------- documents -- */
+/* v109.5: one piece of a large file. The server in front of WDOS refuses a single request over about 1.5 MB, so the
+ * browser sends files in pieces of up to 600 KB and then names the upload ('upload:<id>') where it used to send the data. */
+route('POST', '/uploads/part', function () {
+  $u = require_user(); $b = body();
+  $id = (string) ($b['upload'] ?? ''); $seq = (int) ($b['seq'] ?? -1); $total = (int) ($b['total'] ?? 0);
+  if (!preg_match('/^[a-f0-9]{32}$/', $id) || $total < 1 || $total > 40 || $seq < 0 || $seq >= $total) fail(422, 'That file could not be read. Choose it again.', 'file');
+  $bin = base64_decode((string) ($b['data'] ?? ''), true);
+  if ($bin === false || $bin === '' || strlen($bin) > 700000) fail(422, 'That file could not be read. Choose it again.', 'file');
+  if ($seq === 0) { throttle('upload:' . (int) $u['id'], 80, 3600); throttle_hit('upload:' . (int) $u['id']); q('DELETE FROM upload_parts WHERE created_at < ?', [gmdate('Y-m-d H:i:s', time() - 86400)]); }
+  $owner = val('SELECT user_id FROM upload_parts WHERE upload_id=? LIMIT 1', [$id]);
+  if ($owner !== null && (int) $owner !== (int) $u['id']) fail(403, 'That upload belongs to someone else.', 'forbidden');
+  $st = db()->prepare('REPLACE INTO upload_parts (upload_id,user_id,seq,total,bytes,created_at) VALUES (?,?,?,?,?,?)');
+  $st->bindValue(1, $id); $st->bindValue(2, (int) $u['id'], PDO::PARAM_INT); $st->bindValue(3, $seq, PDO::PARAM_INT); $st->bindValue(4, $total, PDO::PARAM_INT); $st->bindValue(5, $bin, PDO::PARAM_LOB); $st->bindValue(6, now()); $st->execute();
+  return ['ok' => true, 'have' => (int) val('SELECT COUNT(*) FROM upload_parts WHERE upload_id=?', [$id])];
+});
 route('POST', '/files', function () {
-  $u = require_user(); throttle('upload:' . (int) $u['id'], 80, 3600); throttle_hit('upload:' . (int) $u['id']);
-  $b = body(); $data = (string) ($b['data'] ?? '');
-  $bin = base64_decode((string) preg_replace('#^data:[^;]*;base64,#', '', $data), true);
-  if ($bin === false) fail(422, 'That file could not be read. Choose it again.', 'file');
+  $u = require_user(); $b = body(); $data = (string) ($b['data'] ?? '');
+  if (!str_starts_with($data, 'upload:')) { throttle('upload:' . (int) $u['id'], 80, 3600); throttle_hit('upload:' . (int) $u['id']); }
+  $bin = upload_bytes($u, $data);
   return ['ok' => true, 'file' => doc_store($u, mb_substr(basename((string) ($b['name'] ?? 'document')), 0, 190), $bin, ($b['purpose'] ?? '') === 'report', ($b['purpose'] ?? '') === 'recording')];
 });
 route('GET', '/files/(\d+)', function ($id) {

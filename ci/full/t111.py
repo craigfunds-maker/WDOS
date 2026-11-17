@@ -54,4 +54,22 @@ chk('guide: no screenshots of a sample account are shipped', not _g.glob(R+'*/*/
 js=open('/home/claude/wdos-php/js/pages/guide.js').read()
 chk('guide: the browser voice is no longer used', 'speechSynthesis' not in js)
 chk('guide: every scene of every kind has a plan on her own pages', all(f"id: '{sc['id']}'" in js for kind in ('leader','envoy','member') for sc in _j.load(open(f'{R}{kind}/en/tour.json'))['scenes']))
+
+# v109.5: a file larger than the live server's 1.5 MB request limit arrives in pieces and is joined
+import base64 as _b, secrets as _s
+raw=bytes(range(256))*6000            # 1.5 MB of bytes, sent as three pieces
+import zlib as _z, struct as _st
+def _png(w,h):
+  ch=lambda t,d: _st.pack('>I',len(d))+t+d+_st.pack('>I',_z.crc32(t+d)&0xffffffff)
+  rows=b''.join(b'\x00'+_s.token_bytes(w*3) for _ in range(h))
+  return b'\x89PNG\r\n\x1a\n'+ch(b'IHDR',_st.pack('>IIBBBBB',w,h,8,2,0,0,0))+ch(b'IDAT',_z.compress(rows,1))+ch(b'IEND',b'')
+raw=_png(900,900)
+uid=_s.token_hex(16); P=600*1024; parts=[raw[i:i+P] for i in range(0,len(raw),P)]
+for i,pc in enumerate(parts): r=ld.post(B+'/uploads/part',json={'upload':uid,'seq':i,'total':len(parts),'data':_b.b64encode(pc).decode()}); chk('upload piece accepted', r.ok, r.text)
+chk('someone else cannot finish her upload', hq.post(B+'/files',json={'name':'x.png','data':'upload:'+uid,'purpose':'flier'}).status_code==422)
+r=ld.post(B+'/files',json={'name':'big-flier.png','data':'upload:'+uid,'purpose':'flier'})
+chk('pieces are joined into the whole file', r.ok and r.json()['file']['size']==len(raw), r.text)
+chk('pieces are deleted once joined', ld.post(B+'/files',json={'name':'x.png','data':'upload:'+uid,'purpose':'flier'}).status_code==422)
+uid2=_s.token_hex(16); ld.post(B+'/uploads/part',json={'upload':uid2,'seq':0,'total':2,'data':_b.b64encode(parts[0]).decode()})
+chk('a half-sent file is refused', ld.post(B+'/files',json={'name':'x.png','data':'upload:'+uid2,'purpose':'flier'}).status_code==422)
 print(f'checks {ok+bad}'); print(f'FAILURES {bad}'); sys.exit(1 if bad else 0)

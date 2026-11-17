@@ -91,7 +91,7 @@ route('POST', '/library', function () {
   $me = require_hq(); $b = body(); $title = str_in('title', 190); if (mb_strlen($title) < 3) fail(422, 'Give the document a title.', 'title');
   $aud = in_array($b['audience'] ?? '', ['all', 'leaders', 'hq'], true) ? $b['audience'] : 'leaders'; $url = str_in('url', 600); $bin = null; $mime = ''; $name = '';
   if (!empty($b['data'])) {
-    $bin = base64_decode((string) preg_replace('#^data:[^;]+;base64,#', '', (string) $b['data']), true); $name = mb_substr(basename(str_in('file_name', 190)), 0, 190);
+    $bin = upload_bytes($me, (string) $b['data'], 7000000); $name = mb_substr(basename(str_in('file_name', 190)), 0, 190);
     if (!$bin || strlen($bin) > 6000000) fail(422, 'That file is too large. The limit is 6 MB.', 'size');
     $mime = (new finfo(FILEINFO_MIME_TYPE))->buffer($bin) ?: 'application/octet-stream';
     $ok = ['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/vnd.ms-excel', 'application/vnd.ms-powerpoint', 'application/zip', 'text/plain'];

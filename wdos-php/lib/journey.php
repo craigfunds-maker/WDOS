@@ -3,7 +3,7 @@ declare(strict_types=1);
 /* Referral links, the candidate's activation journey, and HQ's activation register. */
 
 /* ---------------------------------------------------------------- public -- */
-route('GET', '/positions', fn() => ['positions' => rows('SELECT code, title_wgmn, title_wnnn, level FROM positions ORDER BY rank_no'), 'categories' => REF_CATS, 'notice' => ACT_NOTICE]);
+route('GET', '/positions', fn() => ['positions' => rows('SELECT code, title_wgmn, title_wnnn, level FROM positions WHERE in_framework=1 OR ? ORDER BY rank_no, code', [empty($_GET['all']) ? 0 : 1]), 'categories' => REF_CATS, 'notice' => ACT_NOTICE]);
 route('GET', '/ref/([A-Za-z0-9]{4,24})', function ($code) {
   $l = ref_link_by_code($code);
   if (!$l) fail(404, 'This invitation link is not active. Ask the person who sent it for a new link, or join WODDI directly.', 'bad_link');

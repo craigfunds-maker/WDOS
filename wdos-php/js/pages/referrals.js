@@ -74,7 +74,7 @@ async function register(body) {
 }
 function placeFields() {
   const pos = h('select', { class: 'input' }, h('option', { value: '', text: 'Choose the position' })); const country = h('select', { class: 'input' }, h('option', { value: '', text: 'Choose the country' })); const state = h('select', { class: 'input' }, h('option', { value: '', text: 'Whole country' })); const area = input({ maxlength: 120, placeholder: 'LGA, cluster or chapter, where the position needs one' });
-  api('/positions').then((r) => pos.append(...r.positions.map((p) => h('option', { value: p.code, text: `${p.title_wgmn} / ${p.title_wnnn}` })))).catch(() => {});
+  api('/positions?all=1').then((r) => pos.append(...r.positions.map((p) => h('option', { value: p.code, text: `${p.title_wgmn} / ${p.title_wnnn}` })))).catch(() => {});
   api('/geo/countries').then((r) => country.append(...r.countries.map((c) => h('option', { value: c.id, text: c.name })))).catch(() => {});
   country.addEventListener('change', async () => { state.replaceChildren(h('option', { value: '', text: 'Whole country' })); if (!country.value) return; try { const r = await api('/geo/children/' + country.value); state.append(...r.units.map((s) => h('option', { value: s.id, text: s.name }))); } catch { /* country only */ } });
   return { pos, country, state, area, unit: () => Number(state.value || country.value || 0) };
