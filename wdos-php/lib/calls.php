@@ -170,3 +170,12 @@ route('GET', '/calls/(\d+)/signal', function ($id) {
   $list = $other ? rows('SELECT id, kind, payload FROM voice_call_signals WHERE call_id=? AND from_id=? AND id>? ORDER BY id LIMIT 50', [(int) $id, $other, $after]) : [];
   return ['status' => $c['status'], 'signals' => array_map(fn($r) => ['id' => (int) $r['id'], 'kind' => $r['kind'], 'data' => json_decode($r['payload'], true)], $list)];
 });
+
+/** HQ check (v109.15): does Cloudflare give WDOS a relay (TURN) for calls? Reports only counts, never the keys or credentials. */
+route('GET', '/hq/calls/relay', function () {
+  $u = require_user(); if (!is_hq($u)) fail(403, 'HQ only.', 'forbidden');
+  $set = trim((string) cfg('CF_TURN_KEY_ID', '')) !== '' && trim((string) cfg('CF_TURN_KEY_API_TOKEN', '')) !== '';
+  $ice = vc_ice(); $turn = 0; $stun = 0;
+  foreach ($ice as $s) foreach ((array) ($s['urls'] ?? []) as $url) { if (str_starts_with((string) $url, 'turn')) $turn++; elseif (str_starts_with((string) $url, 'stun')) $stun++; }
+  return ['keys_set' => $set, 'relay_ready' => $turn > 0, 'turn_addresses' => $turn, 'stun_addresses' => $stun];
+});

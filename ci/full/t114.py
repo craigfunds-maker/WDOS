@@ -82,4 +82,7 @@ rec=sm.get(B+'/calls').json()['recent']; chk('recent calls list for the leader',
 # in her own language
 p=subprocess.run(['php','-r',"function rows(){return [];} require '/home/claude/wdos-php/lib/notify_i18n.php'; echo json_encode([note_in('fr','Voice call from Amara Bello','Country Representative, Nigeria'), note_in('ar','Missed call from Amara Bello','Open Calls in WDOS to ring back.')], JSON_UNESCAPED_UNICODE);"],capture_output=True,text=True)
 nn=json.loads(p.stdout); chk('call note in French', nn[0][0]=='Appel vocal de Amara Bello', nn); chk('missed call in Arabic', nn[1][0].startswith('مكالمة فائتة'), nn)
+rl=hq.get(B+'/hq/calls/relay').json(); chk('HQ relay check works without keys', rl['keys_set'] is False and rl['relay_ready'] is False and rl['stun_addresses']>=1, rl)
+chk('relay check is HQ only', ld.get(B+'/hq/calls/relay').status_code==403)
+chk('relay check shows no secrets', set(rl)=={'keys_set','relay_ready','turn_addresses','stun_addresses'})
 print('checks',ok+bad,'FAILURES',bad)
