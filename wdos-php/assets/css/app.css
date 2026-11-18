@@ -626,3 +626,15 @@ a.pdx-step__link:hover{background:color-mix(in srgb,#D4006A 7%,transparent)}
 @media (prefers-reduced-motion:reduce){.ringbox{animation:none}}
 .callstage--voice .callstage__frame{background:radial-gradient(circle at 50% 40%,#3a1530,#0b0610)}
 @media(max-width:480px){.ringbox__btns{flex-basis:100%;margin-left:0}.ringbox__btns .btn{flex:1;justify-content:center}}
+/* v109.14 voice call screen (direct audio, no Jitsi) */
+.vcall{position:fixed;inset:0;z-index:220;display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:max(40px,env(safe-area-inset-top)) 20px max(36px,env(safe-area-inset-bottom));background:radial-gradient(circle at 50% 30%,#4a1838,#0b0610 70%);color:#fff;text-align:center}
+.vcall__who{display:grid;justify-items:center;gap:6px;margin-top:6vh}
+.vcall__ico{width:96px;height:96px;border-radius:50%;display:grid;place-items:center;background:#D4006A;margin-bottom:10px;box-shadow:0 0 0 10px rgba(212,0,106,.18)}
+.vcall__who b{font-size:24px} .vcall__who small{color:#e6cfdc;font-size:14px;max-width:320px}
+.vcall__state{margin:10px 0 0;font-size:16px;color:#f3e6ee;max-width:340px} .vcall__clock{margin:0;font-size:22px;font-variant-numeric:tabular-nums;color:#c9f08a;min-height:28px}
+.vcall__btns{display:flex;gap:28px}
+.vcall__btn{display:grid;justify-items:center;gap:6px;background:none;border:0;color:#fff;font:inherit;font-size:13px;cursor:pointer}
+.vcall__btn svg{width:64px;height:64px;padding:18px;border-radius:50%;background:rgba(255,255,255,.14);box-sizing:border-box}
+.vcall__btn[aria-pressed=true] svg{background:#fff;color:#0b0610}
+.vcall__end svg{background:#c4103d;transform:rotate(135deg)}
+.vcall__btn:disabled{opacity:.5}

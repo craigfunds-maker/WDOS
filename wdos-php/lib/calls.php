@@ -7,8 +7,10 @@ declare(strict_types=1);
  *  - an HQ admin can ring any serving leader (to return a call, for example).
  * Ringing reaches the other person in the open app (it asks every few seconds) and as a phone notification.
  * A call that nobody answers in 45 seconds becomes a missed call and the person is told.
- * The audio uses the same room service as the video meetings (Jitsi or JaaS) with the camera off; the room name is
- * random and is given only to the two people on the call. */
+ * v109.14 (Azeez: "voice call shouldn't use Jitsi"): the two browsers talk to each other directly (WebRTC, audio only).
+ * WDOS passes only the connection messages (one offer, one answer) between the two people on the call, and deletes
+ * them when the call ends. Public STUN servers help the phones find each other; when Cloudflare TURN keys are set
+ * (CF_TURN_KEY_ID and CF_TURN_KEY_API_TOKEN in config.local.php) calls also connect behind strict mobile networks. */
 
 const VC_RING_SECONDS = 45;
 
@@ -52,17 +54,20 @@ function vc_out(array $u, array $c): array {
     'with_title' => $seat ? seat_title($seat) : ($other && ($p = row('SELECT role FROM users WHERE id=?', [$other])) && in_array($p['role'], ['hq_admin', 'super_admin'], true) ? 'WODDI HQ' : ''),
     'created_at' => $c['created_at'], 'answered_at' => $c['answered_at'], 'ended_at' => $c['ended_at']];
 }
-/** The room address for one person on the call: public Jitsi, a community server or JaaS with a signed token. */
-function vc_room(array $u, string $room): array {
-  $name = trim($u['first_name'] . ' ' . $u['last_name']); $dom = jitsi_domain(); $kind = call_engine($dom);
-  $out = ['engine' => $kind, 'room' => $room, 'domain' => $dom, 'name' => $name, 'email' => (string) ($u['email'] ?? ''), 'moderator' => true,
-    'url' => 'https://' . $dom . '/' . rawurlencode($room) . '#config.startWithVideoMuted=true&userInfo.displayName=' . rawurlencode('"' . $name . '"'), 'limit_minutes' => $kind === 'public' ? 5 : null];
-  if ($kind === 'jaas') {
-    $jwt = jaas_jwt($u, $room, true);
-    if ($jwt) { $app = (string) cfg('JAAS_APP_ID'); $out = array_merge($out, ['domain' => '8x8.vc', 'app_id' => $app, 'jwt' => $jwt, 'url' => 'https://8x8.vc/' . $app . '/' . rawurlencode($room) . '?jwt=' . $jwt]); }
-    else { $out['engine'] = 'public'; $out['limit_minutes'] = 5; }
+/** The network helpers given to both browsers: STUN always; Cloudflare TURN (relay) when its keys are set. */
+function vc_ice(): array {
+  $ice = [['urls' => ['stun:stun.cloudflare.com:3478', 'stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302']]];
+  $kid = trim((string) cfg('CF_TURN_KEY_ID', '')); $tok = trim((string) cfg('CF_TURN_KEY_API_TOKEN', ''));
+  if ($kid !== '' && $tok !== '' && preg_match('/^[A-Za-z0-9]+$/', $kid)) {
+    $ch = curl_init('https://rtc.live.cloudflare.com/v1/turn/keys/' . $kid . '/credentials/generate-ice-servers');
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 6, CURLOPT_POSTFIELDS => json_encode(['ttl' => 7200]),
+      CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $tok, 'Content-Type: application/json']]);
+    $r = curl_exec($ch); $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    $d = $r ? json_decode((string) $r, true) : null;
+    if ($code >= 200 && $code < 300 && !empty($d['iceServers'])) $ice = array_merge($ice, isset($d['iceServers'][0]) ? $d['iceServers'] : [$d['iceServers']]);
+    else error_log('[wdos calls] TURN credentials not given: HTTP ' . $code);
   }
-  return $out;
+  return $ice;
 }
 /** Calls nobody answered become missed calls (the person rung is told once); calls left open for 3 hours are closed. */
 function vc_expire(): void {
@@ -75,6 +80,7 @@ function vc_expire(): void {
     elseif ($c['callee_id']) notify((int) $c['callee_id'], 'meeting', 'Missed call from ' . $from, 'Open Calls in WDOS to ring back.', '#/calls');
   }
   q("UPDATE voice_calls SET status='ended', ended_at=? WHERE status='answered' AND answered_at < ?", [now(), gmdate('Y-m-d H:i:s', time() - 3 * 3600)]);
+  try { q("DELETE s FROM voice_call_signals s JOIN voice_calls c ON c.id=s.call_id WHERE c.status NOT IN ('ringing','answered')"); } catch (PDOException $e) { /* before migration 036 */ }
 }
 
 route('GET', '/calls', function () {
@@ -100,7 +106,7 @@ route('POST', '/calls', function () {
   else notify($callee, 'meeting', 'Voice call from ' . $from, $who, '#/calls/' . $id);
   log_activity((int) $u['id'], $callee, 'voice_call', $hq ? 'to HQ' : 'to a leader');
   $c = row('SELECT * FROM voice_calls WHERE id=?', [$id]);
-  return ['ok' => true, 'call' => vc_out($u, $c), 'join' => vc_room($u, $room), 'ring_seconds' => VC_RING_SECONDS];
+  return ['ok' => true, 'call' => vc_out($u, $c), 'ice' => vc_ice(), 'ring_seconds' => VC_RING_SECONDS];
 });
 
 /** Asked every few seconds by the open app: calls ringing for me now. */
@@ -128,7 +134,7 @@ route('POST', '/calls/(\d+)/answer', function ($id) {
     $now = row('SELECT status, answered_by FROM voice_calls WHERE id=?', [(int) $id]);
     fail(409, $now['status'] === 'answered' ? 'Someone else at HQ has answered this call.' : 'This call has ended.', 'gone');
   }
-  return ['ok' => true, 'call' => vc_out($u, row('SELECT * FROM voice_calls WHERE id=?', [(int) $id])), 'join' => vc_room($u, $c['room'])];
+  return ['ok' => true, 'call' => vc_out($u, row('SELECT * FROM voice_calls WHERE id=?', [(int) $id])), 'ice' => vc_ice()];
 });
 route('POST', '/calls/(\d+)/decline', function ($id) {
   $u = require_user(); $c = vc_mine($u, (int) $id);
@@ -141,4 +147,26 @@ route('POST', '/calls/(\d+)/end', function ($id) {
   if ($c['status'] === 'ringing' && vc_role($u, $c) === 'caller') q("UPDATE voice_calls SET status='cancelled', ended_at=? WHERE id=? AND status='ringing'", [now(), (int) $id]);
   elseif ($c['status'] === 'answered') q("UPDATE voice_calls SET status='ended', ended_at=? WHERE id=? AND status='answered'", [now(), (int) $id]);
   return ['ok' => true];
+});
+
+/** The connection messages: the caller posts her offer, the person who answered posts the answer.
+ *  Each side reads only what the other side posted. Nobody else on WDOS can read or post. */
+route('POST', '/calls/(\d+)/signal', function ($id) {
+  $u = require_user(); $c = vc_mine($u, (int) $id);
+  if (!in_array($c['status'], ['ringing', 'answered'], true)) fail(409, 'This call has ended.', 'gone');
+  $kind = (string) (body()['kind'] ?? ''); $data = body()['data'] ?? null; $role = vc_role($u, $c);
+  if (!($role === 'caller' && $kind === 'offer') && !($role === 'callee' && $kind === 'answer') && $kind !== 'ice') fail(422, 'That message is not part of a call.', 'kind');
+  if ($role === 'callee' && $c['status'] !== 'answered') fail(409, 'Answer the call first.', 'not_answered');
+  $json = json_encode($data, JSON_UNESCAPED_SLASHES);
+  if ($json === false || strlen($json) > 60000) fail(422, 'That message is too large.', 'data');
+  if ((int) val('SELECT COUNT(*) FROM voice_call_signals WHERE call_id=? AND from_id=?', [(int) $id, (int) $u['id']]) >= 60) fail(429, 'Too many messages for one call.', 'throttled');
+  $sid = ins('INSERT INTO voice_call_signals (call_id,from_id,kind,payload,created_at) VALUES (?,?,?,?,?)', [(int) $id, (int) $u['id'], $kind, $json, now()]);
+  return ['ok' => true, 'id' => $sid];
+});
+route('GET', '/calls/(\d+)/signal', function ($id) {
+  $u = require_user(); $c = vc_mine($u, (int) $id); $after = max(0, (int) ($_GET['after'] ?? 0));
+  $role = vc_role($u, $c);
+  $other = $role === 'caller' ? (int) ($c['answered_by'] ?? $c['callee_id'] ?? 0) : (int) $c['caller_id'];
+  $list = $other ? rows('SELECT id, kind, payload FROM voice_call_signals WHERE call_id=? AND from_id=? AND id>? ORDER BY id LIMIT 50', [(int) $id, $other, $after]) : [];
+  return ['status' => $c['status'], 'signals' => array_map(fn($r) => ['id' => (int) $r['id'], 'kind' => $r['kind'], 'data' => json_decode($r['payload'], true)], $list)];
 });
