@@ -260,30 +260,32 @@ function loadLib(src) {
   if (!libs.has(src) || libs.get(src) === false) libs.set(src, new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = src; sc.async = true; sc.onload = () => { libs.set(src, true); res(); }; sc.onerror = () => { libs.set(src, false); rej(new Error('lib')); }; document.head.append(sc); setTimeout(() => rej(new Error('timeout')), 15000); }));
   const p = libs.get(src); return p === true ? Promise.resolve() : p;
 }
-export function openStage(m, r, onClose) {
-  if (document.querySelector('.callstage')) return;
+export function openStage(m, r, onClose, opt = {}) {
+  if (document.querySelector('.callstage')) return null;   // opt.audio: a voice call (camera off); opt.sub: the line under the title
   const jaas = r.engine === 'jaas' && r.jwt && r.app_id; let api = null; let joined = false;
-  const frame = h('div', { class: 'callstage__frame', 'aria-label': t('Video call') });
+  const frame = h('div', { class: 'callstage__frame', 'aria-label': t(opt.audio ? 'Voice call' : 'Video call') });
   const status = h('p', { class: 'callstage__status', 'aria-live': 'polite', text: t('Connecting to the call…') });
   const tab = h('a', { class: 'btn btn--quiet btn--s', href: r.url, target: '_blank', rel: 'noopener' }, t('Open in a new tab instead'));
   const leave = () => { try { api?.dispose(); } catch { /* gone */ } api = null; wrap.remove(); document.removeEventListener('keydown', esc); document.body.classList.remove('in-call'); onClose && onClose(); };
   const esc = (e) => { if (e.key === 'Escape' && !joined) leave(); };
   const note = r.limit_minutes ? h('p', { class: 'callstage__note', text: tf('This call uses the free public Jitsi server, which stops calls shown inside other sites after {1} minutes. If it stops, press Open in a new tab instead and you return to the same room.', r.limit_minutes) }) : null;
   const wrap = h('div', { class: 'callstage', role: 'dialog', 'aria-modal': 'true', 'aria-label': m.title },
-    h('div', { class: 'callstage__bar' }, h('div', { class: 'grow' }, h('b', { text: m.title }), h('small', { text: [m.request_no, r.moderator ? t('You run this meeting') : ''].filter(Boolean).join(' · ') })), tab,
-      h('button', { class: 'btn btn--s callstage__leave', type: 'button', onclick: leave }, t('Leave the call'))),
-    note, status, frame);
+    h('div', { class: 'callstage__bar' }, h('div', { class: 'grow' }, h('b', { text: m.title }), h('small', { text: opt.sub != null ? opt.sub : [m.request_no, r.moderator ? t('You run this meeting') : ''].filter(Boolean).join(' · ') })), tab,
+      h('button', { class: 'btn btn--s callstage__leave', type: 'button', onclick: leave }, t(opt.audio ? 'Hang up' : 'Leave the call'))),
+    note, status, opt.top || null, frame);
+  if (opt.audio) wrap.classList.add('callstage--voice');
   document.body.append(wrap); document.body.classList.add('in-call'); document.addEventListener('keydown', esc);
   const domain = jaas ? '8x8.vc' : r.domain;
   loadLib(jaas ? `https://8x8.vc/${r.app_id}/external_api.js` : `https://${r.domain}/external_api.js`).then(() => {
     api = new window.JitsiMeetExternalAPI(domain, {
       roomName: jaas ? `${r.app_id}/${r.room}` : r.room, jwt: jaas ? r.jwt : undefined, parentNode: frame, width: '100%', height: '100%', lang: i18n.lang,
       userInfo: { displayName: r.name, email: r.email || undefined },
-      configOverwrite: { prejoinConfig: { enabled: false }, disableDeepLinking: true, startWithAudioMuted: true, startWithVideoMuted: false, subject: m.title, disableThirdPartyRequests: true, enableClosePage: false },
+      configOverwrite: { prejoinConfig: { enabled: false }, disableDeepLinking: true, startWithAudioMuted: !opt.audio, startWithVideoMuted: !!opt.audio, ...(opt.audio ? { toolbarButtons: ['microphone', 'hangup', 'settings'], disableInitialGUM: false } : {}), subject: m.title, disableThirdPartyRequests: true, enableClosePage: false },
       interfaceConfigOverwrite: { MOBILE_APP_PROMO: false, SHOW_CHROME_EXTENSION_BANNER: false },
     });
     api.addListener('videoConferenceJoined', () => { joined = true; status.textContent = ''; status.hidden = true; });
     api.addListener('readyToClose', leave);
     setTimeout(() => { if (!joined && api) status.textContent = t('The call is taking long to start. Check your connection, or press Open in a new tab instead.'); }, 25000);
   }).catch(() => { status.textContent = t('The call could not load here. Press Open in a new tab instead.'); });
+  return { leave, wrap, status };
 }

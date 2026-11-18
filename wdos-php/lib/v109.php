@@ -323,7 +323,7 @@ route('POST', '/meet-requests', function () {
   $no = 'MR-' . gmdate('Ym') . '-' . str_pad((string) $id, 4, '0', STR_PAD_LEFT); q('UPDATE meeting_requests SET request_no=? WHERE id=?', [$no, $id]);
   if ((int) ($b['flier_file'] ?? 0)) mr_set_flier($u, $id, (int) $b['flier_file']);
   $who_name = trim($u['first_name'] . ' ' . $u['last_name']); $when = gmdate('j M Y, H:i', $start) . ' GMT';
-  notify_hq('meeting', 'Video meeting request: ' . mb_substr($title, 0, 120), $who_name . ' · ' . $when, '#/meetings/requests/' . $id);
+  notify_hq('meeting', mb_substr($title, 0, 120) . ': meeting request', $who_name . ' · ' . $when, '#/meetings/requests/' . $id);
   hq_mail('WDOS video meeting request ' . $no . ' from ' . $who_name, 'A leader asks for a video meeting', '<p><b>' . htmlspecialchars($who_name) . '</b>' . ($seat ? ' (' . htmlspecialchars(seat_title($seat)) . ')' : '') . ' asks for a video meeting.</p><p><b>' . htmlspecialchars($title) . '</b><br>' . htmlspecialchars($when) . ', ' . $dur . ' minutes</p><p>' . nl2br(htmlspecialchars($reason)) . '</p><p><b>Attending:</b> ' . htmlspecialchars($who) . '</p>' . (str_in('graphics', 2000) !== '' ? '<p><b>Graphics needed:</b> ' . htmlspecialchars(str_in('graphics', 2000)) . '</p>' : ''), '#/meetings/requests/' . $id);
   log_activity((int) $u['id'], null, 'meeting_requested', $no . ' · ' . $title);
   after_response(fn() => push_drain(20));
@@ -340,11 +340,11 @@ route('POST', '/meet-requests/(\d+)/decide', function ($id) {
   if ($d === 'approve' && empty($m['call_domain'])) q('UPDATE meeting_requests SET call_domain=? WHERE id=?', [jitsi_domain(), (int) $id]);   // everyone in this meeting uses the same server, even if HQ changes the rule later
   $when = gmdate('j M Y, H:i', strtotime($m['starts_at'] . ' UTC')) . ' GMT'; $url = '#/meetings/requests/' . $id;
   if ($d === 'approve') {
-    notify((int) $m['requester_id'], 'meeting', 'Video meeting approved: ' . mb_substr($m['title'], 0, 120), $when . '. The Join button is ready now.', $url);
+    notify((int) $m['requester_id'], 'meeting', mb_substr($m['title'], 0, 120) . ': approved', $when . '. The Join button is ready now.', $url);
     person_mail((int) $m['requester_id'], 'WDOS video meeting approved: ' . mb_substr($m['title'], 0, 120), 'Your video meeting is approved', '<p>WODDI HQ approved <b>' . htmlspecialchars($m['title']) . '</b> for ' . htmlspecialchars($when) . '.</p><p>Open the meeting in WDOS. The Join button is ready now, and you can tell your people from the meeting page.</p>' . ($note !== '' ? '<p>' . nl2br(htmlspecialchars($note)) . '</p>' : ''), $url);
     if ($ids = mr_ids($m)) { notify_many('u.id IN (' . implode(',', $ids) . ')', [], 'meeting', 'You are invited: ' . mb_substr($m['title'], 0, 120), $when, $url); foreach ($ids as $i) person_mail($i, 'WDOS video meeting: ' . mb_substr($m['title'], 0, 120), 'You are invited to a video meeting', '<p><b>' . htmlspecialchars($m['title']) . '</b>, ' . htmlspecialchars($when) . '.</p><p>Open it in WDOS. The Join button is ready now.</p>', $url); }
   } else {
-    notify((int) $m['requester_id'], 'meeting', 'Video meeting not approved: ' . mb_substr($m['title'], 0, 110), $note, $url);
+    notify((int) $m['requester_id'], 'meeting', mb_substr($m['title'], 0, 110) . ': not approved', $note, $url);
     person_mail((int) $m['requester_id'], 'WDOS video meeting not approved: ' . mb_substr($m['title'], 0, 110), 'Your video meeting request', '<p>WODDI HQ did not approve <b>' . htmlspecialchars($m['title']) . '</b>.</p><p>' . nl2br(htmlspecialchars($note)) . '</p>', $url);
   }
   log_activity((int) $me['id'], (int) $m['requester_id'], 'meeting_request_' . $d, $m['request_no']);
@@ -356,7 +356,7 @@ route('POST', '/meet-requests/(\d+)/cancel', function ($id) {
   if (!$m || mr_role($u, $m) !== 'requester') fail(404, 'That meeting was not found.', 'not_found');
   if (!in_array($m['status'], ['pending', 'approved'], true)) fail(409, 'This request can no longer be cancelled.', 'state');
   q("UPDATE meeting_requests SET status='cancelled', updated_at=? WHERE id=?", [now(), (int) $id]);
-  notify_hq('meeting', 'Video meeting cancelled: ' . mb_substr($m['title'], 0, 120), $m['request_no'], '#/meetings/requests/' . $id);
+  notify_hq('meeting', mb_substr($m['title'], 0, 120) . ': cancelled', $m['request_no'], '#/meetings/requests/' . $id);
   if ($m['status'] === 'approved' && ($ids = mr_ids($m))) notify_many('u.id IN (' . implode(',', $ids) . ')', [], 'meeting', 'Cancelled: ' . mb_substr($m['title'], 0, 120), $m['request_no'], '#/meetings/requests/' . $id);
   return ['ok' => true];
 });
@@ -404,7 +404,7 @@ route('POST', '/meet-requests/(\d+)/notify', function ($id) {
   if (!$to) fail(422, 'Nobody else is invited yet. Choose people to tell.', 'people');
   $when = gmdate('j M Y, H:i', strtotime($m['starts_at'] . ' UTC')) . ' GMT'; $url = '#/meetings/requests/' . $id;
   $from = trim($u['first_name'] . ' ' . $u['last_name']); $msg = str_in('message', 600);
-  notify_many('u.id IN (' . implode(',', $to) . ')', [], 'meeting', 'Video meeting: ' . mb_substr($m['title'], 0, 120), $when . ' · ' . $from . ($msg !== '' ? ': ' . mb_substr($msg, 0, 160) : ''), $url);
+  notify_many('u.id IN (' . implode(',', $to) . ')', [], 'meeting', 'You are invited: ' . mb_substr($m['title'], 0, 120), $when . ' · ' . $from . ($msg !== '' ? ': ' . mb_substr($msg, 0, 160) : ''), $url);
   foreach ($to as $i) person_mail($i, 'WDOS video meeting: ' . mb_substr($m['title'], 0, 120), 'You are invited to a video meeting',
     '<p>' . htmlspecialchars($from) . ' invites you to <b>' . htmlspecialchars($m['title']) . '</b>, ' . htmlspecialchars($when) . '.</p>' . ($msg !== '' ? '<p>' . nl2br(htmlspecialchars($msg)) . '</p>' : '') . '<p>Open the meeting in WDOS and tap <b>Join video meeting</b>. It opens inside WDOS.</p>' . (mr_flier((int) $id) ? '<p>The meeting flier is on the meeting page in WDOS.</p>' : ''), $url);
   log_activity((int) $u['id'], null, 'meeting_notified', $m['request_no'] . ' · ' . count($to));

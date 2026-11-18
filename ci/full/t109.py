@@ -86,8 +86,8 @@ chk('JaaS token header', jj.get('head',{}).get('kid')=='vpaas-magic-cookie-test/
 bd=jj.get('body',{}); chk('JaaS token claims', bd.get('sub')=='vpaas-magic-cookie-test' and bd.get('room')=='WODDI-ROOM' and bd.get('aud')=='jitsi' and bd['context']['user']['moderator']=='true' and bd['context']['user']['name']=='Ngozi Leader' and bd['exp']>bd['nbf'], bd)
 chk('engine switches to JaaS when keys are set', jj.get('engine')=='jaas', jj.get('engine'))
 # ---- meeting notification in the member's own language
-p=php(r'''function rows(){return [];} require 'lib/notify_i18n.php'; echo json_encode([note_in('fr','Video meeting approved: Lagos','15 Nov 2026, 07:25 GMT. The Join button is ready now.'), note_in('ar','Minutes: Lagos','18 attended.'), note_in('sw','You are invited: Plan','15 Nov 2026, 07:25 GMT')], JSON_UNESCAPED_UNICODE);''')
-nn=json.loads(p.stdout); chk('approved notice in French', nn[0][0]=='Réunion vidéo approuvée : Lagos' and 'Rejoindre' in nn[0][1], nn[0])
+p=php(r'''function rows(){return [];} require 'lib/notify_i18n.php'; echo json_encode([note_in('fr','Lagos: approved','15 Nov 2026, 07:25 GMT. The Join button is ready now.'), note_in('ar','Minutes: Lagos','18 attended.'), note_in('sw','You are invited: Plan','15 Nov 2026, 07:25 GMT')], JSON_UNESCAPED_UNICODE);''')
+nn=json.loads(p.stdout); chk('approved notice in French', nn[0][0]=='Lagos : approuvée' and 'Rejoindre' in nn[0][1], nn[0])
 chk('minutes notice in Arabic', nn[1][0].startswith('محضر') and '18' in nn[1][1], nn[1]); chk('invite in Swahili', nn[2][0]=='Umealikwa: Plan', nn[2])
 chk('template list and its descriptions line up', php(r'''function rows(){return [];} require 'lib/notify_i18n.php'; echo count(NOTE_TEMPLATES)===count(NOTE_META)?'same':'differ';''').stdout=='same')
 print('checks',cnt,'FAILURES',bad)

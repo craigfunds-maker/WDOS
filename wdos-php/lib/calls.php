@@ -1,0 +1,144 @@
+<?php
+declare(strict_types=1);
+/* v109.13: voice calls (Azeez, 18 Nov 2026: "volunteer leaders to make voice call among the leaders in their regions and also call HQ").
+ * Who may ring whom is decided here, on the server:
+ *  - a volunteer leader rings leaders whose seat is in her own country and network (a leader above country level:
+ *    the leaders under her part of the structure), and she can ring WODDI HQ;
+ *  - an HQ admin can ring any serving leader (to return a call, for example).
+ * Ringing reaches the other person in the open app (it asks every few seconds) and as a phone notification.
+ * A call that nobody answers in 45 seconds becomes a missed call and the person is told.
+ * The audio uses the same room service as the video meetings (Jitsi or JaaS) with the camera off; the room name is
+ * random and is given only to the two people on the call. */
+
+const VC_RING_SECONDS = 45;
+
+function vc_can_call(array $u): bool { return is_hq($u) || (bool) work_seat($u); }
+
+/** Serving leaders this person may ring, as SQL over seats sc / users u / positions p / org_units o. */
+function vc_reach_sql(array $u): array {
+  $base = "sc.ends_at IS NULL AND sc.status NOT IN ('on_leave','suspended') AND u.status='active' AND u.id<>" . (int) $u['id'];
+  if (is_hq($u)) return [$base, []];
+  $seat = work_seat($u); if (!$seat) return ['1=0', []];
+  if (!empty($seat['unit_country'])) return [$base . ' AND o.country_code=? AND sc.network=?', [$seat['unit_country'], $seat['network']]];
+  return [$base . ' AND o.path LIKE ? AND sc.network=?', [$seat['unit_path'] . '%', $seat['network']]];
+}
+function vc_people(array $u, string $q = '', ?int $only = null): array {
+  [$w, $p] = vc_reach_sql($u);
+  if ($q !== '') { $w .= " AND CONCAT(u.first_name,' ',u.last_name) LIKE ?"; $p[] = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $q) . '%'; }
+  if ($only !== null) { $w .= ' AND u.id=?'; $p[] = $only; }
+  $out = [];
+  foreach (rows("SELECT u.id, u.first_name, u.last_name, u.has_photo, sc.network, sc.area_label, p.title_wgmn, p.title_wnnn, o.name AS unit_name
+                 FROM seats sc JOIN users u ON u.id=sc.user_id JOIN positions p ON p.code=sc.position_code JOIN org_units o ON o.id=sc.org_unit_id
+                 WHERE $w ORDER BY p.rank_no, u.first_name, u.last_name LIMIT 400", $p) as $r) {
+    $id = (int) $r['id']; if (isset($out[$id])) continue;
+    $out[$id] = ['id' => $id, 'first_name' => $r['first_name'], 'last_name' => $r['last_name'], 'name' => trim($r['first_name'] . ' ' . $r['last_name']), 'has_photo' => (int) $r['has_photo'] === 1, 'network' => $r['network'],
+      'title' => seat_title($r)];
+  }
+  return array_values($out);
+}
+function vc_name(int $id): string { $r = row('SELECT first_name, last_name FROM users WHERE id=?', [$id]); return $r ? trim($r['first_name'] . ' ' . $r['last_name']) : ''; }
+function vc_role(array $u, array $c): string {
+  $me = (int) $u['id'];
+  if ((int) $c['caller_id'] === $me) return 'caller';
+  if ((int) $c['to_hq'] === 1 && is_hq($u) && ($c['answered_by'] === null || (int) $c['answered_by'] === $me)) return 'callee';
+  if ($c['callee_id'] !== null && (int) $c['callee_id'] === $me) return 'callee';
+  return '';
+}
+function vc_out(array $u, array $c): array {
+  $role = vc_role($u, $c); $other = $role === 'caller' ? ((int) $c['to_hq'] === 1 ? ((int) ($c['answered_by'] ?? 0) ?: null) : (int) $c['callee_id']) : (int) $c['caller_id'];
+  $name = $role === 'caller' && (int) $c['to_hq'] === 1 && !$other ? 'WODDI HQ' : ($other ? vc_name($other) : '');
+  $seat = $other ? current_seat($other) : null;
+  return ['id' => (int) $c['id'], 'role' => $role, 'status' => $c['status'], 'to_hq' => (int) $c['to_hq'] === 1, 'with_id' => $other, 'with' => $name,
+    'with_title' => $seat ? seat_title($seat) : ($other && ($p = row('SELECT role FROM users WHERE id=?', [$other])) && in_array($p['role'], ['hq_admin', 'super_admin'], true) ? 'WODDI HQ' : ''),
+    'created_at' => $c['created_at'], 'answered_at' => $c['answered_at'], 'ended_at' => $c['ended_at']];
+}
+/** The room address for one person on the call: public Jitsi, a community server or JaaS with a signed token. */
+function vc_room(array $u, string $room): array {
+  $name = trim($u['first_name'] . ' ' . $u['last_name']); $dom = jitsi_domain(); $kind = call_engine($dom);
+  $out = ['engine' => $kind, 'room' => $room, 'domain' => $dom, 'name' => $name, 'email' => (string) ($u['email'] ?? ''), 'moderator' => true,
+    'url' => 'https://' . $dom . '/' . rawurlencode($room) . '#config.startWithVideoMuted=true&userInfo.displayName=' . rawurlencode('"' . $name . '"'), 'limit_minutes' => $kind === 'public' ? 5 : null];
+  if ($kind === 'jaas') {
+    $jwt = jaas_jwt($u, $room, true);
+    if ($jwt) { $app = (string) cfg('JAAS_APP_ID'); $out = array_merge($out, ['domain' => '8x8.vc', 'app_id' => $app, 'jwt' => $jwt, 'url' => 'https://8x8.vc/' . $app . '/' . rawurlencode($room) . '?jwt=' . $jwt]); }
+    else { $out['engine'] = 'public'; $out['limit_minutes'] = 5; }
+  }
+  return $out;
+}
+/** Calls nobody answered become missed calls (the person rung is told once); calls left open for 3 hours are closed. */
+function vc_expire(): void {
+  $cut = gmdate('Y-m-d H:i:s', time() - VC_RING_SECONDS);
+  foreach (rows("SELECT * FROM voice_calls WHERE status='ringing' AND created_at < ? LIMIT 50", [$cut]) as $c) {
+    $st = q("UPDATE voice_calls SET status='missed', ended_at=? WHERE id=? AND status='ringing'", [now(), (int) $c['id']]);
+    if ($st->rowCount() !== 1) continue;
+    $from = vc_name((int) $c['caller_id']);
+    if ((int) $c['to_hq'] === 1) notify_hq('meeting', 'Missed call from ' . $from, 'Open Calls in WDOS to ring back.', '#/calls');
+    elseif ($c['callee_id']) notify((int) $c['callee_id'], 'meeting', 'Missed call from ' . $from, 'Open Calls in WDOS to ring back.', '#/calls');
+  }
+  q("UPDATE voice_calls SET status='ended', ended_at=? WHERE status='answered' AND answered_at < ?", [now(), gmdate('Y-m-d H:i:s', time() - 3 * 3600)]);
+}
+
+route('GET', '/calls', function () {
+  $u = require_user(); vc_expire(); $me = (int) $u['id'];
+  $w = '(caller_id=? OR callee_id=?' . (is_hq($u) ? ' OR to_hq=1' : '') . ')';
+  $recent = array_map(fn($c) => vc_out($u, $c), rows("SELECT * FROM voice_calls WHERE $w ORDER BY id DESC LIMIT 40", [$me, $me]));
+  return ['can_call' => vc_can_call($u), 'is_hq' => is_hq($u), 'people' => vc_can_call($u) ? vc_people($u, str_in_get('q')) : [], 'recent' => array_values(array_filter($recent, fn($r) => $r['role'] !== ''))];
+});
+function str_in_get(string $k): string { return mb_substr(trim((string) ($_GET[$k] ?? '')), 0, 60); }
+
+route('POST', '/calls', function () {
+  $u = require_user(); if (!vc_can_call($u)) fail(403, 'Voice calls are for volunteer leaders and WODDI HQ.', 'forbidden');
+  throttle('vcall:' . (int) $u['id'], 40, 3600); throttle_hit('vcall:' . (int) $u['id']);
+  $to = body()['to'] ?? null; $hq = $to === 'hq'; $callee = $hq ? null : (int) $to;
+  if ($hq && is_hq($u)) fail(422, 'You are WODDI HQ. Choose a leader to ring.', 'to');
+  if (!$hq) { if ($callee < 1 || !vc_people($u, '', $callee)) fail(403, 'You can ring leaders in your own country and network, and WODDI HQ.', 'to'); }
+  // one call at a time: anything this person was still ringing is cancelled
+  q("UPDATE voice_calls SET status='cancelled', ended_at=? WHERE caller_id=? AND status='ringing'", [now(), (int) $u['id']]);
+  $room = 'WODDI-call-' . bin2hex(random_bytes(10));
+  $id = ins('INSERT INTO voice_calls (caller_id,callee_id,to_hq,room,status,created_at) VALUES (?,?,?,?,?,?)', [(int) $u['id'], $callee, $hq ? 1 : 0, $room, 'ringing', now()]);
+  $from = trim($u['first_name'] . ' ' . $u['last_name']); $seat = work_seat($u); $who = $seat ? seat_title($seat) : 'WODDI HQ';
+  if ($hq) notify_hq('meeting', 'Voice call from ' . $from, $who, '#/calls/' . $id);
+  else notify($callee, 'meeting', 'Voice call from ' . $from, $who, '#/calls/' . $id);
+  log_activity((int) $u['id'], $callee, 'voice_call', $hq ? 'to HQ' : 'to a leader');
+  $c = row('SELECT * FROM voice_calls WHERE id=?', [$id]);
+  return ['ok' => true, 'call' => vc_out($u, $c), 'join' => vc_room($u, $room), 'ring_seconds' => VC_RING_SECONDS];
+});
+
+/** Asked every few seconds by the open app: calls ringing for me now. */
+route('GET', '/calls/ring', function () {
+  $u = require_user(); if (!vc_can_call($u)) return ['calls' => []];
+  vc_expire(); $me = (int) $u['id'];
+  $w = '(callee_id=?' . (is_hq($u) ? ' OR to_hq=1' : '') . ')';
+  $list = rows("SELECT * FROM voice_calls WHERE status='ringing' AND $w AND caller_id<>? AND created_at >= ? ORDER BY id DESC LIMIT 5", [$me, $me, gmdate('Y-m-d H:i:s', time() - VC_RING_SECONDS)]);
+  return ['calls' => array_map(fn($c) => vc_out($u, $c), $list)];
+});
+
+function vc_mine(array $u, int $id): array {
+  $c = row('SELECT * FROM voice_calls WHERE id=?', [$id]);
+  if (!$c || vc_role($u, $c) === '') fail(404, 'That call was not found.', 'not_found');
+  return $c;
+}
+route('GET', '/calls/(\d+)', function ($id) { $u = require_user(); vc_expire(); return ['call' => vc_out($u, vc_mine($u, (int) $id))]; });
+
+route('POST', '/calls/(\d+)/answer', function ($id) {
+  $u = require_user(); vc_expire(); $c = vc_mine($u, (int) $id);
+  if (vc_role($u, $c) !== 'callee') fail(403, 'Only the person being rung can answer.', 'forbidden');
+  // the first to answer takes the call (for calls to HQ, the other HQ admins stop ringing)
+  $st = q("UPDATE voice_calls SET status='answered', answered_at=?, answered_by=? WHERE id=? AND status='ringing'", [now(), (int) $u['id'], (int) $id]);
+  if ($st->rowCount() !== 1) {
+    $now = row('SELECT status, answered_by FROM voice_calls WHERE id=?', [(int) $id]);
+    fail(409, $now['status'] === 'answered' ? 'Someone else at HQ has answered this call.' : 'This call has ended.', 'gone');
+  }
+  return ['ok' => true, 'call' => vc_out($u, row('SELECT * FROM voice_calls WHERE id=?', [(int) $id])), 'join' => vc_room($u, $c['room'])];
+});
+route('POST', '/calls/(\d+)/decline', function ($id) {
+  $u = require_user(); $c = vc_mine($u, (int) $id);
+  if (vc_role($u, $c) !== 'callee') fail(403, 'Only the person being rung can decline.', 'forbidden');
+  q("UPDATE voice_calls SET status='declined', ended_at=? WHERE id=? AND status='ringing'", [now(), (int) $id]);
+  return ['ok' => true];
+});
+route('POST', '/calls/(\d+)/end', function ($id) {
+  $u = require_user(); $c = vc_mine($u, (int) $id);
+  if ($c['status'] === 'ringing' && vc_role($u, $c) === 'caller') q("UPDATE voice_calls SET status='cancelled', ended_at=? WHERE id=? AND status='ringing'", [now(), (int) $id]);
+  elseif ($c['status'] === 'answered') q("UPDATE voice_calls SET status='ended', ended_at=? WHERE id=? AND status='answered'", [now(), (int) $id]);
+  return ['ok' => true];
+});

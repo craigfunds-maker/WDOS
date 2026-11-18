@@ -616,3 +616,13 @@ a.pdx-step__link:hover{background:color-mix(in srgb,#D4006A 7%,transparent)}
 /* v109.12 work check */
 .wc--flag{border-color:var(--bad)}.wc__points{margin:0;padding-inline-start:20px;display:grid;gap:6px}
 .wc--ok{display:flex;gap:8px;align-items:center}
+/* v109.13 voice calls: the ringing card and the voice stage */
+.ringbox{position:fixed;left:12px;right:12px;bottom:max(14px,env(safe-area-inset-bottom));z-index:210;max-width:520px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 16px;border-radius:18px;background:#1a0c17;color:#fff;box-shadow:0 12px 40px rgba(0,0,0,.45);border:2px solid #7CB518;animation:ringpulse 1.2s ease-in-out infinite}
+.ringbox b{display:block;font-size:16px} .ringbox small{color:#d8bfd0;font-size:13px} .ringbox .grow{min-width:0;flex:1}
+.ringbox__ico{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:#7CB518;color:#fff;flex:none}
+.ringbox__btns{display:flex;gap:8px;margin-left:auto}
+.ringbox__yes{background:#2e8b2e;border-color:#2e8b2e;color:#fff;min-height:48px;padding:0 18px} .ringbox__no{background:#c4103d;border-color:#c4103d;color:#fff;min-height:48px;padding:0 18px}
+@keyframes ringpulse{0%,100%{box-shadow:0 12px 40px rgba(0,0,0,.45)}50%{box-shadow:0 12px 40px rgba(124,181,24,.55)}}
+@media (prefers-reduced-motion:reduce){.ringbox{animation:none}}
+.callstage--voice .callstage__frame{background:radial-gradient(circle at 50% 40%,#3a1530,#0b0610)}
+@media(max-width:480px){.ringbox__btns{flex-basis:100%;margin-left:0}.ringbox__btns .btn{flex:1;justify-content:center}}

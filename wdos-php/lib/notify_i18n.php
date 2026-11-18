@@ -55,29 +55,27 @@ const NOTE_TEMPLATES = [
     'fr' => ['Ajoutez votre photo', '{1}, votre profil n\'a pas encore de photo. Cela prend une minute et aide vos responsables à vous reconnaître.'],
     'pt' => ['Adicione a sua fotografia', '{1}, o seu perfil ainda não tem fotografia. Demora um minuto e ajuda as suas líderes a reconhecê-la.'],
     'sw' => ['Ongeza picha yako', '{1}, wasifu wako bado hauna picha. Inachukua dakika moja na huwasaidia viongozi wako kukutambua.']]],
-  ['/^Video meeting approved: (.+)$/u', '/^(.+)\. (?:The room opens 30 minutes before the start|The Join button is ready now)\.$/u', [
-    'ar' => ['تمت الموافقة على الاجتماع بالفيديو: {1}', '{1}. زر الانضمام جاهز الآن.'],
-    'fr' => ['Réunion vidéo approuvée : {1}', '{1}. Le bouton Rejoindre est prêt dès maintenant.'],
-    'pt' => ['Reunião por vídeo aprovada: {1}', '{1}. O botão Entrar já está pronto.'],
-    'sw' => ['Mkutano wa video umeidhinishwa: {1}', '{1}. Kitufe cha Jiunge kiko tayari sasa.']]],
+  // v109.13: meeting notes lead with the meeting's own name
+  ['/^(.+): approved$/u', '/^(.+)\. The Join button is ready now\.$/u', [
+    'ar' => ['{1}: تمت الموافقة', '{1}. زر الانضمام جاهز الآن.'], 'fr' => ['{1} : approuvée', '{1}. Le bouton Rejoindre est prêt dès maintenant.'], 'pt' => ['{1}: aprovada', '{1}. O botão Entrar já está pronto.'], 'sw' => ['{1}: imeidhinishwa', '{1}. Kitufe cha Jiunge kiko tayari sasa.']]],
   ['/^You are invited: (.+)$/u', '/^(.*)$/u', [
     'ar' => ['أنتِ مدعوّة: {1}', '{1}'], 'fr' => ['Vous êtes invitée : {1}', '{1}'], 'pt' => ['Está convidada: {1}', '{1}'], 'sw' => ['Umealikwa: {1}', '{1}']]],
-  ['/^Video meeting not approved: (.+)$/u', '/^(.*)$/su', [
-    'ar' => ['لم تتم الموافقة على الاجتماع بالفيديو: {1}', '{1}'], 'fr' => ['Réunion vidéo non approuvée : {1}', '{1}'], 'pt' => ['Reunião por vídeo não aprovada: {1}', '{1}'], 'sw' => ['Mkutano wa video haujaidhinishwa: {1}', '{1}']]],
-  ['/^Video meeting(?: request| cancelled)?: (.+)$/u', '/^(.*)$/u', [
-    'ar' => ['اجتماع بالفيديو: {1}', '{1}'], 'fr' => ['Réunion vidéo : {1}', '{1}'], 'pt' => ['Reunião por vídeo: {1}', '{1}'], 'sw' => ['Mkutano wa video: {1}', '{1}']]],
+  ['/^(.+): not approved$/u', '/^(.*)$/su', [
+    'ar' => ['{1}: لم تتم الموافقة', '{1}'], 'fr' => ['{1} : non approuvée', '{1}'], 'pt' => ['{1}: não aprovada', '{1}'], 'sw' => ['{1}: haijaidhinishwa', '{1}']]],
+  ['/^(.+): (meeting request|cancelled)$/u', '/^(.*)$/u', [
+    'ar' => ['{1}: {2}', '{1}'], 'fr' => ['{1} : {2}', '{1}'], 'pt' => ['{1}: {2}', '{1}'], 'sw' => ['{1}: {2}', '{1}']]],
   ['/^Cancelled: (.+)$/u', '/^(.*)$/su', [
     'ar' => ['أُلغي: {1}', '{1}'], 'fr' => ['Annulée : {1}', '{1}'], 'pt' => ['Cancelada: {1}', '{1}'], 'sw' => ['Umeghairiwa: {1}', '{1}']]],
   ['/^Minutes: (.+)$/u', '/^(\d+) attended\.$/u', [
     'ar' => ['محضر: {1}', 'عدد الحاضرين: {1}.'], 'fr' => ['Compte rendu : {1}', '{1} participants.'], 'pt' => ['Ata: {1}', '{1} participantes.'], 'sw' => ['Kumbukumbu: {1}', 'Waliohudhuria {1}.']]],
   ['/^Meeting flier ready: (.+)$/u', '/^Open the meeting to see and share it\.$/u', [
     'ar' => ['ملصق الاجتماع جاهز: {1}', 'افتحي الاجتماع لتريه وتشاركيه.'], 'fr' => ['Affiche de la réunion prête : {1}', 'Ouvrez la réunion pour la voir et la partager.'], 'pt' => ['Cartaz da reunião pronto: {1}', 'Abra a reunião para o ver e partilhar.'], 'sw' => ['Bango la mkutano liko tayari: {1}', 'Fungua mkutano ulione na kulishiriki.']]],
-  ['/^Video meeting tomorrow: (.+)$/u', '/^(.*)$/u', [
-    'ar' => ['اجتماع بالفيديو غدًا: {1}', '{1}'], 'fr' => ['Réunion vidéo demain : {1}', '{1}'], 'pt' => ['Reunião por vídeo amanhã: {1}', '{1}'], 'sw' => ['Mkutano wa video kesho: {1}', '{1}']]],
-  ['/^Video meeting in 1 hour: (.+)$/u', '/^(.*)$/u', [
-    'ar' => ['اجتماع بالفيديو بعد ساعة: {1}', '{1}'], 'fr' => ['Réunion vidéo dans 1 heure : {1}', '{1}'], 'pt' => ['Reunião por vídeo daqui a 1 hora: {1}', '{1}'], 'sw' => ['Mkutano wa video baada ya saa 1: {1}', '{1}']]],
-  ['/^Video meeting starting now: (.+)$/u', '/^Open WDOS and tap Join the video meeting\.$/u', [
-    'ar' => ['الاجتماع بالفيديو يبدأ الآن: {1}', 'افتحي WDOS واضغطي على الانضمام إلى الاجتماع بالفيديو.'], 'fr' => ['La réunion vidéo commence : {1}', 'Ouvrez WDOS et appuyez sur Rejoindre la réunion vidéo.'], 'pt' => ['A reunião por vídeo começa agora: {1}', 'Abra o WDOS e toque em Entrar na reunião por vídeo.'], 'sw' => ['Mkutano wa video unaanza sasa: {1}', 'Fungua WDOS na ubonyeze Jiunge na mkutano wa video.']]],
+  ['/^(.+): tomorrow$/u', '/^(.*)$/u', [
+    'ar' => ['{1}: غدًا', '{1}'], 'fr' => ['{1} : demain', '{1}'], 'pt' => ['{1}: amanhã', '{1}'], 'sw' => ['{1}: kesho', '{1}']]],
+  ['/^(.+): in 1 hour$/u', '/^(.*)$/u', [
+    'ar' => ['{1}: بعد ساعة', '{1}'], 'fr' => ['{1} : dans 1 heure', '{1}'], 'pt' => ['{1}: daqui a 1 hora', '{1}'], 'sw' => ['{1}: baada ya saa 1', '{1}']]],
+  ['/^(.+): starting now$/u', '/^Open WDOS and tap Join the video meeting\.$/u', [
+    'ar' => ['{1}: يبدأ الآن', 'افتحي WDOS واضغطي على الانضمام إلى الاجتماع بالفيديو.'], 'fr' => ['{1} : commence maintenant', 'Ouvrez WDOS et appuyez sur Rejoindre la réunion vidéo.'], 'pt' => ['{1}: começa agora', 'Abra o WDOS e toque em Entrar na reunião por vídeo.'], 'sw' => ['{1}: inaanza sasa', 'Fungua WDOS na ubonyeze Jiunge na mkutano wa video.']]],
   ['/^Due in 2 days: (.+)$/u', '/^Finish it and submit it before the due date\.$/u', [
     'ar' => ['موعدها بعد يومين: {1}', 'أنجزيها وأرسليها قبل الموعد.'], 'fr' => ['À rendre dans 2 jours : {1}', 'Terminez-la et soumettez-la avant la date prévue.'], 'pt' => ['Prazo em 2 dias: {1}', 'Termine e envie antes do prazo.'], 'sw' => ['Inatakiwa baada ya siku 2: {1}', 'Ikamilishe na uiwasilishe kabla ya tarehe.']]],
   ['/^Overdue: (.+)$/u', '/^This task was due yesterday\.(.*)$/su', [
@@ -88,6 +86,11 @@ const NOTE_TEMPLATES = [
     'ar' => ['رسالة غير مقروءة من {1}', 'افتحي الرسائل في WDOS لقراءتها والرد عليها.'], 'fr' => ['Message non lu de {1}', 'Ouvrez Messages dans WDOS pour le lire et répondre.'], 'pt' => ['Mensagem não lida de {1}', 'Abra Mensagens no WDOS para a ler e responder.'], 'sw' => ['Ujumbe haujasomwa kutoka kwa {1}', 'Fungua Ujumbe katika WDOS uusome na ujibu.']]],
   ['/^Reminder: (.+)$/u', '/^Please read this announcement and press I have read this\.$/u', [
     'ar' => ['تذكير: {1}', 'يرجى قراءة هذا الإعلان والضغط على قرأت هذا.'], 'fr' => ['Rappel : {1}', "Lisez cette annonce et appuyez sur J'ai lu ce message."], 'pt' => ['Lembrete: {1}', 'Leia este anúncio e toque em Li esta mensagem.'], 'sw' => ['Kikumbusho: {1}', 'Tafadhali soma tangazo hili na ubonyeze Nimesoma hii.']]],
+  // v109.13: voice calls
+  ['/^Voice call from (.+)$/u', '/^(.*)$/u', [
+    'ar' => ['مكالمة صوتية من {1}', '{1}'], 'fr' => ['Appel vocal de {1}', '{1}'], 'pt' => ['Chamada de voz de {1}', '{1}'], 'sw' => ['Simu ya sauti kutoka kwa {1}', '{1}']]],
+  ['/^Missed call from (.+)$/u', '/^Open Calls in WDOS to ring back\.$/u', [
+    'ar' => ['مكالمة فائتة من {1}', 'افتحي المكالمات في WDOS لمعاودة الاتصال.'], 'fr' => ['Appel manqué de {1}', 'Ouvrez Appels dans WDOS pour rappeler.'], 'pt' => ['Chamada perdida de {1}', 'Abra Chamadas no WDOS para ligar de volta.'], 'sw' => ['Simu uliyokosa kutoka kwa {1}', 'Fungua Simu katika WDOS ili upige tena.']]],
 ];
 /* One entry per template above, in the same order: its key, its name on the Communications page, the English wording,
  * and what {1} and {2} stand for. WODDI HQ can replace any wording in any language; the change is logged. */
@@ -102,21 +105,23 @@ const NOTE_META = [
   ['chapter_placed', 'Chapter placement confirmation', 'You have been placed in a chapter', 'Your chapter is {1}. Open it to meet your chapter.', '{1} is the chapter.'],
   ['task_due', 'Task deadline notification', 'Due today: {1}', 'This task is due today.', '{1} is the task.'],
   ['photo_nudge', 'Photograph reminder', 'Add your photograph', '{1}, your profile still has no photograph. It takes a minute and helps your leaders recognise you.', '{1} is the first name.'],
-  ['meet_approved', 'Video meeting approved', 'Video meeting approved: {1}', '{1}. The Join button is ready now.', 'Title: {1} is the meeting. Message: {1} is the date and time.'],
+  ['meet_approved', 'Video meeting approved', '{1}: approved', '{1}. The Join button is ready now.', 'Title: {1} is the meeting. Message: {1} is the date and time.'],
   ['meet_invited', 'Invited to a video meeting', 'You are invited: {1}', '{1}', 'Title: {1} is the meeting. Message: {1} is the date and time.'],
-  ['meet_declined', 'Video meeting not approved', 'Video meeting not approved: {1}', '{1}', 'Title: {1} is the meeting. Message: {1} is the note from HQ.'],
-  ['meet_hq', 'Video meeting request or cancellation (HQ)', 'Video meeting request: {1}', '{1}', '{1} is the meeting.'],
+  ['meet_declined', 'Video meeting not approved', '{1}: not approved', '{1}', 'Title: {1} is the meeting. Message: {1} is the note from HQ.'],
+  ['meet_hq', 'Video meeting request or cancellation (HQ)', '{1}: meeting request', '{1}', '{1} is the meeting.'],
   ['meet_cancelled', 'Meeting cancelled', 'Cancelled: {1}', '{1}', '{1} is the meeting.'],
   ['meet_minutes', 'Video meeting minutes', 'Minutes: {1}', '{1} attended.', 'Title: {1} is the meeting. Message: {1} is the number who attended.'],
   ['meet_flier', 'Meeting flier ready', 'Meeting flier ready: {1}', 'Open the meeting to see and share it.', 'Title: {1} is the meeting.'],
-  ['meet_day', 'Video meeting reminder: the day before', 'Video meeting tomorrow: {1}', '{1}', 'Title: {1} is the meeting. Message: {1} is the date and time.'],
-  ['meet_hour', 'Video meeting reminder: one hour before', 'Video meeting in 1 hour: {1}', '{1}', 'Title: {1} is the meeting. Message: {1} is the date and time.'],
-  ['meet_now', 'Video meeting reminder: starting now', 'Video meeting starting now: {1}', 'Open WDOS and tap Join the video meeting.', '{1} is the meeting.'],
+  ['meet_day', 'Video meeting reminder: the day before', '{1}: tomorrow', '{1}', 'Title: {1} is the meeting. Message: {1} is the date and time.'],
+  ['meet_hour', 'Video meeting reminder: one hour before', '{1}: in 1 hour', '{1}', 'Title: {1} is the meeting. Message: {1} is the date and time.'],
+  ['meet_now', 'Video meeting reminder: starting now', '{1}: starting now', 'Open WDOS and tap Join the video meeting.', '{1} is the meeting.'],
   ['task_soon', 'Task due in 2 days', 'Due in 2 days: {1}', 'Finish it and submit it before the due date.', '{1} is the task.'],
   ['task_overdue', 'Task overdue', 'Overdue: {1}', 'This task was due yesterday. Complete it or tell the assigner what is holding it.', '{1} is the task.'],
   ['task_review', 'Submitted task waiting for review', 'Waiting for your review: {1}', '{1} submitted this task two days ago.', 'Title: {1} is the task. Message: {1} is the person.'],
   ['dm_unread', 'Unread message reminder', 'Unread message from {1}', 'Open Messages in WDOS to read it and reply.', '{1} is the sender.'],
   ['ann_reminder', 'Announcement reminder', 'Reminder: {1}', 'Please read this announcement and press I have read this.', '{1} is the announcement.'],
+  ['call_in', 'Voice call ringing', 'Voice call from {1}', '{1}', 'Title: {1} is the caller. Message: {1} is her role.'],
+  ['call_missed', 'Missed voice call', 'Missed call from {1}', 'Open Calls in WDOS to ring back.', '{1} is the caller.'],
 ];
 /** Wordings WODDI HQ has approved in place of the built-in ones: [key][lang] = [title, body]. */
 function note_overrides(): array {

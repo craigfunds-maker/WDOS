@@ -23,16 +23,19 @@ function followup_automations(array &$done): void {
   try {
     foreach (rows("SELECT * FROM meeting_requests WHERE status='approved' AND starts_at BETWEEN ? AND ?", [gmdate('Y-m-d H:i:s', $now - 900), gmdate('Y-m-d H:i:s', $now + 25 * 3600)]) as $m) {
       $in = strtotime($m['starts_at'] . ' UTC') - $now; $when = gmdate('j M Y, H:i', strtotime($m['starts_at'] . ' UTC')) . ' GMT';
-      if ($in <= 600) { $key = 'mr_now_'; $t = 'Video meeting starting now: '; $b = 'Open WDOS and tap Join the video meeting.'; }
-      elseif ($in <= 3900 && $in > 600) { $key = 'mr_hour_'; $t = 'Video meeting in 1 hour: '; $b = $when; }
-      elseif ($in > 20 * 3600) { $key = 'mr_day_'; $t = 'Video meeting tomorrow: '; $b = $when; }
+      // the meeting's own name leads the reminder (v109.13): "Kaduna chapter leaders: in 1 hour"
+      if ($in <= 600) { $key = 'mr_now_'; $sfx = ': starting now'; $b = 'Open WDOS and tap Join the video meeting.'; }
+      elseif ($in <= 3900 && $in > 600) { $key = 'mr_hour_'; $sfx = ': in 1 hour'; $b = $when; }
+      elseif ($in > 20 * 3600) { $key = 'mr_day_'; $sfx = ': tomorrow'; $b = $when; }
       else continue;
       if (!claim_send($key . $m['id'])) continue;
       $to = array_values(array_unique(array_merge(mr_ids($m), [(int) $m['requester_id']])));
-      foreach ($to as $uid) fu_tell($uid, 'meeting', $t . mb_substr($m['title'], 0, 120), $b, '#/meetings/requests/' . (int) $m['id']);
+      foreach ($to as $uid) fu_tell($uid, 'meeting', mb_substr($m['title'], 0, 120) . $sfx, $b, '#/meetings/requests/' . (int) $m['id']);
       $done['mr_' . $m['id']] = count($to) . ' reminded';
     }
   } catch (PDOException $e) { error_log('[wdos followup meetings] ' . $e->getMessage()); }
+
+  try { if (function_exists('vc_expire')) vc_expire(); } catch (PDOException $e) { /* before the calls table exists */ }
 
   /* 2. tasks, once a day from 07:00 Lagos time */
   try {

@@ -26,13 +26,13 @@ try:
     mid=ld.post(B+'/meet-requests',json=form).json()['id']
     chk('HQ approves', hq.post(B+f'/meet-requests/{mid}/decide',json={'decision':'approve'}).ok)
     sql(f"update meeting_requests set starts_at='{at(22*60)}' where id={mid}"); tick()
-    chk('the day before: in the app', notes('Video meeting tomorrow:%')==1)
-    chk('the day before: by email', mails('WDOS: Video meeting tomorrow:%')==1, sql('select subject from mail_outbox'))
-    tick(); chk('sent once only', notes('Video meeting tomorrow:%')==1)
+    chk('the day before: in the app', notes('%: tomorrow')==1)
+    chk('the day before: by email', mails('WDOS: %: tomorrow')==1, sql('select subject from mail_outbox'))
+    tick(); chk('sent once only', notes('%: tomorrow')==1)
     sql(f"update meeting_requests set starts_at='{at(50)}' where id={mid}"); tick()
-    chk('one hour before: in the app and by email', notes('Video meeting in 1 hour:%')==1 and mails('WDOS: Video meeting in 1 hour:%')==1)
+    chk('one hour before: in the app and by email', notes('%: in 1 hour')==1 and mails('WDOS: %: in 1 hour')==1)
     sql(f"update meeting_requests set starts_at='{at(4)}' where id={mid}"); tick()
-    chk('as it starts: in the app and by email', notes('Video meeting starting now:%')==1 and mails('WDOS: Video meeting starting now:%')==1)
+    chk('as it starts: in the app and by email', notes('%: starting now')==1 and mails('WDOS: %: starting now')==1)
     # ---- task follow-ups
     soon=sql("select date(utc_timestamp() + interval 1 hour + interval 2 day)")
     r=hq.post(B+'/tasks',json={'title':'Count the chapter members','assignee_id':lid,'due_on':soon}); chk('HQ gives a task due in 2 days', r.ok, r.text)
