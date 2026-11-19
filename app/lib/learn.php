@@ -194,16 +194,35 @@ function course_lock(string $uid, array $item): string {
 /* ── Certificates ── */
 function has_certificate(string $uid, string $cid): bool { return (bool)val('SELECT 1 FROM certificates WHERE uid = ? AND course_key = ? AND COALESCE(revoked,0) = 0 LIMIT 1', [$uid, $cid]); }
 function certificate_for(string $uid, string $cid): ?array { return row('SELECT * FROM certificates WHERE uid = ? AND course_key = ? AND COALESCE(revoked,0) = 0 ORDER BY issued_at DESC LIMIT 1', [$uid, $cid]); }
+/* The cohort a date falls in, as the live site names it: "September–November 2026". Reads academic_cycles when it has rows. */
+function cohort_for(?string $date = null): string {
+    $t = $date ? strtotime($date) : time(); $y = (int)gmdate('Y', $t); $m = (int)gmdate('n', $t);
+    try { $r = row('SELECT name FROM academic_cycles WHERE year = ? AND start_month <= ? AND end_month >= ? LIMIT 1', [$y, $m, $m]); if ($r && $r['name']) return (string)$r['name']; } catch (Throwable $e) {}
+    if ($m === 1) return 'September–November ' . ($y - 1);
+    return ($m <= 5 ? 'February–April ' : ($m <= 8 ? 'June–August ' : 'September–November ')) . $y;
+}
+/* Hours printed on the certificate: the live site's rule by level. */
+function course_hours(?string $courseKey): string {
+    $it = $courseKey ? catalog_item($courseKey) : null; if (!$it) return '60';
+    return stripos((string)$it['level'], 'advanced') !== false ? '40' : (stripos((string)$it['level'], 'intermediate') !== false ? '30' : '20');
+}
 function issue_certificate(array $user, array $course, int $score): array {
     $ex = certificate_for($user['uid'], $course['id']);
     if ($ex) return $ex;
     do { $code = 'WDI-' . gmdate('Y') . '-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 6)); } while (val('SELECT 1 FROM certificates WHERE credential_code = ?', [$code]));
     $id = ins('certificates', ['uid' => $user['uid'], 'course_key' => $course['id'], 'title' => $course['certificateTitle'] ?? $course['title'], 'course_name' => $course['title'], 'issued_at' => now(), 'score' => $score,
-        'language' => course_lang(), 'student_name' => display_name($user), 'pathway' => $user['pathway'] ?? 'gmn', 'revoked' => 0, 'source' => 'php', 'credential_code' => $code]);
-    try { ins('certificate_audit', ['certificate_id' => $id, 'uid' => $user['uid'], 'action' => 'issued', 'credential_code' => $code, 'actor' => 'system', 'note' => $course['title']]); } catch (Throwable $e) {}
+        'language' => course_lang(), 'student_name' => display_name($user), 'pathway' => $user['pathway'] ?? 'gmn', 'revoked' => 0, 'source' => 'app', 'credential_code' => $code, 'cohort' => cohort_for()]);
+    try { ins('certificate_audit', ['certificate_id' => $id, 'uid' => $user['uid'], 'action' => 'issued', 'credential_code' => $code, 'by_name' => 'system', 'new_value' => $course['title'], 'at' => now()]); } catch (Throwable $e) {}
     award($user['uid'], (int)points_rules()['certificate'], 'certificate:' . $course['id']);
     /* Marketplace rule from the live site: listings wait for the seller's first certificate, then go live by themselves. */
     try { $w = q("UPDATE mp_listings SET status = 'active', published_at = ? WHERE user_id = ? AND status = 'pending_certificate'", [now(), $user['uid']])->rowCount(); if ($w) notify($user['uid'], 'Your marketplace listing is live', 'You earned a certificate, so your waiting listing is now visible to buyers.', 'market?tab=shop', 'market', false); } catch (Throwable $e) {}
     notify($user['uid'], 'Your certificate is ready', $course['title'] . '. Download or share it.', 'certificates', 'certificate');
     return row('SELECT * FROM certificates WHERE id = ?', [$id]);
+}
+
+/* Recorded narration for a lesson, if a file exists: assets/audio/journey/<lang>/<id>.mp3 or assets/audio/courses/<course>/<lang>/<lesson>.mp3. */
+function listen_audio(string $kind, string $id, string $lang = 'en', string $course = ''): string {
+    $id = preg_replace('/[^A-Za-z0-9._-]/', '', $id); $course = preg_replace('/[^a-z0-9-]/', '', $course); $lang = preg_replace('/[^a-z]/', '', $lang);
+    $rel = $kind === 'journey' ? "audio/journey/$lang/$id.mp3" : "audio/courses/$course/$lang/$id.mp3";
+    return is_file(APP_ROOT . '/assets/' . $rel) ? ' data-audio="' . e(asset($rel)) . '"' : '';
 }

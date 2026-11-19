@@ -2,7 +2,7 @@
 Options -Indexes
 <IfModule mod_rewrite.c>
 RewriteEngine On
-RewriteRule ^(config\.php|composer\.(json|lock)|lib/|pages/|sql/|storage/|cron/|content/) - [F,L]
+RewriteRule ^(config\.php|composer\.(json|lock)|lib/|pages/|sql/|storage/|cron/|content/|tools/) - [F,L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [QSA,L]

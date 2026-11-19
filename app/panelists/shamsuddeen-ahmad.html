@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dr. Shamsuddeen Musa Ahmad | WODDI Institute Academic Board</title>
+<meta name="description" content="Biography and CV of Dr. Shamsuddeen Musa Ahmad, member of the WODDI Institute Academic Board.">
+<link rel="icon" href="/assets/app-icon-192.png" type="image/png">
+<link rel="stylesheet" href="/assets/font-awesome/css/all.min.css">
+<style>
+  :root{--mag:#D4006A;--mag-deep:#A80054;--mag-soft:#FCE7F1;--lem:#7CB518;--lem-soft:#EEF7DF;--ink:#1F1219;--muted:#665A62;--line:#F0E2EA;--paper:#fff;--bg:#FFFCFD;--shadow:0 24px 48px -28px rgba(70,10,45,.45)}
+  *{box-sizing:border-box} html,body{margin:0;padding:0}
+  body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg);line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:var(--mag-deep)} img{max-width:100%;display:block}
+  :focus-visible{outline:3px solid var(--mag);outline-offset:3px;border-radius:10px}
+  .wrap{width:min(1000px,100%);margin:0 auto;padding:0 20px}
+  header.top{background:#fff;border-bottom:1px solid var(--line)}
+  header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:72px}
+  .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);font-weight:800}
+  .brand img{width:44px;height:44px;border-radius:12px;object-fit:contain;background:#fff;box-shadow:0 0 0 1px var(--line)}
+  .brand span{color:var(--mag)}
+  .back{font-weight:700;font-size:14.5px;text-decoration:none;color:var(--muted);padding:9px 14px;border-radius:999px}
+  .back:hover{background:var(--mag-soft);color:var(--mag-deep)}
+  .stripe{height:4px;background:linear-gradient(90deg,var(--mag) 0 70%,var(--lem) 70% 100%)}
+  .hero{background:linear-gradient(160deg,#2A0A1D 0%,#3D0F2B 55%,#5E0030 100%);color:#fff;position:relative;overflow:hidden;isolation:isolate}
+  .hero::after{content:"";position:absolute;inset:auto -10% -40% auto;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(124,181,24,.28),transparent 65%);z-index:-1}
+  .hero .wrap{display:grid;grid-template-columns:1fr;gap:28px;align-items:center;padding-block:44px 52px}
+  .photo{width:min(260px,70vw);aspect-ratio:1/1;border-radius:28px;overflow:hidden;box-shadow:0 24px 48px -16px rgba(0,0,0,.6);border:4px solid rgba(255,255,255,.14);animation:rise .8s cubic-bezier(.2,.7,.2,1) both}
+  .photo img{width:100%;height:100%;object-fit:cover}
+  .kicker{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#C6F07A;margin:0 0 10px;animation:rise .6s .1s both}
+  h1{font-size:clamp(26px,4vw,40px);line-height:1.12;letter-spacing:-.02em;margin:0 0 8px;font-weight:900;animation:rise .7s .15s both}
+  .creds{font-weight:700;color:#F2D9E6;margin:0 0 10px;animation:rise .7s .2s both}
+  .role{color:#EBC9DB;margin:0 0 18px;max-width:60ch;animation:rise .7s .25s both}
+  .actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;animation:rise .7s .3s both}
+  .btn{display:inline-flex;align-items:center;gap:9px;min-height:50px;padding:0 22px;border-radius:16px;font-weight:800;font-size:15px;text-decoration:none;border:1.5px solid transparent;transition:transform .2s ease,background .2s ease,box-shadow .2s ease}
+  .btn:hover{transform:translateY(-2px)}
+  .btn.lem{background:var(--lem);color:#fff;box-shadow:0 12px 26px -12px rgba(124,181,24,.9)}
+  .btn.lem:hover{background:#6AA414}
+  .btn.glass{background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.32)}
+  .btn.glass:hover{background:rgba(255,255,255,.18)}
+  .soc{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;background:rgba(255,255,255,.1);color:#fff;text-decoration:none;font-weight:700;font-size:14px;transition:background .2s ease,transform .2s ease}
+  .soc i{font-size:17px}
+  .soc:hover{background:var(--lem);transform:translateY(-2px)}
+  .socials{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;animation:rise .7s .35s both}
+  main{padding:44px 0 72px}
+  .sheet{background:#fff;border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);padding:clamp(22px,4vw,44px);animation:rise .8s .2s both}
+  .sheet h2{font-size:clamp(20px,2.6vw,26px);letter-spacing:-.01em;margin:30px 0 10px;color:var(--mag-deep);font-weight:800;position:relative;padding-left:14px}
+  .sheet h2::before{content:"";position:absolute;left:0;top:.25em;bottom:.25em;width:4px;border-radius:4px;background:linear-gradient(var(--lem),var(--mag))}
+  .sheet h2:first-child{margin-top:0}
+  .sheet p{margin:0 0 14px;font-size:16px;color:#2e2630}
+  .sheet ul{margin:0 0 16px;padding-left:20px}
+  .sheet li{margin:0 0 6px;font-size:15.5px}
+  .cvbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;background:var(--lem-soft);border:1px solid #d6eeb4;border-radius:18px;padding:16px 18px;margin:0 0 22px}
+  .cvbar b{display:block} .cvbar span{color:var(--muted);font-size:14px}
+  .btn.dl{background:var(--mag);color:#fff;box-shadow:0 12px 26px -12px rgba(212,0,106,.7)}
+  .btn.dl:hover{background:var(--mag-deep)}
+  footer{border-top:1px solid var(--line);padding:22px 0;color:var(--muted);font-size:14px;background:#fff}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between}
+  footer a{color:var(--mag-deep);font-weight:700;text-decoration:none}
+  @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  @media (min-width:820px){ .hero .wrap{grid-template-columns:auto 1fr;gap:48px} }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+
+  .photo.mono{display:grid;place-items:center;background:linear-gradient(150deg,var(--mag),var(--mag-deep))}
+  .photo.mono span{font-size:clamp(56px,10vw,84px);font-weight:900;color:#fff;letter-spacing:-.02em}
+</style>
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="/" aria-label="WODDI Institute home"><img src="/assets/woddi-logo.jpeg" alt="" width="44" height="44"><span>WODDI <small style="font-weight:700;color:var(--muted)">Institute</small></span></a>
+    <a class="back" href="/#panel"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i>&nbsp; Academic Board</a>
+  </div>
+  <div class="stripe" aria-hidden="true"></div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="photo"><img src="/assets/panelists/shamsuddeen-ahmad.jpg" alt="Portrait of Dr. Shamsuddeen Musa Ahmad" width="800" height="800"></div>
+    <div>
+      <span class="kicker">WODDI Institute Academic Board</span>
+      <h1>Dr. Shamsuddeen Musa Ahmad</h1>
+      <p class="creds">M.Sc. Computer Science; PhD in view</p>
+      <p class="role">Principal Lecturer, Computer Science, Kaduna Polytechnic</p>
+      <div class="actions">
+        <a class="btn lem" href="/assets/panelists/cv/shamsuddeen-ahmad-cv.pdf" download><i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> Download CV (PDF)</a>
+        <a class="btn glass" href="#biography"><i class="fa-solid fa-book-open" aria-hidden="true"></i> Read biography</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<main id="biography">
+  <div class="wrap">
+    <article class="sheet">
+      <div class="cvbar"><div><b>Curriculum vitae</b><span>Download the full CV as a PDF.</span></div><a class="btn dl" href="/assets/panelists/cv/shamsuddeen-ahmad-cv.pdf" download><i class="fa-solid fa-download" aria-hidden="true"></i> Download CV</a></div>
+      <h2>Biography</h2>
+      <p>Shamsuddeen Musa Ahmad is a Principal Lecturer at Kaduna Polytechnic, Nigeria, with extensive experience in higher education, computer science, information technology, and academic research. He holds an M.Sc. in Computer Science from Kaduna State University and a B.Sc. in Computer Science from Ahmadu Bello University, Zaria. He is currently pursuing a Ph.D. in Computer Science at Ahmadu Bello University, Zaria. In addition to his teaching and research responsibilities at Kaduna Polytechnic, he serves as a Visiting Lecturer at Maryam Abacha American University of Niger and Franco British International University, Kaduna. He also serves as an External Examiner at the Federal Polytechnic, Minna, Niger State, contributing to academic assessment and quality assurance in tertiary education.</p><p>Before joining Kaduna Polytechnic, Ahmad worked as a Computer Systems Administrator at Union Bank Nigeria Plc from 2008 to 2019, where he gained considerable experience in network administration, systems maintenance, troubleshooting, and data management. He also worked at Kaduna State University and undertook his National Youth Service Corps (NYSC) assignment with the ICT Department of the Independent National Electoral Commission (INEC), Kaduna.</p><p>His research interests include artificial intelligence, machine learning, cybersecurity, educational data analytics, and recommendation systems. His publications cover areas such as adaptive and explainable machine learning for proactive cybersecurity threat detection, student academic performance prediction, and research trends in recommendation systems. He has also presented papers at national and international conferences.</p><p>His professional achievements include obtaining the National Skills Qualification (NSQ) Level 3 Certificate in Quality Assurance of Assessment in ICT and becoming a member of the Nigeria Computer Society (NCS). His technical expertise encompasses database application development, computer networking, web development, systems administration, and computer maintenance.</p><p>He is committed to excellence in teaching, research, academic assessment, institutional service, and the application of emerging computing technologies to educational and societal challenges.</p>
+    </article>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>&copy; WODDI Institute</span>
+    <a href="/#panel">Back to the WODDI Institute Academic Board</a>
+  </div>
+</footer>
+</body>
+</html>

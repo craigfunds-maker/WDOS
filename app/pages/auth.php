@@ -72,7 +72,7 @@ if ($first === 'register') {
         $firstN = (string)post('first'); $sur = (string)post('surname'); $dob = (string)post('dob'); $email = mb_strtolower((string)post('email')); $phone = (string)post('phone');
         $path = post('pathway') === 'nnn' ? 'nnn' : 'gmn'; $pw = (string)post('password'); $lang = isset(COURSE_LANGS[post('language')]) ? post('language') : 'en';
         $age = $dob ? (int)floor((time() - strtotime($dob)) / 31557600) : 0;
-        if (!admissions_open()) $err = 'Admissions are closed right now. Please join the waiting list from the home page.';
+        if (!admissions_open()) $err = 'Admissions are closed right now. Please join the waiting list on the Admissions page.';
         elseif ($firstN === '' || $sur === '') $err = 'Please enter your first name and surname.';
         elseif (!$dob || $age < 18) $err = 'WODDI Institute is for women aged 18 and above. Please check your date of birth.';
         elseif ($path === 'gmn' && $age < 30) $err = "You are $age. WGMN is for ages 30 and above. Please choose WNNN, the network for ages 18 to 29.";
@@ -90,8 +90,8 @@ if ($first === 'register') {
         ins('auth_accounts', ['uid' => $uid, 'email' => $acctEmail, 'phone' => $phone, 'password_hash' => password_hash($pw, PASSWORD_BCRYPT)]);
         q('INSERT INTO users (uid, email, name, display_name, role, pathway, status, language, phone, phone_number, phone_auth_enabled, age_category, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
             [$uid, $acctEmail, $name, $name, 'student', $path, 'active', $lang, $phone, $phone, $email === '' ? 1 : 0, $age >= 30 ? '30+' : '18-29', now(), now()]);
-        try { ins('admissions', ['uid' => $uid, 'network' => strtoupper($path === 'nnn' ? 'WNNN' : 'WGMN'), 'cycle_year' => (int)gmdate('Y'), 'cycle_month' => (int)gmdate('n'), 'admitted_at' => now()]); } catch (Throwable $e) {}
-        try { ins('user_consents', ['uid' => $uid, 'consent' => 'terms_privacy', 'kind' => 'terms_privacy', 'granted' => 1]); } catch (Throwable $e) {}
+        try { ins('admissions', ['uid' => $uid, 'network' => strtoupper($path === 'nnn' ? 'WNNN' : 'WGMN'), 'cycle_name' => cohort_for(), 'cycle_year' => (int)gmdate('Y'), 'cycle_month' => (int)gmdate('n'), 'admitted_at' => now()]); } catch (Throwable $e) {}
+        try { q('REPLACE INTO user_consents (uid, terms, privacy, community, conduct, comms, accepted_at) VALUES (?,1,1,1,1,?,?)', [$uid, post('updates') ? 1 : 0, now()]); } catch (Throwable $e) {}
         unset($_SESSION['reg_old']);
         notify($uid, 'Welcome to the WODDI Institute!', 'Your account is ready. Start with the Rooting Phase.', 'journey', 'welcome', false);
         if ($email !== '') send_mail($email, 'Welcome to WODDI Institute', '<p>Dear ' . e($firstN) . ',</p><p>Your WODDI Institute account is ready in the ' . e(net_name($path)) . '. Sign in at <a href="' . url('login') . '">' . url('login') . '</a> and begin with the Rooting Phase.</p><p>WODDI Institute</p>');

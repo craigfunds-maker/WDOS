@@ -15,6 +15,8 @@ if ($first === 'manifest.json' || $first === 'app-manifest.json') {
     exit;
 }
 /* The mobile app entry. The Play Store app and the installed PWA open here: a welcome screen, then the app. */
+if ($first === 'marketplace') redirect('market', $_GET);
+if ($first === 'founder') { header('Content-Type: text/html; charset=utf-8'); readfile(APP_ROOT . '/founder.html'); exit; }
 if ($first === 'app-auth') redirect(me() ? '' : 'login');
 if ($first === 'app') {
     $u = me();
@@ -24,8 +26,20 @@ if ($first === 'app') {
     $h = '<div class="splash"><div class="splash-in"><img class="splash-logo" src="' . asset('logo.jpg') . '" alt="WODDI logo"><p class="splash-kick">WODDI Institute</p><h1>Become the Woman<br><span>You Were Designed to Be.</span></h1><p class="splash-sub">A structured platform for leadership, mentorship, transformation, and practical learning across Africa.</p>'
         . '<div class="splash-nets"><div><img src="' . asset('logo-wgmn.png') . '" alt="WODDI Good Mother Network"><small>Good Mother Network<br>30 and above</small></div><div><img src="' . asset('logo-wnnn.png') . '" alt="WODDI Nurture NextGen Network"><small>Nurture NextGen Network<br>18 to 29</small></div></div>'
         . '<div class="splash-feat"><span>' . ic('fa-graduation-cap') . ' ' . count(catalog()) . ' courses</span><span>' . ic('fa-language') . ' 8 languages</span><span>' . ic('fa-certificate') . ' Certificates</span><span>' . ic('fa-robot') . ' AI mentor</span></div>'
-        . '<div class="splash-cta">' . $btn . '</div><p class="splash-foot">Skills · Leadership · Community<br><a href="' . url('privacy') . '">Privacy Policy</a></p></div></div>';
+        . '<div class="splash-cta">' . $btn . '</div><p class="splash-foot"><a href="' . url('guide') . '">' . ic('fa-circle-play') . ' Watch the 2-minute app guide</a><br>Skills · Leadership · Community<br><a href="' . url('privacy') . '">Privacy Policy</a></p></div></div>';
     page('WODDI Institute', $h, ['bare' => true, 'foot' => $u ? '<script>setTimeout(function(){location.replace(document.getElementById("go").href)},1600)</script>' : '']);
+}
+/* ───────── App guide: a short video tour of the app, narrated with the Kokoro voices the course videos use ───────── */
+if ($first === 'guide') {
+    $have = array_values(array_filter(['en', 'fr', 'pt'], fn($l) => is_file(APP_ROOT . "/assets/guide/guide-$l.mp4")));
+    $want = (string)($_GET['lang'] ?? (me()['language'] ?? 'en')); $lang = in_array($want, $have, true) ? $want : ($have[0] ?? 'en');
+    $steps = [['fa-user-plus', 'Create your account', 'Choose your language, then your network, then fill in the short form.'], ['fa-house', 'Your home screen', 'Continue learning takes you back to your last lesson. The five buttons at the bottom take you everywhere.'], ['fa-graduation-cap', 'Find a course', 'Tap Learn, search or pick a track, then open a course.'], ['fa-headphones', 'Take a lesson', 'Watch the module video, tap Listen to hear the lesson, write notes, and change the language any time.'], ['fa-award', 'Earn your certificate', 'Pass the final quiz with 70 percent or more. Download or share your certificate.'], ['fa-comments', 'Community and Marketplace', 'Share wins, ask questions, join your country community, and sell what you make.'], ['fa-robot', 'Ask your mentor', 'WADI answers any time. You can also request a human mentor or open Support.']];
+    $h = '<div class="col" style="gap:16px;max-width:860px;width:100%;margin:0 auto"><div class="hero"><p class="kick">App guide</p><h2>How to use WODDI Institute</h2><p class="sm soft">A two-minute video tour, then the same steps in writing.</p></div>';
+    if ($have) { $h .= '<div class="card col" style="padding:12px"><video class="vid" controls playsinline preload="metadata" src="' . asset("guide/guide-$lang.mp4") . '"></video><div class="chips">'; foreach ($have as $l) $h .= '<a class="chip ' . ($l === $lang ? 'on' : '') . '" href="' . url('guide', ['lang' => $l]) . '">' . e(COURSE_LANGS[$l]) . '</a>'; $h .= '</div><p class="xs mut">The video is in English, French and Portuguese for now. It downloads only when you tap Play.</p></div>'; }
+    $h .= '<div class="grp">'; foreach ($steps as $i => $s) $h .= '<div class="li"><span class="ic s">' . ic($s[0]) . '</span><span class="grow"><span class="bold" style="display:block">' . ($i + 1) . '. ' . $s[1] . '</span><span class="mut sm">' . $s[2] . '</span></span></div>';
+    $h .= '</div>' . (me() ? '<a class="b" href="' . url('support') . '">' . ic('fa-life-ring') . ' Still stuck? Open Support</a>' : '<a class="b" href="' . url('register') . '">' . ic('fa-user-plus') . ' Create my free account</a>') . '</div>';
+    if (me()) page('App guide', $h, ['active' => 'guide', 'back' => 'support']);
+    public_shell('App guide', $h, 'How to use the app');
 }
 if ($first === 'offline') public_shell('You are offline', '<h1>You are offline</h1><p class="mut">Check your data or Wi-Fi, then try again. Lessons you already opened may still be readable.</p><a class="b au-b" href="' . url('') . '">Try again</a>');
 
@@ -40,6 +54,49 @@ if ($first === 'tick') {
     foreach (glob(APP_ROOT . '/storage/sessions/sess_*') ?: [] as $f) if (@filemtime($f) < time() - 30 * 86400) @unlink($f);
     q('REPLACE INTO system_settings (`key`, value, updated_at) VALUES (?,?,?)', ['cron_last_run', now() . ' GMT', now()]);
     exit('OK ' . json_encode($out));
+}
+
+/* ───────── Learner videos: shared in emails and WhatsApp ───────── */
+if ($first === 'videos') {
+    $vb = 'https://raw.githubusercontent.com/Buja-OS/woddi-course-video/main/learner-videos/';
+    $vids = [['1-your-learning-journey-continues', 'Your learning journey continues', 'Why your place is still here, and what the Course Hub holds for you, from digital skills to hands-on trades.', '1:36', 'Why it matters'], ['2-pick-up-where-you-left-off', 'Pick up where you left off', 'A short reminder: everything you finished is saved, and one lesson is enough to start again.', '0:25', 'Quick reminder'], ['3-how-to-resume-your-learning', 'How to resume your learning', 'A step by step walk through: sign in, open the Course Hub, and continue from your last lesson.', '3:26', 'Step by step']];
+    $h = '<p class="au-tag">3 short videos · About 6 minutes · Captions included</p><h1>Your learning journey continues</h1><p class="mut">Started a course and life got busy? Watch these three short videos in order, and you will find your place again in a few taps.</p><a class="b au-b" href="' . url(me() ? 'learn' : 'login') . '">' . ic('fa-play') . ' Open WODDI Institute and continue</a><h3>Watch in order</h3><p class="mut sm">Each one builds on the last. Tap a video to play.</p>';
+    foreach ($vids as $i => $v) $h .= '<div class="card col" style="padding:12px"><video class="vid" controls playsinline preload="none" poster="' . url('img/learner-videos/poster-' . ($i + 1) . '.jpg') . '"><source src="' . $vb . $v[0] . '.mp4" type="video/mp4"><track kind="captions" srclang="en" label="English" src="' . $vb . $v[0] . '.vtt">Your browser cannot play this video.</video><div class="row"><span class="pill">Step ' . ($i + 1) . '</span><span class="pill n">' . $v[4] . '</span><span class="grow"></span><span class="mut xs">' . $v[3] . '</span></div><p class="bold">' . $v[1] . '</p><p class="mut sm">' . $v[2] . '</p></div>';
+    public_shell('Learner videos', $h . '<p class="xs mut">The videos download only when you tap Play, to save mobile data.</p>', 'Continue your learning');
+}
+
+/* ───────── Admissions, cohorts and the waiting list ───────── */
+if ($first === 'admissions') {
+    if (is_post()) {
+        if (post('website') !== '') redirect('admissions', ['done' => 1]);
+        $contact = mb_substr((string)post('contact'), 0, 160); $name = mb_substr((string)post('full_name'), 0, 160);
+        if ($name === '' || (!filter_var($contact, FILTER_VALIDATE_EMAIL) && strlen(preg_replace('/\D/', '', $contact)) < 8)) { flash('Add your name and a phone number or email we can reach you on.', 'err'); redirect('admissions'); }
+        if (!val('SELECT 1 FROM admission_waitlist WHERE contact = ?', [$contact])) ins('admission_waitlist', ['contact' => $contact, 'full_name' => $name, 'network' => post('network') === 'nnn' ? 'nnn' : 'gmn', 'country' => mb_substr((string)post('country'), 0, 80), 'region' => mb_substr((string)post('region'), 0, 80), 'note' => mb_substr((string)post('note'), 0, 500), 'notified' => 0, 'join_community' => post('join_community') ? 1 : 0]);
+        if (filter_var($contact, FILTER_VALIDATE_EMAIL)) send_mail($contact, 'You are on the WODDI Institute waiting list', '<p>Dear ' . e($name) . ',</p><p>Thank you. You are on the waiting list, and we will write to you when the next admission window opens.</p><p>WODDI Institute</p>');
+        redirect('admissions', ['done' => 1]);
+    }
+    $y = (int)gmdate('Y'); $m = (int)gmdate('n'); $cycles = [];
+    try { $cycles = rows('SELECT * FROM academic_cycles WHERE (year > ? OR (year = ? AND end_month >= ?)) ORDER BY year, start_month LIMIT 4', [$y, $y, $m]); } catch (Throwable $e) {}
+    if (!$cycles) foreach ([[2, 4, 'February–April'], [6, 8, 'June–August'], [9, 11, 'September–November']] as $c) foreach ([$y, $y + 1] as $yy) if ($yy > $y || $c[1] >= $m) $cycles[] = ['name' => "$c[2] $yy", 'year' => $yy, 'start_month' => $c[0], 'end_month' => $c[1], 'admission_open_day' => 1, 'admission_close_day' => 14];
+    usort($cycles, fn($a, $b) => [$a['year'], $a['start_month']] <=> [$b['year'], $b['start_month']]); $cycles = array_slice($cycles, 0, 3); $open = admissions_open();
+    $h = '<h1>Admissions and cohorts</h1><p class="mut">See which learning cycle is running now, and what comes next. Each cycle runs for three months.</p><div class="flash ' . ($open ? '' : 'err') . '">' . ic($open ? 'fa-door-open' : 'fa-door-closed') . '<span>Admissions are <strong>' . ($open ? 'open' : 'closed') . '</strong> right now.' . ($open ? ' You can create your account today.' : ' Join the waiting list below and we will tell you when the next window opens.') . '</span></div><div class="grp">';
+    foreach ($cycles as $c) { $now = (int)$c['year'] === $y && $m >= (int)$c['start_month'] && $m <= (int)$c['end_month']; $mn = gmdate('F', gmmktime(0, 0, 0, (int)$c['start_month'], 1)); $h .= '<div class="li"><span class="ic s ' . ($now ? 'l' : 'n') . '">' . ic($now ? 'fa-play' : 'fa-calendar-days') . '</span><span class="grow"><span class="bold" style="display:block">' . e($c['name']) . '</span><span class="mut xs">' . ($now ? 'Current learning cycle. Enrolled learners can continue their lessons in the app.' : 'Admission window: ' . (int)($c['admission_open_day'] ?: 1) . ' to ' . (int)($c['admission_close_day'] ?: 14) . ' ' . $mn . ' ' . (int)$c['year'] . '.') . '</span></span>' . pill($now ? 'In progress' : 'Planned', $now ? 'l' : 'n') . '</div>'; }
+    $h .= '</div>';
+    if (!empty($_GET['done'])) $h .= '<div class="flash">' . ic('fa-circle-check') . '<span>You are on the waiting list. We will contact you when admissions open.</span></div>';
+    elseif ($open) $h .= '<a class="b au-b" href="' . url('register') . '">' . ic('fa-user-plus') . ' Create my free account</a>';
+    else $h .= '<form method="post" class="col" style="gap:12px">' . csrf_field() . '<h3>Join the waiting list</h3><input name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true"><div class="g2"><label class="fld">Full name<input class="au-inp" name="full_name" required></label><label class="fld">Phone, WhatsApp or email<input class="au-inp" name="contact" required></label><label class="fld">Network<select class="au-inp" name="network"><option value="gmn">WGMN, ages 30 and above</option><option value="nnn">WNNN, ages 18 to 29</option></select></label><label class="fld">Country<input class="au-inp" name="country"></label></div><label class="row"><input type="checkbox" name="join_community" value="1" checked style="width:22px;height:22px"> Tell me about my country community too</label><button class="b au-b">Join the waiting list</button></form>';
+    public_shell('Admissions', $h . '<p class="sm mut">Already a learner? <a href="' . url('login') . '" style="text-decoration:underline">Sign in</a> to see your cycle and your next lesson. See also the <a href="' . url('videos') . '" style="text-decoration:underline">learner videos</a>.</p>', 'Admissions and cohorts');
+}
+
+/* ───────── Install the app ───────── */
+if ($first === 'download') {
+    $play = 'https://play.google.com/store/apps/details?id=org.thewoddi.institute';
+    $h = '<div class="col center" style="gap:8px"><img src="' . asset('icon-192.png') . '" alt="" style="width:96px;height:96px;border-radius:24px;box-shadow:var(--sh)"><h1>Install WODDI Institute</h1><p class="mut">Add it to your home screen for the best experience. It keeps working when your data is off.</p></div>'
+        . '<a class="b au-b" href="' . $play . '" target="_blank" rel="noopener"><i class="fa-brands fa-google-play"></i> Get it on Google Play (Android)</a><button class="b g au-b" type="button" id="pwa-install" hidden>' . ic('fa-download') . ' Install on this device</button>'
+        . '<div class="card col"><h3>' . ic('fa-mobile-screen') . ' iPhone or iPad</h3><div class="row rt"><span class="num">1</span><p class="grow">Open this page in Safari and tap the Share button in the bottom bar.</p></div><div class="row rt"><span class="num">2</span><p class="grow">Scroll and tap "Add to Home Screen".</p></div><div class="row rt"><span class="num">3</span><p class="grow">Tap "Add". The WODDI icon appears on your home screen.</p></div></div>'
+        . '<div class="card col"><h3>' . ic('fa-laptop') . ' Computer, or Android without Google Play</h3><div class="row rt"><span class="num">1</span><p class="grow">Open this site in Chrome or Edge.</p></div><div class="row rt"><span class="num">2</span><p class="grow">Tap the install icon in the address bar, or the menu and then "Install app" or "Add to Home screen".</p></div></div>'
+        . '<a class="b g au-b" href="' . url('app') . '">Open the app in the browser instead</a>';
+    page('Install the app', '<div class="au-top"><a href="' . url('') . '"><img src="' . asset('logo.jpg') . '" alt="WODDI logo"></a><div class="grow"><b style="font-family:Manrope,sans-serif">WODDI Institute</b><div class="xs mut">Install the app</div></div></div><div class="au-wrap"><div class="au-card" style="max-width:620px">' . $h . '</div></div>', ['bare' => true, 'foot' => '<script>var dp=null,b=document.getElementById("pwa-install");addEventListener("beforeinstallprompt",function(e){e.preventDefault();dp=e;b.hidden=false});b.addEventListener("click",function(){if(dp){dp.prompt();dp=null;b.hidden=true}});</script>']);
 }
 
 if ($first === 'privacy' || $first === 'about') {

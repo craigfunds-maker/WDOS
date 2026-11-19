@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 const NAV_MAIN = [['', 'Home', 'fa-house'], ['learn', 'Learn', 'fa-graduation-cap'], ['community', 'Community', 'fa-comments'], ['mentor', 'Mentor', 'fa-robot'], ['me', 'Profile', 'fa-user']];
-const NAV_MORE = [['radio', 'Radio', 'fa-radio'], ['market', 'Market', 'fa-store'], ['journey', 'Journey', 'fa-road'], ['learn?mine=1', 'My Courses', 'fa-book-open-reader'], ['progress', 'Progress', 'fa-chart-line'], ['certificates', 'Certs', 'fa-certificate'], ['points?tab=board', 'Leaderboard', 'fa-trophy'], ['community?tab=events', 'Events', 'fa-calendar-days'], ['support', 'Support', 'fa-life-ring'], ['settings', 'Settings', 'fa-gear']];
+const NAV_MORE = [['radio', 'Radio', 'fa-radio'], ['market', 'Market', 'fa-store'], ['journey', 'Journey', 'fa-road'], ['learn?mine=1', 'My Courses', 'fa-book-open-reader'], ['progress', 'Progress', 'fa-chart-line'], ['certificates', 'Certs', 'fa-certificate'], ['points?tab=board', 'Leaderboard', 'fa-trophy'], ['community?tab=events', 'Events', 'fa-calendar-days'], ['support', 'Support', 'fa-life-ring'], ['guide', 'App guide', 'fa-circle-play'], ['settings', 'Settings', 'fa-gear']];
 
 function ic(string $name, string $extra = ''): string { return '<i class="fa-solid ' . $name . ($extra ? ' ' . $extra : '') . '" aria-hidden="true"></i>'; }
 function pill(string $text, string $cls = ''): string { return '<span class="pill ' . $cls . '">' . e($text) . '</span>'; }
@@ -40,7 +40,7 @@ function page(string $title, string $html, array $o = []): never {
 <link rel="icon" href="<?= asset('icon-192.png') ?>">
 <link rel="apple-touch-icon" href="<?= asset('icon-192.png') ?>">
 <link rel="stylesheet" href="<?= asset('fonts/fonts.css') ?>">
-<link rel="stylesheet" href="<?= asset('fa/css/all.min.css') ?>">
+<link rel="stylesheet" href="<?= asset('font-awesome/css/all.min.css') ?>">
 <link rel="stylesheet" href="<?= asset('app.css') ?>">
 <script>window.WODDI = { base: <?= json_encode(base()) ?>, csrf: <?= json_encode(csrf()) ?>, vapid: <?= json_encode((string)cfg('vapid.public', '')) ?>, signedIn: <?= $me ? 'true' : 'false' ?> };</script>
 </head>

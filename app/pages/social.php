@@ -171,7 +171,7 @@ function mentor_reply(array $me, array $history, string $text): array {
     $t0 = microtime(true);
     if ($key = cfg('gemini_key')) {
         $contents = []; foreach ($history as $m) $contents[] = ['role' => $m['role'] === 'assistant' ? 'model' : 'user', 'parts' => [['text' => (string)$m['content']]]]; $contents[] = ['role' => 'user', 'parts' => [['text' => $text]]];
-        $model = cfg('gemini_model', 'gemini-2.0-flash'); $r = http_json("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=" . rawurlencode($key), ['system_instruction' => ['parts' => [['text' => $sys]]], 'contents' => $contents, 'generationConfig' => ['temperature' => 0.6, 'maxOutputTokens' => 500]]);
+        $model = cfg('gemini_model', 'gemini-flash-latest'); $r = http_json("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=" . rawurlencode($key), ['system_instruction' => ['parts' => [['text' => $sys]]], 'contents' => $contents, 'generationConfig' => ['temperature' => 0.6, 'maxOutputTokens' => 500]]);
         $out = $r['body']['candidates'][0]['content']['parts'][0]['text'] ?? null; if ($out) return [trim($out), 'gemini', $model, (int)((microtime(true) - $t0) * 1000)];
     }
     if ($key = cfg('openai_key')) {

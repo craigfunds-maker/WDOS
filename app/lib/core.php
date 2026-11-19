@@ -201,7 +201,7 @@ function send_mail(string $to, string $subject, string $html): bool {
     } else {
         $ok = @mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $html, "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: $name <$from>\r\n");
     }
-    try { ins('email_log', ['to_email' => $to, 'recipient' => $to, 'subject' => $subject, 'status' => $ok ? 'sent' : 'failed', 'kind' => 'app']); } catch (Throwable $e) {}
+    try { ins('email_log', ['to_email' => $to, 'sender' => $from, 'subject' => $subject, 'status' => $ok ? 'sent' : 'failed', 'kind' => 'app']); } catch (Throwable $e) {}
     return (bool)$ok;
 }
 function http_json(string $url, array $payload, array $headers = [], int $timeout = 25): ?array {

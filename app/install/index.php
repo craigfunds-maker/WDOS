@@ -185,7 +185,7 @@ $base = $installed ? base() : guess_base();
 ?><!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>Set up WODDI Institute</title>
 <link rel="stylesheet" href="../assets/fonts/fonts.css">
-<link rel="stylesheet" href="../assets/fa/css/all.min.css"><link rel="stylesheet" href="../assets/app.css?v=<?= APP_VERSION ?>">
+<link rel="stylesheet" href="../assets/font-awesome/css/all.min.css"><link rel="stylesheet" href="../assets/app.css?v=<?= APP_VERSION ?>">
 <style>body{background:var(--bg)}.wrap{max-width:860px;margin:0 auto;padding:24px 16px 80px;display:flex;flex-direction:column;gap:16px}.ck{display:flex;gap:10px;align-items:center;padding:6px 0}.ck i{width:20px}.ok{color:var(--lemt)}.no{color:var(--red)}.log{max-height:340px;overflow:auto;font-size:.88em}.log table{width:100%;border-collapse:collapse}.log td{padding:6px 8px;border-bottom:1px solid var(--line)}</style></head>
 <body><div class="wrap">
 <div class="row"><img src="../assets/logo.jpg" alt="WODDI logo" style="width:52px;height:52px;border-radius:14px"><div><h1 style="font-size:1.5em">Set up WODDI Institute</h1><p class="mut sm">Step <?= $step === 'install' ? '1 of 2: connect the database' : '2 of 2: bring the data across from Supabase' ?></p></div></div>

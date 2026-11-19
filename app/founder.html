@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Our Founder | WODDI Institute</title>
+<meta name="description" content="The founder of the Women of Divine Destiny Initiative (WODDI) and her vision for women, youth and vulnerable individuals across Africa.">
+<link rel="canonical" href="https://woddiinstitute.com/founder">
+<link rel="icon" href="/assets/app-icon-192.png" type="image/png">
+<meta property="og:type" content="profile">
+<meta property="og:site_name" content="WODDI Institute">
+<meta property="og:title" content="Our Founder | WODDI Institute">
+<meta property="og:description" content="The founder of the Women of Divine Destiny Initiative and her vision for women, youth and vulnerable individuals across Africa.">
+<meta property="og:url" content="https://woddiinstitute.com/founder">
+<meta property="og:image" content="https://woddiinstitute.com/img/founder/founder.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  :root{
+    --magenta:#D4006A;
+    --magenta-dark:#A00450;
+    --magenta-deep:#5E0030;
+    --lemon:#7CB518;
+    --lemon-soft:#D6F28F;
+    --ink:#241C24;
+    --muted:#6F626C;
+    --paper:#FFFFFF;
+    --wash:#FBF7F9;
+    --line:#EEDDE7;
+    --shadow:0 1px 2px rgba(94,0,48,.06),0 12px 32px rgba(94,0,48,.10);
+    --radius:20px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+    background:var(--wash);color:var(--ink);line-height:1.6;overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  img{max-width:100%;display:block}
+
+  /* hero */
+  .hero{
+    position:relative;overflow:hidden;color:#fff;
+    background:
+      radial-gradient(900px 420px at 88% -10%,rgba(255,255,255,.16),transparent 60%),
+      radial-gradient(700px 380px at -10% 110%,rgba(124,181,24,.28),transparent 60%),
+      linear-gradient(120deg,var(--magenta) 0%,var(--magenta-deep) 100%);
+    padding:3.2rem 1.25rem 4.4rem;
+  }
+  .hero-inner{max-width:1040px;margin:0 auto;display:grid;gap:1.4rem;grid-template-columns:1fr}
+  .brand{display:flex;align-items:center;gap:.8rem}
+  .brand img{width:46px;height:46px;border-radius:12px;background:#fff;padding:3px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+  .brand span{font-weight:800;letter-spacing:.02em;font-size:1rem}
+  .hero h1{font-size:clamp(2rem,5.6vw,3.4rem);font-weight:900;line-height:1.08;letter-spacing:-.02em;max-width:16ch}
+  .hero p.lede{font-size:clamp(1rem,2.2vw,1.12rem);opacity:.94;max-width:50ch}
+  .chips{display:flex;flex-wrap:wrap;gap:.5rem}
+  .chip{
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.26);
+    padding:.42rem .85rem;border-radius:999px;font-size:.85rem;font-weight:600;
+    backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  }
+  .hero .actions{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center}
+  .hero-wave{position:absolute;left:0;right:0;bottom:-1px;height:42px;background:var(--wash)}
+  .lemon-rule{height:5px;background:linear-gradient(90deg,var(--lemon) 0 30%,var(--magenta) 30% 100%)}
+
+  /* buttons */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
+    text-decoration:none;font-weight:800;font-size:1rem;padding:.95rem 1.5rem;border-radius:999px;
+    transition:transform .2s ease,background .2s ease,box-shadow .2s ease;
+  }
+  .btn-primary{background:#fff;color:var(--magenta-deep);box-shadow:0 10px 24px rgba(0,0,0,.18)}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 14px 30px rgba(0,0,0,.22)}
+  .btn-solid{background:var(--magenta);color:#fff;box-shadow:0 10px 24px rgba(212,0,106,.28)}
+  .btn-solid:hover{background:var(--magenta-dark);transform:translateY(-1px)}
+  a:focus-visible,button:focus-visible,video:focus-visible{outline:3px solid var(--lemon);outline-offset:3px}
+
+  /* sections */
+  main{max-width:1040px;margin:0 auto;padding:0 1.25rem 4rem}
+  .section-head{display:flex;align-items:end;justify-content:space-between;gap:1rem;margin:2.6rem 0 1.2rem;flex-wrap:wrap}
+  .section-head h2{font-size:clamp(1.35rem,3vw,1.7rem);font-weight:800;letter-spacing:-.01em}
+  .section-head p{color:var(--muted);font-size:.95rem}
+
+  /* video cards */
+  .grid{display:grid;gap:1.4rem;grid-template-columns:1fr}
+  .card{
+    background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;
+    transition:transform .25s ease,box-shadow .25s ease;
+  }
+  .card:hover{transform:translateY(-3px);box-shadow:0 2px 4px rgba(94,0,48,.07),0 22px 44px rgba(94,0,48,.14)}
+  .media{position:relative;background:#1a1218;aspect-ratio:16/9}
+  .media video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+  .media.tall{aspect-ratio:9/16;width:min(100%,280px);margin:1.1rem auto 0;border-radius:18px;overflow:hidden}
+  .media.tall video{object-fit:cover}
+  .step-pill{
+    position:absolute;bottom:12px;left:12px;z-index:2;background:var(--lemon);color:#fff;
+    font-weight:800;font-size:.78rem;letter-spacing:.04em;padding:.35rem .7rem;border-radius:999px;
+    box-shadow:0 4px 12px rgba(0,0,0,.25);
+  }
+  .duration{
+    position:absolute;right:12px;bottom:12px;z-index:2;background:rgba(20,10,16,.78);color:#fff;
+    font-size:.78rem;font-weight:700;padding:.3rem .6rem;border-radius:8px;
+  }
+  .play{
+    position:absolute;inset:0;z-index:3;border:0;background:transparent;cursor:pointer;
+    display:grid;place-items:center;
+    transition:background .25s ease;
+  }
+  .play .btn-circle{
+    width:76px;height:76px;border-radius:50%;background:rgba(255,255,255,.94);
+    display:grid;place-items:center;box-shadow:0 10px 30px rgba(0,0,0,.35);
+    transition:transform .25s ease;
+  }
+  .play:hover .btn-circle{transform:scale(1.07)}
+  .play .btn-circle svg{width:28px;height:28px;margin-left:5px;fill:var(--magenta)}
+  .play.is-hidden{display:none}
+  .poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .body{padding:1.1rem 1.2rem 1.3rem;display:flex;flex-direction:column;gap:.5rem;flex:1}
+  .by{display:flex;align-items:center;gap:.5rem;font-size:.8rem;color:var(--muted);font-weight:600}
+  .by img{width:22px;height:22px;border-radius:6px}
+  .card h3{font-size:1.15rem;font-weight:800;line-height:1.3;letter-spacing:-.01em}
+  .card p.desc{color:var(--muted);font-size:.93rem}
+  .tags{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.3rem}
+  .tag{font-size:.75rem;font-weight:700;padding:.3rem .6rem;border-radius:8px;background:#F4EAF0;color:var(--magenta-deep)}
+  .tag.green{background:var(--lemon-soft);color:#2F5A06}
+
+  /* layout: featured first, then a vertical clip and a horizontal clip */
+  .layout{display:grid;gap:1.4rem;grid-template-columns:1fr}
+  .pair{display:grid;gap:1.4rem;grid-template-columns:1fr}
+
+  /* call to action */
+  .cta{
+    margin-top:2.6rem;border-radius:28px;overflow:hidden;color:#fff;
+    background:radial-gradient(600px 300px at 90% 0%,rgba(255,255,255,.18),transparent 70%),linear-gradient(120deg,var(--magenta),var(--magenta-deep));
+    padding:2.4rem 1.6rem;display:grid;gap:1.4rem;align-items:center;grid-template-columns:1fr;
+    box-shadow:0 22px 50px rgba(94,0,48,.28);
+  }
+  .cta h2{font-size:clamp(1.5rem,3.6vw,2.1rem);font-weight:900;line-height:1.15;letter-spacing:-.02em}
+  .cta p{opacity:.94;margin-top:.5rem;max-width:44ch}
+  .cta .actions{display:flex;flex-direction:column;gap:1rem;align-items:flex-start}
+  .store{display:flex;flex-direction:column;gap:.5rem;align-items:flex-start}
+  .store small{font-size:.8rem;opacity:.9;font-weight:600;letter-spacing:.02em}
+  .store img{height:58px;width:auto;border-radius:10px;transition:transform .2s ease}
+  .store a:hover img{transform:translateY(-2px)}
+  .store a{display:inline-block}
+
+  footer{text-align:center;padding:2rem 1rem 2.6rem;color:var(--muted);font-size:.84rem}
+
+  /* wider screens */
+  @media (min-width:760px){
+    .feature{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);align-items:stretch}
+    .feature .media{aspect-ratio:auto;min-height:340px}
+    .feature .body{justify-content:center;padding:1.8rem 1.9rem}
+    .feature h3{font-size:1.5rem}
+    .pair{grid-template-columns:1fr 1fr}
+    .cta{grid-template-columns:1.25fr 1fr;padding:2.8rem 3rem}
+    .cta .actions{align-items:flex-start}
+  }
+  @media (max-width:520px){
+    .hero{padding:2.4rem 1.1rem 3.8rem}
+    main{padding:0 1rem 3rem}
+    .play .btn-circle{width:64px;height:64px}
+    .btn{width:100%}
+    .store img{height:52px}
+  }
+
+  /* dark mode */
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ink:#F6EEF3;--muted:#BBA9B6;--paper:#21181F;--wash:#150F14;--line:#3A2B37;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 34px rgba(0,0,0,.4);
+    }
+    :root:not([data-theme="light"]) .tag{background:#33243000;color:#F1C6DD;border:1px solid #4A3446}
+    :root:not([data-theme="light"]) .tag.green{background:#27360F;color:#D6F28F;border:0}
+  }
+  :root[data-theme="dark"]{
+    --ink:#F6EEF3;--muted:#BBA9B6;--paper:#21181F;--wash:#150F14;--line:#3A2B37;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 34px rgba(0,0,0,.4);
+  }
+  :root[data-theme="dark"] .tag{background:#33243000;color:#F1C6DD;border:1px solid #4A3446}
+  :root[data-theme="dark"] .tag.green{background:#27360F;color:#D6F28F;border:0}
+  body{background:var(--wash)}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+
+  .nav-row{display:flex;flex-wrap:wrap;gap:.5rem;margin:0 0 1.6rem}
+  .nav-row a{text-decoration:none;font-weight:700;font-size:.88rem;padding:.5rem .9rem;border-radius:999px;border:1px solid var(--line);color:var(--ink);background:var(--paper)}
+  .nav-row a[aria-current="page"]{background:var(--magenta);border-color:var(--magenta);color:#fff}
+  .prose h2{font-size:1.25rem;font-weight:800;margin:2rem 0 .6rem;letter-spacing:-.01em}
+  .prose p{margin:.6rem 0}
+  .prose ul{padding-left:1.2rem;margin:.6rem 0}
+  .prose li{margin:.4rem 0}
+  .prose a{color:var(--magenta);font-weight:700}
+  .panel{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:1.3rem 1.4rem}
+  .cycle{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
+  .cycle h3{font-size:1.15rem;font-weight:800}
+  .cycle p{color:var(--muted);font-size:.93rem;margin:.2rem 0 0}
+  .status{font-size:.78rem;font-weight:800;padding:.35rem .7rem;border-radius:999px;background:var(--lemon-soft);color:#2F5A06;white-space:nowrap}
+  .status.next{background:#F4EAF0;color:var(--magenta-deep)}
+  .sub{color:var(--muted);font-size:.93rem}
+
+  .founder-card{display:grid;grid-template-columns:1fr;background:var(--paper);border:1px solid var(--line);border-radius:28px;box-shadow:var(--shadow);overflow:hidden;margin:1.2rem 0 2.2rem;align-items:stretch}
+  .founder-photo{position:relative;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,var(--magenta),var(--magenta-deep));padding:1.6rem}
+  .founder-photo img{display:block;width:100%;max-width:440px;height:auto;aspect-ratio:1/1;object-fit:cover;border-radius:20px;box-shadow:0 18px 40px rgba(0,0,0,.28)}
+  .founder-photo .tag{position:absolute;left:2.2rem;bottom:2.2rem;background:#fff;color:var(--magenta-deep);font-weight:800;font-size:.8rem;padding:.4rem .8rem;border-radius:999px;box-shadow:0 6px 16px rgba(0,0,0,.2)}
+  .founder-text{padding:1.8rem 1.4rem 2rem;align-self:center}
+  .founder-kicker{font-size:.78rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--magenta);margin-bottom:.5rem}
+  .founder-name{font-size:clamp(1.35rem,3vw,1.7rem);font-weight:900;letter-spacing:-.01em;line-height:1.2}
+  .founder-role{color:var(--magenta);font-weight:800;font-size:.95rem;margin-top:.35rem}
+  .founder-rule{width:56px;height:5px;border-radius:5px;background:linear-gradient(90deg,var(--lemon) 0 50%,var(--magenta) 50%);margin:1.1rem 0}
+  .founder-text p{margin:.8rem 0;max-width:64ch}
+  .founder-text p.lead{font-size:1.06rem;font-weight:500}
+  .founder-motto{margin-top:1.2rem;font-weight:800;color:var(--magenta-deep)}
+  .founder-quote{font-style:italic;color:var(--muted);margin-top:.4rem}
+  @media (min-width:760px){
+    .founder-card{grid-template-columns:minmax(0,2fr) minmax(0,3fr)}
+    .founder-text{padding:2.6rem 2.6rem 2.4rem}
+  }
+  @media (max-width:520px){ .founder-photo{padding:1.1rem} .founder-photo .tag{left:1.5rem;bottom:1.5rem} }
+
+  .back{display:inline-flex;text-decoration:none;font-weight:700;font-size:.88rem;padding:.5rem .9rem;border-radius:999px;border:1px solid var(--line);color:var(--ink);background:var(--paper);margin:2rem 0 0}
+  .profile{max-width:none;margin:1.2rem 0 0}
+  .profile p{margin:.9rem 0;max-width:68ch;font-size:1.02rem}
+  .profile p:first-child{font-size:1.1rem;font-weight:500}
+  .profile-motto{margin-top:1.4rem;font-weight:800;color:var(--magenta-deep)}
+</style>
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
+</head>
+<body>
+<header class="hero">
+  <div class="hero-inner">
+    <div class="brand"><img src="/assets/app-icon-192.png" alt="WODDI Institute logo" width="46" height="46"><span>WODDI Institute</span></div>
+    <h1>Our Founder</h1>
+    <p class="lede">H.E. Zinariya Nneoma Nkechi Rochas Okorocha, Founder, Women of Divine Destiny Initiative (WODDI)</p>
+  </div>
+  <svg class="hero-wave" viewBox="0 0 1440 42" preserveAspectRatio="none" aria-hidden="true"><path d="M0,42 L0,22 Q360,0 720,20 T1440,18 L1440,42 Z" fill="currentColor"/></svg>
+</header>
+<div class="lemon-rule" aria-hidden="true"></div>
+<main>
+  <div class="founder-card" style="margin-top:2rem">
+    <div class="founder-photo">
+      <img src="/img/founder/founder.jpg" alt="Portrait of H.E. Zinariya Nneoma Nkechi Rochas Okorocha" width="900" height="900">
+      <span class="tag">Founder</span>
+    </div>
+    <div class="founder-text">
+      <div class="founder-kicker">Founder Profile</div>
+      <h2 class="founder-name">H.E. Zinariya Nneoma Nkechi Rochas Okorocha</h2>
+      <p class="founder-role">Founder, Women of Divine Destiny Initiative (WODDI)</p>
+      <div class="founder-rule" aria-hidden="true"></div>
+      <div class="profile">
+        <p>Driven by compassion, purpose and an unwavering belief in human potential, H.E. Zinariya Nneoma Nkechi Rochas Okorocha founded the Women of Divine Destiny Initiative (WODDI) with a powerful vision: to nurture lives, restore dignity, unlock potential and create opportunities for women, youth, adolescents and vulnerable individuals across Africa.</p>
+        <p>Her mission is rooted in the conviction that every individual deserves an opportunity to thrive, regardless of background or circumstances. She believes that when women are empowered, families become stronger; when young people and adolescents are properly nurtured, the future is secured; and when vulnerable individuals are supported, communities become more inclusive, resilient and prosperous.</p>
+        <p>Through its programmes and initiatives, WODDI promotes empowerment, education, skills acquisition, mentorship, leadership development, family well-being and humanitarian support.</p>
+        <p>Central to this vision are the WODDI Good Mother Network (WGMN), serving women aged 30 and above, and the WODDI Nurture NextGen Network (WNNN), empowering young women aged 18–29. Alongside these networks, WODDI’s broader humanitarian initiatives address the needs of adolescents and vulnerable individuals.</p>
+        <p>The WODDI Institute advances this mission through free, accessible online learning, equipping women across Africa with the knowledge, values, practical skills and leadership capacity to transform their lives, strengthen their families, mentor future generations and positively influence their communities.</p>
+        <p>Her ultimate vision is to build a continent-wide movement of empowered women, purposeful young people, nurtured adolescents and supported vulnerable individuals, creating lasting transformation across generations.</p>
+        <p class="profile-motto">Nurturing Lives. Empowering Generations. Transforming Africa.</p>
+      </div>
+    </div>
+  </div>
+  <a class="back" href="/about">Back to About WODDI Institute</a>
+</main>
+<footer>© Women of Divine Destiny Initiative (WODDI) · WODDI Institute. Learning for growth. Knowledge for life.</footer>
+</body>
+</html>

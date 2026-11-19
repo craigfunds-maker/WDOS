@@ -95,3 +95,11 @@ To run the installer again from scratch: delete config.php in File Manager and o
 
 KEEP SAFE
 config.php holds your database password and push keys. Never share it or put it in a public place.
+
+ADDED IN THIS COPY
+Landing page: the same landing page as the live site, at the root address. The app welcome screen is at /app.
+Certificates: drawn on the original certificate template, with PDF and image download.
+App guide: /guide has a short video tour in English, French and Portuguese.
+Listen: the Rooting and Blueprint lessons have recorded narration (Kokoro voice af_heart).
+  Course lessons use the phone's own voice until recordings are added.
+  To record a course, see tools/kokoro-listen/make_audio.py. Upload the result into assets/audio/courses.

@@ -19,14 +19,35 @@
   });
   /* Listen: read the lesson aloud with the phone's own voice */
   var speaking = false;
+  /* Listen: plays the recorded Kokoro narration when the lesson has one, otherwise the phone's own voice reads the text. */
+  var lp = null;
+  function stopListen() { if (lp) { try { lp.a.pause(); } catch (e) {} lp.bar.remove(); lp.btn.classList.remove('on'); lp = null; } if (window.speechSynthesis) speechSynthesis.cancel(); speaking = false; }
+  function deviceVoice(t) {
+    var src = $(t.getAttribute('data-listen')); if (!src || !window.speechSynthesis) return;
+    var text = src.innerText.replace(/\s+/g, ' ').slice(0, 14000), parts = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text], i = 0;
+    function next() { if (!speaking || i >= parts.length) { speaking = false; t.classList.remove('on'); return; } var u = new SpeechSynthesisUtterance(parts.slice(i, i + 3).join(' ')); i += 3; u.lang = t.getAttribute('data-lang') || 'en'; u.rate = 0.95; u.onend = next; u.onerror = next; speechSynthesis.speak(u); }
+    speaking = true; t.classList.add('on'); next();
+  }
+  function fmt(s) { s = Math.floor(s || 0); return Math.floor(s / 60) + ':' + ('0' + s % 60).slice(-2); }
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-listen]'); if (!t || !window.speechSynthesis) return;
-    if (speaking) { speechSynthesis.cancel(); speaking = false; t.classList.remove('on'); return; }
-    var src = $(t.getAttribute('data-listen')); if (!src) return;
-    var u = new SpeechSynthesisUtterance(src.innerText.slice(0, 12000)); u.lang = t.getAttribute('data-lang') || 'en'; u.rate = 0.95;
-    u.onend = function () { speaking = false; t.classList.remove('on'); };
-    speechSynthesis.speak(u); speaking = true; t.classList.add('on');
+    var t = e.target.closest('[data-listen]'); if (!t) return;
+    if (speaking || lp) { var same = lp && lp.btn === t; stopListen(); t.classList.remove('on'); if (same || !lp) return; }
+    var url = t.getAttribute('data-audio');
+    if (!url) { deviceVoice(t); return; }
+    var bar = document.createElement('div'); bar.className = 'lplayer';
+    bar.innerHTML = '<button type="button" class="ib" data-lp="play" aria-label="Play or pause"><i class="fa-solid fa-pause"></i></button><div class="grow"><div class="lp-t"><b>Listening</b><span data-lp="time">0:00</span></div><input type="range" min="0" max="1000" value="0" data-lp="seek" aria-label="Position"></div><button type="button" class="pill n" data-lp="rate" aria-label="Speed">1x</button><button type="button" class="ib" data-lp="close" aria-label="Stop"><i class="fa-solid fa-xmark"></i></button>';
+    document.body.appendChild(bar);
+    var a = new Audio(url), rates = [1, 1.25, 1.5, 0.85], ri = 0; lp = { a: a, bar: bar, btn: t }; t.classList.add('on');
+    var seek = bar.querySelector('[data-lp=seek]'), time = bar.querySelector('[data-lp=time]'), ico = bar.querySelector('[data-lp=play] i');
+    a.addEventListener('timeupdate', function () { if (a.duration) { seek.value = Math.round(a.currentTime / a.duration * 1000); time.textContent = fmt(a.currentTime) + ' / ' + fmt(a.duration); } });
+    a.addEventListener('ended', stopListen);
+    a.addEventListener('error', function () { stopListen(); deviceVoice(t); });
+    a.addEventListener('play', function () { ico.className = 'fa-solid fa-pause'; }); a.addEventListener('pause', function () { ico.className = 'fa-solid fa-play'; });
+    seek.addEventListener('input', function () { if (a.duration) a.currentTime = seek.value / 1000 * a.duration; });
+    bar.addEventListener('click', function (ev) { var b = ev.target.closest('[data-lp]'); if (!b) return; var k = b.getAttribute('data-lp'); if (k === 'play') { if (a.paused) a.play(); else a.pause(); } if (k === 'close') stopListen(); if (k === 'rate') { ri = (ri + 1) % rates.length; a.playbackRate = rates[ri]; b.textContent = rates[ri] + 'x'; } });
+    a.play().catch(function () { ico.className = 'fa-solid fa-play'; });
   });
+  window.addEventListener('pagehide', stopListen);
   /* Auto-saving notes */
   $$('[data-note]').forEach(function (ta) {
     var timer, ind = $('#note-state');
