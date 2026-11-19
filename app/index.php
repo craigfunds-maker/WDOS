@@ -27,6 +27,8 @@ if ($u = me()) touch_user($u['uid']);
 /* Old addresses from the previous site keep working: app.html, verify.html?code=..., ops.html and so on. */
 if (preg_match('/^([a-z0-9-]+)\.html$/', $first, $m)) { $map = ['index' => '', 'app' => '', 'dashboard' => '', 'app-auth' => 'login', 'signup' => 'register', 'admin' => 'ops', 'courses' => 'learn', 'marketplace' => 'market', 'certificate' => 'certificates', 'admissions' => 'register']; redirect($map[$m[1]] ?? $m[1], $_GET); }
 
+if ($first === 'app' || $first === 'dashboard') redirect('', $_GET);
+
 $routes = [
     'auth' => ['login', 'register', 'logout', 'forgot', 'reset', 'google'],
     'learn' => ['learn', 'journey', 'course'],
