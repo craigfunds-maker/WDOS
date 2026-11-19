@@ -1,0 +1,38 @@
+# Downloads official polling-station sources (electoral commissions, open-data portals) that the build workspace cannot
+# reach, and keeps them on the separate branch geo-src. Nothing here goes to the live site; tools/geo/polling_build.py
+# turns them into the chapter lists. Start it by changing tools/geo/fetch.json: [["file name","url"], ...].
+name: Geo sources fetch
+on:
+  push:
+    paths: ['tools/geo/fetch.json']
+  workflow_dispatch:
+permissions: { contents: write }
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: main }
+      - name: Download
+        run: |
+          mkdir -p out
+          git -C main fetch origin geo-src 2>/dev/null && git -C main worktree add ../src origin/geo-src 2>/dev/null && cp -a src/. out/ 2>/dev/null || true
+          rm -rf out/.git
+          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36'
+          : > out/_status.txt
+          jq -r '.[] | @tsv' main/tools/geo/fetch.json | while IFS=$'\t' read -r name url; do
+            mkdir -p "out/$(dirname "$name")"
+            code=$(curl -sSL -A "$UA" --retry 3 --max-time 900 -o "out/$name.part" -w '%{http_code}' "$url" || echo 000)
+            size=$(stat -c %s "out/$name.part" 2>/dev/null || echo 0)
+            if [ "$code" = "200" ] && [ "$size" -gt 200 ]; then mv "out/$name.part" "out/$name"; else rm -f "out/$name.part"; fi
+            echo -e "$name\t$code\t$size\t$url" >> out/_status.txt
+          done
+          cat out/_status.txt
+          # files over 95 MB cannot go into git: split them
+          find out -type f -size +95M | while read f; do split -b 90M -d "$f" "$f.part-"; rm "$f"; done
+      - name: Keep them on the geo-src branch
+        run: |
+          cd out && git init -q && git checkout -q -b geo-src && git add -A
+          git -c user.name="WDOS geo" -c user.email="noreply@anthropic.com" commit -qm "Official polling-station sources $(date -u +%F)"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" geo-src

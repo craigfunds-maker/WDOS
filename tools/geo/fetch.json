@@ -1,0 +1,20 @@
+[
+ ["GH/Polling_stations.pdf","https://ec.gov.gh/wp-content/uploads/2024/10/Polling_stations.pdf"],
+ ["ZA/voting-stations-lge-2026.html","https://www.elections.org.za/pw/Elections-And-Results/Voting-Stations-LGE-2026"],
+ ["ZM/rptPDListing20260508.pdf","https://www.elections.org.zm/wp-content/uploads/rptPDListing20260508.pdf"],
+ ["SN/Carte_electorale_2024.pdf","https://dge.sn/wp-content/uploads/2024/10/Carte_electorale_2024.pdf"],
+ ["MG/LISTE-ET-EMPLACEMENT-DES-BV-2.pdf","https://www.ceni-madagascar.mg/wp-content/uploads/2023/09/LISTE-ET-EMPLACEMENT-DES-BV-2.pdf"],
+ ["CI/lieux-bureaux-2025.html","https://www.cei.ci/liste-des-lieux-et-bureaux-de-vote-de-lelection-du-president-de-la-republique-du-25-octobre-2025/"],
+ ["ET/list.html","https://nebe.org.et/en/List_of_polling_stations"],
+ ["NA/2024-polling-station.html","https://www.ecn.na/2024-polling-station/"],
+ ["ZW/downloads.html","https://www.zec.org.zw/download-category/23-elections/"],
+ ["MW/mec-home.html","https://www.mec.org.mw/"],
+ ["LR/necliberia.html","https://www.necliberia.org/"],
+ ["UG/ec-stats.html","https://www.ec.or.ug/electoral-commission-statistics"],
+ ["FR/datagouv-bureaux-2025.json","https://www.data.gouv.fr/api/1/datasets/bureaux-de-vote-2025/"],
+ ["FR/datagouv-reu.json","https://www.data.gouv.fr/api/1/datasets/?q=bureaux%20de%20vote%20adresses%20electeurs"],
+ ["BR/tse-eleitorado-2026.json","https://dadosabertos.tse.jus.br/api/3/action/package_show?id=eleitorado-2026"],
+ ["AU/aec-downloads.html","https://www.aec.gov.au/election/fe25/downloads-statistics.htm"],
+ ["CA/opencanada.json","https://open.canada.ca/data/api/action/package_show?id=97a2a33c-54cc-4f2e-82c1-047ad8212f05"],
+ ["UK/democracyclub.html","https://democracyclub.org.uk/projects/polling-stations/"]
+]
