@@ -213,7 +213,11 @@ function envoy_invite_mail(int $userId, string $kind): bool {
 route('GET', '/envoy/home', function () {
   $u = require_user(); $e = envoy_of($u); if (!$e) fail(403, 'This page is for WODDI Envoys.', 'forbidden');
   $me = (int) $u['id'];
+  $leaders = envoy_leaders($me);
   return ['link' => app_origin() . '/#/r/' . $e['code'], 'code' => $e['code'], 'status' => $e['status'], 'kpis' => envoy_kpis($me, (int) $e['link_id']), 'people' => envoy_people($me),
+    'leaders' => $leaders, 'designation' => (string) ($u['designation'] ?? ''),
+    'leader_kpis' => ['brought_in' => count($leaders), 'serving' => count(array_filter($leaders, fn($l) => $l['serving'])), 'attention' => count(array_filter($leaders, fn($l) => (bool) $l['flags'])),
+      'overdue' => array_sum(array_column($leaders, 'tasks_overdue'))],
     'tasks' => ['open' => (int) val("SELECT COUNT(*) FROM tasks WHERE assignee_id=? AND status IN ('open','in_progress')", [$me]), 'submitted' => (int) val("SELECT COUNT(*) FROM tasks WHERE assignee_id=? AND status='submitted'", [$me]), 'overdue' => (int) val("SELECT COUNT(*) FROM tasks WHERE assignee_id=? AND status IN ('open','in_progress') AND due_on IS NOT NULL AND due_on<?", [$me, work_today()])],
     'unread' => dm_unread_total($me)];
 });
@@ -229,7 +233,7 @@ route('GET', '/hq/envoys/(\d+)', function ($id) {
   require_hq(); $e = row('SELECT e.*, u.first_name, u.last_name, u.phone, l.code FROM envoys e JOIN users u ON u.id=e.user_id JOIN referral_links l ON l.id=e.link_id WHERE e.user_id=?', [(int) $id]);
   if (!$e) fail(404, 'That envoy was not found.', 'not_found');
   return ['envoy' => ['id' => (int) $e['user_id'], 'first_name' => $e['first_name'], 'last_name' => $e['last_name'], 'status' => $e['status'], 'link' => app_origin() . '/#/r/' . $e['code'], 'source' => $e['source'] ?? 'hq',
-      'phone' => $e['phone'], 'country' => country_name($e['country_code']), 'state_region' => $e['state_region'] ?? null, 'city' => $e['city'] ?? null, 'organisation' => $e['organisation'] ?? null, 'reach_plan' => $e['reach_plan'] ?? null, 'heard_from' => $e['heard_from'] ?? null, 'created_at' => $e['created_at']], 'kpis' => envoy_kpis((int) $id, (int) $e['link_id']), 'people' => envoy_people((int) $id)];
+      'phone' => $e['phone'], 'country' => country_name($e['country_code']), 'state_region' => $e['state_region'] ?? null, 'city' => $e['city'] ?? null, 'organisation' => $e['organisation'] ?? null, 'reach_plan' => $e['reach_plan'] ?? null, 'heard_from' => $e['heard_from'] ?? null, 'created_at' => $e['created_at']], 'kpis' => envoy_kpis((int) $id, (int) $e['link_id']), 'people' => envoy_people((int) $id), 'leaders' => envoy_leaders((int) $id)];
 });
 route('POST', '/hq/envoys', function () {
   $me = require_hq(); $b = body(); $first = str_in('first_name', 80); $last = str_in('last_name', 80); $email = strtolower(str_in('email', 190)); $phone = preg_replace('/[^\d+]/', '', str_in('phone', 32));

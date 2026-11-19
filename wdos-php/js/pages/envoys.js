@@ -1,6 +1,7 @@
 /* HQ: WODDI Envoys. Who they are, what their links bring in, how far the people they referred are in the 3 days, and opening a new envoy. */
-import { h, t, icon, avatar, card, sk, empty, ago, fmt, toast, input, field } from '../ui.js';
+import { h, t, tf, icon, avatar, card, sk, empty, ago, fmt, toast, input, field } from '../ui.js';
 import { api } from '../api.js';
+import { flagText } from './envoy.js';
 import { kpi } from './hq.js';
 import { peopleTable } from './envoy.js';
 
@@ -46,5 +47,8 @@ async function one(root, id) {
   box.replaceChildren(h('div', { class: 'row row--4' }, kpi('eye', 'Link visits, 30 days', k.visits_30, [h('span', { text: tf('{1} in total', fmt(k.visits_total)) })]), kpi('users', 'People referred', k.referred, [h('span', { text: tf('{1} in the last 30 days', fmt(k.referred_30)) })]),
     kpi('route', 'Finished the 3 days', k.three_days_done, [h('span', { text: tf('{1} started', fmt(k.activation_started)) })]), kpi('send', 'Follow-up messages, 30 days', k.messages_sent_30, [h('span', { text: tf('{1} active this week', fmt(k.active_7)) })])),
     d.envoy.source === 'self' ? card('Her sign-up details', '', h('dl', { class: 'dl' }, [['Phone number', d.envoy.phone], ['Country', d.envoy.country], ['State or region', d.envoy.state_region], ['City or town', d.envoy.city], ['Organisation or group', d.envoy.organisation], ['Where she will share her link', d.envoy.reach_plan], ['How she heard about WODDI', d.envoy.heard_from], ['Signed up', d.envoy.created_at ? ago(d.envoy.created_at) : '']].filter(([, v]) => v).flatMap(([k, v]) => [h('dt', { text: t(k) }), h('dd', { text: v })]))) : null,
+    d.leaders ? card('Volunteer leaders she brought in', 'Overdue tasks, not signing in and leaving a seat are flagged; she is told each day.', d.leaders.length ? h('div', { class: 'list list--stack' }, d.leaders.map((l) => h('a', { class: 'list__link', href: '#/members/' + l.id, style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' },
+      h('div', { class: 'grow', style: 'min-width:180px' }, h('b', { text: `${l.first_name} ${l.last_name}`.trim() }), h('small', { text: [l.title, l.last_seen_at ? tf('Seen {1}', ago(l.last_seen_at)) : t('Never signed in')].filter(Boolean).join(' · ') })),
+      ...(l.flags.length ? l.flags.map((f) => h('span', { class: 'tag tag--bad', text: flagText(f) })) : [h('span', { class: 'tag tag--wnnn', text: t('On track') })])))) : empty('users', 'No volunteer leaders yet', '')) : null,
     card(`${d.envoy.first_name} ${d.envoy.last_name}`, d.envoy.link, peopleTable(d.people, { message: true })));
 }

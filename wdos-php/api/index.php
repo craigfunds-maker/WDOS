@@ -290,9 +290,11 @@ route('POST', '/me', function () {
   $u = require_user();
   $first = str_in('first_name', 80) ?: $u['first_name']; $last = str_in('last_name', 80) ?: $u['last_name'];
   $phone = preg_replace('/[^\d+]/', '', str_in('phone', 32)) ?: $u['phone'];
-  q('UPDATE users SET first_name=?, last_name=?, phone=?, lga=?, community=? WHERE id=?', [$first, $last, $phone, str_in('lga', 120), str_in('community', 120), (int) $u['id']]);
-  if (array_key_exists('ward', body())) q('UPDATE users SET ward=? WHERE id=?', [str_in('ward', 120), (int) $u['id']]);
-  chapter_replace_after_change((int) $u['id']);
+  if (str_ends_with((string) $u['email'], '@phone.wdos.invalid')) $phone = $u['phone'];     // v109.31: she signs in with this number; HQ changes it
+  $envoy = ($u['role'] ?? '') === 'envoy';
+  q('UPDATE users SET first_name=?, last_name=?, phone=?, lga=?, community=? WHERE id=?', [$first, $last, $phone, $envoy ? (string) $u['lga'] : str_in('lga', 120), $envoy ? (string) $u['community'] : str_in('community', 120), (int) $u['id']]);
+  if (array_key_exists('ward', body()) && !$envoy) q('UPDATE users SET ward=? WHERE id=?', [str_in('ward', 120), (int) $u['id']]);
+  if (!$envoy) chapter_replace_after_change((int) $u['id']);
   return ['ok' => true, 'user' => public_user(row('SELECT * FROM users WHERE id=?', [(int) $u['id']]))];
 });
 route('POST', '/me/password', function () {

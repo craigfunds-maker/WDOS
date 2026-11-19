@@ -281,6 +281,62 @@ function envoy_people(int $envoyId): array {
   }
   return $out;
 }
+/** v109.31: the volunteer leaders an envoy brought in (people who joined through her link and hold, or held, a seat),
+ *  with what needs her attention: overdue tasks, not signing in, stopping serving. Azeez, 19 Nov 2026. */
+function envoy_leaders(int $envoyId): array {
+  $out = []; $today = function_exists('work_today') ? work_today() : gmdate('Y-m-d'); $wk = gmdate('Y-m-d H:i:s', time() - 7 * 86400);
+  foreach (rows("SELECT u.id, u.first_name, u.last_name, u.has_photo, u.network, u.state_region, u.last_seen_at, u.phone, r.created_at referred_at FROM referrals r JOIN users u ON u.id=r.user_id
+                 WHERE r.referrer_id=? AND EXISTS (SELECT 1 FROM seats s WHERE s.user_id=u.id) ORDER BY u.first_name LIMIT 500", [$envoyId]) as $p) {
+    $id = (int) $p['id']; $seat = current_seat($id);
+    $last = $seat ? null : row('SELECT s.*, p.title_wgmn, p.title_wnnn, o.name unit_name FROM seats s JOIN positions p ON p.code=s.position_code JOIN org_units o ON o.id=s.org_unit_id WHERE s.user_id=? ORDER BY s.id DESC LIMIT 1', [$id]);
+    $t = row("SELECT COALESCE(SUM(status IN ('open','in_progress')),0) open, COALESCE(SUM(status IN ('open','in_progress') AND due_on IS NOT NULL AND due_on<?),0) overdue, COALESCE(SUM(status='completed'),0) done FROM tasks WHERE assignee_id=?", [$today, $id]);
+    $flags = [];
+    if ((int) $t['overdue'] > 0) $flags[] = ['kind' => 'task_overdue', 'n' => (int) $t['overdue'], 'text' => (int) $t['overdue'] === 1 ? '1 task overdue' : $t['overdue'] . ' tasks overdue'];
+    $since = $seat ? $seat['starts_at'] : null;
+    if ($seat && !$p['last_seen_at'] && $since && $since < gmdate('Y-m-d H:i:s', time() - 3 * 86400)) $flags[] = ['kind' => 'never_signed', 'text' => 'Has not signed in since her appointment'];
+    elseif ($seat && $p['last_seen_at'] && $p['last_seen_at'] < $wk) { $nd = (int) floor((time() - strtotime($p['last_seen_at'] . ' UTC')) / 86400); $flags[] = ['kind' => 'no_signin', 'n' => $nd, 'text' => 'Not signed in for ' . $nd . ' days']; }
+    if ($seat && in_array($seat['status'], ['on_leave', 'suspended'], true)) $flags[] = ['kind' => 'paused', 'text' => $seat['status'] === 'on_leave' ? 'On leave' : 'Suspended by HQ'];
+    if (!$seat && $last) $flags[] = ['kind' => 'stopped', 'text' => ['resigned' => 'Resigned from her seat', 'removed' => 'Her appointment was ended', 'replaced' => 'Replaced in her seat'][$last['end_reason']] ?? 'No longer holds a seat', 'seat' => (int) $last['id']];
+    $out[] = ['id' => $id, 'first_name' => $p['first_name'], 'last_name' => $p['last_name'], 'has_photo' => (int) $p['has_photo'], 'network' => $p['network'], 'state_region' => $p['state_region'],
+      'title' => $seat ? seat_title($seat) : ($last ? seat_title($last) : ''), 'serving' => (bool) $seat, 'referred_at' => $p['referred_at'], 'last_seen_at' => $p['last_seen_at'],
+      'tasks_open' => (int) $t['open'], 'tasks_overdue' => (int) $t['overdue'], 'tasks_done' => (int) $t['done'], 'flags' => $flags];
+  }
+  usort($out, fn($a, $b) => (count($b['flags']) <=> count($a['flags'])) ?: strcmp($a['first_name'], $b['first_name']));
+  return $out;
+}
+/** Once a day from 08:00 Lagos: each envoy is told, in the app and on her phone (and by email if she has one), about leaders she
+ *  brought in who need her: a task overdue (once per task), not signing in (once a week), stopping serving (once per seat). */
+function run_envoy_alerts(array &$done): void {
+  $d = function_exists('hq_today') ? hq_today() : new DateTimeImmutable('now', new DateTimeZone('Africa/Lagos'));
+  if ((int) $d->format('G') < 8 || !claim_send('envoy_alerts_' . $d->format('Y-m-d'))) return;
+  $week = $d->format('o-W'); $told = 0;
+  try {
+    foreach (rows("SELECT e.user_id FROM envoys e JOIN users u ON u.id=e.user_id WHERE e.status='active' AND u.status='active'") as $e) {
+      $eid = (int) $e['user_id']; $lines = [];
+      foreach (envoy_leaders($eid) as $l) {
+        $why = [];
+        foreach ($l['flags'] as $f) {
+          if ($f['kind'] === 'task_overdue') {
+            foreach (rows("SELECT id FROM tasks WHERE assignee_id=? AND status IN ('open','in_progress') AND due_on IS NOT NULL AND due_on<?", [$l['id'], function_exists('work_today') ? work_today() : $d->format('Y-m-d')]) as $tk)
+              if (q('INSERT IGNORE INTO envoy_alerts (envoy_id,user_id,kind,ref,sent_at) VALUES (?,?,?,?,?)', [$eid, $l['id'], 'task_overdue', (string) $tk['id'], now()])->rowCount()) { $why['t'] = $f['text']; }
+          } else {
+            $ref = in_array($f['kind'], ['no_signin', 'never_signed'], true) ? $week : (string) ($f['seat'] ?? $f['kind']);
+            if (q('INSERT IGNORE INTO envoy_alerts (envoy_id,user_id,kind,ref,sent_at) VALUES (?,?,?,?,?)', [$eid, $l['id'], $f['kind'], $ref, now()])->rowCount()) $why[$f['kind']] = $f['text'];
+          }
+        }
+        if ($why) $lines[] = trim($l['first_name'] . ' ' . $l['last_name']) . ': ' . strtolower(implode('; ', $why));
+      }
+      if (!$lines) continue;
+      $title = count($lines) === 1 ? 'A leader you brought in needs you' : count($lines) . ' leaders you brought in need you';
+      $body = implode("\n", array_slice($lines, 0, 5)) . (count($lines) > 5 ? "\n…and " . (count($lines) - 5) . ' more on your dashboard.' : '') . "\nOpen your dashboard to send her a message.";
+      notify($eid, 'activation', $title, mb_substr($body, 0, 590), '#/');
+      if (function_exists('mail_many')) mail_many("u.id=? AND u.status='active'", [$eid], $title, $body, '#/');
+      $told++;
+    }
+  } catch (PDOException $ex) { return; }      // before migration 042
+  $done['envoy_alerts'] = "$told envoys";
+}
+
 function envoy_kpis(int $envoyId, int $linkId): array {
   $ppl = envoy_people($envoyId); $d30 = gmdate('Y-m-d H:i:s', time() - 30 * 86400);
   return ['visits_30' => (int) val('SELECT COUNT(*) FROM referral_visits WHERE link_id=? AND created_at>=?', [$linkId, $d30]), 'visits_total' => (int) val('SELECT COUNT(*) FROM referral_visits WHERE link_id=?', [$linkId]),

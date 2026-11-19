@@ -31,7 +31,7 @@ export async function render(root, params) {
       err, btn);
     form.addEventListener('submit', async (e) => {
       e.preventDefault(); err.textContent = ''; btn.disabled = true; btn.textContent = t('Signing in…');
-      try { const r = await api('/auth/login', { email: email.value, password: pw.value }); try { localStorage.setItem('wdos.email', email.value.trim().toLowerCase()); } catch { /* ignore */ } signedIn(r.user); if (r.user.must_change_password) toast('Choose your own password', 'You signed in with a temporary password. Change it in Settings.', 'info', () => go('#/settings')); }
+      try { const r = await api('/auth/login', { email: email.value, password: pw.value }); try { localStorage.setItem('wdos.email', email.value.trim().toLowerCase()); } catch { /* ignore */ } if (r.user.must_change_password) app.tempPassword = pw.value.trim(); signedIn(r.user); }
       catch (ex) { err.textContent = ex.message; btn.disabled = false; btn.textContent = t('Sign in'); pw.select(); }
     });
     const fp = fingerprintSupported() ? h('button', { class: 'fpbtn', type: 'button', onclick: async () => {
