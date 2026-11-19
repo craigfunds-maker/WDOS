@@ -23,7 +23,7 @@ jobs:
           : > out/_status.txt
           jq -r '.[] | @tsv' main/tools/geo/fetch.json | while IFS=$'\t' read -r name url; do
             mkdir -p "out/$(dirname "$name")"
-            code=$(curl -sSL -A "$UA" --retry 3 --max-time 900 -o "out/$name.part" -w '%{http_code}' "$url" || echo 000)
+            code=$(curl -sSL -A "WDOS-geo/1.0 (WODDI membership platform; noreply@anthropic.com)" --retry 3 --max-time 900 -o "out/$name.part" -w '%{http_code}' "$url" || echo 000)
             size=$(stat -c %s "out/$name.part" 2>/dev/null || echo 0)
             if [ "$code" = "200" ] && [ "$size" -gt 200 ]; then mv "out/$name.part" "out/$name"; else rm -f "out/$name.part"; fi
             echo -e "$name\t$code\t$size\t$url" >> out/_status.txt
