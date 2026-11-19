@@ -146,10 +146,11 @@ export async function render(root, params) {
     /* v109.16: every other country, Africa and the diaspora: LGAs or districts, and their wards, from geoBoundaries
        (each government's published administrative areas). In the diaspora her city list is offered with them. */
     admData = null;
-    if (c && lgaMode === 'text' && stateMode !== 'text' && stateCode()) {
+    if (c && lgaMode === 'text' && stateMode !== 'text' && stateName()) {
       admIdx = admIdx || await getJson('/assets/geo/adm/index.json');
       if (admIdx && c.code in admIdx) {
-        const d = await getJson(`/assets/geo/adm/${c.code}/${stateCode()}.json`);
+        let d = stateCode() ? await getJson(`/assets/geo/adm/${c.code}/${stateCode()}.json`) : {};
+        if (!d || !Object.keys(d).length) d = await getJson(`/assets/geo/adm/${c.code}/n-${normName(stateName())}.json`);   // a region of WDOS's structure, by its official name
         if (d && Object.keys(d).length) {
           admData = d; let list = Object.keys(d);
           if (diaspora() && worldStates[stateName()]) { const cities = await getJson(`/assets/geo/world/${c.code}/${worldStates[stateName()]}.json`); if (Array.isArray(cities)) list = [...new Set([...cities, ...list])].sort((a, b) => a.localeCompare(b)); }

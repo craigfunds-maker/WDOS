@@ -55,5 +55,22 @@ with sync_playwright() as p:
     pg.select_option('#f-state',label=st); pg.wait_for_timeout(1300)
     o=pg.eval_on_selector('select#f-lga','e=>e.isConnected?[...e.options].map(o=>o.textContent):[]')
     chk(f'structure-unit state {st} still lists its districts', len(o)-2>=n, o[:3])
+  # Malawi's WDOS structure uses its three regions
+  pg=b.new_context(viewport={'width':760,'height':1000}).new_page()
+  def countries2(route):
+    r=route.fetch(); d=r.json()
+    for c in d['countries']:
+      if c['code']=='MW': c['children']=3
+    route.fulfill(response=r, body=json.dumps(d))
+  pg.route('**/api/geo/countries', countries2)
+  pg.route('**/api/geo/children/*', lambda route: route.fulfill(status=200, content_type='application/json', body=json.dumps({'units':[{'id':9101,'name':'Central'},{'id':9102,'name':'Southern Region'}]})))
+  pg.goto(B+'/'); pg.wait_for_selector('.startcard'); pg.click('#start-continue'); pg.click('.net--wgmn'); pg.click('#net-continue'); pg.wait_for_selector('.stepnav')
+  pg.fill('#f-first_name','Test'); pg.fill('#f-last_name','Person'); pg.fill('#f-dob','1985-02-03'); pg.fill('#f-contact','+265991234567')
+  pg.click('.stepnav button[type=button]:not(.btn--ghost)'); pg.wait_for_timeout(700)
+  v=pg.eval_on_selector('#f-country','e=>[...e.options].find(o=>/^Malawi/.test(o.textContent)).value'); pg.select_option('#f-country',v); pg.wait_for_timeout(1300)
+  for st,want in (('Central','Lilongwe'),('Southern Region','Blantyre')):
+    pg.select_option('#f-state',label=st); pg.wait_for_timeout(1300)
+    o=pg.eval_on_selector('select#f-lga','e=>e.isConnected?[...e.options].map(o=>o.textContent):[]')
+    chk(f'region-level structure unit {st} lists its districts', want in o, o[:5])
   b.close()
 print('checks',ok+bad,'FAILURES',bad)

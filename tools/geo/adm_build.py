@@ -13,6 +13,9 @@ def norm(s):
     s=unicodedata.normalize('NFKD',s).encode('ascii','ignore').decode().lower()
     s=re.sub(r"\b(province|region|state|governorate|district|county|department|departement|prefecture|municipality|oblast|voivodeship|autonomous|region of|of|the|wilaya|muhafazah|division)\b",' ',s)
     return re.sub(r'[^a-z0-9]+','',s)
+def jsnorm(x):      # the same as normName() in welcome.js
+    x=unicodedata.normalize('NFKD',x); x=''.join(ch for ch in x if not unicodedata.combining(ch)).lower()
+    x=re.sub(r'\b(state|region|province|governorate|district|county)\b','',x); return re.sub(r'[^a-z0-9]','',x)
 def load(p):
     if not os.path.exists(p): return []
     out=[]
@@ -76,5 +79,14 @@ for cc,i3 in pairs:
         json.dump(data,open(f'{OUT}/{cc}/{code}.json','w'),ensure_ascii=False,separators=(',',':'))
     idx[cc]=1 if nw else 0     # 1: wards too, 0: districts only
     report.append(f'{cc}: states {len(tree)}/{len(states)} (WDOS states = ADM{k+1}) districts {nd} wards {nw}')
+    # by name: every official level-1 area (regions in Malawi, Uganda, Madagascar...) with its level-2 and level-3 areas
+    if lv[0] and lv[1]:
+        parent(lv[1],lv[0]); parent(lv[2],lv[1]) if lv[2] else None
+        for i0,a in enumerate(lv[0]):
+            ds={}
+            for j,d in enumerate(lv[1]):
+                if d.get('up')!=i0: continue
+                ds[d['name']]=sorted({w['name'] for w in (lv[2] or []) if w.get('up')==j and w['name']!=d['name']}, key=str.casefold)
+            if ds: json.dump(dict(sorted(ds.items(), key=lambda kv: kv[0].casefold())),open(f'{OUT}/{cc}/n-{jsnorm(a["name"])}.json','w'),ensure_ascii=False,separators=(',',':'))
 json.dump(idx,open(f'{OUT}/index.json','w'),separators=(',',':'))
 print('\n'.join(report)); print('countries', len(idx), 'with wards', sum(idx.values()))
