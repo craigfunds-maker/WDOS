@@ -224,7 +224,7 @@ function dm_send(array $u, array $aud, string $subject, string $body, string $la
   q("INSERT IGNORE INTO dm_threads (lo_id,hi_id,created_at,last_at) SELECT LEAST(?,u.id), GREATEST(?,u.id), ?, ? FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE $w", array_merge([$me, $me, $n, $n], $p));
   q("INSERT INTO dm_messages (thread_id,sender_id,batch_id,subject,body,created_at) SELECT t.id, ?, ?, ?, ?, ? FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id JOIN dm_threads t ON t.lo_id=LEAST(?,u.id) AND t.hi_id=GREATEST(?,u.id) WHERE $w", array_merge([$me, $bid, $subject, $body, $n, $me, $me], $p));
   q('UPDATE dm_threads t JOIN dm_messages m ON m.thread_id=t.id SET t.last_at=?, t.last_sender=?, t.last_snippet=?, t.lo_hidden=0, t.hi_hidden=0 WHERE m.batch_id=?', [$n, $me, $snip, $bid]);
-  log_activity($me, $count === 1 ? (int) val("SELECT u.id FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE $w LIMIT 1", $p) : null, 'message_sent', mb_substr(($subject ?: 'message') . " · $count " . ($count === 1 ? 'person' : 'people') . ($label !== '' ? " · $label" : ''), 0, 240));
+  log_activity($me, $count === 1 ? (int) val("SELECT u.id FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE $w LIMIT 1", $p) : null, 'message_sent', mb_substr(($subject ?: 'message') . " · $count " . ($count === 1 ? 'person' : 'people') . ($label !== '' ? " · $label" : ''), 0, 240), 'message', (int) $bid);
   return ['batch_id' => $bid, 'recipients' => $count, 'undo_until' => gmdate('Y-m-d H:i:s', time() + DM_UNDO_SECONDS), 'undo_seconds' => DM_UNDO_SECONDS];
 }
 /** After the undo time: tell each recipient in the app, on the phone, and by email, in her own language. */

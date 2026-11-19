@@ -44,11 +44,11 @@ function gc_expire(): void {
   try {
     foreach (rows("SELECT p.group_id, p.user_id, g.host_id FROM voice_group_people p JOIN voice_groups g ON g.id=p.group_id WHERE p.status='ringing' AND p.invited_at < ? LIMIT 100", [gmdate('Y-m-d H:i:s', time() - GC_RING)]) as $r) {
       if (q("UPDATE voice_group_people SET status='missed' WHERE group_id=? AND user_id=? AND status='ringing'", [(int) $r['group_id'], (int) $r['user_id']])->rowCount() === 1)
-        notify((int) $r['user_id'], 'meeting', 'Missed group call from ' . gc_name((int) $r['host_id']), 'Open Calls in WDOS to join if the call is still on, or to ring back.', '#/calls/g' . (int) $r['group_id']);
+        notify((int) $r['user_id'], 'call', 'Missed group call from ' . gc_name((int) $r['host_id']), 'Open Calls in WDOS to join if the call is still on, or to ring back.', '#/calls/g' . (int) $r['group_id']);
     }
     foreach (rows('SELECT id, host_id, hq_by FROM voice_groups WHERE hq_ring IS NOT NULL AND hq_ring < ? LIMIT 50', [gmdate('Y-m-d H:i:s', time() - GC_RING)]) as $r)
       if (q('UPDATE voice_groups SET hq_ring=NULL WHERE id=? AND hq_ring IS NOT NULL', [(int) $r['id']])->rowCount() === 1)
-        notify_hq('meeting', 'Missed group call from ' . gc_name((int) ($r['hq_by'] ?: $r['host_id'])), 'Nobody at HQ answered in time. Open Calls in WDOS to join if the call is still on.', '#/calls/g' . (int) $r['id']);
+        notify_hq('call', 'Missed group call from ' . gc_name((int) ($r['hq_by'] ?: $r['host_id'])), 'Nobody at HQ answered in time. Open Calls in WDOS to join if the call is still on.', '#/calls/g' . (int) $r['id']);
     $cut = gmdate('Y-m-d H:i:s', time() - 3 * 3600);
     foreach (rows("SELECT g.id FROM voice_groups g WHERE g.status='live' AND (g.created_at < ? OR (g.created_at < ? AND NOT EXISTS (SELECT 1 FROM voice_group_people p WHERE p.group_id=g.id AND p.status='joined')))", [$cut, gmdate('Y-m-d H:i:s', time() - 20)]) as $g) gc_end((int) $g['id']);
   } catch (PDOException $e) { /* before migration 039 */ }
@@ -72,14 +72,14 @@ function gc_invite(array $u, int $gid, array $ids, bool $hq = false): int {
     if ($have + 1 > GC_MAX) fail(422, 'A group call takes ' . GC_MAX . ' people at most.', 'full');
     if ($cur) q("UPDATE voice_group_people SET status='ringing', invited_by=?, invited_at=?, left_at=NULL WHERE group_id=? AND user_id=?", [(int) $u['id'], now(), $gid, $to]);
     else q("INSERT INTO voice_group_people (group_id,user_id,status,invited_by,invited_at) VALUES (?,?,'ringing',?,?)", [$gid, $to, (int) $u['id'], now()]);
-    notify($to, 'meeting', 'Group call from ' . $from, 'Tap to join the call.', '#/calls/g' . $gid);
+    notify($to, 'call', 'Group call from ' . $from, 'Tap to join the call.', '#/calls/g' . $gid);
     $have++; $n++;
   }
   if ($hq && !is_hq($u) && empty($g['hq_ring']) && !gc_hq_on($gid)) {
     if ($have + 1 > GC_MAX) fail(422, 'A group call takes ' . GC_MAX . ' people at most.', 'full');
     q('UPDATE voice_groups SET hq_ring=?, hq_by=? WHERE id=?', [now(), (int) $u['id'], $gid]);
     $seat = work_seat($u);
-    notify_hq('meeting', 'Group call from ' . $from, ($seat ? seat_title($seat) . '. ' : '') . 'Tap to join the call.', '#/calls/g' . $gid);
+    notify_hq('call', 'Group call from ' . $from, ($seat ? seat_title($seat) . '. ' : '') . 'Tap to join the call.', '#/calls/g' . $gid);
     $have++; $n++;
   }
   return $n;
@@ -105,7 +105,7 @@ route('POST', '/gcalls', function () {
   $gid = ins('INSERT INTO voice_groups (host_id,title,status,created_at) VALUES (?,?,?,?)', [(int) $u['id'], mb_substr(str_in('title', 120), 0, 120), 'live', now()]);
   q("INSERT INTO voice_group_people (group_id,user_id,status,invited_by,invited_at,joined_at) VALUES (?,?,'joined',?,?,?)", [$gid, (int) $u['id'], (int) $u['id'], now(), now()]);
   gc_invite($u, $gid, $ids, $hq);
-  log_activity((int) $u['id'], count($ids) === 1 ? $ids[0] : null, 'group_call', 'Group call: ' . implode(' and ', array_filter([!$ids ? '' : (count($ids) === 1 ? vc_name($ids[0]) : count($ids) . ' leaders'), $hq ? 'WODDI HQ' : ''])));
+  log_activity((int) $u['id'], count($ids) === 1 ? $ids[0] : null, 'group_call', 'Group call: ' . implode(' and ', array_filter([!$ids ? '' : (count($ids) === 1 ? vc_name($ids[0]) : count($ids) . ' leaders'), $hq ? 'WODDI HQ' : ''])), 'gcall', $gid);
   after_response(fn() => push_drain(10));
   return ['ok' => true, 'call' => gc_shape($u, gc_get($gid)), 'ice' => vc_ice(), 'peers' => [], 'ring_seconds' => GC_RING];
 });
@@ -121,7 +121,7 @@ route('POST', '/gcalls/(\d+)/join', function ($id) {
   }
   if ($me['status'] !== 'joined') {
     if ((int) val("SELECT COUNT(*) FROM voice_group_people WHERE group_id=? AND status='joined'", [(int) $id]) >= GC_MAX) fail(422, 'This call is full.', 'full');
-    log_activity((int) $u['id'], (int) $g['host_id'], 'group_call_join', 'Joined a group call by ' . gc_name((int) $g['host_id']));
+    log_activity((int) $u['id'], (int) $g['host_id'], 'group_call_join', 'Joined a group call by ' . gc_name((int) $g['host_id']), 'gcall', (int) $id);
     q("UPDATE voice_group_people SET status='joined', joined_at=?, left_at=NULL WHERE group_id=? AND user_id=?", [now(), (int) $id, (int) $u['id']]);
     q('DELETE FROM voice_group_signals WHERE group_id=? AND (from_id=? OR to_id=?)', [(int) $id, (int) $u['id'], (int) $u['id']]);    // a fresh start after a rejoin
   }
@@ -143,7 +143,7 @@ route('POST', '/gcalls/(\d+)/add', function ($id) {
   $u = require_user(); [$g, $me] = gc_mine($u, (int) $id);
   if ($g['status'] !== 'live' || $me['status'] !== 'joined') fail(409, 'Join the call first.', 'not_joined');
   [$ids, $hq] = gc_to(); $n = gc_invite($u, (int) $id, $ids, $hq);
-  if ($n) log_activity((int) $u['id'], count($ids) === 1 ? $ids[0] : null, 'group_call_add', 'Brought into a group call: ' . implode(', ', array_merge(array_map('vc_name', $ids), $hq ? ['WODDI HQ'] : [])));
+  if ($n) log_activity((int) $u['id'], count($ids) === 1 ? $ids[0] : null, 'group_call_add', 'Brought into a group call: ' . implode(', ', array_merge(array_map('vc_name', $ids), $hq ? ['WODDI HQ'] : [])), 'gcall', (int) $id);
   after_response(fn() => push_drain(10));
   return ['ok' => true, 'rung' => $n, 'call' => gc_shape($u, gc_get((int) $id))];
 });

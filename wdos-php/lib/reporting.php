@@ -149,7 +149,7 @@ route('POST', '/reporting/report/(\d+)/submit', function ($id) {
   // WODDI HQ is told of every submitted report: in the app, on the phone, and at the HQ inbox
   if (!$node || !$node['sup_user'] || !val("SELECT 1 FROM users WHERE id=? AND role IN ('hq_admin','super_admin')", [(int) $node['sup_user']])) notify_hq('report', $title, $bodyText, '#/reporting/r/' . $id);
   if (function_exists('hq_mail')) hq_mail('WDOS report submitted: ' . $r['report_no'] . ' · ' . trim($u['first_name'] . ' ' . $u['last_name']), 'A leader submitted a report', '<p><b>' . htmlspecialchars(trim($u['first_name'] . ' ' . $u['last_name'])) . '</b>' . ($again ? ' resubmitted ' : ' submitted ') . '<b>' . htmlspecialchars($r['report_no']) . '</b>.</p><p>' . htmlspecialchars($r['unit_label']) . '</p><p>' . ($docs ? 'Attached: ' . htmlspecialchars(implode(', ', array_column($docs, 'name'))) : 'No document attached (no-activity declaration).') . '</p>', '#/reporting/r/' . $id);
-  log_activity((int) $u['id'], (int) $u['id'], 'report_submitted', $r['report_no'] . ' · ' . $r['unit_label']);
+  log_activity((int) $u['id'], (int) $u['id'], 'report_submitted', $r['report_no'] . ' · ' . $r['unit_label'], 'report', (int) $r['id']);
   after_response(fn() => push_drain(20)); after_response(fn() => mail_drain(6));
   if (function_exists('wc_check_report')) after_response(fn() => wc_check_report((int) $id));   // v109.12: the AI work check
   return ['ok' => true, 'submitted' => true, 'report_no' => $r['report_no'], 'warnings' => $warn];
@@ -166,7 +166,7 @@ route('POST', '/reporting/report/(\d+)/review', function ($id) {
   q('INSERT INTO report_reviews (report_id,version,action,note,by_user,created_at) VALUES (?,?,?,?,?,?)', [(int) $id, (int) $r['version'], $act, $note, (int) $u['id'], now()]);
   $who = trim($u['first_name'] . ' ' . $u['last_name']);
   notify((int) $r['owner_id'], 'report', $r['report_no'] . ' was ' . ['approve' => 'approved', 'return' => 'returned for correction', 'escalate' => 'escalated to HQ'][$act], $act === 'return' ? "$who wrote: $note" : "Reviewed by $who.", '#/reporting/r/' . $id);
-  log_activity((int) $u['id'], (int) $r['owner_id'], 'report_reviewed', $r['report_no'] . ' ' . $status);
+  log_activity((int) $u['id'], (int) $r['owner_id'], 'report_reviewed', $r['report_no'] . ' ' . $status, 'report', (int) $id);
   $made = $act === 'approve' ? tasks_from_report($r, (int) $u['id']) : 0;
   if ($act === 'escalate') notify_hq('report', $r['report_no'] . ' escalated by ' . $who, $r['unit_label'] . ($note !== '' ? ". $note" : ''), '#/reporting/r/' . $id);
   after_response(fn() => push_drain(20));

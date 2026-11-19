@@ -1,5 +1,5 @@
 /* HQ: staff logins for the admin dashboard, and how each leader signs in. Passwords are never shown because WDOS does not keep them in a readable form. */
-import { h, card, sk, empty, fmt, fmtDate, ago, toast, input, field, netTag } from '../ui.js';
+import { h, t, card, sk, empty, fmt, fmtDate, ago, toast, input, field, netTag } from '../ui.js';
 import { api } from '../api.js';
 import { download } from './coverage.js';
 
@@ -19,7 +19,7 @@ export async function render(root) {
   root.append(tempBox,
     card('HQ staff logins', 'People who can open the HQ admin dashboard', h('div', { style: 'display:grid;gap:16px;grid-template-columns:minmax(0,1fr)' }, staff, formHost)),
     card('What each staff login opens', 'A super administrator ticks the areas each person may use. The server refuses the others, so a hidden button is never the only protection.', access),
-    card('How each leader signs in', 'WDOS does not keep any password in a form that can be read, so nobody, including HQ, can look one up. You can see what each leader signs in with, and give a new temporary password when she is locked out.', h('div', { style: 'display:grid;gap:12px;grid-template-columns:minmax(0,1fr)' }, find, leaders),
+    card('How each leader signs in', 'WDOS does not keep any password in a form that can be read, so nobody, including HQ, can look one up. You can see what each leader signs in with, and give a new temporary password when she is locked out.', h('div', { style: 'display:grid;gap:12px;grid-template-columns:minmax(0,1fr)' }, h('a', { class: 'btn btn--ghost btn--s', href: '#/hq/logins', style: 'justify-self:start' }, t('Logins for many leaders at once, as a PDF')), find, leaders),
       h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: () => download('wdos-leader-sign-in.csv', csv([['Name', 'Position', 'Network', 'Area', 'Signs in with', 'Kind', 'Last seen (GMT)'], ...leaderRows.map((l) => [l.name, l.title, l.network, l.area, l.signs_in_with, l.kind, l.last_seen_at || 'Never'])])) }, 'Download the list')));
   const reset = async (p) => { try { const r = await api(`/hq/members/${p.id}/reset-password`, {}); showTemp(tempBox, p.name, p.signs_in_with, r.temporary_password); } catch (e) { toast('Not reset', e.message, 'bad'); } };
   const confirmBtn = (label, fn) => { let armed = false; const b = h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: () => { if (!armed) { armed = true; b.textContent = 'Press again to confirm'; setTimeout(() => { armed = false; b.textContent = label; }, 4000); return; } fn(); } }, label); return b; };

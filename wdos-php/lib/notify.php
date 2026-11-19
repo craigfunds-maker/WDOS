@@ -12,6 +12,7 @@ const NOTIFY_KINDS = [
   'message'      => 'Messages with WODDI HQ',
   'task'         => 'Tasks',
   'meeting'      => 'Meetings',
+  'call'         => 'Calls and missed calls',
   'activation'   => 'Referrals and activation',
   'appointment'  => 'Leadership appointments',
   'account'      => 'Security and password changes',

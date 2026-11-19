@@ -25,7 +25,7 @@ MAIL="FOLLOWUP_ANY_HOUR=1 BREVO_API_KEY=ci-not-real MAIL_FROM=wdos-ci@wdos-mail.
 fails=0
 run() { bash reset.sh >/dev/null 2>&1; out=$(timeout 1200 python3 "$@" 2>&1); echo "$out" | tail -2; echo "$out" | grep -aq "FAILURES 0" || { echo "::error::$* failed"; echo "$out" | grep -aE "FAIL|Traceback|Error" | head -15; fails=$((fails+1)); }; }
 start "$MAIL"
-for t in t97 t98 t99 t100 t101 t102 t103 t104 t105 t108 t109 t110 t111 t112 t114 t115 t116 t117 t118 t119 t120; do echo "== $t"; run $t.py; done
+for t in t97 t98 t99 t100 t101 t102 t103 t104 t105 t108 t109 t110 t111 t112 t114 t115 t116 t117 t118 t119 t120 t121; do echo "== $t"; run $t.py; done
 start "DUMMY=1"
 echo "== t93 then t96 (t96 continues from t93)"; bash reset.sh >/dev/null 2>&1; o=$(python3 t93.py 2>&1); echo "$o" | tail -1; echo "$o" | grep -aq "FAILURES 0" || { echo "::error::t93 failed"; fails=$((fails+1)); }
 o=$(python3 t96.py 2>&1); echo "$o" | tail -1; echo "$o" | grep -aq "FAILURES 0" || { echo "::error::t96 failed"; echo "$o" | grep -aE "FAIL|Traceback" | head; fails=$((fails+1)); }

@@ -57,8 +57,8 @@ function hw_sources(): array {
     ['field', "SELECT r.user_id, r.created_at, 'Recorded field activity', CONCAT(r.what, IF(r.people_reached>0, CONCAT(' · ', r.people_reached, ' reached'), '')), NULL, 'record', r.id, IF(r.escalate=1,'escalated','') FROM activity_records r WHERE r.created_at>=? AND {L:r.user_id}"],
     ['field', "SELECT p.user_id, p.created_at, 'Posted in a chapter', LEFT(p.body, 140), NULL, 'chapter', p.chapter_id, IF(p.hidden_at IS NULL,'','hidden') FROM chapter_posts p WHERE p.created_at>=? AND {L:p.user_id}"],
     ['access', "SELECT s.user_id, s.created_at, 'Signed in', s.method, NULL, 'signin', s.user_id, '' FROM sessions s WHERE s.created_at>=? AND {L:s.user_id}"],
-    ['other', "SELECT a.actor_id, a.created_at, a.action, a.detail, a.subject_id, 'person', a.subject_id, '' FROM activity_log a
-       WHERE a.created_at>=? AND a.action NOT IN ('task_created','meeting_scheduled','voice_call','group_call','group_call_add','group_call_join','phone_call','report_submitted','report_reviewed','message_sent','meeting_requested','meeting_minutes','announcement','announcement_scheduled') AND {L:a.actor_id}"],
+    ['other', "SELECT a.actor_id, a.created_at, a.action, a.detail, a.subject_id, COALESCE(a.ref_type, 'person'), COALESCE(a.ref_id, a.subject_id), '' FROM activity_log a
+       WHERE a.created_at>=? AND a.action NOT IN ('task_created','task_status','task_comment','meeting_scheduled','voice_call','group_call','group_call_add','group_call_join','phone_call','report_submitted','report_reviewed','message_sent','meeting_requested','meeting_minutes','announcement','announcement_scheduled') AND {L:a.actor_id}"],
   ];
 }
 const HW_ACTIONS = ['registered' => 'Joined WDOS', 'team_viewed' => "Opened a leader's profile", 'agreement_accepted' => 'Accepted the Leadership Agreement', 'agreement_declined' => 'Declined the Leadership Agreement',

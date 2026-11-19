@@ -76,8 +76,8 @@ function vc_expire(): void {
     $st = q("UPDATE voice_calls SET status='missed', ended_at=? WHERE id=? AND status='ringing'", [now(), (int) $c['id']]);
     if ($st->rowCount() !== 1) continue;
     $from = vc_name((int) $c['caller_id']);
-    if ((int) $c['to_hq'] === 1) notify_hq('meeting', 'Missed call from ' . $from, 'Open Calls in WDOS to ring back.', '#/calls');
-    elseif ($c['callee_id']) notify((int) $c['callee_id'], 'meeting', 'Missed call from ' . $from, 'Open Calls in WDOS to ring back.', '#/calls');
+    if ((int) $c['to_hq'] === 1) notify_hq('call', 'Missed call from ' . $from, 'Open Calls in WDOS to ring back.', '#/calls');
+    elseif ($c['callee_id']) notify((int) $c['callee_id'], 'call', 'Missed call from ' . $from, 'Open Calls in WDOS to ring back.', '#/calls');
   }
   q("UPDATE voice_calls SET status='ended', ended_at=? WHERE status='answered' AND answered_at < ?", [now(), gmdate('Y-m-d H:i:s', time() - 3 * 3600)]);
   try { q("DELETE s FROM voice_call_signals s JOIN voice_calls c ON c.id=s.call_id WHERE c.status NOT IN ('ringing','answered')"); } catch (PDOException $e) { /* before migration 036 */ }
@@ -103,9 +103,9 @@ route('POST', '/calls', function () {
   $room = 'WODDI-call-' . bin2hex(random_bytes(10));
   $id = ins('INSERT INTO voice_calls (caller_id,callee_id,to_hq,room,status,created_at) VALUES (?,?,?,?,?,?)', [(int) $u['id'], $callee, $hq ? 1 : 0, $room, 'ringing', now()]);
   $from = trim($u['first_name'] . ' ' . $u['last_name']); $seat = work_seat($u); $who = $seat ? seat_title($seat) : 'WODDI HQ';
-  if ($hq) notify_hq('meeting', 'Voice call from ' . $from, $who, '#/calls/' . $id);
-  else notify($callee, 'meeting', 'Voice call from ' . $from, $who, '#/calls/' . $id);
-  log_activity((int) $u['id'], $callee, 'voice_call', $hq ? 'to HQ' : 'to a leader');
+  if ($hq) notify_hq('call', 'Voice call from ' . $from, $who, '#/calls/' . $id);
+  else notify($callee, 'call', 'Voice call from ' . $from, $who, '#/calls/' . $id);
+  log_activity((int) $u['id'], $callee, 'voice_call', $hq ? 'Rang WODDI HQ' : 'Rang ' . vc_name((int) $callee), 'call', (int) $id);
   $c = row('SELECT * FROM voice_calls WHERE id=?', [$id]);
   return ['ok' => true, 'call' => vc_out($u, $c), 'ice' => vc_ice(), 'ring_seconds' => VC_RING_SECONDS];
 });

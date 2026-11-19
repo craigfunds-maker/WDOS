@@ -3,7 +3,7 @@ declare(strict_types=1);
 /* HQ staff logins, and how each leader signs in.
  * WDOS never stores a readable password, so nobody can look one up. What HQ can do is see the sign-in name and give a new temporary password, shown once. */
 
-function temp_password(): string { $a = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'; $t = ''; for ($i = 0; $i < 10; $i++) $t .= $a[random_int(0, strlen($a) - 1)]; return $t; }
+function temp_password(int $n = 10): string { $a = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'; $t = ''; for ($i = 0; $i < $n; $i++) $t .= $a[random_int(0, strlen($a) - 1)]; return $t; }
 function signin_shape(array $r): array {
   $phoneLogin = str_ends_with((string) $r['email'], '@phone.wdos.invalid');
   return ['id' => (int) $r['id'], 'name' => trim($r['first_name'] . ' ' . $r['last_name']), 'signs_in_with' => $phoneLogin ? (string) $r['phone'] : (string) $r['email'], 'kind' => $phoneLogin ? 'Phone number' : 'Email',

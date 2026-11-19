@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Configuration comes from environment variables (Render) or from
  * config.local.php beside index.html (shared hosting / cPanel). */
 
-const WDOS_BUILD = 'v109.25';
+const WDOS_BUILD = 'v109.26';
 
 function cfg(string $key, ?string $default = null): ?string {
   static $local = null;
@@ -156,7 +156,12 @@ function client_ip(): string {
   $f = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
   return $f ? trim(explode(',', $f)[0]) : ($_SERVER['REMOTE_ADDR'] ?? '0');
 }
-function log_activity(?int $actor, ?int $subject, string $action, string $detail = ''): void {
+function log_activity(?int $actor, ?int $subject, string $action, string $detail = '', ?string $refType = null, ?int $refId = null): void {
+  // v109.25: $refType/$refId say what the action was about (task, meeting, report, call, gcall, message, person), so HQ can open it
+  if ($refType !== null) {
+    try { q('INSERT INTO activity_log (actor_id,subject_id,action,detail,created_at,ref_type,ref_id) VALUES (?,?,?,?,?,?,?)', [$actor, $subject, $action, mb_substr($detail, 0, 250), now(), $refType, $refId]); return; }
+    catch (PDOException $e) { /* before migration 040 */ }
+  }
   q('INSERT INTO activity_log (actor_id,subject_id,action,detail,created_at) VALUES (?,?,?,?,?)', [$actor, $subject, $action, mb_substr($detail, 0, 250), now()]);
 }
 

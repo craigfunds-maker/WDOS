@@ -41,7 +41,7 @@ route('POST', '/reporting/report/(\d+)/documents', function ($id) {
   if (!$f) fail(422, 'Upload the document first.', 'file');
   if (!isset(DOC_TYPES_REPORT[$f['mime']])) fail(422, 'A report document must be a PDF or a Word (.docx) file.', 'type');
   doc_link($fid, 'report', (int) $id, 'report', (int) $u['id'], (int) $r['version']);
-  log_activity((int) $u['id'], (int) $r['owner_id'], 'report_document_added', $r['report_no'] . ' · ' . $f['name']);
+  log_activity((int) $u['id'], (int) $r['owner_id'], 'report_document_added', $r['report_no'] . ' · ' . $f['name'], 'report', (int) $id);
   return ['ok' => true, 'documents' => doc_list('report', (int) $id)];
 });
 route('POST', '/reporting/report/(\d+)/documents/(\d+)/delete', function ($id, $fid) {
@@ -325,7 +325,7 @@ route('POST', '/meet-requests', function () {
   $who_name = trim($u['first_name'] . ' ' . $u['last_name']); $when = gmdate('j M Y, H:i', $start) . ' GMT';
   notify_hq('meeting', mb_substr($title, 0, 120) . ': meeting request', $who_name . ' · ' . $when, '#/meetings/requests/' . $id);
   hq_mail('WDOS video meeting request ' . $no . ' from ' . $who_name, 'A leader asks for a video meeting', '<p><b>' . htmlspecialchars($who_name) . '</b>' . ($seat ? ' (' . htmlspecialchars(seat_title($seat)) . ')' : '') . ' asks for a video meeting.</p><p><b>' . htmlspecialchars($title) . '</b><br>' . htmlspecialchars($when) . ', ' . $dur . ' minutes</p><p>' . nl2br(htmlspecialchars($reason)) . '</p><p><b>Attending:</b> ' . htmlspecialchars($who) . '</p>' . (str_in('graphics', 2000) !== '' ? '<p><b>Graphics needed:</b> ' . htmlspecialchars(str_in('graphics', 2000)) . '</p>' : ''), '#/meetings/requests/' . $id);
-  log_activity((int) $u['id'], null, 'meeting_requested', $no . ' · ' . $title);
+  log_activity((int) $u['id'], null, 'meeting_requested', $no . ' · ' . $title, 'meetreq', (int) $id);
   after_response(fn() => push_drain(20));
   return ['ok' => true, 'id' => $id, 'request_no' => $no];
 });
@@ -407,7 +407,7 @@ route('POST', '/meet-requests/(\d+)/notify', function ($id) {
   notify_many('u.id IN (' . implode(',', $to) . ')', [], 'meeting', 'You are invited: ' . mb_substr($m['title'], 0, 120), $when . ' · ' . $from . ($msg !== '' ? ': ' . mb_substr($msg, 0, 160) : ''), $url);
   foreach ($to as $i) person_mail($i, 'WDOS video meeting: ' . mb_substr($m['title'], 0, 120), 'You are invited to a video meeting',
     '<p>' . htmlspecialchars($from) . ' invites you to <b>' . htmlspecialchars($m['title']) . '</b>, ' . htmlspecialchars($when) . '.</p>' . ($msg !== '' ? '<p>' . nl2br(htmlspecialchars($msg)) . '</p>' : '') . '<p>Open the meeting in WDOS and tap <b>Join video meeting</b>. It opens inside WDOS.</p>' . (mr_flier((int) $id) ? '<p>The meeting flier is on the meeting page in WDOS.</p>' : ''), $url);
-  log_activity((int) $u['id'], null, 'meeting_notified', $m['request_no'] . ' · ' . count($to));
+  log_activity((int) $u['id'], null, 'meeting_notified', $m['request_no'] . ' · ' . count($to), 'meetreq', (int) $m['id']);
   after_response(fn() => push_drain(40));
   return ['ok' => true, 'told' => count($to), 'invited' => count($all)];
 });
@@ -423,7 +423,7 @@ route('POST', '/meet-requests/(\d+)/flier', function ($id) {
     notify_many('u.id=?', [(int) $m['requester_id']], 'meeting', 'Meeting flier ready: ' . mb_substr($m['title'], 0, 120), 'Open the meeting to see and share it.', $url);
     person_mail((int) $m['requester_id'], 'WDOS meeting flier: ' . mb_substr($m['title'], 0, 120), 'Your meeting flier is ready', '<p>WODDI HQ added the flier for <b>' . htmlspecialchars($m['title']) . '</b>.</p><p>Open the meeting in WDOS to see it, download it and share it with your people.</p>', $url);
   }
-  log_activity((int) $u['id'], null, 'meeting_flier', $m['request_no'] . ' · ' . $f['name']);
+  log_activity((int) $u['id'], null, 'meeting_flier', $m['request_no'] . ' · ' . $f['name'], 'meetreq', (int) $m['id']);
   return ['ok' => true, 'flier' => mr_flier((int) $id)];
 });
 /** After the meeting: the minutes, the leaders who attended, the minutes document and the recording go to every volunteer
@@ -467,7 +467,7 @@ route('POST', '/meet-requests/(\d+)/minutes', function ($id) {
   notify_hq('meeting', $title, $line, $url);
   foreach (array_diff($hqIds, [(int) $u['id']]) as $i) person_mail($i, 'WDOS meeting minutes ' . $m['request_no'] . ': ' . mb_substr($m['title'], 0, 100), 'Minutes of a leader video meeting', $html, $url);
   hq_mail('WDOS meeting minutes ' . $m['request_no'] . ': ' . mb_substr($m['title'], 0, 100), 'Minutes of a leader video meeting', $html, $url);
-  log_activity((int) $u['id'], null, 'meeting_minutes', $m['request_no'] . ' · ' . $cnt . ' attended');
+  log_activity((int) $u['id'], null, 'meeting_minutes', $m['request_no'] . ' · ' . $cnt . ' attended', 'meetreq', (int) $m['id']);
   after_response(fn() => push_drain(40));
   return ['ok' => true, 'told' => count($to), 'hq' => count($hqIds)];
 });

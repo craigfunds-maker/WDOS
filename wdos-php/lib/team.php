@@ -43,7 +43,7 @@ route('GET', '/team/(\d+)', function ($id) {
   $u = require_user(); [$p, $seat] = team_target($u, (int) $id); $id = (int) $id;
   // for HQ's record of what leaders do: opening a leader's profile, once a day per leader
   if (!is_hq($u) && !val("SELECT 1 FROM activity_log WHERE actor_id=? AND subject_id=? AND action='team_viewed' AND created_at>=?", [(int) $u['id'], $id, gmdate('Y-m-d 00:00:00')]))
-    log_activity((int) $u['id'], $id, 'team_viewed', 'Opened the profile of ' . trim($p['first_name'] . ' ' . $p['last_name']));
+    log_activity((int) $u['id'], $id, 'team_viewed', 'Opened the profile of ' . trim($p['first_name'] . ' ' . $p['last_name']), 'person', $id);
   [$w, $wp] = leader_scope($seat);
   $since30 = gmdate('Y-m-d H:i:s', time() - 30 * 86400); $since7 = gmdate('Y-m-d H:i:s', time() - 7 * 86400); $since90 = gmdate('Y-m-d H:i:s', time() - 90 * 86400);
   $m = row("SELECT COUNT(*) total, COALESCE(SUM(u.created_at>=?),0) new30, COALESCE(SUM(u.last_seen_at>=?),0) active7 FROM users u JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND $w", array_merge([$since30, $since7], $wp));
@@ -78,7 +78,7 @@ route('GET', '/team/(\d+)', function ($id) {
 /** She tapped "Call her phone": the call itself goes through the phone network, so WDOS records the tap. */
 route('POST', '/team/(\d+)/phoned', function ($id) {
   $u = require_user(); [$p] = team_target($u, (int) $id);
-  log_activity((int) $u['id'], (int) $id, 'phone_call', 'Rang ' . trim($p['first_name'] . ' ' . $p['last_name']) . ' on her phone');
+  log_activity((int) $u['id'], (int) $id, 'phone_call', 'Rang ' . trim($p['first_name'] . ' ' . $p['last_name']) . ' on her phone', 'person', (int) $id);
   return ['ok' => true];
 });
 

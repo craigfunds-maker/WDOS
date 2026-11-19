@@ -83,7 +83,7 @@ route('POST', '/tasks', function () {
     foreach ($files as $fid) doc_link($fid, 'task', $tid, 'brief', (int) $u['id']);
     $made[] = $tid;
   }
-  log_activity((int) $u['id'], count($ids) === 1 ? $ids[0] : null, 'task_created', $title . (count($ids) > 1 ? ' (' . count($ids) . ' people)' : ''));
+  log_activity((int) $u['id'], count($ids) === 1 ? $ids[0] : null, 'task_created', $title . (count($ids) > 1 ? ' (' . count($ids) . ' people)' : ''), 'task', $made[0] ?? null);
   after_response(fn() => push_drain(40));
   return ['ok' => true, 'id' => $made[0], 'created' => count($made)];
 });
@@ -107,6 +107,7 @@ route('POST', '/tasks/(\d+)/status', function ($id) {
   if ($to === 'completed' && (int) $t['items'] > (int) $t['items_done']) fail(422, 'Tick every checklist item before completing the task.', 'checklist');
   q('UPDATE tasks SET status=?, updated_at=?, completed_at=? WHERE id=?', [$to, now(), $to === 'completed' ? now() : null, (int) $id]);
   if ($note !== '') q('INSERT INTO task_comments (task_id,user_id,body,created_at) VALUES (?,?,?,?)', [(int) $id, (int) $u['id'], $note, now()]);
+  log_activity((int) $u['id'], (int) $u['id'] === (int) $t['assignee_id'] ? (int) $t['assigned_by'] : (int) $t['assignee_id'], 'task_status', mb_substr($t['title'], 0, 120) . ': ' . str_replace('_', ' ', $from) . ' to ' . str_replace('_', ' ', $to), 'task', (int) $id);
   $me = work_name($u); $title = mb_substr($t['title'], 0, 110); $url = '#/tasks/' . $id;
   $other = (int) $u['id'] === (int) $t['assignee_id'] ? (int) $t['assigned_by'] : (int) $t['assignee_id'];
   if ($other !== (int) $u['id']) {
@@ -139,6 +140,7 @@ route('POST', '/tasks/(\d+)/comment', function ($id) {
   $u = require_user(); $t = task_get((int) $id); task_rights($u, $t); $body = str_in('body', 1500);
   if (mb_strlen($body) < 1) fail(422, 'Write the comment first.', 'body');
   q('INSERT INTO task_comments (task_id,user_id,body,created_at) VALUES (?,?,?,?)', [(int) $id, (int) $u['id'], $body, now()]);
+  log_activity((int) $u['id'], (int) $u['id'] === (int) $t['assignee_id'] ? (int) $t['assigned_by'] : (int) $t['assignee_id'], 'task_comment', mb_substr($t['title'], 0, 100) . ': ' . mb_substr($body, 0, 120), 'task', (int) $id);
   foreach (array_unique([(int) $t['assignee_id'], (int) $t['assigned_by']]) as $who) if ($who !== (int) $u['id']) notify($who, 'task', work_name($u) . ' commented on: ' . mb_substr($t['title'], 0, 90), mb_substr($body, 0, 200), '#/tasks/' . $id);
   after_response(fn() => push_drain(10));
 });
@@ -218,7 +220,7 @@ route('POST', '/meetings', function () {
       if (mail_queue($r['email'], $r['first_name'], 'Meeting: ' . mb_substr($title, 0, 150), mail_wrap('Dear ' . $r['first_name'] . ',', $html, $link ? 'Join the meeting' : 'Open in WDOS', $link ?: app_url() . '/#/meetings/' . $mid))) $mailed++;
     }
   }
-  log_activity((int) $u['id'], count($invitees) === 1 ? $invitees[0] : null, 'meeting_scheduled', $title . ($invitees ? ' · ' . (count($invitees) === 1 ? 'with ' . (string) val("SELECT CONCAT(first_name,' ',last_name) FROM users WHERE id=?", [$invitees[0]]) : count($invitees) . ' leaders invited') : ''));
+  log_activity((int) $u['id'], count($invitees) === 1 ? $invitees[0] : null, 'meeting_scheduled', $title . ($invitees ? ' · ' . (count($invitees) === 1 ? 'with ' . (string) val("SELECT CONCAT(first_name,' ',last_name) FROM users WHERE id=?", [$invitees[0]]) : count($invitees) . ' leaders invited') : ''), 'meeting', (int) $mid);
   after_response(fn() => push_drain(80)); after_response(fn() => mail_drain(15));
   return ['ok' => true, 'id' => $mid, 'invited' => $n, 'emails' => $mailed, 'mail_on' => mail_configured()];
 });
@@ -265,7 +267,7 @@ route('POST', '/meetings/(\d+)/close', function ($id) {
     task_create((int) $u['id'], $owner, $title, 'Action from the meeting "' . $m['title'] . '" held ' . gmdate('j M Y', strtotime($m['starts_at'])) . '.', 'normal', work_date((string) ($a['deadline'] ?? '')), false, 'meeting:' . (int) $id); $made++;
   }
   q("UPDATE meetings SET status='completed', minutes=?, closed_at=? WHERE id=?", [$minutes, now(), (int) $id]);
-  log_activity((int) $u['id'], null, 'meeting_closed', $m['title']);
+  log_activity((int) $u['id'], null, 'meeting_closed', $m['title'], 'meeting', (int) $m['id']);
   // the minutes go to everyone who was invited: in the app, by push, and by email when email is on
   $m['status'] = 'completed';
   meeting_broadcast($m, 'Minutes are ready: ' . mb_substr($m['title'], 0, 110), 'The minutes of this meeting have been recorded. Open WDOS to read them' . ($made ? " and the $made action" . ($made === 1 ? '' : 's') . ' that followed.' : '.'), false,

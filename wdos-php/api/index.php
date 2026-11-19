@@ -418,6 +418,7 @@ require __DIR__ . '/../lib/comms.php';
 require __DIR__ . '/../lib/amend.php';
 require __DIR__ . '/../lib/handoff.php';
 require __DIR__ . '/../lib/staff.php';
+require __DIR__ . '/../lib/logins.php';      // v109.25: logins for many leaders at once, as a PDF
 require __DIR__ . '/../lib/guide.php';
 require __DIR__ . '/../lib/ops.php';
 require __DIR__ . '/../lib/ai.php';

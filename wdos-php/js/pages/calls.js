@@ -23,7 +23,8 @@ export async function render(root, params) {
   const paintG = () => { const n = picked.size + (withHq.checked ? 1 : 0); gbar.replaceChildren(h('span', { class: 'tag', text: picked.size ? tf('{1} chosen', picked.size) : t('Tick leaders to call them together') }),
     app.user.is_hq ? null : h('label', { style: 'display:flex;gap:6px;align-items:center' }, withHq, h('span', { text: t('Bring in WODDI HQ too') })),
     h('button', { class: 'btn btn--s', type: 'button', disabled: picked.size < 1 || n > max - 1, onclick: () => groupCall([...picked.values(), ...(withHq.checked ? [{ id: 'hq', name: 'WODDI HQ' }] : [])]) }, icon('phone', 16), ' ', n > max - 1 ? tf('Group call: {1} people at most', max - 1) : t('Group call'))); };
-  const groups = h('div');
+  const groups = h('div'); const missed = h('div');
+  root.append(missed);
   root.append(card(app.user.is_hq ? 'Serving leaders' : 'Leaders you can ring', null, h('div', { style: 'display:grid;gap:10px' }, search, gbar, people)), groups, card('Recent calls', null, recent));
 
   let timer = null;
@@ -32,6 +33,17 @@ export async function render(root, params) {
     let d; try { d = await api('/calls' + (search.value.trim() ? '?q=' + encodeURIComponent(search.value.trim()) : '')); }
     catch (e) { people.replaceChildren(empty('x', 'Calls did not load', e.message)); recent.replaceChildren(); return; }
     max = d.max_group || 8; paintG();
+    // v109.25: calls she missed in the last 7 days, first on the page, each with Call back
+    const week = Date.now() - 7 * 86400000, when = (x) => new Date(String(x).replace(' ', 'T') + 'Z').getTime();
+    const m1 = d.recent.filter((c) => c.role !== 'caller' && c.status === 'missed' && when(c.created_at) > week);
+    const m2 = (d.groups || []).filter((g) => g.my_status === 'missed' && when(g.created_at) > week);
+    missed.replaceChildren(m1.length + m2.length ? card(tf('Missed calls: {1}', m1.length + m2.length), 'Calls that rang for you in the last 7 days and were not answered', h('div', { class: 'list list--stack' },
+      ...m1.map((c) => h('div', { class: 'list__link', style: 'display:flex;align-items:center;gap:10px' }, h('div', { class: 'nrow__ico bad' }, icon('phone', 18)),
+        h('div', { class: 'grow', style: 'min-width:0' }, h('b', { text: c.with || 'WODDI HQ' }), h('small', { text: [c.with_title, ago(c.created_at)].filter(Boolean).join(' · ') })),
+        c.with_id && d.can_call ? h('button', { class: 'btn btn--s', type: 'button', onclick: () => ring(c.with_id, c.with, c.with_title) }, icon('phone', 16), ' ', t('Call back')) : null)),
+      ...m2.map((g) => h('div', { class: 'list__link', style: 'display:flex;align-items:center;gap:10px' }, h('div', { class: 'nrow__ico bad' }, icon('users', 18)),
+        h('div', { class: 'grow', style: 'min-width:0' }, h('b', { text: tf('Group call from {1}', g.host) }), h('small', { text: ago(g.created_at) })),
+        g.status === 'live' ? h('button', { class: 'btn btn--s', type: 'button', onclick: () => joinGroup(g.id) }, icon('phone', 16), ' ', t('Join')) : d.can_call && g.host_id !== app.user.id ? h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: () => ring(g.host_id, g.host, '') }, t('Call back')) : null)))) : '');
     const live = (d.groups || []).filter((g) => g.status === 'live');
     groups.replaceChildren(live.length ? card('Group calls on now', null, h('div', { class: 'list list--stack' }, live.map((g) => h('div', { class: 'list__link', style: 'display:flex;align-items:center;gap:10px' },
       h('div', { class: 'nrow__ico' }, icon('users', 18)), h('div', { class: 'grow', style: 'min-width:0' }, h('b', { text: tf('Group call from {1}', g.host) }), h('small', { text: g.people.filter((x) => x.status === 'joined').map((x) => x.name).join(', ') })),
