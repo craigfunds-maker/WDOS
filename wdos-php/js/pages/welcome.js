@@ -104,6 +104,8 @@ export async function render(root, params) {
   const diaspora = () => { const c = countries.find((x) => String(x.id) === F.country.value); return !!c && !AFRICA.includes(c.code); };
   const paintLga = () => { lgaSlot.replaceChildren(h('label', { class: 'field', for: 'f-lga' }, h('span', { text: diaspora() ? 'City' : 'LGA or district' }), lgaMode === 'select' ? F.lgaSel : F.lga)); const cl = document.querySelector('label[for="f-community"] > span'); if (cl) cl.textContent = t(diaspora() ? 'Community cluster (ward, optional)' : 'Community cluster (ward)'); paintEq(); const sl = document.querySelector('label[for="f-state"] > span'); if (sl) sl.textContent = diaspora() ? 'State or province (optional)' : 'State or region'; };
   const opt = (value, text) => { const o = document.createElement('option'); o.value = value; o.textContent = text; return o; };
+  const normName = (x) => String(x || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\b(state|region|province|governorate|district|county)\b/g, '').replace(/[^a-z0-9]/g, '');
+  const stateCode = () => stateCodes[stateName()] || stateCodes[normName(stateName())] || '';
   const stateName = () => (stateMode === 'text' ? F.stateText.value.trim() : F.state.value && F.state.value !== NOT_LISTED ? F.state.selectedOptions[0].textContent : '');
   /* Community Clusters already known in the chosen LGA or city are offered as she types, so the same cluster is not spelled three ways */
   const clusterList = h('datalist', { id: 'f-clusters' });
@@ -144,10 +146,10 @@ export async function render(root, params) {
     /* v109.16: every other country, Africa and the diaspora: LGAs or districts, and their wards, from geoBoundaries
        (each government's published administrative areas). In the diaspora her city list is offered with them. */
     admData = null;
-    if (c && lgaMode === 'text' && stateMode === 'list' && stateCodes[stateName()]) {
+    if (c && lgaMode === 'text' && stateMode !== 'text' && stateCode()) {
       admIdx = admIdx || await getJson('/assets/geo/adm/index.json');
       if (admIdx && c.code in admIdx) {
-        const d = await getJson(`/assets/geo/adm/${c.code}/${stateCodes[stateName()]}.json`);
+        const d = await getJson(`/assets/geo/adm/${c.code}/${stateCode()}.json`);
         if (d && Object.keys(d).length) {
           admData = d; let list = Object.keys(d);
           if (diaspora() && worldStates[stateName()]) { const cities = await getJson(`/assets/geo/world/${c.code}/${worldStates[stateName()]}.json`); if (Array.isArray(cities)) list = [...new Set([...cities, ...list])].sort((a, b) => a.localeCompare(b)); }
@@ -170,6 +172,7 @@ export async function render(root, params) {
       try { const r = await api('/geo/children/' + c.id); F.state.replaceChildren(h('option', { value: '', text: 'Choose your state' }), ...r.units.map((u2) => opt(u2.id, u2.name))); stateMode = 'select'; } catch { /* fall back to the published list or typing */ }
     }
     worldStates = {}; stateCodes = {};
+    if (c) { const w0 = await getJson(`/assets/geo/world/${c.code}.json`); (w0.s || []).forEach(([n, code, cities]) => { stateCodes[n] = code; stateCodes[normName(n)] = code; if (cities) worldStates[n] = code; }); }
     if (c && stateMode === 'text') {                                   // every country: its states, provinces or regions, each with its own list of cities and districts
       const w = await getJson(`/assets/geo/world/${c.code}.json`); const list = (w.s || []);
       if (list.length) { list.forEach(([n, code, cities]) => { worldStates[n] = cities ? code : ''; stateCodes[n] = code; }); F.state.replaceChildren(h('option', { value: '', text: 'Choose your state or region' }), ...list.map(([n]) => opt(n, n)), h('option', { value: NOT_LISTED, text: 'My state or region is not listed' })); stateMode = 'list'; }

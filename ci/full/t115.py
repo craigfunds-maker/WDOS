@@ -37,4 +37,23 @@ with sync_playwright() as p:
   pick('#f-country','United States'); pick('#f-state','Texas'); o=opts(pg,'select#f-lga'); chk('diaspora: cities and districts together', o[0]=='Choose your city or district' and len(o)>200, o[:3])
   chk('diaspora ward is optional', lab('f-community')=='Community cluster (ward, optional)', lab('f-community'))
   chk('no page errors', not errs, errs); b.close()
+# live-site case: the country has WDOS structure units, so its states come from /geo/children, not the published list
+with sync_playwright() as p:
+  b=p.chromium.launch(); pg=b.new_page(viewport={'width':760,'height':1000})
+  def countries(route):
+    r=route.fetch(); d=r.json()
+    for c in d['countries']:
+      if c['code']=='GH': c['children']=2
+    route.fulfill(response=r, body=json.dumps(d))
+  pg.route('**/api/geo/countries', countries)
+  pg.route('**/api/geo/children/*', lambda route: route.fulfill(status=200, content_type='application/json', body=json.dumps({'units':[{'id':9001,'name':'Central'},{'id':9003,'name':'Ashanti Region'}]})))
+  pg.goto(B+'/'); pg.wait_for_selector('.startcard'); pg.click('#start-continue'); pg.click('.net--wgmn'); pg.click('#net-continue'); pg.wait_for_selector('.stepnav')
+  pg.fill('#f-first_name','Test'); pg.fill('#f-last_name','Person'); pg.fill('#f-dob','1985-02-03'); pg.fill('#f-contact','+233201234567')
+  pg.click('.stepnav button[type=button]:not(.btn--ghost)'); pg.wait_for_timeout(700)
+  v=pg.eval_on_selector('#f-country','e=>[...e.options].find(o=>/^Ghana/.test(o.textContent)).value'); pg.select_option('#f-country',v); pg.wait_for_timeout(1300)
+  for st,n in (('Central',20),('Ashanti Region',40)):
+    pg.select_option('#f-state',label=st); pg.wait_for_timeout(1300)
+    o=pg.eval_on_selector('select#f-lga','e=>e.isConnected?[...e.options].map(o=>o.textContent):[]')
+    chk(f'structure-unit state {st} still lists its districts', len(o)-2>=n, o[:3])
+  b.close()
 print('checks',ok+bad,'FAILURES',bad)
