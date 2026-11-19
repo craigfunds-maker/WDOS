@@ -32,20 +32,17 @@ function insp_daily_for(?string $network, ?DateTimeImmutable $d = null): ?array 
   $doy = (int) $d->format('z') + 1;
   $own = row("SELECT * FROM hq_messages WHERE kind='daily' AND seq=? AND network IN (?, 'ALL') ORDER BY (network=?) DESC LIMIT 1", [$doy, $net, $net]);
   if ($own) return $own;
-  $pool = rows("SELECT * FROM hq_messages WHERE key_thought<>'' AND ((kind='weekly' AND network=?) OR kind='monthly') ORDER BY kind DESC, seq, id", [$net]);
+  $wk = function_exists('insp_week') ? insp_week($d) : 0;
+  $pool = rows("SELECT * FROM hq_messages WHERE key_thought<>'' AND ((kind='weekly' AND network=? AND seq<>?) OR kind='monthly') ORDER BY kind DESC, seq, id", [$net, $wk]);
   if (!$pool) return null;
   $days = (int) floor($d->setTime(0, 0)->getTimestamp() / 86400);
   return $pool[$days % count($pool)];
 }
 
-/** Everything for her dashboard today: the birthday, weekly or monthly card first, and the thought for today with it. */
+/** v109.23: one card at a time (two cards showed the same message, 19 Nov). The birthday, the week's message on its Monday,
+ *  the monthly message for its three days, and on every other day the thought for today. */
 function insp_cards(array $u, string $lang): array {
-  $first = insp_today($u, $lang); $out = $first ? [$first] : [];
-  if ($first && ($first['kind'] ?? '') !== 'daily' && ($m = insp_daily_for(current_seat((int) $u['id'])['network'] ?? ($u['network'] ?? null)))) {
-    $c = insp_shape($m, $u, 'Thought for today', current_seat((int) $u['id']), $lang); $c['kind'] = 'daily';
-    if ((int) $c['id'] !== (int) ($first['id'] ?? -1)) $out[] = $c;
-  }
-  return $out;
+  $c = insp_today($u, $lang); return $c ? [$c] : [];
 }
 
 /* ---- sends ------------------------------------------------------------------ */
@@ -64,10 +61,70 @@ function run_celebrations(array &$done): void {
       $push += as_push_count($where, [$net], 'inspiration');
       $inApp += notify_many($where, [$net], 'inspiration', $title, (string) $m['key_thought'], '#/');
     }
-    as_log('daily', 'Thought for today, ' . $d->format('j M Y'), $inApp, $push, 0);
+    // by email: one email a week with the week's seven thoughts (Monday), or one a day if the plan allows it
+    $mail = 0; $daily = (bool) cfg('INSPIRATION_EMAIL_DAILY');
+    if ($daily || (int) $d->format('N') === 1) foreach (['WGMN', 'WNNN'] as $net) {
+      $t = insp_digest($net, $d, $daily ? 1 : 7); if (!$t) continue;
+      [[$sj, $bd], $other] = insp_mail_texts($t);
+      $w = 'u.network=?';
+      // leaders who got this week's message by email have the week's thoughts in that email
+      if (!$daily && setting('sent_weekly_' . insp_week($d)) !== '') $w .= ' AND NOT EXISTS (SELECT 1 FROM seats s WHERE s.user_id=u.id AND s.ends_at IS NULL)';
+      $mail += mail_many("u.status='active' AND " . $w, [$net], $sj, $bd, '#/', $other);
+    }
+    as_log('daily', 'Thought for today, ' . $d->format('j M Y'), $inApp, $push, $mail);
     $done['daily_inspiration'] = "$inApp members";
   }
+  run_dob_asks($done);
 }
+/* ---- the thoughts by email ----------------------------------------------- */
+/** The seven thoughts of the week starting $monday, in one email: [lang => [subject, body]]. The plan allows about 5,000
+ *  emails a month, so a daily email to every member (about 20,000) cannot go; one email a week (about 2,900) can.
+ *  INSPIRATION_EMAIL_DAILY=1 in config.local.php switches to one email a day, for a bigger email plan. */
+function insp_digest(string $net, DateTimeImmutable $monday, int $days = 7): array {
+  $subj = ['en' => 'Your thoughts for this week', 'fr' => 'Vos pensées de la semaine', 'pt' => 'Os seus pensamentos desta semana', 'sw' => 'Mawazo yako ya wiki hii', 'ar' => 'أفكارك لهذا الأسبوع'];
+  $intro = ['en' => 'A thought for each day this week, from WODDI HQ. Read one each morning.', 'fr' => 'Une pensée pour chaque jour de la semaine, de la part de WODDI HQ. Lisez-en une chaque matin.',
+            'pt' => 'Um pensamento para cada dia desta semana, da WODDI HQ. Leia um cada manhã.', 'sw' => 'Wazo kwa kila siku ya wiki hii, kutoka WODDI HQ. Soma moja kila asubuhi.', 'ar' => 'فكرة لكل يوم من هذا الأسبوع، من WODDI HQ. اقرئي واحدة كل صباح.'];
+  $fmt = ['en' => 'en_GB', 'fr' => 'fr_FR', 'pt' => 'pt_PT', 'sw' => 'sw_KE', 'ar' => 'ar'];
+  $out = [];
+  foreach ($subj as $l => $sj) {
+    $lines = [];
+    for ($i = 0; $i < $days; $i++) {
+      $d = $monday->modify("+$i day"); $m = insp_daily_for($net, $d); if (!$m) continue;
+      $t = insp_text((int) $m['id'], $l);
+      $day = class_exists('IntlDateFormatter') ? (new IntlDateFormatter($fmt[$l], IntlDateFormatter::NONE, IntlDateFormatter::NONE, 'Africa/Lagos', null, 'EEEE d MMMM'))->format($d) : $d->format('l j F');
+      $lines[] = mb_strtoupper(mb_substr($day, 0, 1)) . mb_substr($day, 1) . "\n" . ($t && $t['headline'] !== '' ? $t['headline'] : $m['headline']) . "\n" . ($t && $t['key_thought'] !== '' ? $t['key_thought'] : $m['key_thought']);
+    }
+    $today = ['en' => 'Thought for today', 'fr' => 'Pensée du jour', 'pt' => 'Pensamento do dia', 'sw' => 'Wazo la leo', 'ar' => 'فكرة اليوم'][$l];
+    if ($lines) $out[$l] = $days === 1 ? [$today . ': ' . explode("\n", $lines[0])[1], implode("\n", array_slice(explode("\n", $lines[0]), 1))] : [$sj, $intro[$l] . "\n\n" . implode("\n\n", $lines)];
+  }
+  return $out;
+}
+function insp_mail_texts(array $t): array { $en = $t['en'] ?? ['', '']; unset($t['en']); return [$en, $t]; }
+
+/** Members with no date of birth: asked by email, in the app and by phone, at most twice, 14 days apart, up to 200 a day. */
+function run_dob_asks(array &$done): void {
+  $d = hq_today(); if ((int) $d->format('G') < 9 || !claim_send('dob_ask_' . $d->format('Y-m-d'))) return;
+  try {
+    $ids = array_map('intval', array_column(rows("SELECT u.id FROM users u LEFT JOIN dob_asks a ON a.user_id=u.id
+      WHERE u.status='active' AND u.dob IS NULL AND u.role NOT IN ('hq_admin','super_admin')
+        AND (a.user_id IS NULL OR (a.asks < 2 AND a.last_at < ?)) ORDER BY u.id LIMIT 200", [gmdate('Y-m-d H:i:s', $d->getTimestamp() - 14 * 86400)]), 'id'));
+  } catch (PDOException $e) { return; }      // before migration 038
+  if (!$ids) return;
+  $where = 'u.id IN (' . implode(',', $ids) . ')';
+  $title = 'When is your birthday?';
+  $body = 'Add your date of birth in WDOS so WODDI can celebrate you on your day, in the app, on your phone and by email. Open WDOS, and the card on your dashboard asks for it. It takes a few seconds.';
+  $tx = ['fr' => ['Quand est votre anniversaire ?', "Ajoutez votre date de naissance dans WDOS pour que WODDI vous fête le jour venu, dans l'application, sur votre téléphone et par e-mail. Ouvrez WDOS : la carte de votre tableau de bord vous la demande. Cela prend quelques secondes."],
+         'pt' => ['Quando é o seu aniversário?', 'Adicione a sua data de nascimento no WDOS para que a WODDI a celebre no seu dia, na aplicação, no telemóvel e por e-mail. Abra o WDOS: o cartão do seu painel pede-a. Leva poucos segundos.'],
+         'sw' => ['Siku yako ya kuzaliwa ni lini?', 'Ongeza tarehe yako ya kuzaliwa kwenye WDOS ili WODDI ikusherehekee siku yako, kwenye programu, kwenye simu na kwa barua pepe. Fungua WDOS, kadi kwenye dashibodi yako itaiomba. Inachukua sekunde chache.'],
+         'ar' => ['متى عيد ميلادك؟', 'أضيفي تاريخ ميلادك في WDOS حتى تحتفل بك WODDI في يومك، في التطبيق وعلى هاتفك وبالبريد الإلكتروني. افتحي WDOS وستطلبه منك البطاقة في لوحتك. يستغرق ذلك ثوانٍ.']];
+  $push = as_push_count($where, [], 'birthday');
+  $inApp = notify_many($where, [], 'birthday', $title, $body, '#/', $tx);
+  $mail = mail_many("u.status='active' AND " . $where, [], $title, $body, '#/', $tx);
+  foreach ($ids as $id) q('INSERT INTO dob_asks (user_id,asks,last_at) VALUES (?,1,?) ON DUPLICATE KEY UPDATE asks=asks+1, last_at=VALUES(last_at)', [$id, gmdate('Y-m-d H:i:s', $d->getTimestamp())]);
+  as_log('dob_ask', 'Asked for a date of birth', $inApp, $push, $mail);
+  $done['dob_asks'] = count($ids) . ' members';
+}
+
 /** Birthday emails, sent with the in-app and phone greetings (see run_automations in notify.php). */
 function birthday_mail(array $u): int {
   if (!mail_configured() || !str_contains((string) $u['email'], '@')) return 0;

@@ -117,9 +117,8 @@ function insp_today(array $u, string $lang = 'en'): ?array {
   };
   if (!$seat) return $daily();
   $preview = setting('weekly_preview') === $u['id'] . ':' . $d->format('Y-m-d');           // one-leader test from the setup page
-  // v109.22: the week's message stays on the dashboard all week (it was only shown on the Monday)
-  $sentWeek = setting('sent_weekly_' . insp_week($d)) !== '';
-  if ((($sentWeek || (int) $d->format('N') === 1) || $preview) && ($m = insp_weekly_for($seat['network'], insp_week($d)))) return insp_shape($m, $u, 'Weekly inspiration, week ' . $m['seq'], $seat, $lang);
+  // v109.23: one card a day. The week's message on its Monday; the thought for today on the other days.
+  if (((int) $d->format('N') === 1 || $preview) && ($m = insp_weekly_for($seat['network'], insp_week($d)))) return insp_shape($m, $u, 'Weekly inspiration, week ' . $m['seq'], $seat, $lang);
   // the monthly message stays on the dashboard for three days from the moment it was sent, then leaves
   $n = insp_month($d); $sent = $n ? setting('sent_monthly_' . $n) : '';
   if ($sent !== '' && time() - strtotime($sent . ' UTC') < 3 * 86400 && ($m = row("SELECT * FROM hq_messages WHERE kind='monthly' AND seq=?", [$n]))) return insp_shape($m, $u, 'Monthly leadership inspiration, ' . $d->format('F Y'), $seat, $lang);
@@ -144,7 +143,13 @@ function run_inspiration_automations(array &$done): void {
     foreach (['WGMN', 'WNNN'] as $net) if ($m = insp_weekly_for($net, $week)) {
       if (function_exists('as_push_count')) $push += as_push_count($leaders, [$net], 'inspiration');
       $n += notify_many($leaders, [$net], 'inspiration', $m['headline'], $m['key_thought'], '#/');
-      $mail += mail_many("u.status='active' AND " . $leaders, [$net], 'Weekly inspiration: ' . $m['headline'], (string) $m['key_thought'], '#/');      // v109.22: by email as well
+      // v109.22: by email as well; v109.23: with the week's seven thoughts in the same email, in her language
+      $dg = function_exists('insp_digest') ? insp_digest($net, $d) : []; $tx = [];
+      foreach (['en', 'fr', 'pt', 'sw', 'ar'] as $l) { $t = insp_text((int) $m['id'], $l);
+        $tx[$l] = [($l === 'en' ? 'Weekly inspiration: ' : '') . ($t && $t['headline'] !== '' ? $t['headline'] : $m['headline']),
+                   ($t && $t['key_thought'] !== '' ? $t['key_thought'] : $m['key_thought']) . (isset($dg[$l]) ? "\n\n" . $dg[$l][0] . "\n\n" . $dg[$l][1] : '')]; }
+      [$en, $other] = function_exists('insp_mail_texts') ? insp_mail_texts($tx) : [$tx['en'], []];
+      $mail += mail_many("u.status='active' AND " . $leaders, [$net], $en[0], $en[1], '#/', $other);
     }
     if (function_exists('as_log')) as_log('weekly', "Weekly inspiration, week $week", $n, $push, $mail);
     $done['weekly_inspiration'] = "week $week to $n leaders";
