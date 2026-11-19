@@ -35,8 +35,9 @@ function resolve(path) {
   if (u.status === 'pending_profile' && u.role === 'envoy') return pub('envoyjoin', { complete: true });
   if (u.status === 'pending_profile') return pub('welcome', { complete: true, network: u.network || '' });
   const sh = (name, title, params = {}) => ({ name, title, params, shell: true });
-  // v109.31: anyone signed in with a temporary password from HQ (staff, leaders, envoys) chooses her own first, on a page with nothing else
-  if (u.must_change_password && u.has_password !== false) return sh('firstpw', 'Choose your own password');
+  // v109.32: only HQ staff must choose their own password before anything else (their logins open everyone's records).
+  // Envoys and leaders go straight to their dashboard and change it in Settings when they want (Azeez, 19 Nov).
+  if (u.is_hq && u.must_change_password && u.has_password !== false) return sh('firstpw', 'Choose your own password');
   if (u.is_envoy) {                    // a WODDI Envoy has a limited dashboard: her link, the people she referred, messages to them, notifications, settings
     if (seg[0] === 'inbox') return sh('inbox', 'Messages', { tab: seg[1], id: seg[2] });
     if (seg[0] === 'notifications') return sh('notifications', 'Notifications');
@@ -139,7 +140,7 @@ export async function checkClock() {
     toast(t('Your device clock is wrong'), tf('It is about {1} hours {2}. Meeting times and countdowns will show wrong. Open your phone or computer settings and switch on "Set time automatically" and "Set time zone automatically". Time zone now: {3}', hrs, off > 0 ? t('ahead') : t('behind'), zone), 'bad');
   } catch { /* offline: say nothing */ }
 }
-export function maybeGuide() { checkClock(); const u = app.user; if (!u || u.guide_seen || u.is_hq || u.must_change_password || u.status === 'pending_profile') return; setTimeout(() => import('./pages/guide.js').then((m) => m.openGuide(true)), 900); }
+export function maybeGuide() { checkClock(); const u = app.user; if (!u || u.guide_seen || u.is_hq || u.is_envoy || u.must_change_password || u.status === 'pending_profile') return; setTimeout(() => import('./pages/guide.js').then((m) => m.openGuide(true)), 900); }
 
 /* ----------------------------------------------------------------- shell -- */
 /* An HQ login limited to some areas sees only those areas in the menu. The server refuses the rest anyway. */
