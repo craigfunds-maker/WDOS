@@ -66,6 +66,7 @@ function page(string $title, string $html, array $o = []): never {
       <div class="ttl"><?= e($title) ?></div>
       <a class="pill netpill" href="<?= url('settings') ?>"><img src="<?= $netLogo ?>" alt=""><?= e(net_code()) ?></a>
       <button class="ib" type="button" data-theme aria-label="Toggle dark mode"><?= ic($dark ? 'fa-sun' : 'fa-moon') ?></button>
+      <button class="ib moreb" type="button" data-open="#more" aria-label="More: radio, market, journey and others"><?= ic('fa-grip') ?></button>
       <a class="ib" href="<?= url('messages') ?>" aria-label="Messages and notifications"><?= ic('fa-bell') ?><?php if ($unread): ?><span class="dot"></span><?php endif; ?></a>
       <?php if (is_staff()): ?><a class="b s" href="<?= url('ops') ?>"><?= ic('fa-gauge-high') ?> Admin</a><?php endif; ?>
       <a href="<?= url('me') ?>" aria-label="My account"><?= avatar($me) ?></a>
@@ -77,7 +78,6 @@ function page(string $title, string $html, array $o = []): never {
     <?php if (empty($o['immersive'])): ?>
     <nav class="tabbar" aria-label="Main tabs">
       <?php foreach (NAV_MAIN as $n): ?><a class="tb <?= $active === $n[0] ? 'on' : '' ?>" href="<?= url($n[0]) ?>"><?= ic($n[2]) ?><?= e($n[1]) ?></a><?php endforeach; ?>
-      <button class="tb <?= (in_array($active, array_map(fn($x) => strtok($x[0], '?'), NAV_MORE), true) && !in_array($active, array_column(NAV_MAIN, 0), true)) ? 'on' : '' ?>" type="button" data-open="#more"><?= ic('fa-ellipsis') ?>More</button>
     </nav>
     <?php endif; ?>
   </div>

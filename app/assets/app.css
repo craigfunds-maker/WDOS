@@ -161,3 +161,11 @@ select.inp{max-width:100%;min-width:0;text-overflow:ellipsis}.row.wrap>*{min-wid
 .splash-feat{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}.splash-feat span{font-size:.8em;font-weight:600;background:rgba(255,255,255,.1);border-radius:999px;padding:7px 12px;display:inline-flex;gap:6px;align-items:center}
 .splash-cta{width:100%;display:flex;flex-direction:column;gap:10px;margin-top:6px}.splash-cta .b{min-height:54px;font-size:1.05em}
 .splash-foot{font-size:.78em;color:rgba(255,255,255,.6);line-height:1.8}.splash-foot a{color:rgba(255,255,255,.85);text-decoration:underline}
+/* bottom menu, matching the live app: five items, grey icons, magenta active item with a short bar */
+.tabbar{background:var(--card);backdrop-filter:none;padding:10px 6px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -6px 24px rgba(0,0,0,.06)}
+.tb{gap:5px;min-height:56px;padding:2px 0 0;color:#6E6A70;font-size:.8em;font-weight:500}
+.tb i{font-size:23px;line-height:1}
+.tb.on{color:#C8245A;font-weight:700}
+.tb.on::after{width:22px;height:3px;margin-top:1px;background:#C8245A}
+html.dark .tb{color:#B9AEB9}html.dark .tb.on{color:#FF7FB6}html.dark .tb.on::after{background:#FF7FB6}
+.moreb{display:inline-flex}@media(min-width:960px){.moreb{display:none}}
