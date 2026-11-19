@@ -34,7 +34,7 @@ function bulk_people(string $cc, string $net, array $levels, ?array $only = null
       if ($cc !== '') { $w .= ' AND (e.country_code=? OR u.country_code=?)'; $p[] = $cc; $p[] = $cc; }
       if ($net !== '') { $w .= ' AND (u.network=? OR u.network IS NULL OR u.network=\'\')'; $p[] = $net; }
       if ($only !== null) $w .= ' AND u.id IN (' . implode(',', array_map('intval', $only ?: [0])) . ')';
-      foreach (rows("SELECT u.*, e.country_code ecc, (SELECT COUNT(*) FROM webauthn_credentials w WHERE w.user_id=u.id) prints FROM users u JOIN envoys e ON e.user_id=u.id WHERE $w ORDER BY u.first_name LIMIT 1000", $p) as $r) {
+      foreach (rows("SELECT u.*, e.country_code ecc, (SELECT COUNT(*) FROM webauthn_credentials w WHERE w.user_id=u.id) prints FROM users u JOIN envoys e ON e.user_id=u.id WHERE $w ORDER BY u.state_region, u.first_name LIMIT 1000", $p) as $r) {
         if (isset($out[(int) $r['id']])) continue;
         $out[(int) $r['id']] = signin_shape($r) + ['position' => $r['designation'] !== '' ? $r['designation'] : 'WODDI Envoy', 'network' => (string) $r['network'], 'level' => 'envoy', 'country' => $r['ecc'] ?: $r['country_code'], 'rank' => 99];
       }

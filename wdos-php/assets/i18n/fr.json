@@ -3460,5 +3460,9 @@
 "{1} ringing": "{1} sonnent",
 "{1} speaking": "{1} parlent",
 "Call all {1} leaders": "Appeler les {1} responsables",
-"A call takes {1} people at most. Tick the leaders to call instead.": "Un appel accueille {1} personnes au plus. Cochez plutôt les responsables à appeler."
+"A call takes {1} people at most. Tick the leaders to call instead.": "Un appel accueille {1} personnes au plus. Cochez plutôt les responsables à appeler.",
+"Sign-in details for many envoys (PDF)": "Accès pour plusieurs envoyées (PDF)",
+"Sign-in details for many envoys at once": "Accès pour plusieurs envoyées à la fois",
+"Envoy sign-in details": "Accès des envoyées",
+"Tick the envoys, and WDOS gives each a temporary password. Each envoy signs in with the phone number shown (or her email if she has one). You get the details once, as a PDF made on this computer. Each envoy chooses her own password when she first signs in.": "Cochez les envoyées, et WDOS donne à chacune un mot de passe temporaire. Chaque envoyée se connecte avec le numéro de téléphone indiqué (ou son e-mail si elle en a un). Vous recevez ces accès une seule fois, dans un PDF fait sur cet ordinateur. Chaque envoyée choisit son propre mot de passe à sa première connexion."
 }

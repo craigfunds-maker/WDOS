@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Configuration comes from environment variables (Render) or from
  * config.local.php beside index.html (shared hosting / cPanel). */
 
-const WDOS_BUILD = 'v109.28';
+const WDOS_BUILD = 'v109.29';
 
 function cfg(string $key, ?string $default = null): ?string {
   static $local = null;
@@ -165,6 +165,20 @@ function log_activity(?int $actor, ?int $subject, string $action, string $detail
   q('INSERT INTO activity_log (actor_id,subject_id,action,detail,created_at) VALUES (?,?,?,?,?)', [$actor, $subject, $action, mb_substr($detail, 0, 250), now()]);
 }
 
+/* v109.29: phone numbers. Here, not in envoy_import.php, because sign-in (early in api/index.php) needs them. */
+/** A Nigerian number in local form: 0 + 10 digits. Other countries keep their international form. */
+function envoy_local_phone(string $raw, string $cc = 'NG'): string {
+  $p = preg_replace('/[^\d+]/', '', $raw);
+  if ($cc === 'NG') { if (str_starts_with($p, '+234')) $p = '0' . substr($p, 4); elseif (str_starts_with($p, '234') && strlen($p) === 13) $p = '0' . substr($p, 3); }
+  return $p;
+}
+/** Other ways the same number may be written, for finding an account that already has it. */
+function phone_variants(string $p): array {
+  $p = preg_replace('/[^\d+]/', '', $p); $v = [$p];
+  if (preg_match('/^0(\d{10})$/', $p, $m)) { $v[] = '+234' . $m[1]; $v[] = '234' . $m[1]; }
+  if (preg_match('/^\+?234(\d{10})$/', $p, $m)) { $v[] = '0' . $m[1]; $v[] = '+234' . $m[1]; $v[] = '234' . $m[1]; }
+  return array_values(array_unique($v));
+}
 /* ---- people ------------------------------------------------------------- */
 function current_seat(int $userId): ?array {
   return row('SELECT s.*, p.title_wgmn, p.title_wnnn, p.level AS position_level, p.rank_no, ou.name AS unit_name, ou.path AS unit_path, ou.country_code AS unit_country

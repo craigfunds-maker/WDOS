@@ -5,13 +5,14 @@ import { h, t, tf, icon, card, empty, sk, toast, ago, netTag, fmt } from '../ui.
 import { api } from '../api.js';
 import { tablePdf, download } from '../pdfmini.js';
 
-export async function render(root) {
+export async function render(root, params = {}) {
+  const onlyEnvoys = params.only === 'envoy';
   const sel = (opts, v) => { const s = h('select', { class: 'input' }, opts.map(([k, l]) => h('option', { value: k, text: t(l) }))); if (v !== undefined) s.value = v; return s; };
   const country = sel([['', 'All countries']]); const network = sel([['', 'Both networks'], ['WGMN', 'WGMN'], ['WNNN', 'WNNN']]);
   const levelBox = h('div', { style: 'display:flex;gap:14px;flex-wrap:wrap' }); const lv = new Map();
   const list = h('div', {}, sk.rows(5)); const bar = h('div', { class: 'toolbar', style: 'flex-wrap:wrap' }); const done = h('div');
   const picked = new Set(); let d = null, loaded = false;
-  root.append(card('Logins for many leaders at once', 'Choose the country, the network and the levels, tick the people, and WDOS gives each a new temporary password. You get them once, as a PDF made on this computer. Each person chooses her own password when she first signs in.',
+  root.append(card(onlyEnvoys ? 'Sign-in details for many envoys at once' : 'Logins for many leaders at once', onlyEnvoys ? 'Tick the envoys, and WDOS gives each a temporary password. Each envoy signs in with the phone number shown (or her email if she has one). You get the details once, as a PDF made on this computer. Each envoy chooses her own password when she first signs in.' : 'Choose the country, the network and the levels, tick the people, and WDOS gives each a new temporary password. You get them once, as a PDF made on this computer. Each person chooses her own password when she first signs in.',
     h('div', { style: 'display:grid;gap:14px' }, h('div', { class: 'grid2' }, country, network), levelBox,
       h('p', { class: 'muted', style: 'margin:0', text: t('Their current password stops working, and they are signed out of WDOS on every device. People who sign in with Google can keep doing so.') }), bar, list)), done);
   const paintBar = () => {
@@ -53,12 +54,12 @@ export async function render(root) {
     const place = country.value ? country.options[country.selectedIndex].text : t('All countries');
     const when = new Date(r.at.replace(' ', 'T') + 'Z').toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
     const host = r.site.replace(/^https?:\/\//, '').replace(/\/$/, '');
-    const pdf = tablePdf({ title: `WDOS leader logins: ${place}${network.value ? ' · ' + network.value : ''}`, subtitle: `Made ${when} by ${r.by}. ${r.issued.length} logins.`,
+    const pdf = tablePdf({ title: `${onlyEnvoys ? 'WDOS envoy sign-in details' : 'WDOS leader logins'}: ${place}${network.value ? ' · ' + network.value : ''}`, subtitle: `Made ${when} by ${r.by}. ${r.issued.length} logins.`,
       note: 'Confidential. Give each person only her own line, privately. These temporary passwords are not kept anywhere else and cannot be shown again.',
       footer: `Sign in at ${host} with the email or phone number and the temporary password. WDOS then asks you to choose your own password.`,
       columns: [{ label: '#', width: 3 }, { label: 'Name', width: 17, bold: true }, { label: 'Position', width: 30 }, { label: 'Network', width: 7 }, { label: 'Sign in with', width: 25 }, { label: 'Temporary password', width: 14, mono: true }],
       rows: r.issued.map((x, i) => [String(i + 1), x.name, x.position, x.network || '', x.sign_in_with, x.temporary_password]) });
-    const name = `WDOS-logins-${(country.value || 'all')}${network.value ? '-' + network.value : ''}-${new Date().toISOString().slice(0, 10)}.pdf`;
+    const name = `WDOS-${onlyEnvoys ? 'envoy-sign-in' : 'logins'}-${(country.value || 'all')}${network.value ? '-' + network.value : ''}-${new Date().toISOString().slice(0, 10)}.pdf`;
     download(pdf, name);
     done.replaceChildren(card(tf('{1} logins created', fmt(r.issued.length)), 'The PDF has downloaded. Keep it safe: the temporary passwords cannot be shown again. If it did not download, press the button below now, before you leave this page.',
       h('div', { style: 'display:grid;gap:10px' }, h('button', { class: 'btn', type: 'button', onclick: () => download(pdf, name) }, icon('book', 16), ' ', t('Download the PDF again')),
@@ -68,7 +69,7 @@ export async function render(root) {
   }
   const first = await api('/hq/leader-logins/bulk?levels=country').catch(() => null);
   Object.entries(first ? first.levels : { country: 'Country', state_region: 'State or region' }).forEach(([k, l]) => {
-    const c = h('input', { type: 'checkbox', checked: k === 'country' || k === 'state_region' || k === 'envoy', style: 'width:20px;height:20px' }); lv.set(k, c);
+    const c = h('input', { type: 'checkbox', checked: onlyEnvoys ? k === 'envoy' : (k === 'country' || k === 'state_region' || k === 'envoy'), style: 'width:20px;height:20px' }); lv.set(k, c);
     c.addEventListener('change', load); levelBox.append(h('label', { style: 'display:flex;gap:6px;align-items:center' }, c, h('span', { text: t(l) })));
   });
   [country, network].forEach((x) => x.addEventListener('change', load));

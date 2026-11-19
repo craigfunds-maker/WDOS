@@ -3460,5 +3460,9 @@
 "{1} ringing": "{1} يرن",
 "{1} speaking": "{1} يتحدثن",
 "Call all {1} leaders": "الاتصال بكل القائدات الـ {1}",
-"A call takes {1} people at most. Tick the leaders to call instead.": "تتسع المكالمة لـ {1} شخصًا كحد أقصى. حددي بدلًا من ذلك القائدات اللواتي تريدين الاتصال بهن."
+"A call takes {1} people at most. Tick the leaders to call instead.": "تتسع المكالمة لـ {1} شخصًا كحد أقصى. حددي بدلًا من ذلك القائدات اللواتي تريدين الاتصال بهن.",
+"Sign-in details for many envoys (PDF)": "بيانات الدخول لعدة مبعوثات (PDF)",
+"Sign-in details for many envoys at once": "بيانات الدخول لعدة مبعوثات معًا",
+"Envoy sign-in details": "بيانات دخول المبعوثات",
+"Tick the envoys, and WDOS gives each a temporary password. Each envoy signs in with the phone number shown (or her email if she has one). You get the details once, as a PDF made on this computer. Each envoy chooses her own password when she first signs in.": "حددي المبعوثات، فيعطي WDOS كل واحدة كلمة مرور مؤقتة. تسجل كل مبعوثة الدخول برقم الهاتف المعروض (أو بريدها الإلكتروني إن وُجد). تحصلين على البيانات مرة واحدة فقط، في ملف PDF يُنشأ على هذا الحاسوب. تختار كل مبعوثة كلمة مرورها عند أول تسجيل دخول."
 }

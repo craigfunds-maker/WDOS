@@ -173,12 +173,14 @@ route('POST', '/auth/login', function () {
   $u = row('SELECT * FROM users WHERE email=?', [$email]);
   if (!$u && $email !== '' && !str_contains($email, '@')) {                 // a phone number: the account made with it, or the only account that carries it
     $ph = preg_replace('/[^\d+]/', '', $email);
-    $u = row('SELECT * FROM users WHERE email=?', [phone_login_name($ph)]);
-    if (!$u && strlen(ltrim($ph, '+')) >= 8) { $m = rows('SELECT * FROM users WHERE phone=? LIMIT 2', [$ph]); if (count($m) === 1) $u = $m[0]; }
+    // v109.29: 0803..., +234 803... and 234803... are the same Nigerian number
+    $vs = function_exists('phone_variants') ? phone_variants($ph) : [$ph];
+    foreach ($vs as $v) if (!$u) $u = row('SELECT * FROM users WHERE email=?', [phone_login_name($v)]);
+    if (!$u && strlen(ltrim($ph, '+')) >= 8) { $m = rows('SELECT * FROM users WHERE phone IN (' . implode(',', array_fill(0, count($vs), '?')) . ') LIMIT 2', $vs); if (count($m) === 1) $u = $m[0]; }
   }
   if (!$u || !$u['password_hash'] || !password_verify($pw, $u['password_hash'])) {
     throttle_hit('login:' . $email); throttle_hit('login-ip:' . client_ip());
-    fail(401, $u && !$u['password_hash'] ? 'This account was created with Google. Use Continue with Google.' : 'Those sign-in details are not correct.', 'bad_credentials');
+    fail(401, $u && !$u['password_hash'] ? (($u['signup_method'] ?? '') === 'google' || !empty($u['google_sub']) ? 'This account was created with Google. Use Continue with Google.' : 'Your sign-in details are not ready yet. WODDI HQ will send them to you.') : 'Those sign-in details are not correct.', 'bad_credentials');
   }
   if ($u['status'] === 'suspended') fail(403, 'This account is suspended. Contact WODDI HQ.', 'suspended');
   if ($u['status'] === 'withdrawn') fail(403, 'This membership was closed at your request. Write to WODDI HQ to come back.', 'withdrawn');
@@ -418,7 +420,8 @@ require __DIR__ . '/../lib/comms.php';
 require __DIR__ . '/../lib/amend.php';
 require __DIR__ . '/../lib/handoff.php';
 require __DIR__ . '/../lib/staff.php';
-require __DIR__ . '/../lib/logins.php';      // v109.25: logins for many leaders at once, as a PDF
+require __DIR__ . '/../lib/logins.php';
+require __DIR__ . '/../lib/envoy_import.php';  // v109.29: state envoys from a register, signing in with their phone      // v109.25: logins for many leaders at once, as a PDF
 require __DIR__ . '/../lib/guide.php';
 require __DIR__ . '/../lib/ops.php';
 require __DIR__ . '/../lib/ai.php';

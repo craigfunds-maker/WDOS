@@ -76,7 +76,7 @@ function resolve(path) {
     case 'cases': return u.is_hq ? sh('cases', 'Confidential cases') : sh('help', 'Help and private reports');
     case 'coverage': return u.is_hq ? sh('coverage', 'Digital coverage') : sh('home', 'Home');
     case 'handoff': return u.is_hq ? sh('handoff', 'Handoff register') : sh('home', 'Home');
-    case 'hq': if (u.is_hq && seg[1] === 'birthdays') return sh('birthdays', 'Members with no date of birth'); if (u.is_hq && seg[1] === 'activity') return sh('leaderactivity', "Leaders' activity", { leader: seg[2] }); if (u.is_hq && seg[1] === 'logins') return sh('logins', 'Leader logins'); return u.is_hq ? sh('hq', 'HQ dashboard') : sh(u.is_leader ? 'leader' : 'home', u.is_leader ? 'Leadership dashboard' : 'Home');
+    case 'hq': if (u.is_hq && seg[1] === 'birthdays') return sh('birthdays', 'Members with no date of birth'); if (u.is_hq && seg[1] === 'activity') return sh('leaderactivity', "Leaders' activity", { leader: seg[2] }); if (u.is_hq && seg[1] === 'logins') return sh('logins', seg[2] === 'envoys' ? 'Envoy sign-in details' : 'Leader logins', { only: seg[2] === 'envoys' ? 'envoy' : '' }); return u.is_hq ? sh('hq', 'HQ dashboard') : sh(u.is_leader ? 'leader' : 'home', u.is_leader ? 'Leadership dashboard' : 'Home');
     case 'team': return (u.is_hq || u.is_leader) ? sh('team', seg[1] ? 'Leader' : 'My leaders', { id: seg[1] }) : sh('home', 'Home');
     case 'calls': return (u.is_hq || u.is_leader) ? sh('calls', 'Voice calls', { id: seg[1] }) : sh('home', 'Home');
     case 'tasks': return sh('tasks', 'Tasks', { tab: seg[1] });
