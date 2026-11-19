@@ -99,6 +99,7 @@ export async function render(root, params) {
   F.lgaSel = h('select', { class: 'input', id: 'f-lga' }); F.lga = h('input', { class: 'input', id: 'f-lga', maxlength: 120 });
   let elIdx = null, elCC = '';
   let countries = [], stateMode = 'text', lgaMode = 'text', geoStates = null, geoLgas = null, worldStates = {}, elList = null, stateCodes = {}, admIdx = null, admData = null;
+  const geoV = () => encodeURIComponent(app.config.build || '');   // the lists change with each release: never an old cached index
   const getJson = (url) => fetch(url).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
   const stateSlot = h('div'), lgaSlot = h('div');
   const paintState = () => stateSlot.replaceChildren(h('label', { class: 'field', for: 'f-state' }, h('span', { text: 'State or region' }), stateMode === 'text' ? F.stateText : F.state));
@@ -141,15 +142,15 @@ export async function render(root, params) {
     }
     // other countries with an official electoral register (Kenya: IEBC counties, constituencies, wards, polling stations)
     if (c && lgaMode === 'text' && stateMode !== 'text' && stateName()) {
-      elList = elList || await getJson('/assets/geo/el/index.json') || [];
-      if (elList.includes(c.code)) { if (elCC !== c.code) { elIdx = await getJson(`/assets/geo/el/${c.code}/index.json`); elCC = c.code; } const list = elIdx && elIdx[elKey()];
+      elList = elList || await getJson('/assets/geo/el/index.json?v=' + geoV()) || [];
+      if (elList.includes(c.code)) { if (elCC !== c.code) { elIdx = await getJson(`/assets/geo/el/${c.code}/index.json?v=${geoV()}`); elCC = c.code; } const list = elIdx && elIdx[elKey()];
         if (list && list.length) { F.lgaSel.replaceChildren(h('option', { value: '', text: diaspora() ? t('Choose your city or district') : t('Choose your constituency or district') }), ...list.map((n) => opt(n, n)), h('option', { value: NOT_LISTED, text: diaspora() ? t('My city is not listed') : t('My LGA or district is not listed') })); lgaMode = 'select'; } }
     }
     /* v109.16: every other country, Africa and the diaspora: LGAs or districts, and their wards, from geoBoundaries
        (each government's published administrative areas). In the diaspora her city list is offered with them. */
     admData = null;
     if (c && lgaMode === 'text' && stateMode !== 'text' && stateName()) {
-      admIdx = admIdx || await getJson('/assets/geo/adm/index.json');
+      admIdx = admIdx || await getJson('/assets/geo/adm/index.json?v=' + geoV());
       if (admIdx && c.code in admIdx) {
         let d = stateCode() ? await getJson(`/assets/geo/adm/${c.code}/${stateCode()}.json`) : {};
         if (!d || !Object.keys(d).length) d = await getJson(`/assets/geo/adm/${c.code}/n-${normName(stateName())}.json`);   // a region of WDOS's structure, by its official name
@@ -181,8 +182,8 @@ export async function render(root, params) {
       if (list.length) { list.forEach(([n, code, cities]) => { worldStates[n] = cities ? code : ''; stateCodes[n] = code; }); F.state.replaceChildren(h('option', { value: '', text: 'Choose your state or region' }), ...list.map(([n]) => opt(n, n)), h('option', { value: NOT_LISTED, text: 'My state or region is not listed' })); stateMode = 'list'; }
     }
     if (c && stateMode !== 'select') {
-      elList = elList || await getJson('/assets/geo/el/index.json') || [];
-      if (Array.isArray(elList) && elList.includes(c.code)) { elIdx = await getJson(`/assets/geo/el/${c.code}/index.json`); elCC = c.code; const ks = Object.keys(elIdx || {});
+      elList = elList || await getJson('/assets/geo/el/index.json?v=' + geoV()) || [];
+      if (Array.isArray(elList) && elList.includes(c.code)) { elIdx = await getJson(`/assets/geo/el/${c.code}/index.json?v=${geoV()}`); elCC = c.code; const ks = Object.keys(elIdx || {});
         // the commission's own regions; where its list covers only part of the country (US), the full list is kept and its states added
         const cur = stateMode === 'list' ? [...F.state.options].map((o) => o.value).filter((v) => v && v !== NOT_LISTED) : [];
         const names = ks.length >= 0.8 * cur.length ? ks : [...cur, ...ks.filter((k) => !cur.some((n) => normName(n) === normName(k)))].sort((a, b) => a.localeCompare(b));
