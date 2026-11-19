@@ -1,0 +1,97 @@
+WODDI INSTITUTE, PHP VERSION
+Install guide for cPanel on QServers. Everything is done in the browser.
+
+WHAT IS IN THIS ZIP
+The whole platform: learner app, Operations (admin) area, installer and the tool
+that copies your data out of Supabase. No Composer, no command line.
+
+BEFORE YOU START, HAVE THESE READY
+1. Your cPanel login at QServers.
+2. Your Supabase service_role key.
+   Supabase, Project Settings, API Keys, service_role, Reveal, Copy.
+3. Your two push keys from Netlify, so phones that already allowed notifications keep working.
+   Netlify, your site, Site configuration, Environment variables:
+   VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY.
+   If you skip this the installer makes new keys, and every learner taps
+   "Turn on notifications" once more.
+
+PART A. PUT IT ON A TEST ADDRESS FIRST (the live site stays untouched)
+
+Step 1. Make the test address
+  cPanel, Domains, Create A New Domain.
+  Type: new.woddiinstitute.com  (untick "Share document root"). Submit.
+  Note the folder it shows, for example: new.woddiinstitute.com
+
+Step 2. Make the database
+  cPanel, MySQL Databases.
+  a) Create New Database. Name it: institute
+  b) Add New User. Username: institute. Click Password Generator and SAVE the password.
+  c) Add User To Database. Pick the user and the database, tick ALL PRIVILEGES, Make Changes.
+  cPanel adds your account name in front, for example woddi_institute. Use the full names later.
+
+Step 3. Set PHP
+  cPanel, Select PHP Version (or MultiPHP Manager). Choose 8.1 or newer for the new address.
+  Make sure these are ticked: pdo_mysql, curl, mbstring, openssl.
+
+Step 4. Upload
+  cPanel, File Manager. Open the folder from Step 1.
+  Click Settings (top right), tick "Show Hidden Files", Save.
+  Click Upload, choose this zip, wait for 100 percent, go back.
+  Right click the zip, Extract, Extract Files. Then delete the zip.
+  You should now see index.php, a folder named assets, and a file named .htaccess.
+
+Step 5. Run the installer
+  Open https://new.woddiinstitute.com in your browser. The installer opens by itself.
+  Every line in "Server check" should be green.
+  Fill in the database name, user and password from Step 2. Leave host as localhost.
+  Admin email: use the email of your own existing WODDI Institute account.
+  Paste the two push keys. Click Install.
+
+Step 6. Bring the data across
+  The next screen is the copy tool. Paste the service_role key and click "Start the copy".
+  Leave the page open until it says Finished. It shows Supabase rows and rows here
+  for every table. Anything that needs a look is marked in red.
+  You can run it again at any time. It refreshes the copy.
+
+Step 7. Sign in
+  Open https://new.woddiinstitute.com/login and sign in with your normal email and password.
+  Your account is now super admin. Operations is in the menu.
+
+Step 8. Switch on the scheduled job (reminders and queued emails)
+  Operations, Settings, "Scheduled job". Copy the command.
+  cPanel, Cron Jobs. Common Settings: Once Per 15 Minutes. Paste the command. Add New Cron Job.
+
+Step 9. Test push
+  Operations, Push notifications. Tap "Turn on notifications here", then "Send me a test push".
+
+Step 10. Keys you may want to add (Operations, Settings, Keys and email)
+  Gemini API key: switches on the full WADI AI mentor. Without it WADI gives a short fallback answer.
+  Brevo API key: sends email through Brevo. Without it the server's own mail is used.
+  Google sign-in: the client ID comes across from Supabase by itself. In Google Cloud Console,
+  open that OAuth client and add https://new.woddiinstitute.com (and later the main address)
+  under "Authorised JavaScript origins", or the Google button will be refused.
+
+PART B. SWITCH-OVER DAY (when you are happy with the test address)
+
+1. Run the copy tool one last time with "Empty each table here before copying" ticked,
+   so nothing learners did since the first copy is lost.
+   Address: https://new.woddiinstitute.com/install/  (sign in as admin first).
+2. Point woddiinstitute.com at this hosting.
+   In cPanel, Domains, add woddiinstitute.com with the SAME document root folder as the test address.
+   Then, where the domain's DNS is managed, change the A record of woddiinstitute.com (and www)
+   from Netlify to your QServers server IP (shown in cPanel, right-hand side, "Shared IP Address").
+3. File Manager, open config.php, Edit. Change the base_url line to
+   'base_url' => 'https://woddiinstitute.com',   Save.
+4. cPanel, SSL/TLS Status, Run AutoSSL so the main address gets its certificate.
+5. Update the cron command (Operations, Settings shows the new one).
+The Play Store app opens woddiinstitute.com, so it shows the new platform as soon as step 2 is live.
+The file it needs (.well-known/assetlinks.json) is already in this package.
+Old addresses such as app.html, ops.html and verify.html?code=... forward to the new pages.
+
+IF SOMETHING GOES WRONG
+A white page or "Something went wrong": open the file storage/error.log in File Manager.
+It holds the exact reason. Send that line to whoever is helping you.
+To run the installer again from scratch: delete config.php in File Manager and open the site.
+
+KEEP SAFE
+config.php holds your database password and push keys. Never share it or put it in a public place.

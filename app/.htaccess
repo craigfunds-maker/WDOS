@@ -1,0 +1,26 @@
+# WODDI Institute (PHP). Sends every request that is not a real file to index.php.
+Options -Indexes
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteRule ^(config\.php|composer\.(json|lock)|lib/|pages/|sql/|storage/|cron/|content/) - [F,L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]
+</IfModule>
+<IfModule mod_headers.c>
+<FilesMatch "\.(css|js|png|jpg|jpeg|webp|svg|woff2)$">
+Header set Cache-Control "public, max-age=2592000"
+</FilesMatch>
+<Files "sw.js">
+Header set Cache-Control "no-cache"
+</Files>
+</IfModule>
+
+<Files "config.php">
+Require all denied
+</Files>
+# To force https, remove the # from the next three lines once the SSL certificate is active in cPanel.
+#<IfModule mod_rewrite.c>
+#RewriteCond %{HTTPS} off
+#RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+#</IfModule>
