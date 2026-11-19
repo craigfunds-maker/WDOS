@@ -52,11 +52,11 @@ function page(string $title, string $html, array $o = []): never {
   <nav class="side" aria-label="Main menu">
     <a class="brand" href="<?= url('') ?>"><img src="<?= asset('logo.jpg') ?>" alt="WODDI logo"><span><b>WODDI Institute</b><small>Learning platform</small></span></a>
     <div class="netbox"><img src="<?= $netLogo ?>" alt=""><span><small>Your network</small><b><?= e(net_name()) ?></b></span></div>
+    <?php if (is_staff()): ?><a class="sb" style="background:#D4006A;color:#fff" href="<?= url('ops') ?>"><?= ic('fa-gauge-high') ?>Operations (admin)</a><?php endif; ?>
     <?php foreach (NAV_MAIN as $n): ?><a class="sb <?= $active === $n[0] ? 'on' : '' ?>" href="<?= url($n[0]) ?>"><?= ic($n[2]) ?><?= e($n[1]) ?></a><?php endforeach; ?>
     <div class="lab">More</div>
     <?php foreach (NAV_MORE as $n): ?><a class="sb <?= $active === strtok($n[0], '?') && !str_contains($n[0], '?') ? 'on' : '' ?>" href="<?= url($n[0]) ?>"><?= ic($n[2]) ?><?= e($n[1]) ?></a><?php endforeach; ?>
     <a class="sb <?= $active === 'messages' ? 'on' : '' ?>" href="<?= url('messages') ?>"><?= ic('fa-envelope') ?>Messages</a>
-    <?php if (is_staff()): ?><a class="sb" href="<?= url('ops') ?>"><?= ic('fa-gauge-high') ?>Operations</a><?php endif; ?>
     <span class="grow"></span>
     <a class="sb" href="<?= url('logout') ?>"><?= ic('fa-right-from-bracket') ?>Sign out</a>
   </nav>
@@ -67,6 +67,7 @@ function page(string $title, string $html, array $o = []): never {
       <a class="pill netpill" href="<?= url('settings') ?>"><img src="<?= $netLogo ?>" alt=""><?= e(net_code()) ?></a>
       <button class="ib" type="button" data-theme aria-label="Toggle dark mode"><?= ic($dark ? 'fa-sun' : 'fa-moon') ?></button>
       <a class="ib" href="<?= url('messages') ?>" aria-label="Messages and notifications"><?= ic('fa-bell') ?><?php if ($unread): ?><span class="dot"></span><?php endif; ?></a>
+      <?php if (is_staff()): ?><a class="b s" href="<?= url('ops') ?>"><?= ic('fa-gauge-high') ?> Admin</a><?php endif; ?>
       <a href="<?= url('me') ?>" aria-label="My account"><?= avatar($me) ?></a>
     </header>
     <main class="cont">

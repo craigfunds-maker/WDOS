@@ -7,7 +7,9 @@ function sign_in_as(string $uid): never {
     try { upd('auth_accounts', ['last_sign_in' => now()], 'uid = ?', [$uid]); } catch (Throwable $e) {}
     $to = $_SESSION['after_login'] ?? ''; unset($_SESSION['after_login']);
     if ($to && str_starts_with($to, '/')) { header('Location: ' . $to); exit; }
-    redirect('');
+    /* Staff land on Operations; learners land on the app home. */
+    $role = (string)val('SELECT role FROM users WHERE uid = ?', [$uid]);
+    redirect(in_array($role, ['admin', 'super_admin', 'moderator', 'instructor', 'tutor'], true) ? 'ops' : '');
 }
 function find_account(string $id): ?array {
     $id = trim($id);
