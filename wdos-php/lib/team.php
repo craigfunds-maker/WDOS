@@ -35,7 +35,7 @@ route('GET', '/team', function () {
   foreach ($list as $r) { if (isset($seen[$r['id']])) continue; $seen[$r['id']] = 1;
     $out[] = ['id' => (int) $r['id'], 'first_name' => $r['first_name'], 'last_name' => $r['last_name'], 'has_photo' => (int) $r['has_photo'], 'last_seen_at' => $r['last_seen_at'],
       'title' => $r['title'], 'area' => $r['area_label'] !== '' ? $r['area_label'] : $r['unit'], 'status' => $r['seat_status'], 'has_phone' => (bool) $r['has_phone']]; }
-  return ['people' => $out, 'can_call' => vc_can_call($u), 'max_group' => GC_MAX];
+  return ['people' => $out, 'can_call' => vc_can_call($u), 'max_group' => sfu_on() ? gc_big_max() : GC_MAX, 'relay' => sfu_on()];
 });
 
 /** One leader under me: who she is, when she was last on WDOS, her figures, her tasks and reports, and what I can do. */

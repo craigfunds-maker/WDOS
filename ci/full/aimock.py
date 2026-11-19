@@ -4,8 +4,23 @@ from http.server import BaseHTTPRequestHandler,HTTPServer
 LOG='/tmp/aimock.log'
 class H(BaseHTTPRequestHandler):
     def log_message(self,*a): pass
+    def sfu(self,b):
+        # a stand-in for Cloudflare Realtime SFU (v109.27 tests): sessions, publish, pull, renegotiate, close
+        import uuid
+        if self.headers.get('Authorization')!='Bearer test-sfu-token': return 401,{'errorCode':'unauthorized'}
+        p=self.path
+        if p.endswith('/sessions/new'): return 201,{'sessionId':uuid.uuid4().hex}
+        if p.endswith('/tracks/new'):
+            if b.get('sessionDescription'): return 200,{'sessionDescription':{'type':'answer','sdp':'v=0 mock-answer'},'tracks':[{'mid':t.get('mid'),'trackName':t.get('trackName')} for t in b.get('tracks',[])]}
+            return 200,{'requiresImmediateRenegotiation':True,'sessionDescription':{'type':'offer','sdp':'v=0 mock-offer'},'tracks':[{'mid':str(i+1),'trackName':t.get('trackName'),'sessionId':t.get('sessionId')} for i,t in enumerate(b.get('tracks',[]))]}
+        if p.endswith('/renegotiate'): return 200,{}
+        if p.endswith('/tracks/close'): return 200,{'tracks':[{'mid':t.get('mid')} for t in b.get('tracks',[])]}
+        return 404,{'errorCode':'not_found'}
+    def do_PUT(self): self.do_POST()
     def do_POST(self):
-        b=json.loads(self.rfile.read(int(self.headers.get('Content-Length',0))) or b'{}'); open(LOG,'a').write(json.dumps({'path':self.path,'body':b})+'\n')
+        b=json.loads(self.rfile.read(int(self.headers.get('Content-Length',0))) or b'{}'); open(LOG,'a').write(json.dumps({'path':self.path,'method':self.command,'body':b})+'\n')
+        if '/v1/apps/' in self.path:
+            c,r=self.sfu(b); d=json.dumps(r).encode(); self.send_response(c); self.send_header('Content-Type','application/json'); self.end_headers(); self.wfile.write(d); return
         if open('/tmp/aimock.mode').read().strip()=='down' and 'smtp' not in self.path: self.send_response(503); self.end_headers(); self.wfile.write(b'{"error":{"message":"busy"}}'); return
         if 'smtp' in self.path:
             d=b'{"messageId":"mock"}'; self.send_response(201); self.send_header('Content-Type','application/json'); self.end_headers(); self.wfile.write(d); return

@@ -205,19 +205,124 @@ const ringback = () => beeper([[0, 1.0, 425]]);
 
 /* ---- group calls (v109.24): up to 8 people, each pair connected directly ---- */
 /** Start a group call with the people chosen ([{id, name}]). */
-export async function groupCall(people) {
-  if (document.querySelector('.vcall') || !people.length) return;
+export async function groupCall(people, opts = {}) {
+  if (document.querySelector('.vcall') || (!people.length && !opts.all)) return;
   let mic; try { mic = await getMic(); } catch { toast(t('WDOS cannot use your microphone'), t('Allow the microphone for woddicrm.org in your browser settings, then try again.'), 'error'); return; }
-  let r; try { r = await api('/gcalls', { to: people.map((p) => p.id) }); } catch (e) { mic.getTracks().forEach((x) => x.stop()); toast(e.message, '', 'error'); return; }
-  groupScreen(r, mic, true);
+  let r; try { r = await api('/gcalls', { to: people.map((p) => p.id), all: !!opts.all }); } catch (e) { mic.getTracks().forEach((x) => x.stop()); toast(e.message, '', 'error'); return; }
+  if (r.call.mode === 'sfu') relayScreen(r, mic, true); else groupScreen(r, mic, true);
 }
-/** Join a group call I was rung into (or rejoin one I left). */
+/** Join a group call I was rung into (or rejoin one I left). On a relay call she joins listening, so no microphone is asked for yet. */
 export async function joinGroup(id) {
   if (document.querySelector('.vcall')) return;
-  let mic; try { mic = await getMic(); } catch { toast(t('WDOS cannot use your microphone'), t('Allow the microphone for woddicrm.org in your browser settings, then try again.'), 'error'); api('/gcalls/' + id + '/decline', {}).catch(() => {}); return; }
-  let r; try { r = await api('/gcalls/' + id + '/join', {}); } catch (e) { mic.getTracks().forEach((x) => x.stop()); toast(e.message, '', 'error'); return; }
-  groupScreen(r, mic, false);
+  let info = null; try { info = (await api('/gcalls/' + id)).call; } catch { /* the join below says why */ }
+  let mic = null;
+  if (!info || info.mode !== 'sfu') { try { mic = await getMic(); } catch { toast(t('WDOS cannot use your microphone'), t('Allow the microphone for woddicrm.org in your browser settings, then try again.'), 'error'); api('/gcalls/' + id + '/decline', {}).catch(() => {}); return; } }
+  let r; try { r = await api('/gcalls/' + id + '/join', {}); } catch (e) { mic && mic.getTracks().forEach((x) => x.stop()); toast(e.message, '', 'error'); return; }
+  if (r.call.mode === 'sfu') relayScreen(r, mic, false); else groupScreen(r, mic, false);
 }
+
+/* ---- calls through the relay (v109.27): many people; the caller and up to 6 others speak, everyone else listens ---- */
+function relayScreen(r, mic, host) {
+  const id = r.call.id, me = app.user.id, ice = r.ice;
+  let call = r.call, ended = false, poll = null, pc = null, sender = null, tone = host ? ringback() : null, started = 0, tick = null;
+  const heard = new Map(), midUser = new Map(), sounds = h('div', { hidden: true });
+  let queue = Promise.resolve(); const serial = (fn) => (queue = queue.then(fn).catch((e) => console.warn('[relay]', e)));
+  const state = h('p', { class: 'vcall__state', 'aria-live': 'polite' }), clock = h('p', { class: 'vcall__clock' }), mine = h('p', { class: 'muted', style: 'margin:0' });
+  const tiles = h('div', { class: 'vgroup' }), hands = h('div', { class: 'vgroup__pick' }), everyone = h('details', { class: 'vgroup__pick' });
+  const speakBtn = h('button', { class: 'vcall__btn', type: 'button', onclick: () => toggleSpeak() }, icon('mic', 22), h('span', { text: t('Speak') }));
+  const endBtn = h('button', { class: 'vcall__btn vcall__end', type: 'button', onclick: () => hang(true) }, icon('phone', 24), h('span', { text: t('Leave') }));
+  const wrap = h('div', { class: 'vcall', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('Group call') },
+    h('div', { class: 'vcall__who', style: 'overflow:auto;max-height:calc(100vh - 140px)' }, h('div', { class: 'vcall__ico' }, icon('users', 34)), h('b', { text: host ? t('Group call') : tf('Group call from {1}', call.host) }), state, clock, mine, tiles, hands, everyone),
+    h('div', { class: 'vcall__btns' }, speakBtn, endBtn), sounds);
+  document.body.append(wrap); document.body.classList.add('in-call');
+  const meP = () => call.people.find((p) => p.me) || {};
+  function paint() {
+    const on = call.people.filter((p) => p.status === 'joined'), speakers = on.filter((p) => p.speaking), ringing = call.people.filter((p) => p.status === 'ringing').length;
+    state.textContent = [tf('{1} speaking', speakers.length), tf('{1} listening', on.length - speakers.length), ringing ? tf('{1} ringing', ringing) : ''].filter(Boolean).join(' · ');
+    const m = meP(); mine.textContent = m.speaking ? t('You are speaking. Everyone on the call hears you.') : m.hand ? t('Your hand is up. The caller can give you the floor.') : t('You are listening. Tap Speak to talk.');
+    speakBtn.lastChild.textContent = t(m.speaking ? 'Stop speaking' : m.hand ? 'Lower hand' : 'Speak'); speakBtn.setAttribute('aria-pressed', String(!!m.speaking));
+    tiles.replaceChildren(...speakers.map((p) => { const x = heard.get(p.id), live = p.me ? !!p.live : !!(x && x.audio);
+      return h('div', { class: 'vgroup__p' + (live ? ' is-on' : '') }, avatar(p, 44), h('b', { text: p.me ? t('You') : p.name, style: 'max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' }),
+        h('small', { text: p.me ? t('Speaking') : live ? t('Speaking') : t('Connecting…') }),
+        host && !p.me ? h('button', { class: 'btn btn--quiet btn--s', type: 'button', onclick: () => floor(p.id, false) }, t('Mute')) : null); }));
+    const up = on.filter((p) => p.hand && !p.speaking);
+    hands.replaceChildren(...(up.length ? [h('b', { text: tf('Hands up: {1}', up.length) }), h('div', { class: 'vgroup__list' }, up.map((p) => h('div', { class: 'pick' }, avatar(p, 30), h('span', {}, h('b', { text: p.name }), h('small', { text: p.title })),
+      host ? h('button', { class: 'btn btn--s', type: 'button', onclick: () => floor(p.id, true) }, t('Let her speak')) : null)))] : []));
+    everyone.replaceChildren(h('summary', { text: tf('Everyone on the call ({1})', call.people.length) }), h('div', { class: 'vgroup__list' }, call.people.map((p) => h('div', { class: 'pick' }, avatar(p, 26),
+      h('span', {}, h('b', { text: p.me ? t('You') : p.name }), h('small', { text: [p.title, t(p.status === 'joined' ? (p.speaking ? 'Speaking' : 'Listening') : (GST[p.status] || p.status))].filter(Boolean).join(' · ') }))))));
+    if (!started && on.length > 1) { tone && tone.stop(); tone = null; started = Date.now(); tick = setInterval(() => { const s = Math.floor((Date.now() - started) / 1000); clock.textContent = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); }, 1000); }
+  }
+  async function connect() {
+    pc = new RTCPeerConnection({ iceServers: ice, bundlePolicy: 'max-bundle' });
+    pc.ontrack = (e) => { const uid = midUser.get(e.transceiver.mid); const a = h('audio', { autoplay: true, playsinline: true }); a.srcObject = new MediaStream([e.track]); sounds.append(a); a.play().catch(() => {});
+      const x = uid && heard.get(uid); if (x) { x.audio && x.audio.remove(); x.audio = a; } paint(); };
+    pc.onconnectionstatechange = () => { if (pc.connectionState === 'failed') say(t('The call could not connect. The network may be blocking it. Try again, or send a message.')); };
+    await api('/gcalls/' + id + '/relay/session', {});
+  }
+  const say = (x) => { state.textContent = x; };
+  let voiceFails = 0;
+  async function sendVoice(on) {
+    if (!on) { if (sender && sender.track) sender.track.enabled = false; return; }
+    if (sender && sender.track) { sender.track.enabled = true; return; }
+    if (voiceFails >= 2) return;                       // stop trying by itself; tapping Speak again resets this
+    if (!mic) mic = await getMic();
+    const tr = mic.getAudioTracks()[0]; const tx = pc.addTransceiver(tr, { direction: 'sendonly' });
+    try {
+      await pc.setLocalDescription(await pc.createOffer()); await gathered(pc);
+      const x = await api('/gcalls/' + id + '/relay/publish', { sdp: pc.localDescription.sdp, mid: tx.mid });
+      if (x.answer) await pc.setRemoteDescription(x.answer);
+      sender = tx.sender; voiceFails = 0;
+    } catch (e) {
+      voiceFails++; try { pc.removeTrack(tx.sender); tx.stop && tx.stop(); } catch { /* already gone */ }
+      if (voiceFails >= 2) toast(t('Your voice did not reach the call'), t('Check your connection, then tap Speak again.'), 'error');
+      throw e;
+    }
+  }
+  async function sync() {
+    if (ended || !pc) return;
+    const m = meP(); await sendVoice(!!m.speaking);
+    const want = new Set(call.people.filter((p) => !p.me && p.status === 'joined' && p.live).map((p) => p.id));
+    const gone = [...heard.keys()].filter((u) => !want.has(u));
+    if (gone.length) { const mids = gone.map((u) => heard.get(u).mid); gone.forEach((u) => { const x = heard.get(u); x.audio && x.audio.remove(); heard.delete(u); });
+      await api('/gcalls/' + id + '/relay/close', { mids }).catch(() => {}); }
+    const add = [...want].filter((u) => !heard.has(u)).slice(0, 7);
+    if (add.length) {
+      const x = await api('/gcalls/' + id + '/relay/pull', { ids: add });
+      x.tracks.forEach((tk) => { midUser.set(tk.mid, tk.user_id); heard.set(tk.user_id, { mid: tk.mid, audio: null }); });
+      if (x.offer) { await pc.setRemoteDescription(x.offer); await pc.setLocalDescription(await pc.createAnswer()); await gathered(pc);
+        await api('/gcalls/' + id + '/relay/answer', { sdp: pc.localDescription.sdp }); }
+    }
+    paint();
+  }
+  async function toggleSpeak() {
+    const m = meP(); speakBtn.disabled = true;
+    try {
+      voiceFails = 0;
+      if (m.speaking || m.hand) { const x = await api('/gcalls/' + id + '/quiet', {}); call = x.call; }
+      else { if (!mic) mic = await getMic(); const x = await api('/gcalls/' + id + '/speak', {}); call = x.call; if (!x.speaking) toast(t('Your hand is up'), t('Seven people are speaking. The caller can give you the floor.'), 'info'); }
+      serial(sync);
+    } catch (e) { toast(e.message, '', 'error'); }
+    speakBtn.disabled = false; paint();
+  }
+  async function floor(uid, on) { try { const x = await api('/gcalls/' + id + '/floor', { user_id: uid, on }); call = x.call; serial(sync); } catch (e) { toast(e.message, '', 'error'); } }
+  function hang(mineToo, why) {
+    if (ended) return; ended = true; clearTimeout(poll); clearInterval(tick); tone && tone.stop();
+    if (mineToo) api('/gcalls/' + id + '/leave', {}).catch(() => {});
+    try { pc && pc.close(); } catch { /* closed */ } mic && mic.getTracks().forEach((x) => x.stop());
+    say(why || t('You left the call')); endBtn.disabled = true; speakBtn.disabled = true;
+    setTimeout(() => { wrap.remove(); document.body.classList.remove('in-call'); }, why ? 3000 : 1000);
+  }
+  const step = async () => {
+    if (ended) return;
+    try { call = (await api('/gcalls/' + id)).call; if (call.status !== 'live') return hang(false, t('The call has ended.'));
+      if (host && tone && !call.hq_ringing && !call.people.some((p) => !p.me && ['ringing', 'joined'].includes(p.status))) return hang(true, t('Nobody answered. They will see a missed group call.'));
+      serial(sync); } catch { /* weak signal: ask again */ }
+    poll = setTimeout(step, 2500);
+  };
+  paint();
+  serial(async () => { await connect(); await sync(); }).then(step);
+}
+
 const GST = { ringing: 'Ringing', joined: 'On the call', left: 'Left', declined: 'Declined', missed: 'Did not answer' };
 function groupScreen(r, mic, host) {
   const id = r.call.id, me = app.user.id, ice = r.ice; const pcs = new Map(); const sounds = h('div', { hidden: true });

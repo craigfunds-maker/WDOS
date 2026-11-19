@@ -7,8 +7,27 @@ declare(strict_types=1);
  * A person rung who does not join in 45 seconds gets a missed group call; she can still join while the call is live.
  * A leader can also bring in WODDI HQ ("hq" in the list): it rings everyone at HQ, and the first to answer takes the HQ place. */
 
-const GC_MAX = 8;          // people on one call, the caller included
+const GC_MAX = 8;          // people on a phone-to-phone call, the caller included
 const GC_RING = 45;
+const GC_SPEAK = 7;        // on a relay call: the caller and up to 6 others speak at a time; everyone else listens
+function gc_big_max(): int { return max(GC_MAX, min(500, (int) (cfg('BIG_CALL_MAX', '150') ?: 150))); }
+/** Cloudflare Realtime SFU, for calls of more than 8 people. Set in config.local.php by HQ: CF_SFU_APP_ID and CF_SFU_APP_TOKEN. */
+function sfu_on(): bool { return trim((string) cfg('CF_SFU_APP_ID', '')) !== '' && trim((string) cfg('CF_SFU_APP_TOKEN', '')) !== ''; }
+function sfu_api(string $method, string $path, ?array $body = null): array {
+  $app = trim((string) cfg('CF_SFU_APP_ID', '')); if (!preg_match('/^[A-Za-z0-9]+$/', $app)) fail(503, 'Large group calls are not set up yet. WODDI HQ can set them up.', 'sfu_off');
+  $ch = curl_init(rtrim((string) cfg('CF_SFU_API', 'https://rtc.live.cloudflare.com/v1'), '/') . '/apps/' . $app . $path);
+  curl_setopt_array($ch, [CURLOPT_CUSTOMREQUEST => $method, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 10,
+    CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . trim((string) cfg('CF_SFU_APP_TOKEN', '')), 'Content-Type: application/json']]);
+  if ($body !== null) curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body, JSON_UNESCAPED_SLASHES));
+  $r = curl_exec($ch); $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+  $d = $r ? json_decode((string) $r, true) : null;
+  if ($code < 200 || $code >= 300 || !is_array($d) || !empty($d['errorCode'])) {
+    error_log('[wdos calls] relay ' . $method . ' ' . preg_replace('#/sessions/[^/]+#', '/sessions/*', $path) . ': HTTP ' . $code . ' ' . (is_array($d) ? ($d['errorCode'] ?? '') . ' ' . ($d['errorDescription'] ?? '') : ''));
+    fail(502, 'The call relay did not answer. Try again in a moment.', 'sfu');
+  }
+  return $d;
+}
+function gc_cap(array $g): int { return ($g['mode'] ?? 'mesh') === 'sfu' ? gc_big_max() : GC_MAX; }
 
 function gc_name(int $id): string { return function_exists('vc_name') ? vc_name($id) : ''; }
 function gc_get(int $id): array { $g = row('SELECT * FROM voice_groups WHERE id=?', [$id]); if (!$g) fail(404, 'That call was not found.', 'not_found'); return $g; }
@@ -28,14 +47,16 @@ function gc_hq_on(int $gid): bool {
 
 function gc_shape(array $u, array $g): array {
   $people = [];
-  foreach (rows('SELECT p.user_id, p.status, p.joined_at, u.first_name, u.last_name, u.has_photo FROM voice_group_people p JOIN users u ON u.id=p.user_id WHERE p.group_id=? ORDER BY p.invited_at, p.user_id', [(int) $g['id']]) as $r) {
+  $big = ($g['mode'] ?? 'mesh') === 'sfu';
+  foreach (rows('SELECT p.*, u.first_name, u.last_name, u.has_photo FROM voice_group_people p JOIN users u ON u.id=p.user_id WHERE p.group_id=? ORDER BY p.invited_at, p.user_id', [(int) $g['id']]) as $r) {
     $seat = current_seat((int) $r['user_id']);
     $people[] = ['id' => (int) $r['user_id'], 'name' => trim($r['first_name'] . ' ' . $r['last_name']), 'first_name' => $r['first_name'], 'last_name' => $r['last_name'], 'has_photo' => (int) $r['has_photo'],
-      'title' => $seat ? seat_title($seat) : 'WODDI HQ', 'status' => $r['status'], 'me' => (int) $r['user_id'] === (int) $u['id']];
+      'title' => $seat ? seat_title($seat) : 'WODDI HQ', 'status' => $r['status'], 'me' => (int) $r['user_id'] === (int) $u['id']]
+      + ($big ? ['speaking' => (int) ($r['speaking'] ?? 0) === 1, 'live' => (int) ($r['speaking'] ?? 0) === 1 && (int) ($r['sfu_published'] ?? 0) === 1, 'hand' => !empty($r['hand_at']) ? $r['hand_at'] : null] : []);
   }
   $mine = gc_me($u, $g);
   return ['id' => (int) $g['id'], 'group' => true, 'title' => $g['title'], 'host_id' => (int) $g['host_id'], 'host' => gc_name((int) $g['host_id']), 'status' => $g['status'],
-    'my_status' => $mine['status'] ?? (is_hq($u) && !empty($g['hq_ring']) ? 'ringing' : null), 'created_at' => $g['created_at'], 'people' => $people, 'max' => GC_MAX,
+    'my_status' => $mine['status'] ?? (is_hq($u) && !empty($g['hq_ring']) ? 'ringing' : null), 'created_at' => $g['created_at'], 'people' => $people, 'max' => gc_cap($g), 'mode' => $g['mode'] ?? 'mesh', 'speak_max' => GC_SPEAK,
     'hq_ringing' => !empty($g['hq_ring']), 'hq_on' => gc_hq_on((int) $g['id'])];
 }
 
@@ -60,23 +81,29 @@ function gc_end(int $id): void {
   q('DELETE FROM voice_group_signals WHERE group_id=?', [$id]);
 }
 /** Ring people into a call. Each must be someone the inviter may ring; "hq" rings WODDI HQ. */
+function gc_check_reach(array $u, array $ids): void {
+  if (!$ids) return;
+  [$w, $p] = vc_reach_sql($u);
+  $ok = array_map('intval', array_column(rows("SELECT DISTINCT u.id FROM seats sc JOIN users u ON u.id=sc.user_id JOIN org_units o ON o.id=sc.org_unit_id WHERE $w AND u.id IN (" . implode(',', array_map('intval', $ids)) . ')', $p), 'id'));
+  if (array_diff(array_map('intval', $ids), $ok)) fail(403, 'You can ring leaders in your own country and network, and WODDI HQ.', 'to');
+}
 function gc_invite(array $u, int $gid, array $ids, bool $hq = false): int {
+  gc_check_reach($u, array_filter($ids, fn($x) => (int) $x !== (int) $u['id']));
   $n = 0; $from = trim($u['first_name'] . ' ' . $u['last_name']);
   $g = gc_get($gid);
   $have = (int) val("SELECT COUNT(*) FROM voice_group_people WHERE group_id=? AND status IN ('joined','ringing')", [$gid]) + (!empty($g['hq_ring']) ? 1 : 0);
   foreach ($ids as $to) {
     $to = (int) $to; if ($to === (int) $u['id']) continue;
-    if (!vc_people($u, '', $to)) fail(403, 'You can bring in leaders in your own country and network, and WODDI HQ.', 'to');
     $cur = row('SELECT status FROM voice_group_people WHERE group_id=? AND user_id=?', [$gid, $to]);
     if ($cur && in_array($cur['status'], ['joined', 'ringing'], true)) continue;
-    if ($have + 1 > GC_MAX) fail(422, 'A group call takes ' . GC_MAX . ' people at most.', 'full');
+    if ($have + 1 > gc_cap($g)) fail(422, 'This call takes ' . gc_cap($g) . ' people at most.', 'full');
     if ($cur) q("UPDATE voice_group_people SET status='ringing', invited_by=?, invited_at=?, left_at=NULL WHERE group_id=? AND user_id=?", [(int) $u['id'], now(), $gid, $to]);
     else q("INSERT INTO voice_group_people (group_id,user_id,status,invited_by,invited_at) VALUES (?,?,'ringing',?,?)", [$gid, $to, (int) $u['id'], now()]);
     notify($to, 'call', 'Group call from ' . $from, 'Tap to join the call.', '#/calls/g' . $gid);
     $have++; $n++;
   }
   if ($hq && !is_hq($u) && empty($g['hq_ring']) && !gc_hq_on($gid)) {
-    if ($have + 1 > GC_MAX) fail(422, 'A group call takes ' . GC_MAX . ' people at most.', 'full');
+    if ($have + 1 > gc_cap($g)) fail(422, 'This call takes ' . gc_cap($g) . ' people at most.', 'full');
     q('UPDATE voice_groups SET hq_ring=?, hq_by=? WHERE id=?', [now(), (int) $u['id'], $gid]);
     $seat = work_seat($u);
     notify_hq('call', 'Group call from ' . $from, ($seat ? seat_title($seat) . '. ' : '') . 'Tap to join the call.', '#/calls/g' . $gid);
@@ -95,15 +122,24 @@ function gc_to(): array {
 route('POST', '/gcalls', function () {
   $u = require_user(); if (!vc_can_call($u)) fail(403, 'Voice calls are for volunteer leaders and WODDI HQ.', 'forbidden');
   throttle('vcall:' . (int) $u['id'], 40, 3600); throttle_hit('vcall:' . (int) $u['id']);
-  [$ids, $hq] = gc_to(); $ids = array_values(array_filter($ids, fn($x) => $x !== (int) $u['id'])); if (is_hq($u)) $hq = false;
-  if (!$ids && !$hq) fail(422, 'Choose who to call.', 'to');
-  if (count($ids) + ($hq ? 1 : 0) > GC_MAX - 1) fail(422, 'A group call takes ' . GC_MAX . ' people at most, you included.', 'full');
-  foreach ($ids as $to) if (!vc_people($u, '', $to)) fail(403, 'You can ring leaders in your own country and network.', 'to');
+  [$ids, $hq] = gc_to(); if (is_hq($u)) $hq = false;
+  if (!empty(body()['all'])) {       // everyone under her seat (HQ: every serving leader), up to the limit
+    if (is_hq($u)) $all = array_map('intval', array_column(rows("SELECT DISTINCT s.user_id FROM seats s JOIN users u ON u.id=s.user_id WHERE s.ends_at IS NULL AND u.status='active' AND s.status NOT IN ('on_leave','suspended') LIMIT 2000"), 'user_id'));
+    else { if (!work_seat($u)) fail(403, 'Your team opens when WODDI HQ records your leadership seat.', 'no_seat'); [$w, $wp] = work_people_sql($u);
+      $all = array_map('intval', array_column(rows("SELECT DISTINCT u.id FROM users u JOIN seats sc ON sc.user_id=u.id AND sc.ends_at IS NULL AND sc.status NOT IN ('on_leave','suspended') WHERE u.status='active' AND $w LIMIT 2000", $wp), 'id')); }
+    $ids = array_values(array_unique(array_merge($ids, $all)));
+  }
+  $ids = array_values(array_filter($ids, fn($x) => $x !== (int) $u['id']));
+  if (!$ids && !$hq) fail(422, empty(body()['all']) ? 'Choose who to call.' : 'There are no leaders under your seat to call yet.', 'to');
+  $n = count($ids) + ($hq ? 1 : 0) + 1; $mode = $n > GC_MAX ? 'sfu' : 'mesh';
+  if ($mode === 'sfu' && !sfu_on()) fail(422, 'A call with more than ' . GC_MAX . ' people needs the call relay, which WODDI HQ has not set up yet. Call ' . (GC_MAX - 1) . ' people at most for now.', 'sfu_off');
+  if ($n > gc_big_max()) fail(422, 'A group call takes ' . gc_big_max() . ' people at most, you included.', 'full');
+  gc_check_reach($u, $ids);
   // one call at a time: anything this person was on is left
   foreach (rows("SELECT group_id FROM voice_group_people WHERE user_id=? AND status='joined'", [(int) $u['id']]) as $r) gc_leave($u, (int) $r['group_id']);
   q("UPDATE voice_calls SET status='cancelled', ended_at=? WHERE caller_id=? AND status='ringing'", [now(), (int) $u['id']]);
-  $gid = ins('INSERT INTO voice_groups (host_id,title,status,created_at) VALUES (?,?,?,?)', [(int) $u['id'], mb_substr(str_in('title', 120), 0, 120), 'live', now()]);
-  q("INSERT INTO voice_group_people (group_id,user_id,status,invited_by,invited_at,joined_at) VALUES (?,?,'joined',?,?,?)", [$gid, (int) $u['id'], (int) $u['id'], now(), now()]);
+  $gid = ins('INSERT INTO voice_groups (host_id,title,status,created_at,mode) VALUES (?,?,?,?,?)', [(int) $u['id'], mb_substr(str_in('title', 120), 0, 120), 'live', now(), $mode]);
+  q("INSERT INTO voice_group_people (group_id,user_id,status,invited_by,invited_at,joined_at,speaking) VALUES (?,?,'joined',?,?,?,?)", [$gid, (int) $u['id'], (int) $u['id'], now(), now(), $mode === 'sfu' ? 1 : 0]);
   gc_invite($u, $gid, $ids, $hq);
   log_activity((int) $u['id'], count($ids) === 1 ? $ids[0] : null, 'group_call', 'Group call: ' . implode(' and ', array_filter([!$ids ? '' : (count($ids) === 1 ? vc_name($ids[0]) : count($ids) . ' leaders'), $hq ? 'WODDI HQ' : ''])), 'gcall', $gid);
   after_response(fn() => push_drain(10));
@@ -120,9 +156,9 @@ route('POST', '/gcalls/(\d+)/join', function ($id) {
     $me['status'] = 'ringing'; $g = gc_get((int) $id);
   }
   if ($me['status'] !== 'joined') {
-    if ((int) val("SELECT COUNT(*) FROM voice_group_people WHERE group_id=? AND status='joined'", [(int) $id]) >= GC_MAX) fail(422, 'This call is full.', 'full');
+    if ((int) val("SELECT COUNT(*) FROM voice_group_people WHERE group_id=? AND status='joined'", [(int) $id]) >= gc_cap($g)) fail(422, 'This call is full.', 'full');
     log_activity((int) $u['id'], (int) $g['host_id'], 'group_call_join', 'Joined a group call by ' . gc_name((int) $g['host_id']), 'gcall', (int) $id);
-    q("UPDATE voice_group_people SET status='joined', joined_at=?, left_at=NULL WHERE group_id=? AND user_id=?", [now(), (int) $id, (int) $u['id']]);
+    q("UPDATE voice_group_people SET status='joined', joined_at=?, left_at=NULL, sfu_session=NULL, sfu_published=0, hand_at=NULL, speaking=? WHERE group_id=? AND user_id=?", [now(), (int) $g['host_id'] === (int) $u['id'] && ($g['mode'] ?? '') === 'sfu' ? 1 : 0, (int) $id, (int) $u['id']]);
     q('DELETE FROM voice_group_signals WHERE group_id=? AND (from_id=? OR to_id=?)', [(int) $id, (int) $u['id'], (int) $u['id']]);    // a fresh start after a rejoin
   }
   $peers = array_map('intval', array_column(rows("SELECT user_id FROM voice_group_people WHERE group_id=? AND status='joined' AND user_id<>?", [(int) $id, (int) $u['id']]), 'user_id'));
@@ -134,7 +170,7 @@ route('POST', '/gcalls/(\d+)/decline', function ($id) {
   return ['ok' => true];
 });
 function gc_leave(array $u, int $id): void {
-  q("UPDATE voice_group_people SET status='left', left_at=? WHERE group_id=? AND user_id=? AND status='joined'", [now(), $id, (int) $u['id']]);
+  q("UPDATE voice_group_people SET status='left', left_at=?, speaking=0, hand_at=NULL, sfu_published=0 WHERE group_id=? AND user_id=? AND status='joined'", [now(), $id, (int) $u['id']]);
   q('DELETE FROM voice_group_signals WHERE group_id=? AND (from_id=? OR to_id=?)', [$id, (int) $u['id'], (int) $u['id']]);
   if (!(int) val("SELECT COUNT(*) FROM voice_group_people WHERE group_id=? AND status='joined'", [$id])) gc_end($id);
 }
@@ -152,6 +188,7 @@ route('POST', '/gcalls/(\d+)/add', function ($id) {
 route('POST', '/gcalls/(\d+)/signal', function ($id) {
   $u = require_user(); [$g, $me] = gc_mine($u, (int) $id);
   if ($g['status'] !== 'live' || $me['status'] !== 'joined') fail(409, 'You are not on this call.', 'gone');
+  if (($g['mode'] ?? 'mesh') !== 'mesh') fail(409, 'This call goes through the relay.', 'mode');
   $to = (int) (body()['to'] ?? 0); $kind = (string) (body()['kind'] ?? '');
   if (!in_array($kind, ['offer', 'answer'], true)) fail(422, 'That message is not part of a call.', 'kind');
   if (!val("SELECT 1 FROM voice_group_people WHERE group_id=? AND user_id=? AND status='joined'", [(int) $id, $to])) fail(409, 'That person is not on the call.', 'gone');
@@ -190,3 +227,86 @@ function gc_recent(array $u): array {
     return array_map(fn($g) => gc_shape($u, $g), rows('SELECT g.* FROM voice_groups g JOIN voice_group_people p ON p.group_id=g.id AND p.user_id=? ORDER BY g.id DESC LIMIT 10', [(int) $u['id']]));
   } catch (PDOException $e) { return []; }
 }
+
+/* ---- calls through the relay (v109.27): speaking, hands and the relay connection -------------------------------- */
+function gc_big(array $u, int $id): array {
+  [$g, $me] = gc_mine($u, $id);
+  if (($g['mode'] ?? 'mesh') !== 'sfu') fail(409, 'This call goes phone to phone.', 'mode');
+  if ($g['status'] !== 'live' || ($me['status'] ?? '') !== 'joined') fail(409, 'Join the call first.', 'not_joined');
+  return [$g, $me];
+}
+/** I want to speak: straight away if a place is free, otherwise my hand goes up. */
+route('POST', '/gcalls/(\d+)/speak', function ($id) {
+  $u = require_user(); [$g, $me] = gc_big($u, (int) $id); $id = (int) $id;
+  if ((int) $me['speaking'] === 1) return ['ok' => true, 'speaking' => true, 'call' => gc_shape($u, $g)];
+  $n = (int) val('SELECT COUNT(*) FROM voice_group_people WHERE group_id=? AND status=\'joined\' AND speaking=1', [$id]);
+  if ($n < GC_SPEAK) { q('UPDATE voice_group_people SET speaking=1, hand_at=NULL WHERE group_id=? AND user_id=?', [$id, (int) $u['id']]); $on = true; }
+  else { q('UPDATE voice_group_people SET hand_at=COALESCE(hand_at, ?) WHERE group_id=? AND user_id=?', [now(), $id, (int) $u['id']]); $on = false; }
+  return ['ok' => true, 'speaking' => $on, 'call' => gc_shape($u, gc_get($id))];
+});
+route('POST', '/gcalls/(\d+)/quiet', function ($id) {
+  $u = require_user(); gc_big($u, (int) $id);
+  q('UPDATE voice_group_people SET speaking=0, hand_at=NULL WHERE group_id=? AND user_id=?', [(int) $id, (int) $u['id']]);
+  return ['ok' => true, 'call' => gc_shape($u, gc_get((int) $id))];
+});
+/** The caller gives someone the floor, or takes it back. */
+route('POST', '/gcalls/(\d+)/floor', function ($id) {
+  $u = require_user(); [$g] = gc_big($u, (int) $id); $id = (int) $id;
+  if ((int) $g['host_id'] !== (int) $u['id']) fail(403, 'Only the person who started the call can do this.', 'forbidden');
+  $who = (int) (body()['user_id'] ?? 0); $on = !empty(body()['on']);
+  if ($who === (int) $u['id']) fail(422, 'This is you.', 'self');
+  if (!val("SELECT 1 FROM voice_group_people WHERE group_id=? AND user_id=? AND status='joined'", [$id, $who])) fail(409, 'She is not on the call.', 'gone');
+  if ($on && (int) val('SELECT COUNT(*) FROM voice_group_people WHERE group_id=? AND status=\'joined\' AND speaking=1 AND user_id<>?', [$id, $who]) >= GC_SPEAK) fail(422, GC_SPEAK . ' people are speaking already. Mute someone first.', 'full');
+  q('UPDATE voice_group_people SET speaking=?, hand_at=NULL WHERE group_id=? AND user_id=?', [$on ? 1 : 0, $id, $who]);
+  return ['ok' => true, 'call' => gc_shape($u, gc_get($id))];
+});
+/** My connection to the relay: one per person per call. The relay's key never leaves this server. */
+route('POST', '/gcalls/(\d+)/relay/session', function ($id) {
+  $u = require_user(); [, $me] = gc_big($u, (int) $id);
+  $d = sfu_api('POST', '/sessions/new');
+  if (empty($d['sessionId'])) fail(502, 'The call relay did not answer. Try again in a moment.', 'sfu');
+  q('UPDATE voice_group_people SET sfu_session=?, sfu_published=0 WHERE group_id=? AND user_id=?', [(string) $d['sessionId'], (int) $id, (int) $u['id']]);
+  return ['ok' => true];
+});
+function gc_my_session(array $u, int $id): string {
+  $s = (string) val('SELECT sfu_session FROM voice_group_people WHERE group_id=? AND user_id=?', [$id, (int) $u['id']]);
+  if ($s === '') fail(409, 'Connect to the relay first.', 'no_session');
+  return $s;
+}
+/** Send my voice: only while I have the floor. */
+route('POST', '/gcalls/(\d+)/relay/publish', function ($id) {
+  $u = require_user(); [, $me] = gc_big($u, (int) $id); $id = (int) $id;
+  if ((int) $me['speaking'] !== 1) fail(403, 'Wait until you are given the floor.', 'not_speaking');
+  $sdp = (string) (body()['sdp'] ?? ''); $mid = (string) (body()['mid'] ?? '');
+  if ($sdp === '' || strlen($sdp) > 60000 || $mid === '' || strlen($mid) > 8) fail(422, 'That is not part of a call.', 'sdp');
+  $d = sfu_api('POST', '/sessions/' . rawurlencode(gc_my_session($u, $id)) . '/tracks/new', ['sessionDescription' => ['type' => 'offer', 'sdp' => $sdp], 'tracks' => [['location' => 'local', 'mid' => $mid, 'trackName' => 'mic']]]);
+  if (!empty($d['tracks'][0]['errorCode'])) fail(502, 'The call relay did not take your voice. Try again.', 'sfu');
+  q('UPDATE voice_group_people SET sfu_published=1 WHERE group_id=? AND user_id=?', [$id, (int) $u['id']]);
+  return ['ok' => true, 'answer' => $d['sessionDescription'] ?? null];
+});
+/** Hear the people who have the floor. Returns the relay's offer and which person each line is. */
+route('POST', '/gcalls/(\d+)/relay/pull', function ($id) {
+  $u = require_user(); gc_big($u, (int) $id); $id = (int) $id;
+  $want = array_values(array_unique(array_filter(array_map('intval', is_array(body()['ids'] ?? null) ? body()['ids'] : []), fn($x) => $x > 0 && $x !== (int) $u['id'])));
+  if (!$want || count($want) > GC_SPEAK) fail(422, 'Choose who to hear.', 'ids');
+  $live = rows("SELECT user_id, sfu_session FROM voice_group_people WHERE group_id=? AND status='joined' AND speaking=1 AND sfu_published=1 AND sfu_session IS NOT NULL AND user_id IN (" . implode(',', $want) . ')', [$id]);
+  if (!$live) return ['ok' => true, 'tracks' => [], 'offer' => null];
+  $d = sfu_api('POST', '/sessions/' . rawurlencode(gc_my_session($u, $id)) . '/tracks/new', ['tracks' => array_map(fn($r) => ['location' => 'remote', 'sessionId' => $r['sfu_session'], 'trackName' => 'mic'], $live)]);
+  $tracks = [];
+  foreach ($live as $i => $r) { $t = $d['tracks'][$i] ?? null; if ($t && empty($t['errorCode']) && isset($t['mid'])) $tracks[] = ['user_id' => (int) $r['user_id'], 'mid' => (string) $t['mid']]; }
+  return ['ok' => true, 'tracks' => $tracks, 'offer' => !empty($d['requiresImmediateRenegotiation']) ? ($d['sessionDescription'] ?? null) : null];
+});
+route('POST', '/gcalls/(\d+)/relay/answer', function ($id) {
+  $u = require_user(); gc_big($u, (int) $id); $sdp = (string) (body()['sdp'] ?? '');
+  if ($sdp === '' || strlen($sdp) > 60000) fail(422, 'That is not part of a call.', 'sdp');
+  sfu_api('PUT', '/sessions/' . rawurlencode(gc_my_session($u, (int) $id)) . '/renegotiate', ['sessionDescription' => ['type' => 'answer', 'sdp' => $sdp]]);
+  return ['ok' => true];
+});
+/** Stop hearing someone (she lost the floor or left). */
+route('POST', '/gcalls/(\d+)/relay/close', function ($id) {
+  $u = require_user(); gc_big($u, (int) $id);
+  $mids = array_values(array_filter(array_map('strval', is_array(body()['mids'] ?? null) ? body()['mids'] : []), fn($m) => $m !== '' && strlen($m) <= 8));
+  if (!$mids) return ['ok' => true];
+  sfu_api('PUT', '/sessions/' . rawurlencode(gc_my_session($u, (int) $id)) . '/tracks/close', ['tracks' => array_map(fn($m) => ['mid' => $m], array_slice($mids, 0, 20)), 'force' => true]);
+  return ['ok' => true];
+});

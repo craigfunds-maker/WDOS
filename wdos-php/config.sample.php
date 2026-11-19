@@ -19,4 +19,11 @@ return [
   'BREVO_API_KEY' => '',
   'MAIL_FROM'     => '',
   'MAIL_FROM_NAME' => 'WODDI HQ',
+  // Voice calls (Cloudflare Realtime). TURN helps calls connect through strict networks; the SFU relay carries group
+  // calls of more than 8 people. Leave empty to switch either off.
+  'CF_TURN_KEY_ID'        => '',
+  'CF_TURN_KEY_API_TOKEN' => '',
+  'CF_SFU_APP_ID'    => '',
+  'CF_SFU_APP_TOKEN' => '',
+  'BIG_CALL_MAX'     => '150',     // people on one relay call, the caller included
 ];

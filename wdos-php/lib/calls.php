@@ -88,7 +88,7 @@ route('GET', '/calls', function () {
   $w = '(caller_id=? OR callee_id=?' . (is_hq($u) ? ' OR to_hq=1' : '') . ')';
   $recent = array_map(fn($c) => vc_out($u, $c), rows("SELECT * FROM voice_calls WHERE $w ORDER BY id DESC LIMIT 40", [$me, $me]));
   return ['can_call' => vc_can_call($u), 'is_hq' => is_hq($u), 'people' => vc_can_call($u) ? vc_people($u, str_in_get('q')) : [], 'recent' => array_values(array_filter($recent, fn($r) => $r['role'] !== '')),
-    'groups' => function_exists('gc_recent') ? gc_recent($u) : [], 'max_group' => defined('GC_MAX') ? GC_MAX : 0];
+    'groups' => function_exists('gc_recent') ? gc_recent($u) : [], 'max_group' => defined('GC_MAX') ? (sfu_on() ? gc_big_max() : GC_MAX) : 0, 'relay' => function_exists('sfu_on') && sfu_on()];
 });
 function str_in_get(string $k): string { return mb_substr(trim((string) ($_GET[$k] ?? '')), 0, 60); }
 
