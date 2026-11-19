@@ -23,7 +23,7 @@ function find_account(string $id): ?array {
     return $u ? row('SELECT * FROM auth_accounts WHERE uid = ?', [$u['uid']]) : null;
 }
 function auth_shell(string $inner, string $topLabel, string $topHref): string {
-    return '<div class="au-top"><img src="' . asset('logo.jpg') . '" alt="WODDI logo"><div class="grow"><b style="font-family:Manrope,sans-serif">WODDI Institute</b><div class="xs mut">Learning platform</div></div><a class="b g s" href="' . url($topHref) . '">' . e($topLabel) . '</a></div><div class="au-wrap">'
+    return '<div class="au-top"><img src="' . asset('logo.jpg') . '" alt="WODDI logo"><div class="grow"><b style="font-family:Manrope,sans-serif">WODDI <span class="bi">Institute</span></b><div class="xs mut">Learning platform</div></div><a class="b g s" href="' . url($topHref) . '">' . e($topLabel) . '</a></div><div class="au-wrap">'
         . implode('', array_map(fn($f) => '<div class="flash ' . e($f[0]) . '" style="width:100%;max-width:820px">' . e($f[1]) . '</div>', flash())) . $inner . '</div>';
 }
 

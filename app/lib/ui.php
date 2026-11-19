@@ -50,7 +50,7 @@ function page(string $title, string $html, array $o = []): never {
 <?php else: ?>
 <div class="sh">
   <nav class="side" aria-label="Main menu">
-    <a class="brand" href="<?= url('') ?>"><img src="<?= asset('logo.jpg') ?>" alt="WODDI logo"><span><b>WODDI Institute</b><small>Learning platform</small></span></a>
+    <a class="brand" href="<?= url('') ?>"><img src="<?= asset('logo.jpg') ?>" alt="WODDI logo"><span><b>WODDI <span class="bi">Institute</span></b><small>Learning platform</small></span></a>
     <div class="netbox"><img src="<?= $netLogo ?>" alt=""><span><small>Your network</small><b><?= e(net_name()) ?></b></span></div>
     <?php if (is_staff()): ?><a class="sb" style="background:#D4006A;color:#fff" href="<?= url('ops') ?>"><?= ic('fa-gauge-high') ?>Operations (admin)</a><?php endif; ?>
     <?php foreach (NAV_MAIN as $n): ?><a class="sb <?= $active === $n[0] ? 'on' : '' ?>" href="<?= url($n[0]) ?>"><?= ic($n[2]) ?><?= e($n[1]) ?></a><?php endforeach; ?>

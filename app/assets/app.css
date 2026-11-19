@@ -209,3 +209,48 @@ html.dark .tb{color:#B9AEB9}html.dark .tb.on{color:#FF7FB6}html.dark .tb.on::aft
 .lplayer .ib{background:rgba(255,255,255,.14);color:#fff;border:0;flex:none}.lplayer .lp-t{display:flex;justify-content:space-between;font-size:.8em;margin-bottom:4px}.lplayer input[type=range]{width:100%;accent-color:#7CB518;height:18px}.lplayer .pill{background:rgba(255,255,255,.14);color:#fff;border:0;min-width:48px;justify-content:center;cursor:pointer}
 .lt.on{background:var(--mags);color:var(--magt);border-color:var(--mag)}
 @media(min-width:960px){.lplayer{bottom:24px}}
+
+/* ════════ Landing-page design pattern across the whole app ════════
+   Deep plum with a magenta glow and a touch of lemon green for headers and heroes, the pink-to-lemon ribbon for bars,
+   Plus Jakarta Sans headings, magenta buttons with a glow. Colours are the landing page's own. */
+:root{--bg:#FFF8FB;--card:#FFFFFF;--ink:#1F1219;--mut:#665A62;--line:#F0E2EA;--mags:#FCE7F1;--magt:#A80054;--lems:#EEF7DF;--lemt:#4F7F0B;--plum:#2A0A1D;--plum2:#3D0F2B;--glass:rgba(255,252,253,.94);--sh:0 1px 2px rgba(70,10,45,.05),0 18px 40px -22px rgba(70,10,45,.35);
+  --wine:radial-gradient(70% 110% at 100% 0%,#9A0B58 0%,rgba(154,11,88,0) 62%),radial-gradient(55% 70% at 0% 100%,rgba(124,181,24,.34) 0%,rgba(124,181,24,0) 60%),linear-gradient(135deg,#2A0A1D 0%,#3D0F2B 55%,#5A0E3C 100%);
+  --ribbon:linear-gradient(90deg,#FCE7F1 0%,#FFFCFD 45%,#EEF7DF 100%)}
+html.dark{--bg:#120A10;--card:#1C1219;--ink:#F7EEF3;--mut:#B9A9B3;--line:#33232D;--mags:#3A1428;--magt:#FF7FB6;--lems:#1F2C12;--lemt:#A6E07C;--glass:rgba(18,10,16,.94);--ribbon:linear-gradient(90deg,#3A1428 0%,#1C1219 45%,#1F2C12 100%)}
+h1,h2,h3,h4,.ttl,.brand b{letter-spacing:-.02em}
+body{background:var(--bg)}
+html:not(.dark) body:not(.bare){background:radial-gradient(900px 520px at 100% -8%,rgba(212,0,106,.13),transparent 62%),radial-gradient(760px 520px at -6% 104%,rgba(124,181,24,.16),transparent 60%),radial-gradient(600px 400px at 30% 40%,rgba(212,0,106,.04),transparent 70%),#FFF8FB;background-attachment:fixed}
+/* side menu and heroes: the landing hero */
+.side,.ops-side{background:var(--wine)!important;border-right:0}
+.side .sb.on{background:#fff;color:#A80054;box-shadow:0 10px 24px -14px rgba(0,0,0,.6)}.side .sb.on i{color:#D4006A}
+.side .brand img{width:52px;height:52px;border-radius:16px;background:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.3)}
+.hero{background:var(--wine)!important;border:0;box-shadow:0 26px 50px -30px rgba(70,10,45,.7)}
+.hero h1,.hero h2{color:#fff}.hero .kick{color:#BDEA52}
+/* bars: the landing language ribbon */
+.top{background:var(--ribbon)!important;border-bottom:1px solid var(--line)}
+.tabbar{background:var(--card);border-top:0}.tabbar::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#D4006A,#D4006A 55%,#7CB518)}
+
+/* buttons and chips */
+.b{box-shadow:0 12px 26px -14px rgba(212,0,106,.75)}.b.l{box-shadow:0 12px 26px -14px rgba(79,127,11,.8)}.b.g,.b.gl,.b.s.g{box-shadow:none}
+.chip.on,.seg a.on,.seg .on{background:#D4006A;color:#fff;border-color:#D4006A}
+.trk.on{background:var(--wine);color:#fff;border-color:transparent}.trk.on small{color:rgba(255,255,255,.8)}
+/* cards */
+.card,.cc,.tile,.grp,.kpi,.lp-stat{border-color:var(--line)}
+.card h3,.cont>h3,.col>h3{position:relative}
+.kpi{position:relative;overflow:hidden}.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#D4006A,#7CB518)}
+.tile .ic,.ic{background:var(--mags);color:var(--magt)}.ic.l{background:var(--lems);color:var(--lemt)}
+.cc:hover,.tile:hover{border-color:#D4006A;transform:translateY(-2px);transition:transform .15s,border-color .15s}
+.bar>i{background:linear-gradient(90deg,#D4006A,#7CB518)}
+.tbox thead th{background:var(--ribbon)}
+.flash{background:var(--lems);border:1px solid #D5E9B4}.flash.err{background:var(--mags);border-color:#F5BFD8}
+/* sign-in, register and other public pages: on the landing hero */
+body.bare:has(.au-wrap){background:var(--wine);background-attachment:fixed;min-height:100vh}
+.au-top{color:#fff}.au-top b{color:#fff;font-size:1.25em;letter-spacing:-.02em}.au-top .xs,.au-top .mut{color:rgba(255,255,255,.72)!important}
+.au-top img{width:64px;height:64px;border-radius:18px;border:0;background:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.35)}
+.au-top .b.g{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.3)}
+.au-card{border:0;box-shadow:0 40px 80px -40px rgba(0,0,0,.7);position:relative;overflow:hidden}.au-card::before{content:"";position:absolute;left:0;right:0;top:0;height:6px;background:linear-gradient(90deg,#D4006A,#D4006A 60%,#7CB518)}
+html.dark .au-card{background:#1C1219;color:#F7EEF3}
+.au-wrap>p,.au-wrap>.mut,.au-wrap>a{color:rgba(255,255,255,.8)}
+/* operations header */
+.ops .top{background:var(--ribbon)!important}
+.bi{color:#FF8CC4}
