@@ -23,8 +23,11 @@ function find_account(string $id): ?array {
     return $u ? row('SELECT * FROM auth_accounts WHERE uid = ?', [$u['uid']]) : null;
 }
 function auth_shell(string $inner, string $topLabel, string $topHref): string {
-    return '<div class="au-top"><img src="' . asset('logo.jpg') . '" alt="WODDI logo"><div class="grow"><b style="font-family:Manrope,sans-serif">WODDI <span class="bi">Institute</span></b><div class="xs mut">Learning platform</div></div><a class="b g s" href="' . url($topHref) . '">' . e($topLabel) . '</a></div><div class="au-wrap">'
-        . implode('', array_map(fn($f) => '<div class="flash ' . e($f[0]) . '" style="width:100%;max-width:820px">' . e($f[1]) . '</div>', flash())) . $inner . '</div>';
+    $pic = fn(string $f, string $cls, string $alt) => '<picture class="au-photo ' . $cls . '"><source srcset="' . asset("landing/$f.webp") . '" type="image/webp"><img src="' . asset("landing/$f.jpg") . '" alt="' . $alt . '" loading="eager"></picture>';
+    $side = '<aside class="au-side"><span class="au-kick">' . ic('fa-earth-africa') . ' Empowering women. Transforming Africa.</span><h2 class="au-big">Become the woman <span>you were designed to be.</span></h2><p class="au-lead">Learn practical skills. Discover your potential. Build your future.</p>'
+        . '<div class="au-photos">' . $pic('learner-phone', 'p1', 'A young woman learning on her phone') . $pic('learner-notes', 'p2', 'A woman taking notes while she learns') . '<span class="au-badge b1">' . ic('fa-certificate') . ' Free certificates</span><span class="au-badge b2">' . ic('fa-language') . ' 8 languages</span><span class="au-badge b3">' . ic('fa-heart') . ' For women, by WODDI</span></div></aside>';
+    return '<div class="au-fx" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="au-top"><a href="' . url('') . '"><img src="' . asset('logo.jpg') . '" alt="WODDI logo"></a><div class="grow"><b style="font-family:Manrope,sans-serif">WODDI <span class="bi">Institute</span></b><div class="xs mut">Learning platform</div></div><a class="b g s" href="' . url($topHref) . '">' . e($topLabel) . '</a></div><div class="au-wrap au-stage">' . $side . '<div class="au-main">'
+        . implode('', array_map(fn($f) => '<div class="flash ' . e($f[0]) . '">' . e($f[1]) . '</div>', flash())) . $inner . '</div></div>';
 }
 
 if ($first === 'logout') { $_SESSION = []; session_destroy(); redirect('login'); }
