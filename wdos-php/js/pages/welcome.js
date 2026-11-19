@@ -113,13 +113,16 @@ export async function render(root, params) {
   /* Community Clusters already known in the chosen LGA or city are offered as she types, so the same cluster is not spelled three ways */
   const clusterList = h('datalist', { id: 'f-clusters' });
   const fillClusters = async () => { const c = countries.find((x) => String(x.id) === F.country.value); if (!c) return; const lga = lgaMode === 'select' ? F.lgaSel.value : F.lga.value; ngWards = null; wardList = false; if (!lga || lga === NOT_LISTED) { paintCommunity([]); paintBooth(); return; }
-    if ((c.code === 'NG' || (elList || []).includes(c.code)) && lgaMode === 'select' && stateName()) { const w = await getJson(c.code === 'NG' ? `/assets/geo/ng/${geoSlug(stateName())}/${geoSlug(lga)}.json` : `/assets/geo/el/${c.code}/${geoSlug(elKey() || stateName())}/${geoSlug(lga)}.json`); if (w && Object.keys(w).length) { ngWards = w; clusterList.replaceChildren(); paintCommunity(Object.keys(w)); paintBooth(); return; } } if (admData && lgaMode === 'select' && Array.isArray(admData[lga]) && admData[lga].length) { clusterList.replaceChildren(); wardList = true; paintCommunity(admData[lga]); paintBooth(); return; }
+    if ((c.code === 'NG' || (elList || []).includes(c.code)) && lgaMode === 'select' && stateName()) { const w = await getJson(c.code === 'NG' ? `/assets/geo/ng/${geoSlug(stateName())}/${geoSlug(lga)}.json` : `/assets/geo/el/${c.code}/${geoSlug(elKey() || stateName())}/${geoSlug(lga)}.json`); if (w && Object.keys(w).length) { ngWards = w; clusterList.replaceChildren(); paintCommunity(Object.keys(w)); paintBooth(); return; } } if (admData && lgaMode === 'select' && Array.isArray(admData[lga]) && admData[lga].length) {
+      // v109.21: polling stations mapped in OpenStreetMap, grouped by the nearest ward, become the chapter list
+      if (admIdx && admIdx[c.code] === 2 && stateCode()) { const ch = await getJson(`/assets/geo/adm/${c.code}/c-${stateCode()}/${geoSlug(lga)}.json?v=${geoV()}`); if (ch && Object.keys(ch).length) ngWards = ch; }
+      clusterList.replaceChildren(); wardList = true; paintCommunity(admData[lga]); paintBooth(); return; }
     try { const r = await api(`/geo/clusters?country=${c.code}&lga=${encodeURIComponent(lga)}`); clusterList.replaceChildren(...r.clusters.map((n) => opt(n, n))); paintCommunity(r.clusters); } catch { paintCommunity([]); } };
   /* v109.5: Nigeria's wards (Community cluster) and polling units (Booth), from the INEC register, one small file per LGA */
   let ngWards = null, wardList = false;
   const curCountry = () => countries.find((x) => String(x.id) === F.country.value);
   const paintEq = () => { const c = curCountry(); const [cl, bo] = geoEq(c?.code); const cn = c?.name || '';
-    const ch = document.querySelector('label[for="f-community"] > small'); if (ch) ch.textContent = c ? tf('In {1}, this is your {2}.', cn, t(cl)) : '';
+    const ch = document.querySelector('label[for="f-community"] > small'); if (ch) ch.remove();   // v109.21: no "In X, this is your ..." note (Azeez)
   };
   F.boothSel = h('select', { class: 'input', id: 'f-boothsel', hidden: true, onchange: () => { const t2 = F.boothSel.value === NOT_LISTED; F.ward.hidden = !t2; F.ward.value = t2 || F.boothSel.value === AUTO ? '' : F.boothSel.value; if (t2) F.ward.focus(); } });
   const AUTO = '__auto__';
