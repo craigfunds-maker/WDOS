@@ -1,5 +1,6 @@
 [
- ["FR/table-bv-reu.csv","https://static.data.gouv.fr/resources/bureaux-de-vote-et-adresses-de-leurs-electeurs/20230626-135808/table-bv-reu.csv"],
- ["NA/gazette-8484.pdf","https://www.lac.org.na/laws/2024/8484.pdf"],
- ["FR/communes-departement-region.csv","https://www.data.gouv.fr/api/1/datasets/r/dbe8a621-a9c4-4bc3-9cae-be1699c5ff25"]
+ [
+  "OSM/polling_stations.tsv",
+  "https://overpass-api.de/api/interpreter?data=%5Bout%3Acsv%28%3A%3Alat%2C%3A%3Alon%2Cname%2C%22addr%3Acountry%22%3Bfalse%3B%22%5Ct%22%29%5D%5Btimeout%3A1500%5D%5Bmaxsize%3A2000000000%5D%3Bnwr%5B%22amenity%22%3D%22polling_station%22%5D%5B%22name%22%5D%3Bout%20center%3B"
+ ]
 ]
