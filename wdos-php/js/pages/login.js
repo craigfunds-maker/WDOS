@@ -15,11 +15,18 @@ export async function render(root, params) {
 
   const signInView = () => {
     const email = h('input', { class: 'input', id: 'l-email', type: 'text', inputmode: 'email', autocapitalize: 'none', required: true, autocomplete: 'username webauthn', value: lastEmail });
-    const pw = h('input', { class: 'input', id: 'l-pw', type: 'password', required: true, autocomplete: 'current-password' });
+    const pw = h('input', { class: 'input', id: 'l-pw', type: 'password', required: true, autocomplete: 'current-password', style: 'padding-inline-end:76px' });
     const btn = h('button', { class: 'btn btn--block', type: 'submit', text: 'Sign in' });
+    // v109.30: a password the browser filled in for another account stays behind when the number or email is changed (19 Nov:
+    // envoys signing in on HQ's computer got HQ's saved password). Changing who signs in empties a password nobody typed.
+    let pwByHand = false;
+    ['keydown', 'beforeinput', 'paste'].forEach((ev) => pw.addEventListener(ev, () => { pwByHand = true; }));
+    email.addEventListener('input', () => { if (!pwByHand && pw.value) pw.value = ''; });
+    const eye = h('button', { type: 'button', class: 'btn btn--quiet btn--s', 'aria-pressed': 'false', style: 'position:absolute;inset-inline-end:6px;top:50%;transform:translateY(-50%)',
+      onclick: () => { const show = pw.type === 'password'; pw.type = show ? 'text' : 'password'; eye.setAttribute('aria-pressed', String(show)); eye.textContent = t(show ? 'Hide' : 'Show'); pw.focus(); } }, t('Show'));
     const form = h('form', { style: 'display:grid;gap:14px', novalidate: true },
       h('label', { class: 'field', for: 'l-email' }, h('span', { text: 'Email address or phone number' }), email),
-      h('label', { class: 'field', for: 'l-pw' }, h('span', { text: 'Password' }), pw),
+      h('label', { class: 'field', for: 'l-pw' }, h('span', { text: 'Password' }), h('div', { style: 'position:relative' }, pw, eye)),
       h('div', { class: 'forgot' }, h('a', { href: '#', onclick: (e) => { e.preventDefault(); card.replaceChildren(...forgotView(email.value)); }, text: 'Forgot password?' })),
       err, btn);
     form.addEventListener('submit', async (e) => {

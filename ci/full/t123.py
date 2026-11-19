@@ -49,6 +49,8 @@ s=login('08000000002',pw['08000000002']); chk('she signs in with 0800...', not i
 s=login('+2348000000002',pw['08000000002']); chk('and with +234 800...', not isinstance(s,requests.Response))
 s=login('2348000000003',pw['08000000003']); chk('and with 234800...', not isinstance(s,requests.Response))
 s=login('0800 000 0004',pw['08000000004']); chk('and with spaces', not isinstance(s,requests.Response))
+s5=login('08000000005',pw['08000000005']+' \n'); chk('a copied password with a space or line end works', not isinstance(s5,requests.Response))
+chk('a wrong password still fails', isinstance(login('08000000005',pw['08000000005'][:-1]+'x'),requests.Response))
 me=s.get(B+'/me').json()['user']; chk('she lands as an envoy who must choose a password', me['is_envoy'] and me.get('must_change_password') in (True,1), me)
 chk('envoys page lists them', len([e for e in hq.get(B+'/hq/envoys').json().get('items',hq.get(B+'/hq/envoys').json().get('envoys',[])) if 'Testa' in json.dumps(e) or 'Mina' in json.dumps(e)])>=2)
 print('checks',ok+bad,'FAILURES',bad)

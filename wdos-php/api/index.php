@@ -178,6 +178,8 @@ route('POST', '/auth/login', function () {
     foreach ($vs as $v) if (!$u) $u = row('SELECT * FROM users WHERE email=?', [phone_login_name($v)]);
     if (!$u && strlen(ltrim($ph, '+')) >= 8) { $m = rows('SELECT * FROM users WHERE phone IN (' . implode(',', array_fill(0, count($vs), '?')) . ') LIMIT 2', $vs); if (count($m) === 1) $u = $m[0]; }
   }
+  // v109.30: a password copied from a PDF or a message often carries a space or a line end
+  if ($u && $u['password_hash'] && !password_verify($pw, $u['password_hash']) && trim($pw) !== $pw && password_verify(trim($pw), $u['password_hash'])) $pw = trim($pw);
   if (!$u || !$u['password_hash'] || !password_verify($pw, $u['password_hash'])) {
     throttle_hit('login:' . $email); throttle_hit('login-ip:' . client_ip());
     fail(401, $u && !$u['password_hash'] ? (($u['signup_method'] ?? '') === 'google' || !empty($u['google_sub']) ? 'This account was created with Google. Use Continue with Google.' : 'Your sign-in details are not ready yet. WODDI HQ will send them to you.') : 'Those sign-in details are not correct.', 'bad_credentials');
