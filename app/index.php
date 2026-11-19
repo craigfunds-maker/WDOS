@@ -29,6 +29,9 @@ if (preg_match('/^([a-z0-9-]+)\.html$/', $first, $m)) { $map = ['index' => '', '
 
 if ($first === 'dashboard') redirect('', $_GET);
 
+/* Signed-out visitors to the root see the public landing page; signed-in learners see their home. */
+if ($first === '' && !me()) { require __DIR__ . '/pages/landing.php'; exit; }
+
 $routes = [
     'auth' => ['login', 'register', 'logout', 'forgot', 'reset', 'google'],
     'learn' => ['learn', 'journey', 'course'],

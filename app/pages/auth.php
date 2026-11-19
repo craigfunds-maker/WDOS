@@ -97,7 +97,7 @@ if ($first === 'register') {
         if ($email !== '') send_mail($email, 'Welcome to WODDI Institute', '<p>Dear ' . e($firstN) . ',</p><p>Your WODDI Institute account is ready in the ' . e(net_name($path)) . '. Sign in at <a href="' . url('login') . '">' . url('login') . '</a> and begin with the Rooting Phase.</p><p>WODDI Institute</p>');
         sign_in_as($uid);
     }
-    $o = $_SESSION['reg_old'] ?? []; $v = fn(string $k) => e($o[$k] ?? ''); $step = (int)($_GET['step'] ?? 1); if ($step < 1 || $step > 4 || (!$o && $step > 1)) $step = 1;
+    $o = $_SESSION['reg_old'] ?? []; if (!$o && in_array($_GET['net'] ?? '', ['gmn', 'nnn'], true)) $o = ['pathway' => $_GET['net']]; $v = fn(string $k) => e($o[$k] ?? ''); $step = (int)($_GET['step'] ?? 1); if ($step < 1 || $step > 4 || (!$o && $step > 1)) $step = 1;
     if (isset($o['pathway'])) $_SESSION['reg_net'] = $o['pathway'];
     $prog = fn(int $n) => '<div class="au-prog">' . implode('', array_map(fn($i) => '<i class="' . ($i < $n ? 'done' : ($i === $n ? 'cur' : '')) . '"></i>', [1, 2, 3, 4, 5])) . '</div>';
     $langs = ''; foreach (COURSE_LANGS as $k => $n) $langs .= '<option value="' . $k . '"' . (($o['language'] ?? 'en') === $k ? ' selected' : '') . '>' . e($n) . '</option>';
