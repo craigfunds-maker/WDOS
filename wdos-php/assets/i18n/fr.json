@@ -3458,5 +3458,7 @@
 "Your voice did not reach the call": "Votre voix n'a pas atteint l'appel",
 "{1} listening": "{1} écoutent",
 "{1} ringing": "{1} sonnent",
-"{1} speaking": "{1} parlent"
+"{1} speaking": "{1} parlent",
+"Call all {1} leaders": "Appeler les {1} responsables",
+"A call takes {1} people at most. Tick the leaders to call instead.": "Un appel accueille {1} personnes au plus. Cochez plutôt les responsables à appeler."
 }

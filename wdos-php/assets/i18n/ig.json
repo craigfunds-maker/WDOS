@@ -3274,5 +3274,7 @@
 "Your voice did not reach the call": "Olu gị erughị n'oku ahụ",
 "{1} listening": "{1} na-ege ntị",
 "{1} ringing": "{1} na-akpọ",
-"{1} speaking": "{1} na-ekwu okwu"
+"{1} speaking": "{1} na-ekwu okwu",
+"Call all {1} leaders": "Kpọọ ndị ndu niile {1}",
+"A call takes {1} people at most. Tick the leaders to call instead.": "Otu oku na-anabata mmadụ {1} kachasị. Kama nke ahụ, kaa ndị ndu ị ga-akpọ akara."
 }

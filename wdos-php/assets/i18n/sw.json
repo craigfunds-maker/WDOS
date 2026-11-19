@@ -3458,5 +3458,7 @@
 "Your voice did not reach the call": "Sauti yako haikufika kwenye simu",
 "{1} listening": "{1} wanasikiliza",
 "{1} ringing": "{1} wanaitwa",
-"{1} speaking": "{1} wanaongea"
+"{1} speaking": "{1} wanaongea",
+"Call all {1} leaders": "Wapigie viongozi wote {1}",
+"A call takes {1} people at most. Tick the leaders to call instead.": "Simu moja inachukua watu {1} zaidi. Badala yake weka alama kwa viongozi wa kupigiwa."
 }

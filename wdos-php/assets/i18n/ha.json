@@ -3370,5 +3370,7 @@
 "Your voice did not reach the call": "Muryarki ba ta isa kiran ba",
 "{1} listening": "{1} suna sauraro",
 "{1} ringing": "{1} ana kiran su",
-"{1} speaking": "{1} suna magana"
+"{1} speaking": "{1} suna magana",
+"Call all {1} leaders": "Kira duk shugabanni {1}",
+"A call takes {1} people at most. Tick the leaders to call instead.": "Kira ɗaya yana ɗaukar mutane {1} a mafi yawa. Maimakon haka, zaɓi shugabannin da za a kira."
 }

@@ -32,9 +32,11 @@ async function list(root) {
     bar.replaceChildren(
       h('span', { class: 'tag', text: n ? tf('{1} chosen', n) : t('Tick leaders to act on several at once') }),
       d && d.can_call && !app.user.is_hq ? h('label', { style: 'display:flex;gap:6px;align-items:center' }, withHq, h('span', { text: t('Bring in WODDI HQ too') })) : null,
-      d && d.can_call && d.people.length ? h('button', { class: 'btn btn--s', type: 'button', disabled: d.people.length > max - 1 && !d.relay,
-        title: d.people.length > max - 1 && !d.relay ? t('Calls with more than 7 people need the call relay, which WODDI HQ has not set up yet.') : null,
-        onclick: () => groupCall([...(withHq.checked ? [{ id: 'hq', name: 'WODDI HQ' }] : [])], { all: true }) }, icon('users', 16), ' ', tf('Call all {1} of my leaders', d.people.length)) : null,
+      d && d.can_call && d.people.length ? (() => { const over = d.people.length > max - 1;
+        const why = over ? (d.relay ? tf('A call takes {1} people at most. Tick the leaders to call instead.', max) : t('Calls with more than 7 people need the call relay, which WODDI HQ has not set up yet.')) : null;
+        return h('div', { style: 'display:grid;gap:4px' }, h('button', { class: 'btn btn--s', type: 'button', disabled: over, title: why,
+          onclick: () => groupCall([...(withHq.checked ? [{ id: 'hq', name: 'WODDI HQ' }] : [])], { all: true }) }, icon('users', 16), ' ', app.user.is_hq ? tf('Call all {1} leaders', d.people.length) : tf('Call all {1} of my leaders', d.people.length)),
+          why ? h('small', { class: 'muted', text: why }) : null); })() : null,
       d && d.can_call ? h('button', { class: 'btn btn--s', type: 'button', disabled: !n || all > max - 1, onclick: () => groupCall([...picked.values(), ...(withHq.checked ? [{ id: 'hq', name: 'WODDI HQ' }] : [])]) }, icon('phone', 16), ' ', all > max - 1 ? tf('Group call: {1} people at most', max - 1) : t('Group call')) : null,
       h('button', { class: 'btn btn--ghost btn--s', type: 'button', disabled: !n, onclick: () => meetWith([...picked.values()]) }, icon('calendar', 16), ' ', t('Invite to a meeting')),
       n ? h('button', { class: 'btn btn--quiet btn--s', type: 'button', onclick: () => { picked.clear(); paint(); } }, t('Clear')) : null);

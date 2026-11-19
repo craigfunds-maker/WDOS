@@ -3458,5 +3458,7 @@
 "Your voice did not reach the call": "لم يصل صوتك إلى المكالمة",
 "{1} listening": "{1} يستمعن",
 "{1} ringing": "{1} يرن",
-"{1} speaking": "{1} يتحدثن"
+"{1} speaking": "{1} يتحدثن",
+"Call all {1} leaders": "الاتصال بكل القائدات الـ {1}",
+"A call takes {1} people at most. Tick the leaders to call instead.": "تتسع المكالمة لـ {1} شخصًا كحد أقصى. حددي بدلًا من ذلك القائدات اللواتي تريدين الاتصال بهن."
 }

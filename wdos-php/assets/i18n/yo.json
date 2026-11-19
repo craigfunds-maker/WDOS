@@ -3299,5 +3299,7 @@
 "Your voice did not reach the call": "Ohùn rẹ kò dé inú ìpè",
 "{1} listening": "{1} ń gbọ́",
 "{1} ringing": "{1} ń dún",
-"{1} speaking": "{1} ń sọ̀rọ̀"
+"{1} speaking": "{1} ń sọ̀rọ̀",
+"Call all {1} leaders": "Pe gbogbo àwọn olórí {1}",
+"A call takes {1} people at most. Tick the leaders to call instead.": "Ìpè kan gba ènìyàn {1} ní púpọ̀ jùlọ. Dípò bẹ́ẹ̀, sàmì sí àwọn olórí tí o fẹ́ pè."
 }
