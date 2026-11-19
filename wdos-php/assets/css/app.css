@@ -647,3 +647,11 @@ a.pdx-step__link:hover{background:color-mix(in srgb,#D4006A 7%,transparent)}
 .vgroup__p.is-on{background:rgba(124,181,24,.22);box-shadow:inset 0 0 0 2px #7CB518}
 .vgroup__p b{font-size:15px} .vgroup__p small{font-size:12px;color:#e6cfdc}
 .vgroup__list{display:grid;gap:6px;max-height:40vh;overflow:auto;margin-top:14px;width:min(420px,90vw);text-align:left;background:#fff;color:#2b1a24;border-radius:14px;padding:8px}
+/* v109.25: HQ live view of leaders' activity */
+.linkish{background:none;border:0;padding:0;font:inherit;font-weight:700;color:var(--accent);cursor:pointer;text-align:start} .linkish:hover{text-decoration:underline}
+.hwrow.is-new{animation:hwnew 2.4s ease-out} @keyframes hwnew{from{background:color-mix(in srgb,var(--accent) 22%,transparent)}to{background:transparent}}
+.hwrow:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hwpanel{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.5);display:grid;place-items:center;padding:16px}
+.hwpanel__box{width:min(560px,100%);max-height:88vh;overflow:auto}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:transparent;color:inherit;border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+.chip.is-on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent)}

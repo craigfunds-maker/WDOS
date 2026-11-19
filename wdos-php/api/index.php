@@ -428,5 +428,6 @@ require __DIR__ . '/../lib/workcheck.php';
 require __DIR__ . '/../lib/calls.php';
 require_once __DIR__ . '/../lib/gcalls.php';      // v109.24: group voice calls (calls.php loads it itself for /calls and /calls/ring)
 require __DIR__ . '/../lib/team.php';        // v109.24: a leader's team
+require __DIR__ . '/../lib/hqwatch.php';     // v109.25: HQ sees everything leaders do
 
 fail(404, 'No such WDOS endpoint.', 'not_found');
