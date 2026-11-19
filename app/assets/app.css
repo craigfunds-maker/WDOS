@@ -150,3 +150,14 @@ body.bare .ops{display:flex;min-height:100vh;min-height:100dvh;background:var(--
 @media print{.side,.top,.tabbar,.noprint,.flash{display:none!important}.cont{padding:0!important}}
 @media(max-width:520px){.top .netpill,.top [data-theme]{display:none}.top .ttl{font-size:1.05em}}
 select.inp{max-width:100%;min-width:0;text-overflow:ellipsis}.row.wrap>*{min-width:0}
+/* mobile app welcome screen at /app */
+.splash{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:28px 22px calc(28px + env(safe-area-inset-bottom));background:radial-gradient(120% 80% at 80% 0%,#6b1247 0%,transparent 60%),radial-gradient(90% 60% at 0% 100%,#3d5c0a 0%,transparent 55%),#2A0F2B;color:#fff}
+.splash-in{width:100%;max-width:440px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:16px}
+.splash-logo{width:92px;height:92px;border-radius:26px;box-shadow:0 14px 40px rgba(0,0,0,.35);background:#fff}
+.splash-kick{font-size:.8em;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#BDEA52}
+.splash h1{font-family:Manrope,sans-serif;font-weight:800;font-size:clamp(1.9em,7.4vw,2.5em);line-height:1.12;color:#fff}.splash h1 span{color:#FF8CC4}
+.splash-sub{color:rgba(255,255,255,.82);line-height:1.55;max-width:360px}
+.splash-nets{display:flex;gap:12px;width:100%}.splash-nets>div{flex:1;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:8px}.splash-nets img{width:62px;height:62px;border-radius:50%;background:#fff;object-fit:contain}.splash-nets small{font-size:.76em;line-height:1.35;color:rgba(255,255,255,.85)}
+.splash-feat{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}.splash-feat span{font-size:.8em;font-weight:600;background:rgba(255,255,255,.1);border-radius:999px;padding:7px 12px;display:inline-flex;gap:6px;align-items:center}
+.splash-cta{width:100%;display:flex;flex-direction:column;gap:10px;margin-top:6px}.splash-cta .b{min-height:54px;font-size:1.05em}
+.splash-foot{font-size:.78em;color:rgba(255,255,255,.6);line-height:1.8}.splash-foot a{color:rgba(255,255,255,.85);text-decoration:underline}

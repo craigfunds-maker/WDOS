@@ -25,9 +25,9 @@ if (is_post() && $first !== 'api') csrf_check();
 if ($u = me()) touch_user($u['uid']);
 
 /* Old addresses from the previous site keep working: app.html, verify.html?code=..., ops.html and so on. */
-if (preg_match('/^([a-z0-9-]+)\.html$/', $first, $m)) { $map = ['index' => '', 'app' => '', 'dashboard' => '', 'app-auth' => 'login', 'signup' => 'register', 'admin' => 'ops', 'courses' => 'learn', 'marketplace' => 'market', 'certificate' => 'certificates', 'admissions' => 'register']; redirect($map[$m[1]] ?? $m[1], $_GET); }
+if (preg_match('/^([a-z0-9-]+)\.html$/', $first, $m)) { $map = ['index' => '', 'app' => 'app', 'app-legacy' => 'app', 'dashboard' => '', 'app-auth' => 'login', 'signup' => 'register', 'admin' => 'ops', 'courses' => 'learn', 'marketplace' => 'market', 'certificate' => 'certificates', 'admissions' => 'register']; redirect($map[$m[1]] ?? $m[1], $_GET); }
 
-if ($first === 'app' || $first === 'dashboard') redirect('', $_GET);
+if ($first === 'dashboard') redirect('', $_GET);
 
 $routes = [
     'auth' => ['login', 'register', 'logout', 'forgot', 'reset', 'google'],
@@ -36,7 +36,7 @@ $routes = [
     'account' => ['', 'me', 'profile', 'settings', 'points', 'messages', 'support', 'certificates', 'progress', 'verify', 'delete-account'],
     'ops' => ['ops'],
     'api' => ['api'],
-    'public' => ['membership', 'volunteer', 'review', 'manifest.json', 'privacy', 'about', 'tick', 'offline'],
+    'public' => ['membership', 'volunteer', 'review', 'manifest.json', 'app-manifest.json', 'privacy', 'about', 'tick', 'offline', 'app', 'app-auth'],
 ];
 foreach ($routes as $file => $list) {
     if (in_array($first, $list, true)) { require __DIR__ . '/pages/' . $file . '.php'; exit; }

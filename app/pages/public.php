@@ -6,13 +6,26 @@ function public_shell(string $title, string $inner, string $sub = ''): never {
     page($title, '<div class="au-top"><a href="' . url('') . '"><img src="' . asset('logo.jpg') . '" alt="WODDI logo"></a><div class="grow"><b style="font-family:Manrope,sans-serif">WODDI Institute</b><div class="xs mut">' . e($sub ?: $title) . '</div></div>' . (me() ? '<a class="b g s" href="' . url('') . '">Open the app</a>' : '<a class="b g s" href="' . url('login') . '">Sign in</a>') . '</div><div class="au-wrap"><div class="au-card" style="max-width:760px">' . implode('', array_map(fn($f) => '<div class="flash ' . e($f[0]) . '">' . e($f[1]) . '</div>', flash())) . $inner . '</div></div>', ['bare' => true]);
 }
 
-if ($first === 'manifest.json') {
+if ($first === 'manifest.json' || $first === 'app-manifest.json') {
     header('Content-Type: application/manifest+json; charset=utf-8'); header('Cache-Control: public, max-age=3600');
     $b = rtrim((string)parse_url(base(), PHP_URL_PATH), '/') . '/';
-    echo json_encode(['name' => 'WODDI Institute', 'short_name' => 'WODDI', 'description' => 'Learn, grow and earn certificates with WODDI Institute.', 'id' => $b, 'start_url' => $b, 'scope' => $b, 'display' => 'standalone', 'orientation' => 'portrait', 'background_color' => '#FBF7F4', 'theme_color' => '#2A0F2B', 'lang' => 'en', 'categories' => ['education'],
+    echo json_encode(['name' => 'WODDI Institute', 'short_name' => 'WODDI', 'description' => 'Learn, grow and earn certificates with WODDI Institute.', 'id' => $b . 'app.html', 'start_url' => $b . 'app?src=pwa', 'scope' => $b, 'display' => 'standalone', 'orientation' => 'portrait', 'background_color' => '#FBF7F4', 'theme_color' => '#2A0F2B', 'lang' => 'en', 'categories' => ['education'],
         'icons' => [['src' => asset('icon-192.png'), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'], ['src' => asset('icon-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'], ['src' => asset('icon-maskable-192.png'), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'maskable'], ['src' => asset('icon-maskable-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable']],
         'shortcuts' => [['name' => 'Course Hub', 'url' => $b . 'learn'], ['name' => 'Community', 'url' => $b . 'community'], ['name' => 'Mentor', 'url' => $b . 'mentor']]], JSON_UNESCAPED_SLASHES);
     exit;
+}
+/* The mobile app entry. The Play Store app and the installed PWA open here: a welcome screen, then the app. */
+if ($first === 'app-auth') redirect(me() ? '' : 'login');
+if ($first === 'app') {
+    $u = me();
+    $btn = $u
+        ? '<a class="b l full" id="go" href="' . url('') . '">' . ic('fa-play') . ' Continue, ' . e(first_name($u)) . '</a><p class="sm" style="opacity:.75">Opening your courses...</p>'
+        : '<a class="b l full" href="' . url('register') . '">' . ic('fa-user-plus') . ' Create my free account</a><a class="b full" style="background:rgba(255,255,255,.14);color:#fff" href="' . url('login') . '">' . ic('fa-right-to-bracket') . ' I already have an account</a>';
+    $h = '<div class="splash"><div class="splash-in"><img class="splash-logo" src="' . asset('logo.jpg') . '" alt="WODDI logo"><p class="splash-kick">WODDI Institute</p><h1>Become the Woman<br><span>You Were Designed to Be.</span></h1><p class="splash-sub">A structured platform for leadership, mentorship, transformation, and practical learning across Africa.</p>'
+        . '<div class="splash-nets"><div><img src="' . asset('logo-wgmn.png') . '" alt="WODDI Good Mother Network"><small>Good Mother Network<br>30 and above</small></div><div><img src="' . asset('logo-wnnn.png') . '" alt="WODDI Nurture NextGen Network"><small>Nurture NextGen Network<br>18 to 29</small></div></div>'
+        . '<div class="splash-feat"><span>' . ic('fa-graduation-cap') . ' ' . count(catalog()) . ' courses</span><span>' . ic('fa-language') . ' 8 languages</span><span>' . ic('fa-certificate') . ' Certificates</span><span>' . ic('fa-robot') . ' AI mentor</span></div>'
+        . '<div class="splash-cta">' . $btn . '</div><p class="splash-foot">Skills · Leadership · Community<br><a href="' . url('privacy') . '">Privacy Policy</a></p></div></div>';
+    page('WODDI Institute', $h, ['bare' => true, 'foot' => $u ? '<script>setTimeout(function(){location.replace(document.getElementById("go").href)},1600)</script>' : '']);
 }
 if ($first === 'offline') public_shell('You are offline', '<h1>You are offline</h1><p class="mut">Check your data or Wi-Fi, then try again. Lessons you already opened may still be readable.</p><a class="b au-b" href="' . url('') . '">Try again</a>');
 
