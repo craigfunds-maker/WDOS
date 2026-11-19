@@ -1,4 +1,5 @@
 /* A member's home: her membership, what is left to set up, and the latest from HQ. */
+import { birthdayAsk } from '../birthday.js';
 import { h, t as tr, tf, icon, avatar, flag, netTag, card, sk, empty, ago, greeting, fmtDate, NETS, inspCard, toast, choices, roleOptions } from '../ui.js';
 import { bio } from '../api.js';
 import { pushNudge } from '../pushnudge.js';
@@ -41,8 +42,9 @@ export async function render(root) {
   }
   root.append(pushNudge());
   if (u.network === 'WGMN' && u.country_code) root.append(goodMotherCard(u.country_code, u.country));
-  const today = h('div', { hidden: true }); root.append(today);
-  api('/inspiration/today?lang=' + document.documentElement.lang).then((r) => { if (r.card) { today.hidden = false; today.append(inspCard(r.card)); } }).catch(() => {});
+  const today = h('div', { hidden: true }); root.insertBefore(today, root.children[1] || null);   // v109.22: under the greeting, where she sees it first
+  api('/inspiration/today?lang=' + document.documentElement.lang).then((r) => { const cs = r.cards && r.cards.length ? r.cards : (r.card ? [r.card] : []); if (cs.length) { today.hidden = false; today.style.cssText = 'display:grid;gap:16px'; cs.forEach((c) => today.append(inspCard(c))); } }).catch(() => {});
+  if (!u.dob) today.after(birthdayAsk());
   const steps = h('div', { class: 'steps' }, sk.rows(3)); const news = h('div', {}, sk.rows(3));
   root.append(h('div', { class: 'row row--2' }, card('Finish setting up', 'Three things that help your leaders reach you', steps), card('From WODDI HQ', 'Announcements for your network', news, h('a', { class: 'btn btn--ghost btn--s', href: '#/announcements', text: 'All announcements' }))));
   const [push, creds, ann] = await Promise.all([pushState().catch(() => 'off'), api('/webauthn/credentials').catch(() => ({ credentials: [] })), api('/announcements').catch(() => ({ items: [] }))]);

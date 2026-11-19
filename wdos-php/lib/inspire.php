@@ -2,7 +2,7 @@
 declare(strict_types=1);
 /* Today's card for the signed-in leader. There is no menu entry or library page: a message appears on the
  * dashboard at its time and arrives as a notification. */
-route('GET', '/inspiration/today', fn() => ['card' => insp_today(require_user(), preg_replace('/[^a-z]/', '', strtolower((string) ($_GET['lang'] ?? 'en'))) ?: 'en')]);
+route('GET', '/inspiration/today', fn() => ['cards' => function_exists('insp_cards') ? insp_cards(require_user(), preg_replace('/[^a-z]/', '', strtolower((string) ($_GET['lang'] ?? 'en'))) ?: 'en') : [], 'card' => insp_today(require_user(), preg_replace('/[^a-z]/', '', strtolower((string) ($_GET['lang'] ?? 'en'))) ?: 'en')]);
 
 /* ---- photographs and texts: HQ library --------------------------------------- */
 function insp_keys(): array {

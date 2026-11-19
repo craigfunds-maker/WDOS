@@ -1,4 +1,5 @@
 /* HQ dashboard. Every figure is a count of real rows; an empty system shows empty states, never sample numbers. */
+import { celebrationsPanel } from '../celebrations.js';
 import { h, clear, icon, tf, avatar, flag, netTag, card, sk, empty, ago, fmt, greeting, fmtDate } from '../ui.js';
 import { pushNudge } from '../pushnudge.js';
 import { api } from '../api.js';
@@ -75,6 +76,7 @@ export async function render(root) {
     h('div', { class: 'row row--2-1' }, card('New members', 'Registrations per day, by network', trend, legend([{ name: 'WGMN', color: seriesColor.WGMN }, { name: 'WNNN', color: seriesColor.WNNN }])), card('Network split', 'All members to date', split)),
     card('Meetings', 'Coming up and just held: who was invited, who replied, who opened the link and who attended', meet, h('a', { class: 'btn btn--ghost btn--s', href: '#/meetings', text: 'Schedule or open meetings' })),
     card('Video meeting minutes', 'Minutes, the leaders who attended, documents and recordings sent by volunteer leaders', minutesBox, h('a', { class: 'btn btn--ghost btn--s', href: '#/meetings/requests', text: 'All video meetings' })),
+    card('Birthdays and inspiration', 'Birthday greetings, the thought for today and the weekly and monthly messages: who they reached in the app, by phone and by email', celebrationsPanel()),
     h('div', { class: 'row row--2' }, card('Operations', 'Automation share, delivery, support and backup', ops), card('Leader terms', 'Appointments with an end date, and seats that became vacant when a term ended', terms, h('a', { class: 'btn btn--ghost btn--s', href: '#/structure', text: 'Fill a vacant seat' }))),
     h('div', { class: 'row row--2' }, card('Members by country', 'The eight largest', countries), card('Volunteer leaders seated', 'Open seats by level', seats)),
     h('div', { class: 'row row--2' }, card('Newest members', null, recent, h('a', { class: 'btn btn--ghost btn--s', href: '#/members', text: 'All members' })), card('Recent activity', null, feed)));

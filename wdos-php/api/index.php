@@ -397,6 +397,7 @@ route('GET', '/push/latest', function () {
   return ['item' => row('SELECT id, title, body, url FROM notifications WHERE user_id=? ORDER BY id DESC LIMIT 1', [(int) $u['id']])];
 });
 
+require_once __DIR__ . '/../lib/celebrate.php';      // v109.22: birthdays and inspiration by every channel (before the scheduled work below)
 /* Scheduled work. Point a cron (cPanel) or cron-job.org (Render) at this URL every 5 minutes. */
 if ($METHOD === 'GET' && $PATH === '/cron') {
   $key = (string) ($_GET['key'] ?? '');

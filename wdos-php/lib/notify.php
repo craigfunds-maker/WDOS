@@ -96,10 +96,13 @@ function run_automations(): array {
   $done = [];
   // 1. Birthday greeting, on the day, to the member herself.
   $r = cron_once('birthdays', function () {
-    $n = 0;
-    foreach (rows("SELECT id, first_name FROM users WHERE status='active' AND dob IS NOT NULL AND DATE_FORMAT(dob,'%m-%d')=?", [(new DateTimeImmutable('now', new DateTimeZone('Africa/Lagos')))->format('m-d')]) as $u) {
+    $n = 0; $push = 0; $mail = 0;
+    foreach (rows("SELECT id, first_name, email FROM users WHERE status='active' AND dob IS NOT NULL AND DATE_FORMAT(dob,'%m-%d')=?", [(new DateTimeImmutable('now', new DateTimeZone('Africa/Lagos')))->format('m-d')]) as $u) {
+      if (function_exists('as_push_count')) $push += as_push_count('u.id=?', [(int) $u['id']], 'birthday');
       notify((int) $u['id'], 'birthday', 'Happy birthday, ' . $u['first_name'], 'Everyone at WODDI HQ is celebrating you today. Thank you for all you give to your network.', '#/'); $n++;
+      if (function_exists('birthday_mail')) $mail += birthday_mail($u);      // v109.22: by email as well
     }
+    if (function_exists('as_log') && $n) as_log('birthday', 'Birthday greetings, ' . gmdate('j M Y'), $n, $push, $mail);
     return "$n greeted";
   });
   if ($r !== null) $done['birthdays'] = $r;

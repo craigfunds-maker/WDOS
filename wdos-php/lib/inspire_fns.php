@@ -111,13 +111,19 @@ function insp_today(array $u, string $lang = 'en'): ?array {
       'key_thought' => 'Everyone at WODDI HQ is celebrating you today.', 'body' => '', 'image' => insp_photo('messages/celebration.webp'), 'first_name' => $u['first_name']];
   }
   $seat = is_hq($u) ? null : current_seat((int) $u['id']);
-  if (!$seat) return null;
+  $daily = function () use ($u, $d, $seat, $lang) {        // v109.22: a thought for today, for every member, every day
+    if (!function_exists('insp_daily_for') || !($m = insp_daily_for($seat['network'] ?? ($u['network'] ?? null), $d))) return null;
+    $c = insp_shape($m, $u, 'Thought for today', $seat, $lang); $c['kind'] = 'daily'; return $c;
+  };
+  if (!$seat) return $daily();
   $preview = setting('weekly_preview') === $u['id'] . ':' . $d->format('Y-m-d');           // one-leader test from the setup page
-  if (((int) $d->format('N') === 1 || $preview) && ($m = insp_weekly_for($seat['network'], insp_week($d)))) return insp_shape($m, $u, 'Weekly inspiration, week ' . $m['seq'], $seat, $lang);
+  // v109.22: the week's message stays on the dashboard all week (it was only shown on the Monday)
+  $sentWeek = setting('sent_weekly_' . insp_week($d)) !== '';
+  if ((($sentWeek || (int) $d->format('N') === 1) || $preview) && ($m = insp_weekly_for($seat['network'], insp_week($d)))) return insp_shape($m, $u, 'Weekly inspiration, week ' . $m['seq'], $seat, $lang);
   // the monthly message stays on the dashboard for three days from the moment it was sent, then leaves
   $n = insp_month($d); $sent = $n ? setting('sent_monthly_' . $n) : '';
   if ($sent !== '' && time() - strtotime($sent . ' UTC') < 3 * 86400 && ($m = row("SELECT * FROM hq_messages WHERE kind='monthly' AND seq=?", [$n]))) return insp_shape($m, $u, 'Monthly leadership inspiration, ' . $d->format('F Y'), $seat, $lang);
-  return null;
+  return $daily();
 }
 function set_setting(string $k, string $v): void { q('DELETE FROM app_settings WHERE k=?', [$k]); q('INSERT INTO app_settings (k,v) VALUES (?,?)', [$k, $v]); }
 /** Claim a send so two requests can never both do it. True for the one that got it. */
@@ -134,15 +140,25 @@ function run_inspiration_automations(array &$done): void {
   $leaders = 'EXISTS (SELECT 1 FROM seats s WHERE s.user_id=u.id AND s.ends_at IS NULL AND s.network=?)';
   $week = insp_week($d);
   if ((int) $d->format('N') === 1 && $week >= 1 && insp_weekly_for('WGMN', $week) && claim_send('sent_weekly_' . $week)) {
-    $n = 0;
-    foreach (['WGMN', 'WNNN'] as $net) if ($m = insp_weekly_for($net, $week)) $n += notify_many($leaders, [$net], 'inspiration', $m['headline'], $m['key_thought'], '#/');
+    $n = 0; $push = 0; $mail = 0;
+    foreach (['WGMN', 'WNNN'] as $net) if ($m = insp_weekly_for($net, $week)) {
+      if (function_exists('as_push_count')) $push += as_push_count($leaders, [$net], 'inspiration');
+      $n += notify_many($leaders, [$net], 'inspiration', $m['headline'], $m['key_thought'], '#/');
+      $mail += mail_many("u.status='active' AND " . $leaders, [$net], 'Weekly inspiration: ' . $m['headline'], (string) $m['key_thought'], '#/');      // v109.22: by email as well
+    }
+    if (function_exists('as_log')) as_log('weekly', "Weekly inspiration, week $week", $n, $push, $mail);
     $done['weekly_inspiration'] = "week $week to $n leaders";
   }
   $month = insp_month($d);
   if ($month >= 1 && ($m = row("SELECT * FROM hq_messages WHERE kind='monthly' AND seq=?", [$month])) && claim_send('sent_monthly_' . $month)) {
-    $n = notify_many('EXISTS (SELECT 1 FROM seats s WHERE s.user_id=u.id AND s.ends_at IS NULL)', [], 'inspiration', 'This month: ' . $m['headline'], 'Monthly leadership inspiration for ' . $d->format('F') . '. Theme: ' . $m['theme'] . '.', '#/');
+    $all = 'EXISTS (SELECT 1 FROM seats s WHERE s.user_id=u.id AND s.ends_at IS NULL)'; $mb = 'Monthly leadership inspiration for ' . $d->format('F') . '. Theme: ' . $m['theme'] . '.';
+    $push = function_exists('as_push_count') ? as_push_count($all, [], 'inspiration') : 0;
+    $n = notify_many($all, [], 'inspiration', 'This month: ' . $m['headline'], $mb, '#/');
+    $mail = mail_many("u.status='active' AND " . $all, [], 'This month: ' . $m['headline'], $mb . "\n\n" . (string) $m['key_thought'], '#/');
+    if (function_exists('as_log')) as_log('monthly', 'Monthly leadership inspiration, ' . $d->format('F Y'), $n, $push, $mail);
     $done['monthly_inspiration'] = "month $month to $n leaders";
   }
+  if (function_exists('run_celebrations')) run_celebrations($done);      // v109.22: the daily thought
 }
 /** Runs the automations from ordinary traffic, at most every five minutes, so nothing depends on an outside timer. */
 function automations_tick(): void {

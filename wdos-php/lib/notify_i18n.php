@@ -91,6 +91,9 @@ const NOTE_TEMPLATES = [
     'ar' => ['مكالمة صوتية من {1}', '{1}'], 'fr' => ['Appel vocal de {1}', '{1}'], 'pt' => ['Chamada de voz de {1}', '{1}'], 'sw' => ['Simu ya sauti kutoka kwa {1}', '{1}']]],
   ['/^Missed call from (.+)$/u', '/^Open Calls in WDOS to ring back\.$/u', [
     'ar' => ['مكالمة فائتة من {1}', 'افتحي المكالمات في WDOS لمعاودة الاتصال.'], 'fr' => ['Appel manqué de {1}', 'Ouvrez Appels dans WDOS pour rappeler.'], 'pt' => ['Chamada perdida de {1}', 'Abra Chamadas no WDOS para ligar de volta.'], 'sw' => ['Simu uliyokosa kutoka kwa {1}', 'Fungua Simu katika WDOS ili upige tena.']]],
+  // v109.22: the daily thought
+  ['/^Thought for today: (.+)$/u', '/^(.*)$/su', [
+    'ar' => ['فكرة اليوم: {1}', '{1}'], 'fr' => ['Pensée du jour : {1}', '{1}'], 'pt' => ['Pensamento do dia: {1}', '{1}'], 'sw' => ['Wazo la leo: {1}', '{1}']]],
 ];
 /* One entry per template above, in the same order: its key, its name on the Communications page, the English wording,
  * and what {1} and {2} stand for. WODDI HQ can replace any wording in any language; the change is logged. */
@@ -122,6 +125,7 @@ const NOTE_META = [
   ['ann_reminder', 'Announcement reminder', 'Reminder: {1}', 'Please read this announcement and press I have read this.', '{1} is the announcement.'],
   ['call_in', 'Voice call ringing', 'Voice call from {1}', '{1}', 'Title: {1} is the caller. Message: {1} is her role.'],
   ['call_missed', 'Missed voice call', 'Missed call from {1}', 'Open Calls in WDOS to ring back.', '{1} is the caller.'],
+  ['daily_thought', 'Thought for today', 'Thought for today: {1}', '{1}', '{1} is the day\'s headline; the message is its key thought.'],
 ];
 /** Wordings WODDI HQ has approved in place of the built-in ones: [key][lang] = [title, body]. */
 function note_overrides(): array {
