@@ -84,10 +84,11 @@ function vc_expire(): void {
 }
 
 route('GET', '/calls', function () {
-  $u = require_user(); vc_expire(); $me = (int) $u['id'];
+  $u = require_user(); vc_expire(); $me = (int) $u['id']; require_once __DIR__ . '/gcalls.php';
   $w = '(caller_id=? OR callee_id=?' . (is_hq($u) ? ' OR to_hq=1' : '') . ')';
   $recent = array_map(fn($c) => vc_out($u, $c), rows("SELECT * FROM voice_calls WHERE $w ORDER BY id DESC LIMIT 40", [$me, $me]));
-  return ['can_call' => vc_can_call($u), 'is_hq' => is_hq($u), 'people' => vc_can_call($u) ? vc_people($u, str_in_get('q')) : [], 'recent' => array_values(array_filter($recent, fn($r) => $r['role'] !== ''))];
+  return ['can_call' => vc_can_call($u), 'is_hq' => is_hq($u), 'people' => vc_can_call($u) ? vc_people($u, str_in_get('q')) : [], 'recent' => array_values(array_filter($recent, fn($r) => $r['role'] !== '')),
+    'groups' => function_exists('gc_recent') ? gc_recent($u) : [], 'max_group' => defined('GC_MAX') ? GC_MAX : 0];
 });
 function str_in_get(string $k): string { return mb_substr(trim((string) ($_GET[$k] ?? '')), 0, 60); }
 
@@ -115,7 +116,10 @@ route('GET', '/calls/ring', function () {
   vc_expire(); $me = (int) $u['id'];
   $w = '(callee_id=?' . (is_hq($u) ? ' OR to_hq=1' : '') . ')';
   $list = rows("SELECT * FROM voice_calls WHERE status='ringing' AND $w AND caller_id<>? AND created_at >= ? ORDER BY id DESC LIMIT 5", [$me, $me, gmdate('Y-m-d H:i:s', time() - VC_RING_SECONDS)]);
-  return ['calls' => array_map(fn($c) => vc_out($u, $c), $list)];
+  $calls = array_map(fn($c) => vc_out($u, $c), $list);
+  require_once __DIR__ . '/gcalls.php';
+  if (function_exists('gc_ringing')) $calls = array_merge($calls, gc_ringing($u));      // v109.24: group calls
+  return ['calls' => $calls];
 });
 
 function vc_mine(array $u, int $id): array {

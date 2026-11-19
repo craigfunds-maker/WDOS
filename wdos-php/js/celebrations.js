@@ -2,7 +2,7 @@
  * and every automated greeting and inspiration send with how many people it reached in the app, by phone and by email. */
 import { h, t, tf, icon, empty, sk, fmt, ago } from './ui.js';
 import { api } from './api.js';
-const KIND = { birthday: 'Birthday greetings', daily: 'Thought for today', weekly: 'Weekly inspiration', monthly: 'Monthly inspiration' };
+const KIND = { birthday: 'Birthday greetings', daily: 'Thought for today', weekly: 'Weekly inspiration', monthly: 'Monthly inspiration', dob_ask: 'Asked for a date of birth' };
 export function celebrationsPanel() {
   const box = h('div', { style: 'display:grid;gap:16px' }, sk.rows(4));
   api('/hq/celebrations').then((r) => {

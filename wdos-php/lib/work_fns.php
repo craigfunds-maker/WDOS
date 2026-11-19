@@ -99,6 +99,7 @@ function meetings_snapshot(array $node, string $a, string $b): array {
 /** WHERE on users u (joined to org_units ou on the home unit) for everyone invited to this meeting. */
 function meeting_invited_sql(array $m): array {
   if ($m['audience'] === 'hq_team') return ["u.role IN ('hq_admin','super_admin')", []];
+  if ($m['audience'] === 'people') return ['u.id IN (SELECT mi.user_id FROM meeting_invitees mi WHERE mi.meeting_id=?)', [(int) $m['id']]];      // v109.24: chosen leaders
   if ($m['audience'] === 'members') {
     if ($m['scope_level'] === 'chapter') {                                      // a chapter leader's meeting is for her own chapter
       try { $cid = (int) val('SELECT chapter_id FROM seats WHERE user_id=? AND ends_at IS NULL AND chapter_id IS NOT NULL LIMIT 1', [(int) $m['host_id']]); } catch (PDOException $e) { $cid = 0; }

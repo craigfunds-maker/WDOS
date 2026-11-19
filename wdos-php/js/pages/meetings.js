@@ -33,20 +33,30 @@ export async function render(root, params) {
   }
   load();
 }
-function newForm(r, done) {
+export function newForm(r, done, opts = {}) {
   const title = input({ maxlength: 190 }); const mode = h('select', { class: 'input' }, Object.entries(r.modes).map(([v, l]) => h('option', { value: v, text: l })));
   const loc = input({ maxlength: 400 }); const locHint = h('small', { text: 'Paste the meeting link here.' }); mode.addEventListener('change', () => { locHint.textContent = mode.value === 'in_person' ? 'Address of the meeting.' : mode.value === 'hybrid' ? 'Address, and the video call link.' : 'Paste the meeting link here.'; });
   const start = input({ type: 'datetime-local' }), end = input({ type: 'datetime-local' }); const aud = h('select', { class: 'input' }, Object.entries(r.audiences).map(([v, l]) => h('option', { value: v, text: l })));
   start.addEventListener('change', () => { if (start.value && !end.value) { const d = new Date(new Date(start.value).getTime() + 3600000); end.value = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); } });
   const agenda = h('textarea', { class: 'input', rows: 4 }); const err = h('p', { class: 'err', role: 'alert' });
   const kind = h('select', { class: 'input' }, [['meeting', 'Meeting'], ['talk_show', 'Talk show']].map(([v, l]) => h('option', { value: v, text: l })));
+  /* v109.24: a meeting with the leaders she chooses */
+  const chosen = new Map((opts.invitees || []).map((p) => [p.id, p])); const chips = h('div', { class: 'tagrow', style: 'justify-content:flex-start' }); const found = h('div', { class: 'picklist' });
+  const who = input({ type: 'search', placeholder: t('Search a leader by name'), 'aria-label': t('Search a leader by name') });
+  const paintChosen = () => chips.replaceChildren(...[...chosen.values()].map((p) => h('span', { class: 'tag' }, p.name, h('button', { class: 'tag__x', type: 'button', 'aria-label': t('Remove'), onclick: () => { chosen.delete(p.id); paintChosen(); } }, icon('x', 12)))));
+  let wt; who.addEventListener('input', () => { clearTimeout(wt); wt = setTimeout(async () => { const q = who.value.trim(); if (q.length < 2) { found.replaceChildren(); return; }
+    try { const x = await api('/tasks/people?q=' + encodeURIComponent(q)); found.replaceChildren(...(x.people.length ? x.people.map((p) => h('button', { type: 'button', class: 'pick', onclick: () => { chosen.set(p.id, { id: p.id, name: `${p.first_name} ${p.last_name}` }); paintChosen(); who.value = ''; found.replaceChildren(); } }, avatar(p, 30), h('span', {}, h('b', { text: `${p.first_name} ${p.last_name}` }), h('small', { text: p.title || '' })))) : [h('p', { class: 'faint', text: t('No one found inside your area.') })])); } catch (e) { found.replaceChildren(h('p', { class: 'faint', text: e.message })); } }, 250); });
+  const pickBox = h('div', { style: 'display:grid;gap:8px' }, h('b', { text: t('Who is invited') }), chips, who, found);
+  const peopleKey = Object.keys(r.audiences).find((k) => k.startsWith('people:'));
+  if (chosen.size && peopleKey) aud.value = peopleKey;
+  const syncAud = () => { pickBox.hidden = !aud.value.startsWith('people:'); }; aud.addEventListener('change', syncAud); paintChosen(); syncAud();
   const isHq = !!r.audiences['hq_team:ALL']; const country = h('select', { class: 'input' }, h('option', { value: '', text: 'Every country' }));
   if (isHq) api('/geo/countries').then((x) => country.append(...x.countries.map((c) => h('option', { value: c.id, text: c.name })))).catch(() => {});
   const meetBtn = h('a', { class: 'btn btn--ghost btn--s', href: 'https://meet.google.com/new', target: '_blank', rel: 'noopener' }, icon('link', 16), 'Create a Google Meet link');
   const save = h('button', { class: 'btn', type: 'button', onclick: async () => { err.textContent = ''; save.disabled = true;
-    try { const iso = (v) => v ? new Date(v).toISOString() : ''; const x = await api('/meetings', { title: title.value, mode: mode.value, location: loc.value, starts_at: iso(start.value), ends_at: iso(end.value), audience: aud.value, agenda: agenda.value, kind: kind.value, country_id: isHq ? Number(country.value) || 0 : 0 });
+    try { const iso = (v) => v ? new Date(v).toISOString() : ''; const x = await api('/meetings', { title: title.value, mode: mode.value, location: loc.value, starts_at: iso(start.value), ends_at: iso(end.value), audience: aud.value, invitees: [...chosen.keys()], agenda: agenda.value, kind: kind.value, country_id: isHq ? Number(country.value) || 0 : 0 });
       toast('Meeting scheduled', tf('{1} people notified in the app and by push.', fmt(x.invited)) + (x.mail_on ? tf(' {1} emails are being sent.', fmt(x.emails)) : ' Emails are not set up on the server yet.'), 'ok'); done(); } catch (e) { err.textContent = e.message; save.disabled = false; } } }, 'Schedule');
-  return card('Schedule a meeting', 'Times are in your own time zone. Each person invited sees the meeting in their own.', h('div', { style: 'display:grid;gap:14px' }, field('Title', title), h('div', { class: 'grid2' }, field('Meeting or talk show?', kind), field('Starts', start), field('Ends', end), field('Format', mode), field('Who is invited?', aud), isHq ? field('Country', country) : null),
+  return card('Schedule a meeting', 'Times are in your own time zone. Each person invited sees the meeting in their own.', h('div', { style: 'display:grid;gap:14px' }, field('Title', title), h('div', { class: 'grid2' }, field('Meeting or talk show?', kind), field('Starts', start), field('Ends', end), field('Format', mode), field('Who is invited?', aud), isHq ? field('Country', country) : null), pickBox,
     h('label', { class: 'field' }, h('span', { text: 'Location or link' }), loc, locHint),
     h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap;align-items:center' }, meetBtn, h('small', { class: 'muted', style: 'flex:1;min-width:220px', text: 'Google Meet opens in a new tab with a new meeting. Copy its link and paste it above. In the meeting, people can turn on captions and choose their own language for translated speech.' })),
     field('Agenda (optional)', agenda), h('small', { class: 'muted', text: 'Everyone invited is told now, reminded the day before, one hour before and as it starts, in the app and on their phones. Emails go out too when email is switched on.' }), err, h('div', {}, save)));

@@ -165,9 +165,9 @@ function meeting_shape(array $m): array {
     'status' => $m['status'], 'minutes' => (string) $m['minutes'], 'link' => preg_match('#https?://\S+#i', $m['location'], $lk) ? rtrim($lk[0], '.,)') : '', 'is_link' => (bool) preg_match('#^https?://\S+$#i', trim($m['location']))];
 }
 function meeting_audiences(array $u): array {
-  if (is_hq($u)) return ['leaders:ALL' => 'All volunteer leaders, both networks', 'leaders:WGMN' => 'WGMN leadership', 'leaders:WNNN' => 'WNNN leadership', 'members:ALL' => 'All members, both networks', 'members:WGMN' => 'All WGMN members', 'members:WNNN' => 'All WNNN members', 'hq_team:ALL' => 'WODDI HQ team'];
+  if (is_hq($u)) return ['people:ALL' => 'People I choose', 'leaders:ALL' => 'All volunteer leaders, both networks', 'leaders:WGMN' => 'WGMN leadership', 'leaders:WNNN' => 'WNNN leadership', 'members:ALL' => 'All members, both networks', 'members:WGMN' => 'All WGMN members', 'members:WNNN' => 'All WNNN members', 'hq_team:ALL' => 'WODDI HQ team'];
   $seat = work_seat($u); if (!$seat) return [];
-  return ['leaders:' . $seat['network'] => 'My leadership team', 'members:' . $seat['network'] => 'Members in my area'];
+  return ['leaders:' . $seat['network'] => 'My leadership team', 'people:' . $seat['network'] => 'Leaders I choose', 'members:' . $seat['network'] => 'Members in my area'];
 }
 
 route('GET', '/meetings', function () {
@@ -187,12 +187,22 @@ route('POST', '/meetings', function () {
   $mode = isset(MEETING_MODES[str_in('mode', 12)]) ? str_in('mode', 12) : 'virtual'; $loc = str_in('location', 400);
   if ($loc === '') fail(422, $mode === 'in_person' ? 'Give the address of the meeting.' : 'Paste the meeting link here.', 'location');
   [$audience, $net] = explode(':', $pick); $seat = work_seat($u);
+  // v109.24: a meeting with the leaders she chooses (each must be someone she may give work to)
+  $invitees = [];
+  if ($audience === 'people') {
+    $invitees = array_values(array_unique(array_filter(array_map('intval', is_array(body()['invitees'] ?? null) ? body()['invitees'] : []), fn($x) => $x > 0 && $x !== (int) $u['id'])));
+    if (!$invitees) fail(422, 'Choose who to invite.', 'invitees');
+    if (count($invitees) > 200) fail(422, 'Invite 200 people at most. For more, choose a whole group.', 'invitees');
+    foreach ($invitees as $iid) if (!work_may_assign($u, $iid)) fail(403, 'You can invite the leaders who serve under your seat.', 'invitees');
+  }
   // HQ may keep a meeting to one country
   $only = is_hq($u) && $audience !== 'hq_team' && (int) (body()['country_id'] ?? 0) ? row("SELECT id, name, path FROM org_units WHERE level='country' AND id=?", [(int) body()['country_id']]) : null;
   if ($only) $seat = ['org_unit_id' => (int) $only['id'], 'unit_path' => $only['path'], 'position_level' => '', 'area_label' => '', '_label' => $aud[$pick] . ', ' . $only['name']];
   $mid = ins('INSERT INTO meetings (title,mode,location,starts_at,ends_at,agenda,host_id,audience,network,org_unit_id,unit_path,scope_level,scope_area,scope_label,status,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
     [$title, $mode, $loc, gmdate('Y-m-d H:i:s', $s), gmdate('Y-m-d H:i:s', $e), str_in('agenda', 6000), (int) $u['id'], $audience, $net, $seat ? (int) $seat['org_unit_id'] : null, $seat ? $seat['unit_path'] : '',
      $seat ? $seat['position_level'] : '', $seat ? (string) $seat['area_label'] : '', $seat ? ($seat['_label'] ?? seat_title($seat)) : $aud[$pick], 'scheduled', now()]);
+  foreach ($invitees as $iid) q('INSERT INTO meeting_invitees (meeting_id,user_id) VALUES (?,?)', [$mid, $iid]);
+  if ($invitees) q('UPDATE meetings SET scope_label=? WHERE id=?', [count($invitees) === 1 ? 'Invited: ' . (string) val("SELECT CONCAT(first_name,' ',last_name) FROM users WHERE id=?", [$invitees[0]]) : count($invitees) . ' invited leaders', $mid]);
   if ((body()['kind'] ?? '') === 'talk_show') { try { q("UPDATE meetings SET kind='talk_show' WHERE id=?", [$mid]); } catch (PDOException $e) { /* before migration 021 */ } }
   $m = meeting_get($mid); [$w, $p] = meeting_invited_sql($m);
   $join = meeting_join_sql($m, $w);
@@ -208,7 +218,7 @@ route('POST', '/meetings', function () {
       if (mail_queue($r['email'], $r['first_name'], 'Meeting: ' . mb_substr($title, 0, 150), mail_wrap('Dear ' . $r['first_name'] . ',', $html, $link ? 'Join the meeting' : 'Open in WDOS', $link ?: app_url() . '/#/meetings/' . $mid))) $mailed++;
     }
   }
-  log_activity((int) $u['id'], null, 'meeting_scheduled', $title);
+  log_activity((int) $u['id'], count($invitees) === 1 ? $invitees[0] : null, 'meeting_scheduled', $title . ($invitees ? ' · ' . (count($invitees) === 1 ? 'with ' . (string) val("SELECT CONCAT(first_name,' ',last_name) FROM users WHERE id=?", [$invitees[0]]) : count($invitees) . ' leaders invited') : ''));
   after_response(fn() => push_drain(80)); after_response(fn() => mail_drain(15));
   return ['ok' => true, 'id' => $mid, 'invited' => $n, 'emails' => $mailed, 'mail_on' => mail_configured()];
 });

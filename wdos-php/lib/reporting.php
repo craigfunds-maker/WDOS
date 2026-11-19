@@ -166,6 +166,7 @@ route('POST', '/reporting/report/(\d+)/review', function ($id) {
   q('INSERT INTO report_reviews (report_id,version,action,note,by_user,created_at) VALUES (?,?,?,?,?,?)', [(int) $id, (int) $r['version'], $act, $note, (int) $u['id'], now()]);
   $who = trim($u['first_name'] . ' ' . $u['last_name']);
   notify((int) $r['owner_id'], 'report', $r['report_no'] . ' was ' . ['approve' => 'approved', 'return' => 'returned for correction', 'escalate' => 'escalated to HQ'][$act], $act === 'return' ? "$who wrote: $note" : "Reviewed by $who.", '#/reporting/r/' . $id);
+  log_activity((int) $u['id'], (int) $r['owner_id'], 'report_reviewed', $r['report_no'] . ' ' . $status);
   $made = $act === 'approve' ? tasks_from_report($r, (int) $u['id']) : 0;
   if ($act === 'escalate') notify_hq('report', $r['report_no'] . ' escalated by ' . $who, $r['unit_label'] . ($note !== '' ? ". $note" : ''), '#/reporting/r/' . $id);
   after_response(fn() => push_drain(20));

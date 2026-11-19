@@ -268,7 +268,7 @@ a.list__link{color:inherit;text-decoration:none;border-radius:10px} a.list__link
 @media (max-width:640px){.rprow{grid-template-columns:1fr!important}}
 @media print{.side,.top,.rtabs,.rpbar,.toasts,.btn,.iconbtn{display:none!important} .shell{display:block} .main,body{background:#fff!important} .card,.hero,.panel{box-shadow:none;break-inside:avoid} :root{--bg:#fff;--surface:#fff;--raised:#f6f6f6;--sunken:#fff;--ink:#111;--ink-2:#333;--ink-3:#555;--line:#ccc;--line-soft:#ddd}}
 
-.rprow--wide{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--raised)}
+.rprow--wide{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--raised)}
 
 /* v93: tasks, meetings, structure, onboarding, referral and activation */
 .seg a.seg__a{color:var(--ink-2);padding:6px 12px;border-radius:9px;font-weight:600;font-size:13px;min-height:32px;display:inline-flex;align-items:center;text-decoration:none;white-space:nowrap;flex:none}
@@ -638,3 +638,12 @@ a.pdx-step__link:hover{background:color-mix(in srgb,#D4006A 7%,transparent)}
 .vcall__btn[aria-pressed=true] svg{background:#fff;color:#0b0610}
 .vcall__end svg{background:#c4103d;transform:rotate(135deg)}
 .vcall__btn:disabled{opacity:.5}
+
+/* v109.24: my leaders and group calls */
+.teamacts{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.teamacts .btn{min-height:48px}
+.vgroup{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:18px;max-width:560px}
+.vgroup__p{display:grid;justify-items:center;gap:4px;width:110px;padding:10px 6px;border-radius:14px;background:rgba(255,255,255,.07)}
+.vgroup__p.is-on{background:rgba(124,181,24,.22);box-shadow:inset 0 0 0 2px #7CB518}
+.vgroup__p b{font-size:15px} .vgroup__p small{font-size:12px;color:#e6cfdc}
+.vgroup__list{display:grid;gap:6px;max-height:40vh;overflow:auto;margin-top:14px;width:min(420px,90vw);text-align:left;background:#fff;color:#2b1a24;border-radius:14px;padding:8px}

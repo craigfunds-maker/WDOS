@@ -426,5 +426,7 @@ require __DIR__ . '/../lib/legacy.php';
 require __DIR__ . '/../lib/courses.php';
 require __DIR__ . '/../lib/workcheck.php';
 require __DIR__ . '/../lib/calls.php';
+require_once __DIR__ . '/../lib/gcalls.php';      // v109.24: group voice calls (calls.php loads it itself for /calls and /calls/ring)
+require __DIR__ . '/../lib/team.php';        // v109.24: a leader's team
 
 fail(404, 'No such WDOS endpoint.', 'not_found');

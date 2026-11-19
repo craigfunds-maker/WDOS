@@ -61,7 +61,10 @@ export async function render(root, params = {}) {
       clear(trend).classList.add('reveal'); lineChart(trend, { labels: d.series.map((p) => p.date), series: [{ name: d.seat.network, color, values: d.series.map((p) => p[d.seat.network]) }] });
       bars(clear(breakdown), { rows: d.breakdown.map((b) => ({ label: b.label, segments: [{ name: d.seat.network, color, value: Number(b.total) }] })) });
     }
-    team.replaceChildren(d.team.length ? h('div', { class: 'list reveal' }, d.team.map((p) => h('div', {}, avatar(p, 40), h('div', { class: 'grow' }, h('b', { text: `${p.first_name} ${p.last_name}` }), h('small', { text: `${p.title}, ${p.area_label || p.unit}` })), h('small', { style: 'flex:none', text: p.last_seen_at ? tf('Seen {1}', agoIn(p.last_seen_at)) : 'Not signed in yet' }))))
+    // v109.24: each leader opens: last seen, her figures and reports, and message, call, task or meeting in one touch
+    const open = (p) => viewing ? '#/members/' + p.id : '#/team/' + p.id;
+    team.replaceChildren(d.team.length ? h('div', { style: 'display:grid;gap:12px' }, h('div', { class: 'list reveal' }, d.team.map((p) => h('a', { class: 'list__link', href: open(p), 'aria-label': tf('Open {1}', `${p.first_name} ${p.last_name}`) }, avatar(p, 40), h('div', { class: 'grow' }, h('b', { text: `${p.first_name} ${p.last_name}` }), h('small', { text: `${p.title}, ${p.area_label || p.unit}` })), h('small', { style: 'flex:none', text: p.last_seen_at ? tf('Seen {1}', agoIn(p.last_seen_at)) : 'Not signed in yet' }), icon('chevright', 16)))),
+      viewing ? '' : h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' }, h('a', { class: 'btn btn--ghost btn--s', href: '#/team' }, icon('users', 16), ' ', 'All my leaders'), h('a', { class: 'btn btn--ghost btn--s', href: '#/team' }, icon('phone', 16), ' ', 'Group call')))
       : empty('award', 'No leaders under your seat yet', 'WODDI HQ appoints leaders. As seats below yours are filled, they are listed here with when they were last active.'));
     recent.replaceChildren(d.recent.length ? peopleList(d.recent) : empty('user', 'Nobody has joined yet', 'Share your network joining link to bring in your first members.', share()));
     void icon;
