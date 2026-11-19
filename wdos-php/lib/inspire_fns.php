@@ -165,6 +165,7 @@ function run_inspiration_automations(array &$done): void {
   }
   if (function_exists('run_celebrations')) run_celebrations($done);      // v109.22: the daily thought
   if (function_exists('run_envoy_alerts')) run_envoy_alerts($done);      // v109.31: envoys hear about leaders they brought in
+  if (function_exists('run_course_unlocks')) run_course_unlocks($done);  // v109.33: her next monthly course has opened
 }
 /** Runs the automations from ordinary traffic, at most every five minutes, so nothing depends on an outside timer. */
 function automations_tick(): void {

@@ -7,8 +7,8 @@ route('GET', '/courses', function () {
   $done = []; foreach (rows('SELECT course_no, module_no FROM course_progress WHERE user_id=?', [$id]) as $r) $done[(int) $r['course_no']][] = (int) $r['module_no'];
   $best = []; foreach (rows('SELECT course_no, MAX(score) s, COUNT(*) n, MAX(passed) p FROM course_attempts WHERE user_id=? GROUP BY course_no', [$id]) as $r) $best[(int) $r['course_no']] = $r;
   $certs = []; foreach (rows('SELECT * FROM certificates WHERE user_id=? AND revoked_at IS NULL', [$id]) as $c) $certs[(int) $c['course_no']] = cert_out($c);
-  $out = [];
-  foreach (COURSE_TITLES as $no => $t) $out[] = ['no' => $no, 'modules_done' => $done[$no] ?? [], 'best' => isset($best[$no]) ? (int) $best[$no]['s'] : null,
+  $out = []; $sched = course_schedule($u);   // v109.33: one course a month
+  foreach (COURSE_TITLES as $no => $t) $out[] = ['no' => $no, 'open' => $sched[$no]['open'], 'opens_at' => $sched[$no]['opens_at'], 'modules_done' => $done[$no] ?? [], 'best' => isset($best[$no]) ? (int) $best[$no]['s'] : null,
     'attempts' => isset($best[$no]) ? (int) $best[$no]['n'] : 0, 'passed' => !empty($best[$no]['p']), 'certificate' => $certs[$no] ?? null];
   $photos = []; foreach (rows("SELECT image_key, mime, updated_at FROM message_photos WHERE image_key LIKE 'course/%'") as $p) $photos[$p['image_key']] = media_url($p['image_key'], $p['mime'], strtotime($p['updated_at']));
   $place = row('SELECT course_no, part, seconds, updated_at FROM course_place WHERE user_id=?', [$id]);
@@ -18,6 +18,7 @@ route('GET', '/courses', function () {
 route('POST', '/courses/(\d+)/modules/(\d+)', function ($c, $m) {
   $u = require_user(); $c = (int) $c; $m = (int) $m;
   if (!isset(COURSE_TITLES[$c]) || $m < 1 || $m > 5) fail(404, 'That lesson was not found.', 'not_found');
+  course_require_open($u, $c);
   if ($m > 1 && !val('SELECT 1 FROM course_progress WHERE user_id=? AND course_no=? AND module_no=?', [(int) $u['id'], $c, $m - 1])) fail(409, 'Finish the lesson before this one first.', 'order');
   q('INSERT IGNORE INTO course_progress (user_id,course_no,module_no,completed_at) VALUES (?,?,?,?)', [(int) $u['id'], $c, $m, now()]);
   return ['ok' => true];
@@ -25,6 +26,7 @@ route('POST', '/courses/(\d+)/modules/(\d+)', function ($c, $m) {
 
 route('POST', '/courses/(\d+)/quiz', function ($c) {
   $u = require_user(); $c = (int) $c; if (!isset(COURSE_KEY[$c])) fail(404, 'That course was not found.', 'not_found');
+  course_require_open($u, $c);
   throttle('quiz:' . (int) $u['id'], 30, 3600); throttle_hit('quiz:' . (int) $u['id']);
   if ((int) val('SELECT COUNT(*) FROM course_progress WHERE user_id=? AND course_no=?', [(int) $u['id'], $c]) < 5) fail(409, 'Finish all five lessons before the quiz.', 'lessons');
   $a = body()['answers'] ?? null;

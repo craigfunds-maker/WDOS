@@ -4,7 +4,7 @@ def run(): return subprocess.run('. /tmp/env.sh; php /home/claude/wa.php',shell=
 U=datetime.UTC; t=lambda **k:(datetime.datetime.now(U)+datetime.timedelta(**k)).strftime('%Y-%m-%dT%H:%M:%SZ')
 s1,r,b1=reg(); u1=r.json()['user']; s2,r,b2=reg(network='WNNN',dob='2001-02-03'); u2=r.json()['user']
 gh=[c for c in cs if c['code']=='GH'][0]['id']
-aud=hq.get(B+'/meetings').json()['audiences']; chk('HQ can invite leaders, all members of either network, or the HQ team', set(aud)=={'leaders:ALL','leaders:WGMN','leaders:WNNN','members:ALL','members:WGMN','members:WNNN','hq_team:ALL'}, aud)
+aud=hq.get(B+'/meetings').json()['audiences']; chk('HQ can invite leaders, all members of either network, or the HQ team', set(aud)=={'people:ALL','leaders:ALL','leaders:WGMN','leaders:WNNN','members:ALL','members:WGMN','members:WNNN','hq_team:ALL'}, aud)
 chk('a member cannot schedule a meeting', s1.post(B+'/meetings',json={'title':'My own','location':'https://meet.google.com/abc-defg-hij','starts_at':t(days=2),'ends_at':t(days=2,hours=1),'audience':'members:WGMN'}).status_code==403)
 r=hq.post(B+'/meetings',json={'title':'WGMN members forum','mode':'virtual','location':'https://meet.google.com/abc-defg-hij','starts_at':t(days=2),'ends_at':t(days=2,hours=1),'audience':'members:WGMN','agenda':'1. Welcome\n2. Chapters'}); mid=r.json().get('id'); chk('HQ schedules for all WGMN members with a Meet link and agenda', r.ok and r.json()['invited']>=1, r.text)
 chk('the WGMN member is invited and told in the app', s1.get(B+f'/meetings/{mid}').ok and sql(f"select count(*) from notifications where user_id={u1['id']} and kind='meeting' and title like 'Meeting: WGMN members forum%'")=='1')

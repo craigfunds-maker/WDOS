@@ -3422,5 +3422,22 @@
 "Resigned from her seat": "Ta yi murabus daga matsayinta",
 "Her appointment was ended": "An kawo ƙarshen naɗinta",
 "Replaced in her seat": "An maye gurbinta a matsayinta",
-"No longer holds a seat": "Ba ta riƙe matsayi kuma"
+"No longer holds a seat": "Ba ta riƙe matsayi kuma",
+"A new course opens for you each month. Next: Course {1}, on {2}.": "Sabon kwas yana buɗewa gare ki kowane wata. Na gaba: Kwas na {1}, a ranar {2}.",
+"Opens {1}": "Zai buɗe {1}",
+"This course opens for you on {1}.": "Wannan kwas zai buɗe gare ki a ranar {1}.",
+"One new course opens each month, so you have time to learn each one well and practise it in your service.": "Sabon kwas ɗaya yana buɗewa kowane wata, don ki sami lokacin koyon kowanne da kyau ki kuma aiwatar da shi a hidimarki.",
+"Back to my courses": "Koma zuwa kwas ɗina",
+"Add your profile photo": "Ƙara hotonki na bayanan martaba",
+"Leaders and members can see who you are. Take a clear photo of your face now, or choose one from your phone.": "Shugabanni da membobi za su iya ganin ko ke wace ce. Ɗauki hoton fuskarki mai kyau yanzu, ko zaɓi ɗaya daga wayarki.",
+"Your new photo": "Sabon hotonki",
+"Use this photo": "Yi amfani da wannan hoton",
+"Choose again": "Sake zaɓa",
+"WDOS could not open your camera. Allow the camera for this site, or choose a photo from your phone instead.": "WDOS ta kasa buɗe kyamararki. Ba da izinin kyamara ga wannan shafi, ko ki zaɓi hoto daga wayarki maimakon haka.",
+"Snap the photo": "Ɗauki hoton",
+"Your profile photo is saved": "An adana hotonki na bayanan martaba",
+"You can change it any time in Settings.": "Za ki iya canza shi a kowane lokaci a Saituna.",
+"Take a photo": "Ɗauki hoto",
+"Upload a photo": "Ɗora hoto",
+"Not now": "Ba yanzu ba"
 }

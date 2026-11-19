@@ -3510,5 +3510,22 @@
 "Resigned from her seat": "Amejiuzulu nafasi yake",
 "Her appointment was ended": "Uteuzi wake umekoma",
 "Replaced in her seat": "Amebadilishwa kwenye nafasi yake",
-"No longer holds a seat": "Hana nafasi tena"
+"No longer holds a seat": "Hana nafasi tena",
+"A new course opens for you each month. Next: Course {1}, on {2}.": "Kozi mpya hufunguliwa kwako kila mwezi. Inayofuata: Kozi ya {1}, tarehe {2}.",
+"Opens {1}": "Inafunguliwa {1}",
+"This course opens for you on {1}.": "Kozi hii itafunguliwa kwako tarehe {1}.",
+"One new course opens each month, so you have time to learn each one well and practise it in your service.": "Kozi moja mpya hufunguliwa kila mwezi, ili upate muda wa kujifunza kila moja vizuri na kuitumia katika huduma yako.",
+"Back to my courses": "Rudi kwenye kozi zangu",
+"Add your profile photo": "Ongeza picha yako ya wasifu",
+"Leaders and members can see who you are. Take a clear photo of your face now, or choose one from your phone.": "Viongozi na wanachama wanaweza kuona wewe ni nani. Piga picha safi ya uso wako sasa, au chagua moja kutoka kwenye simu yako.",
+"Your new photo": "Picha yako mpya",
+"Use this photo": "Tumia picha hii",
+"Choose again": "Chagua tena",
+"WDOS could not open your camera. Allow the camera for this site, or choose a photo from your phone instead.": "WDOS haikuweza kufungua kamera yako. Ruhusu kamera kwa tovuti hii, au chagua picha kutoka kwenye simu yako badala yake.",
+"Snap the photo": "Piga picha",
+"Your profile photo is saved": "Picha yako ya wasifu imehifadhiwa",
+"You can change it any time in Settings.": "Unaweza kuibadilisha wakati wowote katika Mipangilio.",
+"Take a photo": "Piga picha",
+"Upload a photo": "Pakia picha",
+"Not now": "Si sasa"
 }

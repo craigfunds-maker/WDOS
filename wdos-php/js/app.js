@@ -127,7 +127,10 @@ async function followAccountLanguage() {
   if (!chosen && l && l !== i18n.lang && LANGS[l]) await i18n.set(l);                       // a new phone: open in her account's language
   else if (chosen && LANGS[chosen] && chosen !== l && app.user) api('/me/lang', { lang: chosen }).catch(() => {});   // she chose here: her account follows
 }
-export async function signedIn(user) { app.user = user; await followAccountLanguage(); shellEls = null; startPulse(); pushSync(app.config.vapid); go('#/'); maybeGuide(); }
+export async function signedIn(user) { app.user = user; try { sessionStorage.removeItem('wdos.photoask'); } catch { /* */ } await followAccountLanguage(); shellEls = null; startPulse(); pushSync(app.config.vapid); go('#/'); afterSignIn(); }
+export function reshell() { shellEls = null; render(); }
+/* v109.33: no profile photo yet: ask for one first (camera or upload), then the walkthrough if she has not seen it */
+export function afterSignIn() { const u = app.user; if (u && !u.is_hq && !u.has_photo && u.status !== 'pending_profile') import('./photoask.js').then((m) => { if (m.needsPhoto(app.user)) m.askPhoto(() => maybeGuide()); else maybeGuide(); }).catch(() => maybeGuide()); else maybeGuide(); }
 /* A leader or envoy who has not seen the walkthrough yet gets it once, after sign-in. It stays under How to use WDOS. */
 /* v109.2: a device clock that is hours off (for example a computer set to another country's time zone, with the hour typed in by hand)
  * makes every meeting time and countdown wrong. Compare with the server once per sign-in and say so plainly. */
@@ -267,5 +270,5 @@ window.addEventListener('hashchange', render);
     return;
   }
   if (app.user) startPulse();
-  render(); maybeGuide();
+  render(); afterSignIn();
 })();

@@ -2,7 +2,7 @@
  * certificate that anyone can check with its QR code. Every lesson has a narrated picture "video" with captions in her
  * language, the full written lesson below it, and a private note box. Lessons open one after another; the quiz opens
  * when all five are done. The right answers stay on the server. */
-import { h, t, tf, icon, card, sk, empty, toast, i18n } from '../ui.js';
+import { h, t, tf, icon, card, sk, empty, toast, i18n, fmtDate } from '../ui.js';
 import { api } from '../api.js';
 import { go, app } from '../app.js';
 
@@ -40,6 +40,7 @@ export async function render(root, params = {}) {
   const sc = no ? st.courses.find((x) => x.no === no) : null;
   const note = C.used !== C.lang ? h('p', { class: 'notice', text: t('These lessons are not yet translated into your language, so they show in English.') }) : null;
   if (!course) return box.replaceChildren(...[note, listView(C, st)].filter(Boolean));
+  if (sc && sc.open === false) return box.replaceChildren(lockedView(C, st, course, sc));    // v109.33: one course a month
   if (params.part === 'quiz') return box.replaceChildren(...[note, quizView(C, st, course, sc)].filter(Boolean));
   const m = Number(params.part) || 0;
   if (m >= 1 && m <= 5) {
@@ -53,6 +54,7 @@ export async function render(root, params = {}) {
 /* ---------------------------------------------------------------- list -- */
 function listView(C, st) {
   const passed = st.courses.filter((x) => x.passed).length;
+  const nextOpen = st.courses.find((x) => x.open === false);
   const head = h('section', { class: 'card pdx-hero' },
     h('div', { class: 'pdx-hero__text' }, h('span', { class: 'gmc__kicker', text: t('Volunteer Leadership') }), h('h2', { class: 'display', text: t('Personal Development Courses') }),
       h('span', { class: 'tag', text: C.net === 'WNNN' ? t('WNNN edition: young people aged 18 to 29') : t('WGMN edition: women and mothers in the community') }),
@@ -60,11 +62,18 @@ function listView(C, st) {
       h('p', { class: 'muted', text: t('Twelve short courses for WGMN Coordinators, WNNN Leads, Country Representatives, Deputies and every volunteer leader. Each has five lessons you can listen to, then a ten-question quiz. Score 7 or more to earn a certificate.') }),
       h('div', { class: 'pdx-meter', role: 'img', 'aria-label': tf('{1} of 12 courses passed', passed) }, h('span', { style: `width:${(passed / 12) * 100}%` })),
       h('b', { text: tf('{1} of 12 courses passed', passed) }),
+      nextOpen ? h('p', { class: 'notice', style: 'margin:0' }, icon('clock', 16), ' ', tf('A new course opens for you each month. Next: Course {1}, on {2}.', nextOpen.no, day(nextOpen.opens_at))) : null,
       st.place && C.data.courses.find((x) => x.no === st.place.course) ? h('a', { class: 'btn', href: `#/courses/${st.place.course}${st.place.part ? '/' + st.place.part : ''}` }, icon('play', 18), t('Continue where you stopped'), h('small', { style: 'opacity:.8;margin-inline-start:6px', text: st.place.part === 'quiz' ? tf('Course {1}: quiz', st.place.course) : st.place.part ? tf('Lesson {1}.{2}', st.place.course, st.place.part) : tf('Course {1} of 12', st.place.course) })) : null,
       st.programme ? h('a', { class: 'btn btn--lime', href: `#/certificate/${st.programme.code}` }, icon('award', 18), t('Your programme certificate')) : null),
     h('img', { class: 'pdx-hero__img', src: hero(st, C.net) || '/assets/logos/woddi-disc.png', alt: '', loading: 'lazy' }));
   const grid = h('div', { class: 'pdx-grid' }, C.data.courses.map((c) => {
     const s = st.courses.find((x) => x.no === c.no); const n = s.modules_done.length;
+    if (s.open === false) {
+      return h('div', { class: 'pdx-card is-locked', 'aria-disabled': 'true' },
+        h('div', { class: 'pdx-card__img' }, thumb(st, C.net, c.no) ? h('img', { src: thumb(st, C.net, c.no), alt: '', loading: 'lazy' }) : null, h('span', { class: 'pdx-card__no', text: pad(c.no) })),
+        h('div', { class: 'pdx-card__body' }, h('b', { text: c.title }),
+          h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, h('span', { class: 'tag' }, icon('shield', 13), ' ', tf('Opens {1}', day(s.opens_at))))));
+    }
     const badge = s.passed ? [t('Passed'), 'tag--wnnn'] : n === 5 ? [t('Quiz ready'), 'tag--wgmn'] : n ? [t('In progress'), ''] : [t('Not started'), ''];
     return h('a', { class: 'pdx-card', href: `#/courses/${c.no}` },
       h('div', { class: 'pdx-card__img' }, thumb(st, C.net, c.no) ? h('img', { src: thumb(st, C.net, c.no), alt: '', loading: 'lazy' }) : null, h('span', { class: 'pdx-card__no', text: pad(c.no) })),
@@ -75,6 +84,19 @@ function listView(C, st) {
   }));
   return h('div', { style: 'display:grid;gap:18px' }, head, grid,
     h('p', { class: 'faint', style: 'margin:0', text: t('A certificate shows that you completed the course. It does not appoint anyone to a leadership role: appointments remain with WODDI Headquarters.') }));
+}
+
+const day = (x) => fmtDate(x, { day: 'numeric', month: 'long', year: 'numeric' });
+/* v109.33: a course that has not opened for her yet */
+function lockedView(C, st, c, s) {
+  return h('div', { style: 'display:grid;gap:18px' },
+    h('a', { href: '#/courses', class: 'btn btn--quiet btn--s', style: 'justify-self:start' }, icon('back', 16), t('All courses')),
+    h('section', { class: 'card pdx-hero' },
+      h('div', { class: 'pdx-hero__text' }, h('span', { class: 'gmc__kicker', text: tf('Course {1} of 12', c.no) }), h('h2', { class: 'display', text: c.title }),
+        h('p', { class: 'notice', style: 'margin:0' }, icon('clock', 16), ' ', tf('This course opens for you on {1}.', day(s.opens_at))),
+        h('p', { class: 'muted', style: 'margin:0', text: t('One new course opens each month, so you have time to learn each one well and practise it in your service.') }),
+        h('a', { class: 'btn', href: '#/courses' }, t('Back to my courses'))),
+      h('img', { class: 'pdx-hero__img', src: thumb(st, C.net, c.no) || '/assets/logos/woddi-disc.png', alt: '', loading: 'lazy' })));
 }
 
 /* -------------------------------------------------------------- course -- */

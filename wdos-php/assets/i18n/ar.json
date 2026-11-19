@@ -3510,5 +3510,22 @@
 "Resigned from her seat": "استقالت من منصبها",
 "Her appointment was ended": "انتهى تعيينها",
 "Replaced in her seat": "استُبدلت في منصبها",
-"No longer holds a seat": "لم تعد تشغل منصبًا"
+"No longer holds a seat": "لم تعد تشغل منصبًا",
+"A new course opens for you each month. Next: Course {1}, on {2}.": "تُفتح لكِ دورة جديدة كل شهر. التالية: الدورة {1}، في {2}.",
+"Opens {1}": "تُفتح في {1}",
+"This course opens for you on {1}.": "تُفتح هذه الدورة لكِ في {1}.",
+"One new course opens each month, so you have time to learn each one well and practise it in your service.": "تُفتح دورة جديدة واحدة كل شهر، حتى يكون لديكِ وقت لتعلّم كل دورة جيداً وممارستها في خدمتك.",
+"Back to my courses": "العودة إلى دوراتي",
+"Add your profile photo": "أضيفي صورتك الشخصية",
+"Leaders and members can see who you are. Take a clear photo of your face now, or choose one from your phone.": "يمكن للقائدات والعضوات رؤية من أنتِ. التقطي الآن صورة واضحة لوجهك، أو اختاري صورة من هاتفك.",
+"Your new photo": "صورتك الجديدة",
+"Use this photo": "استخدمي هذه الصورة",
+"Choose again": "اختاري مرة أخرى",
+"WDOS could not open your camera. Allow the camera for this site, or choose a photo from your phone instead.": "لم يتمكن WDOS من فتح الكاميرا. اسمحي باستخدام الكاميرا لهذا الموقع، أو اختاري صورة من هاتفك بدلاً من ذلك.",
+"Snap the photo": "التقطي الصورة",
+"Your profile photo is saved": "تم حفظ صورتك الشخصية",
+"You can change it any time in Settings.": "يمكنك تغييرها في أي وقت من الإعدادات.",
+"Take a photo": "التقطي صورة",
+"Upload a photo": "حمّلي صورة",
+"Not now": "ليس الآن"
 }

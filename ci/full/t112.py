@@ -78,7 +78,9 @@ for e,pw in (('member@test.local','member-pass-1'),('deputy@test.local','deputy-
   except AssertionError: pass
 if other: chk('another person cannot open it privately', other.get(B+f'/certificates/{code}').status_code==404)
 chk('a leader cannot open the HQ course figures', ld.get(B+'/hq/courses').status_code==403)
-# all twelve: the programme certificate
+# all twelve: the programme certificate (v109.33: one course opens a month, so her start is set a year back first)
+import subprocess
+subprocess.run(['bash','-c','. /tmp/env.sh; mariadb --socket=/tmp/mdb.sock -uroot "$DB_NAME" -N'],input="update course_starts set started_at=date_sub(utc_timestamp(), interval 12 month) where user_id=(select id from users where email='leader@test.local')",capture_output=True,text=True)
 for c in range(2,13):
   for m in range(1,6): ld.post(B+f'/courses/{c}/modules/{m}',json={})
   r=ld.post(B+f'/courses/{c}/quiz',json={'answers':list(KEY[c])}).json()

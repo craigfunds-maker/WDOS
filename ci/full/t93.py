@@ -31,7 +31,7 @@ l=lead.get(B+'/tasks?scope=area&status=').json(); chk('area list', l['total']>=1
 chk('task notifications', int(sql(f"select count(*) from notifications where kind='task'"))>=5)
 # ---- meetings
 st=(datetime.datetime.utcnow()+datetime.timedelta(minutes=30)).strftime('%Y-%m-%dT%H:%M:00Z'); en=(datetime.datetime.utcnow()+datetime.timedelta(minutes=90)).strftime('%Y-%m-%dT%H:%M:00Z')
-m=lead.get(B+'/meetings').json(); chk('audiences', list(m['audiences'].keys())==['leaders:WGMN','members:WGMN'], m['audiences'])
+m=lead.get(B+'/meetings').json(); chk('audiences', list(m['audiences'].keys())==['leaders:WGMN','people:WGMN','members:WGMN'], m['audiences'])
 r=lead.post(B+'/meetings',json={'title':'Nigeria WGMN monthly','mode':'virtual','location':'https://meet.example.org/abc','starts_at':st,'ends_at':en,'audience':'leaders:WGMN','agenda':'1. Reports'}); chk('schedule', r.ok and r.json()['invited']>0, r.text); mid=r.json()['id']
 chk('invitee sees meeting', any(x['id']==mid for x in co.get(B+'/meetings').json()['items']))
 d=lead.get(B+f'/meetings/{mid}').json(); chk('host sees people', d['host'] and d['invited']>0 and len(d['people'])>0, d['invited'])

@@ -99,6 +99,9 @@ const NOTE_TEMPLATES = [
     'ar' => ['مكالمة جماعية من {1}', 'اضغطي للانضمام إلى المكالمة.'], 'fr' => ['Appel de groupe de {1}', "Touchez pour rejoindre l'appel."], 'pt' => ['Chamada de grupo de {1}', 'Toque para entrar na chamada.'], 'sw' => ['Simu ya kikundi kutoka kwa {1}', 'Gusa ili ujiunge na simu.']]],
   ['/^Missed group call from (.+)$/u', '/^(.*)$/su', [
     'ar' => ['مكالمة جماعية فائتة من {1}', 'افتحي المكالمات في WDOS للانضمام إن كانت المكالمة جارية.'], 'fr' => ['Appel de groupe manqué de {1}', "Ouvrez Appels dans WDOS pour rejoindre l'appel s'il est encore en cours."], 'pt' => ['Chamada de grupo perdida de {1}', 'Abra Chamadas no WDOS para entrar se a chamada ainda estiver a decorrer.'], 'sw' => ['Simu ya kikundi uliyokosa kutoka kwa {1}', 'Fungua Simu ndani ya WDOS ili ujiunge kama simu bado inaendelea.']]],
+  // v109.33: her next monthly course has opened
+  ['/^New course open: (.+)$/u', '/^Course (\d+) of 12 is now open for you\./u', [
+    'ar' => ['دورة جديدة مفتوحة: {1}', 'الدورة {1} من 12 مفتوحة لكِ الآن. خمسة دروس قصيرة، ثم اختبار للحصول على شهادتك.'], 'fr' => ['Nouveau cours ouvert : {1}', 'Le cours {1} sur 12 est maintenant ouvert pour vous. Cinq courtes leçons, puis un quiz pour votre certificat.'], 'pt' => ['Novo curso aberto: {1}', 'O curso {1} de 12 já está aberto para si. Cinco lições curtas e depois um questionário para o seu certificado.'], 'sw' => ['Kozi mpya imefunguliwa: {1}', 'Kozi ya {1} kati ya 12 sasa imefunguliwa kwako. Masomo matano mafupi, kisha jaribio kwa ajili ya cheti chako.']]],
 ];
 /* One entry per template above, in the same order: its key, its name on the Communications page, the English wording,
  * and what {1} and {2} stand for. WODDI HQ can replace any wording in any language; the change is logged. */
@@ -133,6 +136,7 @@ const NOTE_META = [
   ['daily_thought', 'Thought for today', 'Thought for today: {1}', '{1}', '{1} is the day\'s headline; the message is its key thought.'],
   ['gcall_in', 'Group call ringing', 'Group call from {1}', 'Tap to join the call.', '{1} is the person calling.'],
   ['gcall_missed', 'Missed group call', 'Missed group call from {1}', 'Open Calls in WDOS to join if the call is still on.', '{1} is the person who called.'],
+  ['course_open', 'Monthly course opened', 'New course open: {1}', 'Course {1} of 12 is now open for you. Five short lessons, then a quiz for your certificate.', 'Title: {1} is the course. Message: {1} is its number.'],
 ];
 /** Wordings WODDI HQ has approved in place of the built-in ones: [key][lang] = [title, body]. */
 function note_overrides(): array {

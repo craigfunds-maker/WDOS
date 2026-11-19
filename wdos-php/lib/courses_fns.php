@@ -127,3 +127,59 @@ function course_videos_out(): array {
   foreach (COURSE_VIDEOS as $k => $files) foreach ($files as $f) if (is_file("$dir/$f")) $out[is_int($k) ? 'c' . $k : $k][] = '/assets/media/video/' . $f;
   return $out;
 }
+
+/* v109.33: one course a month for volunteer leaders (Azeez, 19 Nov 2026). Course 1 opens the day she first opens the courses;
+ * course N opens N-1 calendar months later (31 Jan + 1 month is 28 or 29 Feb, never March). A course she has already started
+ * stays open, so nobody loses work. HQ staff see every course, to check and support. */
+function course_add_months(DateTimeImmutable $d, int $n): DateTimeImmutable {
+  if ($n <= 0) return $d;
+  $y = (int) $d->format('Y'); $m = (int) $d->format('n') + $n; $y += intdiv($m - 1, 12); $m = (($m - 1) % 12) + 1;
+  $day = min((int) $d->format('j'), course_month_days($y, $m));
+  return $d->setDate($y, $m, $day);
+}
+function course_month_days(int $y, int $m): int { return (int) (new DateTimeImmutable(sprintf('%04d-%02d-01', $y, $m)))->format('t'); }
+/** When she started: kept the first time she opens the courses. Null before migration 043 (then every course is open, as before). */
+function course_start(int $userId, bool $create = true): ?DateTimeImmutable {
+  try {
+    $s = val('SELECT started_at FROM course_starts WHERE user_id=?', [$userId]);
+    if (!$s && $create) { q('INSERT IGNORE INTO course_starts (user_id,started_at,told_upto) VALUES (?,?,1)', [$userId, now()]); $s = val('SELECT started_at FROM course_starts WHERE user_id=?', [$userId]); }
+  } catch (PDOException $e) { return null; }
+  return $s ? new DateTimeImmutable($s, new DateTimeZone('UTC')) : null;
+}
+/** [course_no => ['open' => bool, 'opens_at' => 'Y-m-d H:i:s' UTC]] for this person. */
+function course_schedule(array $u, ?DateTimeImmutable $now = null): array {
+  $id = (int) $u['id']; $now = $now ?: new DateTimeImmutable('now', new DateTimeZone('UTC'));
+  $out = []; $start = is_hq($u) ? null : course_start($id);
+  $begun = [];
+  if ($start) {
+    foreach (rows('SELECT DISTINCT course_no FROM course_progress WHERE user_id=?', [$id]) as $r) $begun[(int) $r['course_no']] = true;
+    foreach (rows('SELECT DISTINCT course_no FROM course_attempts WHERE user_id=?', [$id]) as $r) $begun[(int) $r['course_no']] = true;
+  }
+  foreach (COURSE_TITLES as $no => $t) {
+    if (!$start) { $out[$no] = ['open' => true, 'opens_at' => null]; continue; }
+    $at = course_add_months($start, $no - 1);
+    $out[$no] = ['open' => $at <= $now || !empty($begun[$no]), 'opens_at' => $at->format('Y-m-d H:i:s')];
+  }
+  return $out;
+}
+function course_require_open(array $u, int $c): void {
+  $s = course_schedule($u)[$c] ?? null;
+  if ($s && !$s['open']) fail(423, 'This course opens on ' . (new DateTimeImmutable($s['opens_at'], new DateTimeZone('UTC')))->setTimezone(new DateTimeZone('Africa/Lagos'))->format('j F Y') . '. One new course opens each month.', 'course_locked');
+}
+/** Once a day from 08:00 Lagos: tell each learner, in the app and on her phone, when her next course has opened. */
+function run_course_unlocks(array &$done): void {
+  $d = function_exists('hq_today') ? hq_today() : new DateTimeImmutable('now', new DateTimeZone('Africa/Lagos'));
+  if ((int) $d->format('G') < 8 || !claim_send('course_unlocks_' . $d->format('Y-m-d'))) return;
+  $now = $d->setTimezone(new DateTimeZone('UTC')); $told = 0;
+  try {
+    foreach (rows("SELECT c.user_id, c.started_at, c.told_upto FROM course_starts c JOIN users u ON u.id=c.user_id WHERE u.status='active' AND c.told_upto<12") as $r) {
+      $start = new DateTimeImmutable($r['started_at'], new DateTimeZone('UTC')); $upto = (int) $r['told_upto']; $open = $upto;
+      while ($open < 12 && course_add_months($start, $open) <= $now) $open++;
+      if ($open <= $upto) continue;
+      if (q('UPDATE course_starts SET told_upto=? WHERE user_id=? AND told_upto=?', [$open, (int) $r['user_id'], $upto])->rowCount() === 0) continue;
+      notify((int) $r['user_id'], 'reminder', 'New course open: ' . COURSE_TITLES[$open], 'Course ' . $open . ' of 12 is now open for you. Five short lessons, then a quiz for your certificate.', '#/courses/' . $open);
+      $told++;
+    }
+  } catch (PDOException $e) { return; }      // before migration 043
+  $done['course_unlocks'] = "$told learners";
+}

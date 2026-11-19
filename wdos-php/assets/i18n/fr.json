@@ -3510,5 +3510,22 @@
 "Resigned from her seat": "A démissionné de son poste",
 "Her appointment was ended": "Sa nomination a pris fin",
 "Replaced in her seat": "Remplacée à son poste",
-"No longer holds a seat": "N'occupe plus de poste"
+"No longer holds a seat": "N'occupe plus de poste",
+"A new course opens for you each month. Next: Course {1}, on {2}.": "Un nouveau cours s’ouvre pour vous chaque mois. Prochain : cours {1}, le {2}.",
+"Opens {1}": "Ouvre le {1}",
+"This course opens for you on {1}.": "Ce cours s’ouvre pour vous le {1}.",
+"One new course opens each month, so you have time to learn each one well and practise it in your service.": "Un nouveau cours s’ouvre chaque mois, pour que vous ayez le temps de bien apprendre chacun et de le pratiquer dans votre service.",
+"Back to my courses": "Retour à mes cours",
+"Add your profile photo": "Ajoutez votre photo de profil",
+"Leaders and members can see who you are. Take a clear photo of your face now, or choose one from your phone.": "Les responsables et les membres peuvent voir qui vous êtes. Prenez maintenant une photo nette de votre visage, ou choisissez-en une sur votre téléphone.",
+"Your new photo": "Votre nouvelle photo",
+"Use this photo": "Utiliser cette photo",
+"Choose again": "Choisir à nouveau",
+"WDOS could not open your camera. Allow the camera for this site, or choose a photo from your phone instead.": "WDOS n’a pas pu ouvrir votre caméra. Autorisez la caméra pour ce site, ou choisissez plutôt une photo sur votre téléphone.",
+"Snap the photo": "Prendre la photo",
+"Your profile photo is saved": "Votre photo de profil est enregistrée",
+"You can change it any time in Settings.": "Vous pouvez la changer à tout moment dans Paramètres.",
+"Take a photo": "Prendre une photo",
+"Upload a photo": "Téléverser une photo",
+"Not now": "Pas maintenant"
 }
