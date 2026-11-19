@@ -3527,5 +3527,12 @@
 "You can change it any time in Settings.": "Unaweza kuibadilisha wakati wowote katika Mipangilio.",
 "Take a photo": "Piga picha",
 "Upload a photo": "Pakia picha",
-"Not now": "Si sasa"
+"Not now": "Si sasa",
+"LGA, city, cluster or chapter": "LGA, jiji, kundi au tawi",
+"Add this leader": "Ongeza kiongozi huyu",
+"Leader added": "Kiongozi ameongezwa",
+"Add a leader who is not in WDOS yet": "Ongeza kiongozi ambaye bado hayupo kwenye WDOS",
+"Her account and her leadership seat are made here. Then tick her in the list below and create her login and the PDF.": "Akaunti yake na nafasi yake ya uongozi vinaundwa hapa. Kisha mchague kwenye orodha hapa chini na uunde taarifa zake za kuingia na PDF.",
+"Added. She is ticked in the list below: create her login there to get the PDF.": "Ameongezwa. Amechaguliwa kwenye orodha hapa chini: unda taarifa zake za kuingia hapo ili upate PDF.",
+"This seat is also held by {1}. If she replaces that person, end their seat in Members.": "Nafasi hii pia inashikiliwa na {1}. Ikiwa anamrithi mtu huyo, maliza nafasi yake kwenye Wanachama."
 }

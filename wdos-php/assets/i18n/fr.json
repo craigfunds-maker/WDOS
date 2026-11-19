@@ -3527,5 +3527,12 @@
 "You can change it any time in Settings.": "Vous pouvez la changer à tout moment dans Paramètres.",
 "Take a photo": "Prendre une photo",
 "Upload a photo": "Téléverser une photo",
-"Not now": "Pas maintenant"
+"Not now": "Pas maintenant",
+"LGA, city, cluster or chapter": "LGA, ville, groupement ou chapitre",
+"Add this leader": "Ajouter cette responsable",
+"Leader added": "Responsable ajoutée",
+"Add a leader who is not in WDOS yet": "Ajouter une responsable qui n’est pas encore dans WDOS",
+"Her account and her leadership seat are made here. Then tick her in the list below and create her login and the PDF.": "Son compte et son poste de direction sont créés ici. Cochez-la ensuite dans la liste ci-dessous et créez son identifiant et le PDF.",
+"Added. She is ticked in the list below: create her login there to get the PDF.": "Ajoutée. Elle est cochée dans la liste ci-dessous : créez-y son identifiant pour obtenir le PDF.",
+"This seat is also held by {1}. If she replaces that person, end their seat in Members.": "Ce poste est aussi occupé par {1}. Si elle remplace cette personne, mettez fin à son poste dans Membres."
 }

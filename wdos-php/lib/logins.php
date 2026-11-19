@@ -88,3 +88,40 @@ route('POST', '/hq/leader-logins/bulk', function () {
   header('Cache-Control: no-store');
   return ['ok' => true, 'issued' => $out, 'skipped' => $skipped, 'site' => app_url(), 'at' => now(), 'by' => trim($me['first_name'] . ' ' . $me['last_name'])];
 });
+
+/* v109.33: HQ adds a volunteer leader who is not in WDOS yet (Azeez, 19 Nov 2026: "create their designation and logins").
+ * WDOS makes her account and records her seat. No password is made here: HQ then gives her a login on this same page,
+ * which makes the temporary password and the PDF. She is asked to accept her appointment when she first signs in. */
+route('POST', '/hq/leaders/add', function () {
+  $me = require_hq(); $b = body();
+  $first = str_in('first_name', 80); $last = str_in('last_name', 80); $email = strtolower(str_in('email', 190));
+  if (mb_strlen($first) < 2 || mb_strlen($last) < 2) fail(422, 'Enter the first name and surname.', 'name');
+  if (!filter_var($email, FILTER_VALIDATE_EMAIL)) fail(422, 'Enter a valid email address. She signs in with it.', 'email');
+  if (val('SELECT 1 FROM users WHERE email=?', [$email])) fail(409, 'Someone in WDOS already uses this email. Find her in Members and give her the seat there.', 'email_taken');
+  $net = in_array($b['network'] ?? '', ['WGMN', 'WNNN'], true) ? $b['network'] : fail(422, 'Choose the network.', 'network');
+  $pos = row('SELECT * FROM positions WHERE code=?', [str_in('position', 40)]); if (!$pos) fail(422, 'Choose a position.', 'position');
+  $unit = row('SELECT * FROM org_units WHERE id=?', [(int) ($b['org_unit_id'] ?? 0)]);
+  if (!$unit || $unit['level'] === 'hq') fail(422, 'Choose the country or state this seat covers.', 'unit');
+  if ($pos['level'] === 'country' && $unit['level'] !== 'country') fail(422, 'A country seat covers the whole country. Choose the country, not a state.', 'unit');
+  if ($pos['level'] !== 'country' && $unit['level'] === 'country') fail(422, 'Choose the state or region this seat covers.', 'unit');
+  $area = str_in('area_label', 120);
+  if (in_array($pos['level'], ['lga', 'community_cluster', 'chapter'], true) && $area === '') fail(422, 'Name the LGA, city, cluster or chapter this seat covers.', 'area');
+  $cc = (string) $unit['country_code'];
+  $phone = str_in('phone', 32) !== '' ? envoy_local_phone(str_in('phone', 32), $cc ?: 'NG') : '';
+  if ($phone !== '' && !preg_match('/^\+?\d{7,15}$/', $phone)) fail(422, 'Check the phone number.', 'phone');
+  if ($phone !== '') { $v = phone_variants($phone); if (val('SELECT id FROM users WHERE phone IN (' . implode(',', array_fill(0, count($v), '?')) . ") AND status<>'removed' LIMIT 1", $v)) fail(409, 'Someone in WDOS already has this phone number. Find her in Members and give her the seat there.', 'phone_taken'); }
+  // who already holds this seat: she is added either way (an assistant can be one of several), HQ is told
+  $held = rows('SELECT u.first_name, u.last_name FROM seats s JOIN users u ON u.id=s.user_id WHERE s.ends_at IS NULL AND s.position_code=? AND s.network=? AND s.org_unit_id=? AND s.area_label=?', [$pos['code'], $net, (int) $unit['id'], $area]);
+  $state = $unit['level'] === 'country' ? '' : (string) $unit['name'];
+  db()->beginTransaction();
+  try {
+    $id = ins("INSERT INTO users (email,password_hash,first_name,last_name,phone,network,country_code,org_unit_id,state_region,role,status,signup_method,must_change_password,created_at) VALUES (?,NULL,?,?,?,?,?,?,?,'member','active','staff',1,?)",
+      [$email, $first, $last, $phone, $net, $cc ?: null, (int) $unit['id'], $state, now()]);
+    q('UPDATE users SET member_no=? WHERE id=?', [sprintf('%s-%s-%06d', $net, $cc ?: 'XX', $id), $id]);
+    $title = seat_open($id, $pos['code'], $net, (int) $unit['id'], $area, 'appointed', (int) $me['id']);
+    db()->commit();
+  } catch (Throwable $e) { db()->rollBack(); throw $e; }
+  log_activity((int) $me['id'], $id, 'leader_added', $title);
+  return ['ok' => true, 'id' => $id, 'name' => "$first $last", 'title' => $title, 'country' => $cc, 'network' => $net, 'level' => $pos['level'],
+    'also_held_by' => array_map(fn($r) => trim($r['first_name'] . ' ' . $r['last_name']), $held)];
+});

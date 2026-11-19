@@ -18,7 +18,7 @@ const HQ_FEATURES = [
 ];
 /** Which API paths belong to which feature. Paths a person uses for herself (her profile, her notifications) are never gated. */
 const HQ_FEATURE_PATHS = [
-  'members' => '#^/(hq/members|hq/leader-logins|hq/volunteers|hq/age-transition|leader/(dashboard|members))#',
+  'members' => '#^/(hq/members|hq/leader-logins|hq/leaders/add|hq/volunteers|hq/age-transition|leader/(dashboard|members))#',
   'structure' => '#^/(hq/seats|hq/terms|structure|leadership)#',
   'chapters' => '#^/(chapters|zones|clusters|hq/journeys)#',
   'referrals' => '#^/(referrals|hq/activations|hq/envoys)#',

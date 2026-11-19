@@ -3439,5 +3439,12 @@
 "You can change it any time in Settings.": "Za ki iya canza shi a kowane lokaci a Saituna.",
 "Take a photo": "Ɗauki hoto",
 "Upload a photo": "Ɗora hoto",
-"Not now": "Ba yanzu ba"
+"Not now": "Ba yanzu ba",
+"LGA, city, cluster or chapter": "LGA, birni, rukuni ko reshe",
+"Add this leader": "Ƙara wannan shugaba",
+"Leader added": "An ƙara shugaba",
+"Add a leader who is not in WDOS yet": "Ƙara shugaba wadda ba ta cikin WDOS tukuna",
+"Her account and her leadership seat are made here. Then tick her in the list below and create her login and the PDF.": "Ana ƙirƙirar asusunta da muƙaminta na shugabanci a nan. Sannan ki zaɓe ta a jerin da ke ƙasa ki ƙirƙiri bayanan shigarta da PDF.",
+"Added. She is ticked in the list below: create her login there to get the PDF.": "An ƙara ta. An zaɓe ta a jerin da ke ƙasa: ƙirƙiri bayanan shigarta a can don samun PDF.",
+"This seat is also held by {1}. If she replaces that person, end their seat in Members.": "{1} ma yana riƙe da wannan muƙami. Idan za ta maye gurbin wannan mutumin, ki kawo ƙarshen muƙaminsa a Membobi."
 }

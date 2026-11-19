@@ -3527,5 +3527,12 @@
 "You can change it any time in Settings.": "يمكنك تغييرها في أي وقت من الإعدادات.",
 "Take a photo": "التقطي صورة",
 "Upload a photo": "حمّلي صورة",
-"Not now": "ليس الآن"
+"Not now": "ليس الآن",
+"LGA, city, cluster or chapter": "المنطقة المحلية أو المدينة أو المجموعة أو الفرع",
+"Add this leader": "أضيفي هذه القائدة",
+"Leader added": "تمت إضافة القائدة",
+"Add a leader who is not in WDOS yet": "إضافة قائدة ليست في WDOS بعد",
+"Her account and her leadership seat are made here. Then tick her in the list below and create her login and the PDF.": "يُنشأ هنا حسابها ومنصبها القيادي. ثم حدديها في القائمة أدناه وأنشئي بيانات دخولها وملف PDF.",
+"Added. She is ticked in the list below: create her login there to get the PDF.": "تمت الإضافة. هي محددة في القائمة أدناه: أنشئي بيانات دخولها هناك للحصول على ملف PDF.",
+"This seat is also held by {1}. If she replaces that person, end their seat in Members.": "هذا المنصب يشغله أيضاً {1}. إذا كانت ستحل محل هذا الشخص، فأنهي منصبه من صفحة الأعضاء."
 }

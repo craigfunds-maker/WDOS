@@ -11,10 +11,11 @@ export async function render(root, params = {}) {
   const country = sel([['', 'All countries']]); const network = sel([['', 'Both networks'], ['WGMN', 'WGMN'], ['WNNN', 'WNNN']]);
   const levelBox = h('div', { style: 'display:flex;gap:14px;flex-wrap:wrap' }); const lv = new Map();
   const list = h('div', {}, sk.rows(5)); const bar = h('div', { class: 'toolbar', style: 'flex-wrap:wrap' }); const done = h('div');
-  const picked = new Set(); let d = null, loaded = false;
+  const picked = new Set(); let d = null, loaded = false; const added = new Set();   // v109.33: people added below are the only ones ticked
   root.append(card(onlyEnvoys ? 'Sign-in details for many envoys at once' : 'Logins for many leaders at once', onlyEnvoys ? 'Tick the envoys, and WDOS gives each a temporary password. Each envoy signs in with the phone number shown (or her email if she has one). You get the details once, as a PDF made on this computer. Each envoy chooses her own password when she first signs in.' : 'Choose the country, the network and the levels, tick the people, and WDOS gives each a new temporary password. You get them once, as a PDF made on this computer. Each person chooses her own password when she first signs in.',
     h('div', { style: 'display:grid;gap:14px' }, h('div', { class: 'grid2' }, country, network), levelBox,
       h('p', { class: 'muted', style: 'margin:0', text: t('Their current password stops working, and they are signed out of WDOS on every device. People who sign in with Google can keep doing so.') }), bar, list)), done);
+  if (!onlyEnvoys) root.prepend(addLeaderCard((r) => { added.add(r.id); if (r.country) country.value = r.country; network.value = r.network; const k = lv.get(r.level); if (k) k.checked = true; load(); }));
   const paintBar = () => {
     const ok = d ? d.people.filter((p) => picked.has(p.id)).length : 0;
     const agree = h('input', { type: 'checkbox', style: 'width:20px;height:20px' });
@@ -44,7 +45,8 @@ export async function render(root, params = {}) {
       loaded = true; d.countries.forEach((c) => country.append(h('option', { value: c.cc, text: c.name })));
       if (d.countries.some((c) => c.cc === 'NG')) { country.value = 'NG'; return load(); }
     }
-    picked.clear(); d.people.filter((p) => p.can_sign_in).forEach((p) => picked.add(p.id)); paint();
+    picked.clear(); d.people.filter((p) => p.can_sign_in && (!added.size || added.has(p.id))).forEach((p) => picked.add(p.id)); paint();
+    if (added.size) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   async function issue(btn) {
     const ids = d.people.filter((p) => picked.has(p.id)).map((p) => p.id); if (!ids.length) return;
@@ -65,7 +67,7 @@ export async function render(root, params = {}) {
       h('div', { style: 'display:grid;gap:10px' }, h('button', { class: 'btn', type: 'button', onclick: () => download(pdf, name) }, icon('book', 16), ' ', t('Download the PDF again')),
         r.skipped.length ? h('div', { class: 'panel' }, h('b', { text: tf('{1} not done', r.skipped.length) }), ...r.skipped.map((s) => h('small', { style: 'display:block', text: `${s.name}: ${t(s.why)}` }))) : null)));
     done.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    load();
+    added.clear(); load();
   }
   const first = await api('/hq/leader-logins/bulk?levels=country').catch(() => null);
   Object.entries(first ? first.levels : { country: 'Country', state_region: 'State or region' }).forEach(([k, l]) => {
@@ -74,4 +76,40 @@ export async function render(root, params = {}) {
   });
   [country, network].forEach((x) => x.addEventListener('change', load));
   load();
+}
+
+/* v109.33: add a volunteer leader who is not in WDOS yet: her account and her seat. Her login is then made in the list below. */
+function addLeaderCard(onAdded) {
+  const inp = (a) => h('input', { class: 'input', ...a });
+  const F = { first: inp({ placeholder: t('First name'), autocomplete: 'off', maxlength: 80 }), last: inp({ placeholder: t('Surname'), autocomplete: 'off', maxlength: 80 }),
+    email: inp({ type: 'email', placeholder: t('Email address'), autocomplete: 'off', maxlength: 190 }), phone: inp({ type: 'tel', placeholder: t('Phone number'), autocomplete: 'off', maxlength: 32 }),
+    net: h('select', { class: 'input' }, h('option', { value: 'WGMN', text: 'WGMN' }), h('option', { value: 'WNNN', text: 'WNNN' })),
+    pos: h('select', { class: 'input' }, h('option', { value: '', text: t('Position') })), cc: h('select', { class: 'input' }, h('option', { value: '', text: t('Country') })),
+    unit: h('select', { class: 'input' }, h('option', { value: '', text: t('State or region') })), area: inp({ placeholder: t('LGA, city, cluster or chapter'), maxlength: 120, hidden: true }) };
+  let P = []; const err = h('p', { class: 'err', role: 'alert', style: 'margin:0' }); const out = h('div');
+  const level = () => (P.find((p) => p.code === F.pos.value) || {}).level || '';
+  const paintPos = () => { const v = F.pos.value; F.pos.replaceChildren(h('option', { value: '', text: t('Position') }), ...P.map((p) => h('option', { value: p.code, text: F.net.value === 'WNNN' ? p.title_wnnn : p.title_wgmn }))); F.pos.value = v; };
+  const paintLevel = () => { const l = level(); F.unit.hidden = l === 'country'; F.area.hidden = !['lga', 'community_cluster', 'chapter'].includes(l); };
+  api('/positions').then((r) => { P = r.positions; paintPos(); }).catch(() => {});
+  api('/geo/countries').then((r) => { F.cc.append(...r.countries.map((c) => h('option', { value: c.id, text: c.name }))); const ng = r.countries.find((c) => c.code === 'NG'); if (ng) { F.cc.value = ng.id; states(); } }).catch(() => {});
+  async function states() { F.unit.replaceChildren(h('option', { value: '', text: t('State or region') })); if (!F.cc.value) return; const r = await api('/geo/children/' + F.cc.value).catch(() => ({ units: [] })); F.unit.append(...r.units.map((u) => h('option', { value: u.id, text: u.name }))); }
+  F.net.addEventListener('change', paintPos); F.pos.addEventListener('change', paintLevel); F.cc.addEventListener('change', states);
+  const go = h('button', { class: 'btn btn--lime', type: 'button', onclick: save }, icon('plus', 16), ' ', t('Add this leader'));
+  async function save() {
+    err.textContent = ''; go.disabled = true;
+    try {
+      const r = await api('/hq/leaders/add', { first_name: F.first.value.trim(), last_name: F.last.value.trim(), email: F.email.value.trim(), phone: F.phone.value.trim(), network: F.net.value, position: F.pos.value,
+        org_unit_id: level() === 'country' ? Number(F.cc.value) : Number(F.unit.value), area_label: F.area.hidden ? '' : F.area.value.trim() });
+      out.prepend(h('div', { class: 'panel', style: 'margin-top:10px' }, h('b', { text: `${r.name}: ${r.title}` }),
+        h('small', { style: 'display:block', text: t('Added. She is ticked in the list below: create her login there to get the PDF.') }),
+        r.also_held_by.length ? h('small', { class: 'bad', style: 'display:block', text: tf('This seat is also held by {1}. If she replaces that person, end their seat in Members.', r.also_held_by.join(', ')) }) : null));
+      toast(t('Leader added'), r.title, 'ok');
+      [F.first, F.last, F.email, F.phone, F.area].forEach((x) => { x.value = ''; });
+      onAdded(r);
+    } catch (e) { err.textContent = e.message; }
+    go.disabled = false;
+  }
+  return card('Add a leader who is not in WDOS yet', 'Her account and her leadership seat are made here. Then tick her in the list below and create her login and the PDF.',
+    h('div', { style: 'display:grid;gap:10px' }, h('div', { class: 'grid2' }, F.first, F.last), h('div', { class: 'grid2' }, F.email, F.phone),
+      h('div', { class: 'grid2' }, F.net, F.pos), h('div', { class: 'grid2' }, F.cc, F.unit), F.area, err, h('div', {}, go), out));
 }
