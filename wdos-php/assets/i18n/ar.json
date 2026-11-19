@@ -379,7 +379,6 @@
 "Video guidance: how to join": "إرشاد بالفيديو: كيف تنضمين",
 "Welcome to the WODDI Digital Operating System. First, choose your language from the list. You can change it at any time. Then press Continue.": "مرحباً بكِ في نظام WODDI الرقمي. أولاً، اختاري لغتك من القائمة. يمكنك تغييرها في أي وقت. ثم اضغطي متابعة.",
 "Now choose your network. The WODDI Good Mother Network is for women aged thirty and above. The WODDI Nurture NextGen Network is for women aged eighteen to twenty-nine. Touch the network that matches your age, then press Continue.": "الآن اختاري شبكتك. شبكة WODDI Good Mother للنساء من سن الثلاثين فما فوق. شبكة WODDI Nurture NextGen للنساء من سن الثامنة عشرة إلى التاسعة والعشرين. المسي الشبكة التي تناسب عمرك ثم اضغطي متابعة.",
-"Choose your country, then your state or region, then your local government area or city. Type the name of your community. This helps WDOS place you in a chapter near you. Then press Continue.": "اختاري بلدك، ثم ولايتك أو منطقتك، ثم منطقتك المحلية أو مدينتك. اكتبي اسم مجتمعك. هذا يساعد WDOS على وضعك في فرع قريب منك. ثم اضغطي متابعة.",
 "Your membership is created at once, and you receive your membership number. Your seven-day journey opens. Do one small step each day. If you miss a day, nothing is lost.": "تُنشأ عضويتك فوراً وتستلمين رقم عضويتك. تبدأ رحلتك في سبعة أيام. قومي بخطوة صغيرة كل يوم. إذا فاتك يوم فلن يضيع شيء.",
 "If you forget your PIN, choose Forgot password on the sign-in page, or open Help. No woman is left out.": "إذا نسيتِ رقمك السري، اختاري نسيت كلمة المرور في صفحة تسجيل الدخول، أو افتحي المساعدة. لا تُترك أي امرأة.",
 "Touch your network first, then press Continue.": "المسي شبكتك أولاً ثم اضغطي متابعة.",
@@ -3174,5 +3173,16 @@
 "Continue where you stopped": "تابعي من حيث توقفتِ",
 "Course {1}: quiz": "الدورة {1}: الاختبار",
 "Saved to your account": "حُفظ في حسابك",
-"WDOS could not reach the server just now. Check your connection and try again.": "تعذّر على WDOS الوصول إلى الخادم الآن. تحقّقي من الاتصال وحاولي مرة أخرى."
+"WDOS could not reach the server just now. Check your connection and try again.": "تعذّر على WDOS الوصول إلى الخادم الآن. تحقّقي من الاتصال وحاولي مرة أخرى.",
+"Community cluster (ward)": "التجمّع المجتمعي (الحي)",
+"Community cluster (ward, optional)": "التجمّع المجتمعي (الحي، اختياري)",
+"Choose your community cluster (ward)": "اختاري تجمّعك المجتمعي (الحي)",
+"My community cluster (ward) is not listed": "تجمّعي المجتمعي (الحي) ليس في القائمة",
+"Choose your chapter": "اختاري فرعك",
+"Place me in a chapter near me": "ضعوني في فرع قريب مني",
+"My chapter is not listed": "فرعي ليس في القائمة",
+"Choose your city or district": "اختاري مدينتك أو منطقتك",
+"Chapter chosen at joining": "الفرع المختار عند الانضمام",
+"The chapter you chose, or your polling unit where it is listed.": "الفرع الذي اخترتِه، أو مركز اقتراعك حيث يكون في القائمة.",
+"Choose your country, then your state or region, then your local government area or district. Then choose your community cluster, which is your ward, and your chapter. If your chapter is not listed, WDOS places you in one near you. Then press Continue.": "اختاري بلدك، ثم ولايتك أو منطقتك، ثم منطقتك المحلية. ثم اختاري تجمّعك المجتمعي، وهو الحي، ثم فرعك. إذا لم يكن فرعك في القائمة، يضعك WDOS في فرع قريب منك. ثم اضغطي متابعة."
 }

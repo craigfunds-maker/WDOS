@@ -97,35 +97,37 @@ export async function render(root, params) {
   const NOT_LISTED = '__type__';
   F.state = h('select', { class: 'input', id: 'f-state' }); F.stateText = h('input', { class: 'input', id: 'f-state', maxlength: 120, autocomplete: 'address-level1' });
   F.lgaSel = h('select', { class: 'input', id: 'f-lga' }); F.lga = h('input', { class: 'input', id: 'f-lga', maxlength: 120 });
-  let countries = [], stateMode = 'text', lgaMode = 'text', geoStates = null, geoLgas = null, worldStates = {}, elList = null;
+  let countries = [], stateMode = 'text', lgaMode = 'text', geoStates = null, geoLgas = null, worldStates = {}, elList = null, stateCodes = {}, admIdx = null, admData = null;
   const getJson = (url) => fetch(url).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
   const stateSlot = h('div'), lgaSlot = h('div');
   const paintState = () => stateSlot.replaceChildren(h('label', { class: 'field', for: 'f-state' }, h('span', { text: 'State or region' }), stateMode === 'text' ? F.stateText : F.state));
   const diaspora = () => { const c = countries.find((x) => String(x.id) === F.country.value); return !!c && !AFRICA.includes(c.code); };
-  const paintLga = () => { lgaSlot.replaceChildren(h('label', { class: 'field', for: 'f-lga' }, h('span', { text: diaspora() ? 'City' : 'LGA or district' }), lgaMode === 'select' ? F.lgaSel : F.lga)); const cl = document.querySelector('label[for="f-community"] > span'); if (cl) cl.textContent = t(diaspora() ? 'Community cluster (optional)' : 'Community cluster'); paintEq(); const sl = document.querySelector('label[for="f-state"] > span'); if (sl) sl.textContent = diaspora() ? 'State or province (optional)' : 'State or region'; };
+  const paintLga = () => { lgaSlot.replaceChildren(h('label', { class: 'field', for: 'f-lga' }, h('span', { text: diaspora() ? 'City' : 'LGA or district' }), lgaMode === 'select' ? F.lgaSel : F.lga)); const cl = document.querySelector('label[for="f-community"] > span'); if (cl) cl.textContent = t(diaspora() ? 'Community cluster (ward, optional)' : 'Community cluster (ward)'); paintEq(); const sl = document.querySelector('label[for="f-state"] > span'); if (sl) sl.textContent = diaspora() ? 'State or province (optional)' : 'State or region'; };
   const opt = (value, text) => { const o = document.createElement('option'); o.value = value; o.textContent = text; return o; };
   const stateName = () => (stateMode === 'text' ? F.stateText.value.trim() : F.state.value && F.state.value !== NOT_LISTED ? F.state.selectedOptions[0].textContent : '');
   /* Community Clusters already known in the chosen LGA or city are offered as she types, so the same cluster is not spelled three ways */
   const clusterList = h('datalist', { id: 'f-clusters' });
-  const fillClusters = async () => { const c = countries.find((x) => String(x.id) === F.country.value); if (!c) return; const lga = lgaMode === 'select' ? F.lgaSel.value : F.lga.value; ngWards = null; if (!lga || lga === NOT_LISTED) { paintCommunity([]); paintBooth(); return; }
-    if ((c.code === 'NG' || (elList || []).includes(c.code)) && lgaMode === 'select' && stateName()) { const w = await getJson(c.code === 'NG' ? `/assets/geo/ng/${geoSlug(stateName())}/${geoSlug(lga)}.json` : `/assets/geo/el/${c.code}/${geoSlug(stateName())}/${geoSlug(lga)}.json`); if (w && Object.keys(w).length) { ngWards = w; clusterList.replaceChildren(); paintCommunity(Object.keys(w)); paintBooth(); return; } } try { const r = await api(`/geo/clusters?country=${c.code}&lga=${encodeURIComponent(lga)}`); clusterList.replaceChildren(...r.clusters.map((n) => opt(n, n))); paintCommunity(r.clusters); } catch { paintCommunity([]); } };
+  const fillClusters = async () => { const c = countries.find((x) => String(x.id) === F.country.value); if (!c) return; const lga = lgaMode === 'select' ? F.lgaSel.value : F.lga.value; ngWards = null; wardList = false; if (!lga || lga === NOT_LISTED) { paintCommunity([]); paintBooth(); return; }
+    if ((c.code === 'NG' || (elList || []).includes(c.code)) && lgaMode === 'select' && stateName()) { const w = await getJson(c.code === 'NG' ? `/assets/geo/ng/${geoSlug(stateName())}/${geoSlug(lga)}.json` : `/assets/geo/el/${c.code}/${geoSlug(stateName())}/${geoSlug(lga)}.json`); if (w && Object.keys(w).length) { ngWards = w; clusterList.replaceChildren(); paintCommunity(Object.keys(w)); paintBooth(); return; } } if (admData && lgaMode === 'select' && Array.isArray(admData[lga]) && admData[lga].length) { clusterList.replaceChildren(); wardList = true; paintCommunity(admData[lga]); paintBooth(); return; }
+    try { const r = await api(`/geo/clusters?country=${c.code}&lga=${encodeURIComponent(lga)}`); clusterList.replaceChildren(...r.clusters.map((n) => opt(n, n))); paintCommunity(r.clusters); } catch { paintCommunity([]); } };
   /* v109.5: Nigeria's wards (Community cluster) and polling units (Booth), from the INEC register, one small file per LGA */
-  let ngWards = null;
+  let ngWards = null, wardList = false;
   const curCountry = () => countries.find((x) => String(x.id) === F.country.value);
   const paintEq = () => { const c = curCountry(); const [cl, bo] = geoEq(c?.code); const cn = c?.name || '';
     const ch = document.querySelector('label[for="f-community"] > small'); if (ch) ch.textContent = c ? tf('In {1}, this is your {2}.', cn, t(cl)) : '';
-    const bh = document.querySelector('label[for="f-ward"] > small'); if (bh) bh.textContent = c ? tf('In {1}, this is your {2}.', cn, t(bo)) : ''; };
-  F.boothSel = h('select', { class: 'input', id: 'f-boothsel', hidden: true, onchange: () => { const t2 = F.boothSel.value === NOT_LISTED; F.ward.hidden = !t2; F.ward.value = t2 ? '' : F.boothSel.value; if (t2) F.ward.focus(); } });
+  };
+  F.boothSel = h('select', { class: 'input', id: 'f-boothsel', hidden: true, onchange: () => { const t2 = F.boothSel.value === NOT_LISTED; F.ward.hidden = !t2; F.ward.value = t2 || F.boothSel.value === AUTO ? '' : F.boothSel.value; if (t2) F.ward.focus(); } });
+  const AUTO = '__auto__';
   const paintBooth = () => { if (!F.ward) return; if (!F.boothSel.isConnected) F.ward.before(F.boothSel);
-    const list = ngWards && F.community && ngWards[F.community.value]; const cur = F.ward.value;
-    if (!list || !list.length) { F.boothSel.hidden = true; F.ward.hidden = false; return; }
-    F.boothSel.replaceChildren(h('option', { value: '', text: t('Choose your polling unit (optional)') }), ...list.map((n) => opt(n, n)), h('option', { value: NOT_LISTED, text: t('My polling unit is not listed') })); F.boothSel.hidden = false;
-    if (cur && list.includes(cur)) { F.boothSel.value = cur; F.ward.hidden = true; } else if (cur) { F.boothSel.value = NOT_LISTED; F.ward.hidden = false; } else { F.boothSel.value = ''; F.ward.hidden = true; } };
+    const list = (ngWards && F.community && ngWards[F.community.value]) || []; const cur = F.ward.value;
+    F.boothSel.replaceChildren(h('option', { value: '', text: t('Choose your chapter') }), ...list.map((n) => opt(n, n)),
+      h('option', { value: AUTO, text: t('Place me in a chapter near me') }), h('option', { value: NOT_LISTED, text: t('My chapter is not listed') })); F.boothSel.hidden = false;
+    if (cur && list.includes(cur)) { F.boothSel.value = cur; F.ward.hidden = true; } else if (cur) { F.boothSel.value = NOT_LISTED; F.ward.hidden = false; } else { F.boothSel.value = list.length ? '' : AUTO; F.ward.hidden = true; } };
   /* Community or ward: a list wherever WDOS already knows the communities of that LGA or city; typing where it does not, or when hers is not on the list. */
   F.commSel = h('select', { class: 'input', id: 'f-commsel', hidden: true, onchange: () => { const t2 = F.commSel.value === NOT_LISTED; F.community.hidden = !t2; F.community.value = t2 ? '' : F.commSel.value; if (t2) F.community.focus(); F.ward.value = ''; paintBooth(); } });
   const paintCommunity = (list) => { if (!F.community) return; const cur = F.community.value; if (!F.commSel.isConnected) F.community.before(F.commSel);
     if (!list.length) { F.commSel.hidden = true; F.community.hidden = false; return; }
-    F.commSel.replaceChildren(h('option', { value: '', text: ngWards ? 'Choose your ward' : 'Choose your community cluster' }), ...list.map((n) => opt(n, n)), h('option', { value: NOT_LISTED, text: ngWards ? 'My ward is not listed' : 'My community cluster is not listed' })); F.commSel.hidden = false;
+    F.commSel.replaceChildren(h('option', { value: '', text: t('Choose your community cluster (ward)') }), ...list.map((n) => opt(n, n)), h('option', { value: NOT_LISTED, text: t('My community cluster (ward) is not listed') })); F.commSel.hidden = false;
     if (cur && list.includes(cur)) { F.commSel.value = cur; F.community.hidden = true; } else if (cur) { F.commSel.value = NOT_LISTED; F.community.hidden = false; } else { F.commSel.value = ''; F.community.hidden = true; } };
   async function fillLgas() {
     const c = countries.find((x) => String(x.id) === F.country.value); lgaMode = 'text';
@@ -138,6 +140,20 @@ export async function render(root, params) {
       elList = elList || await getJson('/assets/geo/el/index.json') || [];
       if (elList.includes(c.code)) { const idx = await getJson(`/assets/geo/el/${c.code}/index.json`); const list = idx && idx[stateName()];
         if (list && list.length) { F.lgaSel.replaceChildren(h('option', { value: '', text: t('Choose your constituency or district') }), ...list.map((n) => opt(n, n)), h('option', { value: NOT_LISTED, text: 'My LGA or district is not listed' })); lgaMode = 'select'; } }
+    }
+    /* v109.16: every other country, Africa and the diaspora: LGAs or districts, and their wards, from geoBoundaries
+       (each government's published administrative areas). In the diaspora her city list is offered with them. */
+    admData = null;
+    if (c && lgaMode === 'text' && stateMode === 'list' && stateCodes[stateName()]) {
+      admIdx = admIdx || await getJson('/assets/geo/adm/index.json');
+      if (admIdx && c.code in admIdx) {
+        const d = await getJson(`/assets/geo/adm/${c.code}/${stateCodes[stateName()]}.json`);
+        if (d && Object.keys(d).length) {
+          admData = d; let list = Object.keys(d);
+          if (diaspora() && worldStates[stateName()]) { const cities = await getJson(`/assets/geo/world/${c.code}/${worldStates[stateName()]}.json`); if (Array.isArray(cities)) list = [...new Set([...cities, ...list])].sort((a, b) => a.localeCompare(b)); }
+          F.lgaSel.replaceChildren(h('option', { value: '', text: diaspora() ? t('Choose your city or district') : t('Choose your LGA or district') }), ...list.map((n) => opt(n, n)), h('option', { value: NOT_LISTED, text: diaspora() ? t('My city is not listed') : t('My LGA or district is not listed') })); lgaMode = 'select';
+        }
+      }
     }
     if (c && lgaMode === 'text' && stateMode === 'list' && worldStates[stateName()]) {
       const list = await getJson(`/assets/geo/world/${c.code}/${worldStates[stateName()]}.json`);
@@ -153,10 +169,10 @@ export async function render(root, params) {
     if (c && Number(c.children) > 0) {
       try { const r = await api('/geo/children/' + c.id); F.state.replaceChildren(h('option', { value: '', text: 'Choose your state' }), ...r.units.map((u2) => opt(u2.id, u2.name))); stateMode = 'select'; } catch { /* fall back to the published list or typing */ }
     }
-    worldStates = {};
+    worldStates = {}; stateCodes = {};
     if (c && stateMode === 'text') {                                   // every country: its states, provinces or regions, each with its own list of cities and districts
       const w = await getJson(`/assets/geo/world/${c.code}.json`); const list = (w.s || []);
-      if (list.length) { list.forEach(([n, code, cities]) => { worldStates[n] = cities ? code : ''; }); F.state.replaceChildren(h('option', { value: '', text: 'Choose your state or region' }), ...list.map(([n]) => opt(n, n)), h('option', { value: NOT_LISTED, text: 'My state or region is not listed' })); stateMode = 'list'; }
+      if (list.length) { list.forEach(([n, code, cities]) => { worldStates[n] = cities ? code : ''; stateCodes[n] = code; }); F.state.replaceChildren(h('option', { value: '', text: 'Choose your state or region' }), ...list.map(([n]) => opt(n, n)), h('option', { value: NOT_LISTED, text: 'My state or region is not listed' })); stateMode = 'list'; }
     }
     if (c && stateMode === 'text') {
       geoStates = geoStates || await getJson('/assets/geo/states.json'); const list = geoStates[c.code];
@@ -205,7 +221,7 @@ export async function render(root, params) {
               field('contact', 'Phone number', { type: 'tel', inputmode: 'tel', required: true, maxlength: 24, autocomplete: 'tel', placeholder: '+234 801 234 5678', value: String(saved.contact || '').includes('@') ? '' : saved.contact || '' }, 'With the country code. If you have no email, you sign in with this number.')))),
       h('fieldset', { 'data-eyebrow': 'Find your community' }, h('legend', { text: 'Your location' }), h('p', { class: 'muted', style: 'margin:0 0 12px', text: tf('Your location helps WDOS place you in a suitable {1} chapter. No woman is turned away because her chapter is full.', chosen) }), h('div', { class: 'grid2' },
         h('label', { class: 'field', for: 'f-country' }, h('span', { text: 'Country' }), F.country), stateSlot,
-        lgaSlot, field('community', 'Community cluster', { maxlength: 120, value: saved.community || '', list: 'f-clusters' }, ' '), clusterList, field('ward', 'Booth (optional)', { maxlength: 160, value: saved.ward || '' }, ' ')), h('p', { class: 'notice', style: 'margin-top:14px', text: 'Your community cluster is your ward, or what it is called where you live. Your booth is your polling unit or polling station inside it. Together they help WDOS place you in a chapter close to you.' })),
+        lgaSlot, field('community', 'Community cluster (ward)', { maxlength: 120, value: saved.community || '', list: 'f-clusters' }, ' '), clusterList, field('ward', 'Chapter', { maxlength: 160, value: saved.ward || '' }))),
       refBlock,
       h('fieldset', { 'data-eyebrow': 'Your agreement' }, h('legend', { text: 'Your agreement' }), h('p', { class: 'muted', style: 'margin:0 0 6px', text: 'A simple summary of membership and privacy information. Press Listen to hear it.' }),
         h('div', { class: 'panel', style: 'margin-bottom:14px' }, h('b', { text: 'Membership summary' }), h('p', { style: 'margin:6px 0 0', text: 'WODDI uses information to manage membership, learning, chapters and approved communications. Participation is voluntary. Unauthorised dues, local accounts and fundraising are not permitted.' }), h('p', { class: 'muted', style: 'margin:6px 0 0;font-size:14px', text: 'WODDI keeps your name, phone number and location so your chapter and your leaders can reach you. WODDI does not sell or share them outside WODDI.' })),

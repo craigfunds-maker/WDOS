@@ -91,7 +91,6 @@
 "Choose a language before you register. You can change it at any time.": "Yan èdè kí o tó forúkọ sílẹ̀. O lè yí i padà nígbàkúgbà.",
 "Welcome to the WODDI Digital Operating System. First, choose your language from the list. You can change it at any time. Then press Continue.": "Káàbọ̀ sí Ètò Iṣẹ́ Oní-nọ́ńbà WODDI. Lákọ̀ọ́kọ́, yan èdè rẹ nínú àtòjọ. O lè yí i padà nígbàkúgbà. Lẹ́yìn náà tẹ Tẹ̀síwájú.",
 "Now choose your network. The WODDI Good Mother Network is for women aged thirty and above. The WODDI Nurture NextGen Network is for women aged eighteen to twenty-nine. Touch the network that matches your age, then press Continue.": "Báyìí yan ẹgbẹ́ rẹ. Ẹgbẹ́ WODDI Good Mother wà fún àwọn obìnrin ọmọ ọgbọ̀n ọdún sókè. Ẹgbẹ́ WODDI Nurture NextGen wà fún àwọn obìnrin ọmọ ọdún méjìdínlógún sí mọ́kàndínlọ́gbọ̀n. Fọwọ́ kan ẹgbẹ́ tí ó bá ọjọ́ orí rẹ mu, lẹ́yìn náà tẹ Tẹ̀síwájú.",
-"Choose your country, then your state or region, then your local government area or city. Type the name of your community. This helps WDOS place you in a chapter near you. Then press Continue.": "Yan orílẹ̀-èdè rẹ, lẹ́yìn náà ìpínlẹ̀ tàbí agbègbè rẹ, lẹ́yìn náà ìjọba ìbílẹ̀ tàbí ìlú rẹ. Tẹ orúkọ àdúgbò rẹ. Èyí ń ran WDOS lọ́wọ́ láti fi ọ́ sí ẹ̀ka tí ó súnmọ́ ọ. Lẹ́yìn náà tẹ Tẹ̀síwájú.",
 "Your membership is created at once, and you receive your membership number. Your seven-day journey opens. Do one small step each day. If you miss a day, nothing is lost.": "A ó dá ọmọ ẹgbẹ́ rẹ sílẹ̀ lẹ́sẹ̀kẹsẹ̀, ìwọ yóò sì gba nọ́ńbà ọmọ ẹgbẹ́ rẹ. Ìrìn-àjò ọjọ́ méje rẹ yóò ṣí. Ṣe ìgbésẹ̀ kékeré kan lójoojúmọ́. Bí o bá pàdánù ọjọ́ kan, kò sí ohun tí ó sọnù.",
 "If you forget your PIN, choose Forgot password on the sign-in page, or open Help. No woman is left out.": "Bí o bá gbàgbé PIN rẹ, yan Mo gbàgbé ọ̀rọ̀ aṣínà ní ojú ìwé ìwọlé, tàbí ṣí Ìrànlọ́wọ́. Kò sí obìnrin tí a fi sílẹ̀.",
 "Touch your network first, then press Continue.": "Kọ́kọ́ fọwọ́ kan ẹgbẹ́ rẹ, lẹ́yìn náà tẹ Tẹ̀síwájú.",
@@ -3015,5 +3014,16 @@
 "Lesson {1}.{2}": "Ẹ̀kọ́ {1}.{2}",
 "Lesson {1} of 5": "Ẹ̀kọ́ {1} nínú 5",
 "Lesson {1}: {2}": "Ẹ̀kọ́ {1}: {2}",
-"Question {1} of 10": "Ìbéèrè {1} nínú 10"
+"Question {1} of 10": "Ìbéèrè {1} nínú 10",
+"Community cluster (ward)": "Àpapọ̀ àwùjọ (wọ́ọ̀dù)",
+"Community cluster (ward, optional)": "Àpapọ̀ àwùjọ (wọ́ọ̀dù, kò pọn dandan)",
+"Choose your community cluster (ward)": "Yan àpapọ̀ àwùjọ rẹ (wọ́ọ̀dù)",
+"My community cluster (ward) is not listed": "Àpapọ̀ àwùjọ mi (wọ́ọ̀dù) kò sí nínú àtòjọ",
+"Choose your chapter": "Yan ẹ̀ka rẹ",
+"Place me in a chapter near me": "Fi mí sí ẹ̀ka tó súnmọ́ mi",
+"My chapter is not listed": "Ẹ̀ka mi kò sí nínú àtòjọ",
+"Choose your city or district": "Yan ìlú tàbí agbègbè rẹ",
+"Chapter chosen at joining": "Ẹ̀ka tí a yàn nígbà ìdarapọ̀",
+"The chapter you chose, or your polling unit where it is listed.": "Ẹ̀ka tí o yàn, tàbí ibùdó ìdìbò rẹ níbi tí ó wà nínú àtòjọ.",
+"Choose your country, then your state or region, then your local government area or district. Then choose your community cluster, which is your ward, and your chapter. If your chapter is not listed, WDOS places you in one near you. Then press Continue.": "Yan orílẹ̀-èdè rẹ, lẹ́yìn náà ìpínlẹ̀ rẹ, lẹ́yìn náà ìjọba ìbílẹ̀ tàbí agbègbè rẹ. Lẹ́yìn náà yan àpapọ̀ àwùjọ rẹ, ìyẹn wọ́ọ̀dù rẹ, àti ẹ̀ka rẹ. Bí ẹ̀ka rẹ kò bá sí nínú àtòjọ, WDOS yóò fi ọ́ sí ẹ̀ka tó súnmọ́ ọ. Lẹ́yìn náà tẹ Tẹ̀síwájú."
 }

@@ -376,7 +376,6 @@
 "Video guidance: how to join": "Guide vidéo : comment adhérer",
 "Welcome to the WODDI Digital Operating System. First, choose your language from the list. You can change it at any time. Then press Continue.": "Bienvenue sur le système numérique de WODDI. D'abord, choisissez votre langue dans la liste. Vous pouvez la changer à tout moment. Ensuite, appuyez sur Continuer.",
 "Now choose your network. The WODDI Good Mother Network is for women aged thirty and above. The WODDI Nurture NextGen Network is for women aged eighteen to twenty-nine. Touch the network that matches your age, then press Continue.": "Maintenant, choisissez votre réseau. Le réseau WODDI Good Mother est pour les femmes de trente ans et plus. Le réseau WODDI Nurture NextGen est pour les femmes de dix-huit à vingt-neuf ans. Touchez le réseau qui correspond à votre âge, puis appuyez sur Continuer.",
-"Choose your country, then your state or region, then your local government area or city. Type the name of your community. This helps WDOS place you in a chapter near you. Then press Continue.": "Choisissez votre pays, puis votre région, puis votre district ou votre ville. Écrivez le nom de votre communauté. Cela aide WDOS à vous placer dans un chapitre près de chez vous. Puis appuyez sur Continuer.",
 "Your membership is created at once, and you receive your membership number. Your seven-day journey opens. Do one small step each day. If you miss a day, nothing is lost.": "Votre adhésion est créée tout de suite et vous recevez votre numéro de membre. Votre parcours de sept jours s'ouvre. Faites une petite étape chaque jour. Si vous manquez un jour, rien n'est perdu.",
 "If you forget your PIN, choose Forgot password on the sign-in page, or open Help. No woman is left out.": "Si vous oubliez votre code PIN, choisissez Mot de passe oublié sur la page de connexion, ou ouvrez Aide. Aucune femme n'est laissée de côté.",
 "Touch your network first, then press Continue.": "Touchez d'abord votre réseau, puis appuyez sur Continuer.",
@@ -3174,5 +3173,16 @@
 "Continue where you stopped": "Reprendre là où vous vous êtes arrêtée",
 "Course {1}: quiz": "Cours {1} : quiz",
 "Saved to your account": "Enregistré dans votre compte",
-"WDOS could not reach the server just now. Check your connection and try again.": "WDOS n'a pas pu joindre le serveur pour le moment. Vérifiez votre connexion et réessayez."
+"WDOS could not reach the server just now. Check your connection and try again.": "WDOS n'a pas pu joindre le serveur pour le moment. Vérifiez votre connexion et réessayez.",
+"Community cluster (ward)": "Groupe communautaire (quartier)",
+"Community cluster (ward, optional)": "Groupe communautaire (quartier, facultatif)",
+"Choose your community cluster (ward)": "Choisissez votre groupe communautaire (quartier)",
+"My community cluster (ward) is not listed": "Mon groupe communautaire (quartier) n'est pas dans la liste",
+"Choose your chapter": "Choisissez votre chapitre",
+"Place me in a chapter near me": "Placez-moi dans un chapitre près de chez moi",
+"My chapter is not listed": "Mon chapitre n'est pas dans la liste",
+"Choose your city or district": "Choisissez votre ville ou district",
+"Chapter chosen at joining": "Chapitre choisi à l'adhésion",
+"The chapter you chose, or your polling unit where it is listed.": "Le chapitre que vous avez choisi, ou votre bureau de vote là où il est dans la liste.",
+"Choose your country, then your state or region, then your local government area or district. Then choose your community cluster, which is your ward, and your chapter. If your chapter is not listed, WDOS places you in one near you. Then press Continue.": "Choisissez votre pays, puis votre région, puis votre district. Choisissez ensuite votre groupe communautaire, c'est-à-dire votre quartier, et votre chapitre. Si votre chapitre n'est pas dans la liste, WDOS vous place dans un chapitre près de chez vous. Puis appuyez sur Continuer."
 }

@@ -91,7 +91,6 @@
 "Choose a language before you register. You can change it at any time.": "Họrọ asụsụ tupu i debanye aha. Ị nwere ike ịgbanwe ya mgbe ọ bụla.",
 "Welcome to the WODDI Digital Operating System. First, choose your language from the list. You can change it at any time. Then press Continue.": "Nnọọ na Usoro Ọrụ Dijitalụ nke WODDI. Nke mbụ, họrọ asụsụ gị na ndepụta. Ị nwere ike ịgbanwe ya mgbe ọ bụla. Mgbe ahụ pịa Gaa n'ihu.",
 "Now choose your network. The WODDI Good Mother Network is for women aged thirty and above. The WODDI Nurture NextGen Network is for women aged eighteen to twenty-nine. Touch the network that matches your age, then press Continue.": "Ugbu a họrọ otu gị. Otu WODDI Good Mother bụ maka ụmụ nwanyị dị afọ iri atọ gbagowe. Otu WODDI Nurture NextGen bụ maka ụmụ nwanyị dị afọ iri na asatọ ruo iri abụọ na itoolu. Metụ otu dabara n'afọ gị aka, mgbe ahụ pịa Gaa n'ihu.",
-"Choose your country, then your state or region, then your local government area or city. Type the name of your community. This helps WDOS place you in a chapter near you. Then press Continue.": "Họrọ mba gị, mgbe ahụ steeti ma ọ bụ mpaghara gị, mgbe ahụ ọchịchị ime obodo ma ọ bụ obodo ukwu gị. Dee aha obodo gị. Nke a na-enyere WDOS aka itinye gị na ngalaba dị gị nso. Mgbe ahụ pịa Gaa n'ihu.",
 "Your membership is created at once, and you receive your membership number. Your seven-day journey opens. Do one small step each day. If you miss a day, nothing is lost.": "A na-emepụta ịbụ onye otu gị ozugbo, ị ga-anatakwa nọmba onye otu gị. Njem ụbọchị asaa gị ga-emeghe. Mee otu obere nzọụkwụ kwa ụbọchị. Ọ bụrụ na ị hapụ otu ụbọchị, ọ dịghị ihe furu efu.",
 "If you forget your PIN, choose Forgot password on the sign-in page, or open Help. No woman is left out.": "Ọ bụrụ na i chefuo PIN gị, họrọ Echefuru m okwuntughe na peeji mbanye, ma ọ bụ meghee Enyemaka. Ọ dịghị nwanyị a hapụrụ n'azụ.",
 "Touch your network first, then press Continue.": "Buru ụzọ metụ otu gị aka, mgbe ahụ pịa Gaa n'ihu.",
@@ -2990,5 +2989,16 @@
 "Course {1}: quiz": "Ihe ọmụmụ {1}: ajụjụ",
 "Saved to your account": "Echekwara na akaụntụ gị",
 "WDOS could not reach the server just now. Check your connection and try again.": "WDOS enweghị ike iru sava ugbu a. Lelee njikọ gị ma nwaa ọzọ.",
-"Question {1} of 10": "Ajụjụ {1} n'ime 10"
+"Question {1} of 10": "Ajụjụ {1} n'ime 10",
+"Community cluster (ward)": "Òtù obodo (wọọdụ)",
+"Community cluster (ward, optional)": "Òtù obodo (wọọdụ, ọ bụghị iwu)",
+"Choose your community cluster (ward)": "Họrọ òtù obodo gị (wọọdụ)",
+"My community cluster (ward) is not listed": "Òtù obodo m (wọọdụ) adịghị na ndepụta",
+"Choose your chapter": "Họrọ ngalaba gị",
+"Place me in a chapter near me": "Tinye m na ngalaba dị nso n’ebe m nọ",
+"My chapter is not listed": "Ngalaba m adịghị na ndepụta",
+"Choose your city or district": "Họrọ obodo mepere emepe gị ma ọ bụ distrikti gị",
+"Chapter chosen at joining": "Ngalaba a họọrọ mgbe ọ banyere",
+"The chapter you chose, or your polling unit where it is listed.": "Ngalaba ị họọrọ, ma ọ bụ ebe ntuli aka gị ebe ọ dị na ndepụta.",
+"Choose your country, then your state or region, then your local government area or district. Then choose your community cluster, which is your ward, and your chapter. If your chapter is not listed, WDOS places you in one near you. Then press Continue.": "Họrọ mba gị, mgbe ahụ steeti gị, mgbe ahụ ọchịchị ime obodo ma ọ bụ distrikti gị. Mgbe ahụ họrọ òtù obodo gị, ya bụ wọọdụ gị, na ngalaba gị. Ọ bụrụ na ngalaba gị adịghị na ndepụta, WDOS ga-etinye gị na ngalaba dị nso. Mgbe ahụ pịa Gaa n'ihu."
 }
