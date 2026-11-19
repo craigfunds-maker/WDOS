@@ -97,6 +97,7 @@ export async function render(root, params) {
   const NOT_LISTED = '__type__';
   F.state = h('select', { class: 'input', id: 'f-state' }); F.stateText = h('input', { class: 'input', id: 'f-state', maxlength: 120, autocomplete: 'address-level1' });
   F.lgaSel = h('select', { class: 'input', id: 'f-lga' }); F.lga = h('input', { class: 'input', id: 'f-lga', maxlength: 120 });
+  let elIdx = null, elCC = '';
   let countries = [], stateMode = 'text', lgaMode = 'text', geoStates = null, geoLgas = null, worldStates = {}, elList = null, stateCodes = {}, admIdx = null, admData = null;
   const getJson = (url) => fetch(url).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
   const stateSlot = h('div'), lgaSlot = h('div');
@@ -106,11 +107,12 @@ export async function render(root, params) {
   const opt = (value, text) => { const o = document.createElement('option'); o.value = value; o.textContent = text; return o; };
   const normName = (x) => String(x || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\b(state|region|province|governorate|district|county)\b/g, '').replace(/[^a-z0-9]/g, '');
   const stateCode = () => stateCodes[stateName()] || stateCodes[normName(stateName())] || '';
+  const elKey = () => { if (!elIdx) return ''; const n = stateName(); if (elIdx[n]) return n; const k = Object.keys(elIdx).find((x) => normName(x) === normName(n)); return k || ''; };
   const stateName = () => (stateMode === 'text' ? F.stateText.value.trim() : F.state.value && F.state.value !== NOT_LISTED ? F.state.selectedOptions[0].textContent : '');
   /* Community Clusters already known in the chosen LGA or city are offered as she types, so the same cluster is not spelled three ways */
   const clusterList = h('datalist', { id: 'f-clusters' });
   const fillClusters = async () => { const c = countries.find((x) => String(x.id) === F.country.value); if (!c) return; const lga = lgaMode === 'select' ? F.lgaSel.value : F.lga.value; ngWards = null; wardList = false; if (!lga || lga === NOT_LISTED) { paintCommunity([]); paintBooth(); return; }
-    if ((c.code === 'NG' || (elList || []).includes(c.code)) && lgaMode === 'select' && stateName()) { const w = await getJson(c.code === 'NG' ? `/assets/geo/ng/${geoSlug(stateName())}/${geoSlug(lga)}.json` : `/assets/geo/el/${c.code}/${geoSlug(stateName())}/${geoSlug(lga)}.json`); if (w && Object.keys(w).length) { ngWards = w; clusterList.replaceChildren(); paintCommunity(Object.keys(w)); paintBooth(); return; } } if (admData && lgaMode === 'select' && Array.isArray(admData[lga]) && admData[lga].length) { clusterList.replaceChildren(); wardList = true; paintCommunity(admData[lga]); paintBooth(); return; }
+    if ((c.code === 'NG' || (elList || []).includes(c.code)) && lgaMode === 'select' && stateName()) { const w = await getJson(c.code === 'NG' ? `/assets/geo/ng/${geoSlug(stateName())}/${geoSlug(lga)}.json` : `/assets/geo/el/${c.code}/${geoSlug(elKey() || stateName())}/${geoSlug(lga)}.json`); if (w && Object.keys(w).length) { ngWards = w; clusterList.replaceChildren(); paintCommunity(Object.keys(w)); paintBooth(); return; } } if (admData && lgaMode === 'select' && Array.isArray(admData[lga]) && admData[lga].length) { clusterList.replaceChildren(); wardList = true; paintCommunity(admData[lga]); paintBooth(); return; }
     try { const r = await api(`/geo/clusters?country=${c.code}&lga=${encodeURIComponent(lga)}`); clusterList.replaceChildren(...r.clusters.map((n) => opt(n, n))); paintCommunity(r.clusters); } catch { paintCommunity([]); } };
   /* v109.5: Nigeria's wards (Community cluster) and polling units (Booth), from the INEC register, one small file per LGA */
   let ngWards = null, wardList = false;
@@ -140,8 +142,8 @@ export async function render(root, params) {
     // other countries with an official electoral register (Kenya: IEBC counties, constituencies, wards, polling stations)
     if (c && lgaMode === 'text' && stateMode !== 'text' && stateName()) {
       elList = elList || await getJson('/assets/geo/el/index.json') || [];
-      if (elList.includes(c.code)) { const idx = await getJson(`/assets/geo/el/${c.code}/index.json`); const list = idx && idx[stateName()];
-        if (list && list.length) { F.lgaSel.replaceChildren(h('option', { value: '', text: t('Choose your constituency or district') }), ...list.map((n) => opt(n, n)), h('option', { value: NOT_LISTED, text: 'My LGA or district is not listed' })); lgaMode = 'select'; } }
+      if (elList.includes(c.code)) { if (elCC !== c.code) { elIdx = await getJson(`/assets/geo/el/${c.code}/index.json`); elCC = c.code; } const list = elIdx && elIdx[elKey()];
+        if (list && list.length) { F.lgaSel.replaceChildren(h('option', { value: '', text: diaspora() ? t('Choose your city or district') : t('Choose your constituency or district') }), ...list.map((n) => opt(n, n)), h('option', { value: NOT_LISTED, text: diaspora() ? t('My city is not listed') : t('My LGA or district is not listed') })); lgaMode = 'select'; } }
     }
     /* v109.16: every other country, Africa and the diaspora: LGAs or districts, and their wards, from geoBoundaries
        (each government's published administrative areas). In the diaspora her city list is offered with them. */
@@ -177,6 +179,14 @@ export async function render(root, params) {
     if (c && stateMode === 'text') {                                   // every country: its states, provinces or regions, each with its own list of cities and districts
       const w = await getJson(`/assets/geo/world/${c.code}.json`); const list = (w.s || []);
       if (list.length) { list.forEach(([n, code, cities]) => { worldStates[n] = cities ? code : ''; stateCodes[n] = code; }); F.state.replaceChildren(h('option', { value: '', text: 'Choose your state or region' }), ...list.map(([n]) => opt(n, n)), h('option', { value: NOT_LISTED, text: 'My state or region is not listed' })); stateMode = 'list'; }
+    }
+    if (c && stateMode !== 'select') {
+      elList = elList || await getJson('/assets/geo/el/index.json') || [];
+      if (Array.isArray(elList) && elList.includes(c.code)) { elIdx = await getJson(`/assets/geo/el/${c.code}/index.json`); elCC = c.code; const ks = Object.keys(elIdx || {});
+        // the commission's own regions; where its list covers only part of the country (US), the full list is kept and its states added
+        const cur = stateMode === 'list' ? [...F.state.options].map((o) => o.value).filter((v) => v && v !== NOT_LISTED) : [];
+        const names = ks.length >= 0.8 * cur.length ? ks : [...cur, ...ks.filter((k) => !cur.some((n) => normName(n) === normName(k)))].sort((a, b) => a.localeCompare(b));
+        if (names.length) { F.state.replaceChildren(h('option', { value: '', text: 'Choose your state or region' }), ...names.map((n) => opt(n, n)), h('option', { value: NOT_LISTED, text: 'My state or region is not listed' })); stateMode = 'list'; } }
     }
     if (c && stateMode === 'text') {
       geoStates = geoStates || await getJson('/assets/geo/states.json'); const list = geoStates[c.code];
