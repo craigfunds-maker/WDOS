@@ -65,7 +65,8 @@ function has_table(string $t): bool { return isset(schema()[$t]) || in_array($t,
 function e($v): string { return htmlspecialchars((string)($v ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 function base(): string { return rtrim((string)cfg('base_url', ''), '/'); }
 function url(string $path = '', array $qs = []): string { $u = base() . '/' . ltrim($path, '/'); return $qs ? $u . '?' . http_build_query($qs) : $u; }
-function asset(string $f): string { return url('assets/' . $f) . '?v=' . APP_VERSION; }
+/* The version in the address is the file's own change time, so a browser never keeps an old copy after an update. */
+function asset(string $f): string { $t = @filemtime(APP_ROOT . '/assets/' . $f); return url('assets/' . $f) . '?v=' . ($t ?: APP_VERSION); }
 function redirect(string $path, array $qs = []): never { header('Location: ' . (preg_match('#^https?://#', $path) ? $path : url($path, $qs))); exit; }
 function jdec($v, $default = []) { if (is_array($v)) return $v; $d = json_decode((string)$v, true); return is_array($d) ? $d : $default; }
 function json_out($data, int $code = 200): never { http_response_code($code); header('Content-Type: application/json; charset=utf-8'); echo json_encode($data, JSON_UNESCAPED_UNICODE); exit; }

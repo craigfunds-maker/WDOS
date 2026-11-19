@@ -1,5 +1,5 @@
 /* WODDI Institute service worker: push notifications and a light offline fallback. */
-var CACHE = 'woddi-php-v1';
+var CACHE = 'woddi-php-v2';
 self.addEventListener('install', function (e) { self.skipWaiting(); });
 self.addEventListener('activate', function (e) { e.waitUntil(self.clients.claim()); });
 self.addEventListener('fetch', function (e) {
