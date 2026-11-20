@@ -79,7 +79,8 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
       - name: Every suite
-        run: pip install -q requests && bash ci/full/run.sh
+        # t115 to t117 drive real screens in a browser, so the runner needs Playwright and Chromium
+        run: pip install -q requests playwright && python -m playwright install --with-deps chromium > /tmp/pw.log 2>&1 && bash ci/full/run.sh
       - name: Server log on failure
         if: failure()
         run: tail -n 120 /tmp/php.log || true
