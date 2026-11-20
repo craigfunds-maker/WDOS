@@ -28,7 +28,7 @@ chk('Settings has the Ambience card and the pattern switch', "card('Ambience'" i
 fr=requests.get(B+'/assets/i18n/fr.json').json()
 chk('ambience words are translated', fr.get('Ambience')=='Ambiance' and fr.get('Rich earth and gold'))
 # v109.41: the official colours in full strength
-chk('banners are solid WODDI magenta with a lemon green line', '.hero{background:linear-gradient(118deg,#D4006A' in css and '.hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:6px;background:#7CB518}' in css)
+chk('banners are solid WODDI magenta with a lemon green line', '.hero{background:#D4006A;' in css and '#9E004F' not in css.split('v109.41')[1] and '#B8005C' not in css.split('v109.41')[1] and '.hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:6px;background:#7CB518}' in css)
 chk('the page she is on is solid magenta in the menu', '.nav a[aria-current="page"]{background:#D4006A;color:#fff' in css)
 chk('network tags in full colour', '.tag--wgmn{background:#D4006A;color:#fff' in css and '.tag--wnnn{background:#7CB518;color:#13210A' in css)
 chk('white on magenta and dark green on lime pass AA', cr('#FFFFFF','#D4006A')>=4.5 and cr('#13210A','#7CB518')>=4.5 and cr('#D4006A','#FFFFFF')>=4.5 and cr('#FF3D9E','#130912')>=4.5)
