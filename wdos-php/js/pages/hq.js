@@ -87,7 +87,7 @@ export async function render(root) {
       h('div', { class: 'row row--2' }, h('div', {}, h('small', { class: 'eyebrow', text: t('By leadership level') }), lv), h('div', {}, h('small', { class: 'eyebrow', text: t('By country') }), ct)),
       h('div', { class: 'row row--2' }, h('div', {}, h('small', { class: 'eyebrow', text: t('By state or region') }), g.by_state.length ? stt : h('p', { class: 'muted', text: t('No state seats yet.') })),
         h('div', {}, h('small', { class: 'eyebrow', text: t('Needs attention') }), h('div', { class: 'list list--stack' },
-          L('#/members?kind=leaders&seen=never', 'Never signed in', g.never_signed_in, g.never_signed_in ? 'bad' : ''),
+          L('#/hq/drive', 'Never signed in', g.never_signed_in, g.never_signed_in ? 'bad' : ''),
           L('#/members?kind=leaders&agreement=pending', 'Agreement not yet accepted', g.agreement_pending, g.agreement_pending ? 'bad' : ''),
           L('#/referrals/activations', 'Candidates waiting for your review', g.awaiting_review, g.awaiting_review ? 'wgmn' : ''),
           L('#/members?kind=leaders&seen=7d', 'Signed in this week', g.active_7d, ''),

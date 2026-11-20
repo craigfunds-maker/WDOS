@@ -18,7 +18,8 @@ require __DIR__ . '/../lib/ai_fns.php';
 require __DIR__ . '/../lib/v109_fns.php';
 require __DIR__ . '/../lib/followup_fns.php';
 require __DIR__ . '/../lib/workcheck_fns.php';
-require __DIR__ . '/../lib/courses_fns.php';   // before any route: the 5-minute timer (in inspire.php) fetches the course photographs
+require __DIR__ . '/../lib/courses_fns.php';
+require __DIR__ . '/../lib/drive_fns.php';     // v109.37: sign-in drive, missing-detail asks, weekly country report   // before any route: the 5-minute timer (in inspire.php) fetches the course photographs
 
 set_exception_handler(function (Throwable $e) {
   error_log('[wdos] ' . $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine());
@@ -294,6 +295,13 @@ route('POST', '/me', function () {
   $envoy = ($u['role'] ?? '') === 'envoy';
   q('UPDATE users SET first_name=?, last_name=?, phone=?, lga=?, community=? WHERE id=?', [$first, $last, $phone, $envoy ? (string) $u['lga'] : str_in('lga', 120), $envoy ? (string) $u['community'] : str_in('community', 120), (int) $u['id']]);
   if (array_key_exists('ward', body()) && !$envoy) q('UPDATE users SET ward=? WHERE id=?', [str_in('ward', 120), (int) $u['id']]);
+  // v109.37: a member whose country or state is missing adds it here (once it is set, HQ changes it)
+  if (!$envoy && !is_hq($u)) {
+    $cc = (string) ($u['country_code'] ?? '');
+    if ($cc === '' && ($cid = (int) (body()['country_id'] ?? 0))) { $c = row("SELECT id, country_code FROM org_units WHERE id=? AND level='country'", [$cid]); if ($c) { q('UPDATE users SET country_code=?, org_unit_id=? WHERE id=?', [$c['country_code'], (int) $c['id'], (int) $u['id']]); $cc = (string) $c['country_code']; } }
+    if ($cc !== '' && trim((string) ($u['state_region'] ?? '')) === '' && ($sid = (int) (body()['state_id'] ?? 0))) { $st = row("SELECT o.id, o.name FROM org_units o JOIN org_units c ON c.id=o.parent_id WHERE o.id=? AND c.country_code=?", [$sid, $cc]); if ($st) q('UPDATE users SET state_region=?, org_unit_id=? WHERE id=?', [$st['name'], (int) $st['id'], (int) $u['id']]); }
+    if ($cc !== (string) ($u['country_code'] ?? '') || isset($st)) { $fresh = row('SELECT * FROM users WHERE id=?', [(int) $u['id']]); if ($fresh && !$fresh['chapter_id']) chapter_place_user($fresh); }
+  }
   if (!$envoy) chapter_replace_after_change((int) $u['id']);
   return ['ok' => true, 'user' => public_user(row('SELECT * FROM users WHERE id=?', [(int) $u['id']]))];
 });
@@ -437,6 +445,7 @@ require __DIR__ . '/../lib/calls.php';
 require_once __DIR__ . '/../lib/gcalls.php';      // v109.24: group voice calls (calls.php loads it itself for /calls and /calls/ring)
 require __DIR__ . '/../lib/team.php';        // v109.24: a leader's team
 require __DIR__ . '/../lib/hqwatch.php';     // v109.25: HQ sees everything leaders do
-require __DIR__ . '/../lib/system.php';      // v109.35: system health and email delivery
+require __DIR__ . '/../lib/system.php';
+require __DIR__ . '/../lib/drive.php';       // v109.37: sign-in drive and chapter placement by area      // v109.35: system health and email delivery
 
 fail(404, 'No such WDOS endpoint.', 'not_found');

@@ -9,7 +9,7 @@ export async function render(root, params) {
   if (params.id) return one(root, params.id);
   const kp = h('div', { class: 'row row--4' }, sk.kpi(), sk.kpi(), sk.kpi(), sk.kpi()), list = h('div', {}, sk.rows(4)), formHost = h('div'), tempBox = h('div');
   root.append(kp, tempBox, card('WODDI Envoys', 'Each envoy has one referral link. People who join through it go through the 3-day activation, and the envoy follows them up.', list, h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, h('button', { class: 'btn', type: 'button', onclick: () => { formHost.hidden = !formHost.hidden; } }, icon('plus', 18), t('Add an envoy')),
-    h('a', { class: 'btn btn--ghost', href: '#/hq/logins/envoys' }, icon('key', 18), ' ', t('Sign-in details for many envoys (PDF)')))), formHost);
+    h('a', { class: 'btn btn--ghost', href: '#/hq/logins/envoys' }, icon('key', 18), ' ', t('Sign-in details for many envoys (PDF)')), h('a', { class: 'btn btn--lime', href: '#/hq/drive?who=envoys' }, icon('send', 18), ' ', t('Launch pack on WhatsApp')))), formHost);
   formHost.hidden = true;
   const F = { first: input({ maxlength: 80, autocomplete: 'off' }), last: input({ maxlength: 80, autocomplete: 'off' }), email: input({ type: 'email', maxlength: 190, autocomplete: 'off' }), phone: input({ type: 'tel', maxlength: 32, autocomplete: 'off' }), country: h('select', { class: 'input' }, h('option', { value: '', text: t('Choose the country') })) };
   const invite = h('input', { type: 'checkbox' }); invite.checked = true; const err = h('p', { class: 'err', role: 'alert' });
