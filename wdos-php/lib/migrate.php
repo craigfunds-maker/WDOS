@@ -26,9 +26,11 @@ function run_migrations(): array {
 
 /** Called once per app load. One cheap count; runs the new files only when there are any. */
 function ensure_migrated(): void {
-  $files = count(glob(__DIR__ . '/../migrations/*.sql'));
-  try { $done = (int) val('SELECT COUNT(*) FROM migrations'); } catch (PDOException $e) { $done = 0; }
-  if ($done >= $files) return;
+  // v109.37: compare names, not counts. The live database also lists migrations that are no longer files, so a count said
+  // "all done" while 044 and 045 had never run (Azeez, 20 Nov 2026: the sign-in drive failed with a missing table).
+  $files = array_map('basename', glob(__DIR__ . '/../migrations/*.sql') ?: []);
+  try { $done = array_column(rows('SELECT name FROM migrations'), 'name'); } catch (PDOException $e) { $done = []; }
+  if (!array_diff($files, $done)) return;
   // one request at a time: the primary key on app_settings is the lock
   try { db()->exec('CREATE TABLE IF NOT EXISTS app_settings (k VARCHAR(60) NOT NULL PRIMARY KEY, v TEXT NOT NULL) DEFAULT CHARSET=utf8mb4'); q("INSERT INTO app_settings (k,v) VALUES ('migrating',?)", [now()]); }
   catch (PDOException $e) {

@@ -75,4 +75,7 @@ chk('nobody waits there now', not any(x['community']=='Testcluster' for x in hq.
 chk('members told', int(sql("select count(*) from notifications n join users u on u.id=n.user_id where u.email like 'wait%@example.org' and n.title='You have been placed in a chapter'"))==12)
 chk('a leader cannot open placement', ld.get(B+'/hq/placement').status_code in (401,403))
 sy={i['key']:i for i in hq.get(B+'/hq/system').json()['items']}; chk('system health links to the new pages', sy['no_chapter']['href']=='#/hq/placement' and sy['never_signed']['href']=='#/hq/drive')
+# a database that also lists old migrations no longer in the folder still runs the new ones
+sql("insert ignore into migrations (name,ran_at) values ('000_old_a.sql',utc_timestamp()),('000_old_b.sql',utc_timestamp()),('000_old_c.sql',utc_timestamp()); delete from migrations where name='045_drive.sql'; drop table signin_packs")
+hq.get(B+'/config'); chk('a missing migration runs even when the list is longer than the folder', sql("show tables like 'signin_packs'")=='signin_packs' and sql("select count(*) from migrations where name='045_drive.sql'")=='1')
 print(f'checks {ok+bad} FAILURES {bad}')
