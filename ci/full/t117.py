@@ -2,7 +2,7 @@
 # each district; OpenStreetMap polling stations as chapters where mapped; no "In X, this is your ..." note.
 import json
 from playwright.sync_api import sync_playwright
-B='http://localhost:8080'; ok=0; bad=0
+B='http://127.0.0.1:8080'; ok=0; bad=0
 def chk(n,c,x=''):
   global ok,bad
   if c: ok+=1

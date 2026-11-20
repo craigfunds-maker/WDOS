@@ -2,7 +2,7 @@
 # commission's regions; each district lists its wards; each ward lists its polling stations or centres as chapters.
 import json, os
 from playwright.sync_api import sync_playwright
-B='http://localhost:8080'; EL='/home/claude/wdos-php/assets/geo/el'; ok=0; bad=0
+B='http://127.0.0.1:8080'; EL='/home/claude/wdos-php/assets/geo/el'; ok=0; bad=0
 def chk(n,c,x=''):
   global ok,bad
   if c: ok+=1
