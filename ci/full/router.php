@@ -1,6 +1,6 @@
 <?php
 // Local test router only: stands in for the .htaccess rules.
-$root = '/home/claude/wdos-php';
+$root = realpath('/home/claude/wdos-php') ?: '/home/claude/wdos-php';   // CI links this path to the checkout: compare real paths
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 if (preg_match('#^/privacy/?$#', $path)) { header('Content-Type: text/html'); readfile($root . '/privacy.html'); return true; }
 if (preg_match('#^/api(/|$)#', $path)) { require $root . '/api/index.php'; return true; }
