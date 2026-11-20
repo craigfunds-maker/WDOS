@@ -660,3 +660,5 @@ a.pdx-step__link:hover{background:color-mix(in srgb,#D4006A 7%,transparent)}
 .photoask__img{width:min(280px,70vw);aspect-ratio:1;object-fit:cover;border-radius:50%;border:4px solid var(--lime,#7CB518)}
 .photoask__live{transform:scaleX(-1);background:#000}
 .photoask__actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+/* v109.34: on a phone the envoy's people table stacks: person, then her days and score, full width */
+@media (max-width: 640px){.table--stack-s thead{display:none}.table--stack-s,.table--stack-s tbody,.table--stack-s tr,.table--stack-s td{display:block;width:100%}.table--stack-s tr{padding:12px 0;border-bottom:1px solid var(--line-soft,#3a2a35)}.table--stack-s td{border:0;padding:4px 0}.table--stack-s td.hide-s{display:none}.table--stack-s .tag{white-space:normal}}

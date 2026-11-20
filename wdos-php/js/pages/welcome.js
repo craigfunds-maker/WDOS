@@ -3,7 +3,7 @@
  * finishes a Google sign-up (complete = true). */
 import { geoEq, geoSlug } from '../geoeq.js';
 import { h, t, tf, clear, icon, NETS, googleMark, theme, toast, langPills, langPicker, listenBtn, guideBtn, stopAllListening, GUIDE, GUIDE_AUDIO, GUIDE_VIDEO, i18n, choices, said, roleOptions } from '../ui.js';
-import { api } from '../api.js';
+import { api, squarePhoto } from '../api.js';
 import { app, signedIn, refreshUser, go, signOut, setLanguage } from '../app.js';
 
 export function pubBar(right, withLang = true) {
@@ -50,13 +50,21 @@ export async function render(root, params) {
   }
   const envoyLink = !!(link && link.kind === 'envoy');            // an envoy's invitee chooses the position, then goes through the 3-day referral activation
   const candidate = leaderForm || (link && link.position) || envoyLink;
-  if (candidate) refMeta = await api('/positions').catch(() => null);
+  if (candidate) refMeta = await api(envoyLink ? '/positions?all=1' : '/positions').catch(() => null);   // v109.34: an envoy's candidate sees every volunteer leadership role
   const saved = complete ? {} : await draft.load();
   let chosen = ['WGMN', 'WNNN'].includes(String(params.network).toUpperCase()) ? String(params.network).toUpperCase() : (!link && !leaderForm && saved.network) || '';
   let stepNo = Number(saved.step) || 0;
   const nets = h('div', { class: 'nets', role: 'radiogroup', 'aria-label': 'Choose your network' });
   const wrap = h('div', { class: 'formwrap' }); const inner = h('div'); wrap.append(inner);
 
+  /* v109.34: an envoy's candidate adds her profile photo on the form (camera or gallery). It is saved the moment her account is made. */
+  const photoField = () => {
+    const prev = h('div', { class: 'photoask__stage', style: 'min-height:0' }, F.photoData ? h('img', { src: F.photoData, alt: t('Your photo'), class: 'photoask__img', style: 'width:120px' }) : h('span', { class: 'faint', text: t('No photo yet') }));
+    const pick = (cap) => { const i = h('input', { type: 'file', accept: 'image/*', hidden: true, ...(cap ? { capture: 'user' } : {}) }); i.addEventListener('change', async () => { const f = i.files[0]; if (!f) return; try { F.photoData = await squarePhoto(f); prev.replaceChildren(h('img', { src: F.photoData, alt: t('Your photo'), class: 'photoask__img', style: 'width:120px' })); } catch (e) { toast(t('That photo did not work'), e.message, 'bad'); } }); document.body.append(i); i.click(); setTimeout(() => i.remove(), 60000); };
+    F.photoPick = h('button', { class: 'btn btn--lime btn--s', type: 'button', onclick: () => pick(true) }, icon('camera', 16), ' ', t('Take a photo'));
+    return h('div', { class: 'field', style: 'display:grid;gap:8px;justify-items:start;margin:14px 0' }, h('span', { text: t('Your profile photo') }), h('small', { class: 'muted', text: t('A clear photo of your face. It becomes your profile picture in WDOS.') }), prev,
+      h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, F.photoPick, h('button', { class: 'btn btn--s', type: 'button', onclick: () => pick(false) }, icon('up', 16), ' ', t('Upload a photo'))));
+  };
   const cardFor = (code) => {
     const n = NETS[code];
     const input = h('input', { type: 'radio', name: 'network', value: code, 'aria-label': `${n.name}. ${n.age}.` });
@@ -225,6 +233,7 @@ export async function render(root, params) {
         envoyLink ? h('div', { style: 'display:grid;gap:12px' }, h('p', { class: 'muted', style: 'margin:0', text: tf('You were invited by {1}, a WODDI Envoy. Choose the position you would like to be considered for. Your 3-day Referral Activation starts as soon as your account is made.', link.owner) }), h('label', { class: 'field', for: 'f-position' }, h('span', { text: 'Position being considered for' }), F.position))
         : link ? h('p', { class: 'muted', style: 'margin:0 0 12px', text: tf('You have been referred by {1} for consideration as {2}.', link.owner, link.role + (link.place ? ', ' + link.place : '')) })
           : h('div', { class: 'grid2' }, h('label', { class: 'field', for: 'f-position' }, h('span', { text: 'Position being considered for' }), F.position), h('label', { class: 'field', for: 'f-refcat' }, h('span', { text: 'Who referred you?' }), F.refCat), h('label', { class: 'field', for: 'f-refname' }, h('span', { text: 'Name of the person who referred you' }), F.refName)),
+        envoyLink ? photoField() : null,
         h('p', { class: 'notice', text: refMeta.notice }));
     }
     const form = h('form', { class: 'jform reveal', novalidate: true },
@@ -276,6 +285,7 @@ export async function render(root, params) {
       if (F.source && F.source.value) body.source = F.source.value;
       { const c = new URLSearchParams(location.search).get('c'); if (c) body.campaign = c.slice(0, 40); }
       if (envoyLink && !F.position.value) { err.textContent = 'Choose the position you are being considered for.'; F.position.focus(); return; }
+      if (envoyLink && !complete && !F.photoData) { err.textContent = 'Add your profile photo: take one with your camera or choose one from your phone.'; F.photoPick?.focus(); return; }
       if (link) body.referral = envoyLink ? { code: link.code, position: F.position.value } : { code: link.code };
       else if (candidate) {
         if (!F.position.value) { err.textContent = 'Choose the position you are being considered for.'; F.position.focus(); return; }
@@ -290,6 +300,7 @@ export async function render(root, params) {
         toast(tf('Welcome to {1}', chosen), tf('Your membership number is {1}.', r.user.member_no), 'ok');
         draft.clear();
         if (complete) { await refreshUser(); }
+        if (F.photoData) { try { await api('/me/photo', { data: F.photoData }); r.user.has_photo = true; } catch { toast(t('Your photo was not saved'), t('You can add it after you sign in.'), 'bad'); } }
         signedIn(r.user);
         if (r.user.todo && r.user.todo.activation) go('#/activation'); else if (r.user.journey) go('#/journey');
       } catch (ex) {
@@ -324,6 +335,7 @@ export async function render(root, params) {
       if (F.vol && has(F.vol) && F.vol.value === 'lead' && !F.volRole.value) { F.volRole.focus(); return 'Choose the leadership role you are interested in.'; }
       if (F.password && has(F.password)) { if (F.password.value.length < 6) { F.password.focus(); return 'Choose a password or PIN of at least 6 letters or numbers.'; } }
       if (F.position && has(F.position) && envoyLink && !F.position.value) return 'Choose the position you are being considered for.';
+      if (F.photoPick && has(F.photoPick) && envoyLink && !complete && !F.photoData) return 'Add your profile photo: take one with your camera or choose one from your phone.';
       if (F.position && has(F.position) && !link) { if (!F.position.value) return 'Choose the position you are being considered for.'; if (!F.refCat.value) return 'Please tell us who referred you.'; if (!F.refName.value.trim()) return 'Please type the name of the person who referred you.'; }
       return '';
     };

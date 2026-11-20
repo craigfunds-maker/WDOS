@@ -118,3 +118,52 @@ function activation_content_ready(string $route): array {
   $assess = (int) val("SELECT COUNT(*) FROM readiness_items WHERE kind='statement'");
   return ['days_loaded' => $days, 'days_expected' => ACT_ROUTES[$route]['days'], 'assessment' => $assess > 0, 'complete' => $days >= ACT_ROUTES[$route]['days'] && $assess > 0];
 }
+
+/* v109.34: the system scores every referral activation (Azeez, 20 Nov 2026: "the system score them in the hq dashboard; the state
+ * envoy also see their scores; they are not made a volunteer leader until they pass the 3 days activation and HQ approve").
+ * Out of 100, worked out from what she actually did, so HQ and the envoy see the same number and why:
+ *   30  the three days, 10 for each day completed
+ *   10  finished on time (assessment submitted by the deadline)
+ *   25  understanding: the readiness statements she answered "Yes, I understand" (a "need clarification" counts half)
+ *   25  written answers: each short answer counts in full from about 120 characters, less if shorter
+ *   10  readiness: ready 10, interested 5, not now 0
+ * The pass mark is 60. HQ can appoint only a candidate who has passed. */
+const ACT_PASS = 60;
+function activation_score(array $a): array {
+  $days = max(1, (int) (ACT_ROUTES[$a['route']]['days'] ?? 3));
+  $done = (int) val('SELECT COUNT(*) FROM activation_progress WHERE activation_id=? AND completed_at IS NOT NULL', [(int) $a['id']]);
+  $parts = ['days' => min(30, (int) round(30 * min($done, $days) / $days)), 'on_time' => 0, 'understanding' => 0, 'answers' => 0, 'readiness' => 0];
+  $r = row('SELECT * FROM readiness_responses WHERE activation_id=?', [(int) $a['id']]);
+  if ($r) {
+    $deadlineEnd = (new DateTimeImmutable($a['deadline'] . ' 23:59:59', new DateTimeZone('Africa/Lagos')))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+    if ($done >= $days && $r['submitted_at'] <= $deadlineEnd) $parts['on_time'] = 10;
+    $st = jn_json($r['statements']); if ($st) { $pts = 0; foreach ($st as $v) $pts += $v === 'yes' ? 1 : ($v === 'clarify' ? 0.5 : 0); $parts['understanding'] = (int) round(25 * $pts / count($st)); }
+    $sa = jn_json($r['short_answers']); if ($sa) { $q = 0; foreach ($sa as $v) $q += min(1, mb_strlen(trim((string) $v)) / 120); $parts['answers'] = (int) round(25 * $q / count($sa)); }
+    $parts['readiness'] = ['ready' => 10, 'interested' => 5][$r['readiness']] ?? 0;
+  }
+  $score = array_sum($parts); $final = (bool) $r;
+  return ['score' => $score, 'pass_mark' => ACT_PASS, 'final' => $final, 'passed' => $final && $score >= ACT_PASS, 'days_done' => $done, 'parts' => $parts];
+}
+/** HQ approves: the candidate becomes a volunteer leader in the seat she applied for, and she and the person who referred her are told
+ *  in the app, on the phone and by email. */
+function activation_approve(array $a, int $byId): string {
+  $uid = (int) $a['user_id'];
+  $title = seat_open($uid, $a['position_code'], $a['network'], (int) $a['org_unit_id'], $a['area_label'], 'appointed', $byId);
+  q("UPDATE activations SET status='completed', outcome='selected', decided_at=COALESCE(decided_at,?), decided_by=COALESCE(decided_by,?) WHERE id=?", [now(), $byId, (int) $a['id']]);
+  $u = row('SELECT * FROM users WHERE id=?', [$uid]);
+  $site = function_exists('app_origin') ? app_origin() : '';
+  if ($u && filter_var($u['email'], FILTER_VALIDATE_EMAIL) && !preg_match('/\.(invalid|test|local|example)$/', $u['email'])) {
+    $body = '<p>Dear ' . htmlspecialchars($u['first_name']) . ',</p><p>You passed your 3-Day Referral Activation and WODDI Headquarters has approved you as <b>' . htmlspecialchars($title) . '</b>.</p>'
+      . '<p>Sign in to WDOS to read and accept your Volunteer Leadership Agreement. Your leader dashboard opens straight after.</p><p>No Woman Is Left Out.</p>';
+    mail_queue($u['email'], trim($u['first_name'] . ' ' . $u['last_name']), 'You are now a WODDI volunteer leader', mail_wrap('Congratulations, you are approved', $body, 'Open WDOS', $site . '/#/appointment'));
+  }
+  $ref = row('SELECT r.referrer_id, e.email, e.first_name FROM referrals r JOIN users e ON e.id=r.referrer_id WHERE r.user_id=?', [$uid]);
+  if ($ref) {
+    $who = trim(($u['first_name'] ?? '') . ' ' . ($u['last_name'] ?? ''));
+    notify((int) $ref['referrer_id'], 'activation', $who . ' is now a volunteer leader', 'HQ approved her as ' . $title . '. Thank you for bringing her in.', '#/');
+    if (filter_var($ref['email'], FILTER_VALIDATE_EMAIL) && !preg_match('/\.(invalid|test|local|example)$/', $ref['email']))
+      mail_queue($ref['email'], (string) $ref['first_name'], $who . ' is now a WODDI volunteer leader', mail_wrap('Your candidate was approved', '<p>Dear ' . htmlspecialchars((string) $ref['first_name']) . ',</p><p>' . htmlspecialchars($who) . ' passed her 3-Day Referral Activation and WODDI Headquarters approved her as <b>' . htmlspecialchars($title) . '</b>.</p><p>Thank you for bringing her in.</p>', 'Open my dashboard', $site . '/#/'));
+  }
+  after_response(function () { mail_drain(6); push_drain(10); });
+  return $title;
+}

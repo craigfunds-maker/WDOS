@@ -102,6 +102,9 @@ const NOTE_TEMPLATES = [
   // v109.33: her next monthly course has opened
   ['/^New course open: (.+)$/u', '/^Course (\d+) of 12 is now open for you\./u', [
     'ar' => ['دورة جديدة مفتوحة: {1}', 'الدورة {1} من 12 مفتوحة لكِ الآن. خمسة دروس قصيرة، ثم اختبار للحصول على شهادتك.'], 'fr' => ['Nouveau cours ouvert : {1}', 'Le cours {1} sur 12 est maintenant ouvert pour vous. Cinq courtes leçons, puis un quiz pour votre certificat.'], 'pt' => ['Novo curso aberto: {1}', 'O curso {1} de 12 já está aberto para si. Cinco lições curtas e depois um questionário para o seu certificado.'], 'sw' => ['Kozi mpya imefunguliwa: {1}', 'Kozi ya {1} kati ya 12 sasa imefunguliwa kwako. Masomo matano mafupi, kisha jaribio kwa ajili ya cheti chako.']]],
+  // v109.34: the envoy is told her candidate was approved
+  ['/^(.+) is now a volunteer leader$/u', '/^HQ approved her as (.+)\. Thank you for bringing her in\.$/u', [
+    'ar' => ['{1} أصبحت الآن قائدة متطوعة', 'وافق المقر عليها بصفة {1}. شكراً لأنك جلبتِها.'], 'fr' => ['{1} est maintenant responsable bénévole', 'Le siège l’a approuvée comme {1}. Merci de l’avoir amenée.'], 'pt' => ['{1} é agora líder voluntária', 'A sede aprovou-a como {1}. Obrigada por a ter trazido.'], 'sw' => ['{1} sasa ni kiongozi wa kujitolea', 'HQ imemwidhinisha kama {1}. Asante kwa kumleta.']]],
 ];
 /* One entry per template above, in the same order: its key, its name on the Communications page, the English wording,
  * and what {1} and {2} stand for. WODDI HQ can replace any wording in any language; the change is logged. */
@@ -137,6 +140,7 @@ const NOTE_META = [
   ['gcall_in', 'Group call ringing', 'Group call from {1}', 'Tap to join the call.', '{1} is the person calling.'],
   ['gcall_missed', 'Missed group call', 'Missed group call from {1}', 'Open Calls in WDOS to join if the call is still on.', '{1} is the person who called.'],
   ['course_open', 'Monthly course opened', 'New course open: {1}', 'Course {1} of 12 is now open for you. Five short lessons, then a quiz for your certificate.', 'Title: {1} is the course. Message: {1} is its number.'],
+  ['envoy_approved', 'Envoy: candidate approved', '{1} is now a volunteer leader', 'HQ approved her as {1}. Thank you for bringing her in.', 'Title: {1} is the candidate. Message: {1} is her seat.'],
 ];
 /** Wordings WODDI HQ has approved in place of the built-in ones: [key][lang] = [title, body]. */
 function note_overrides(): array {

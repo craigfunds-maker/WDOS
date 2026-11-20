@@ -271,13 +271,16 @@ function envoy_of(array $u): ?array { return ($u['role'] ?? '') === 'envoy' ? ro
 function envoy_people(int $envoyId): array {
   $out = [];
   foreach (rows("SELECT u.id, u.first_name, u.last_name, u.has_photo, u.network, u.country_code, u.state_region, u.last_seen_at, r.position_code, r.created_at referred_at,
-      a.id act_id, a.status act_status, a.deadline, a.started_at, a.submitted_at, a.outcome
+      a.id act_id, a.status act_status, a.deadline, a.started_at, a.submitted_at, a.outcome, a.route act_route
     FROM referrals r JOIN users u ON u.id=r.user_id LEFT JOIN activations a ON a.id=(SELECT MAX(a2.id) FROM activations a2 WHERE a2.user_id=u.id) WHERE r.referrer_id=? ORDER BY r.created_at DESC LIMIT 500", [$envoyId]) as $p) {
     $days = $p['act_id'] ? (int) val('SELECT COUNT(*) FROM activation_progress WHERE activation_id=? AND completed_at IS NOT NULL', [(int) $p['act_id']]) : 0;
     $started = $p['act_id'] ? (int) val('SELECT COUNT(*) FROM activation_progress WHERE activation_id=?', [(int) $p['act_id']]) : 0;
     $out[] = ['id' => (int) $p['id'], 'first_name' => $p['first_name'], 'last_name' => $p['last_name'], 'has_photo' => (int) $p['has_photo'], 'network' => $p['network'], 'country' => country_name($p['country_code']), 'state_region' => $p['state_region'],
       'role' => $p['position_code'] ? position_title((string) $p['position_code'], (string) $p['network']) : '', 'referred_at' => $p['referred_at'], 'last_seen_at' => $p['last_seen_at'],
-      'activation' => $p['act_id'] ? ['status' => $p['act_status'], 'deadline' => $p['deadline'], 'days_done' => $days, 'days_opened' => $started, 'days_total' => 3, 'assessment_submitted' => $p['submitted_at'] !== null, 'decided' => $p['outcome'] !== ''] : null];
+      'activation' => $p['act_id'] ? ['status' => $p['act_status'], 'deadline' => $p['deadline'], 'days_done' => $days, 'days_opened' => $started, 'days_total' => 3, 'assessment_submitted' => $p['submitted_at'] !== null, 'decided' => $p['outcome'] !== '',
+        // v109.34: the same score HQ sees, and whether HQ has approved her yet
+        'score' => activation_score(['id' => (int) $p['act_id'], 'route' => $p['act_route'], 'deadline' => $p['deadline']])] : null,
+      'approved_as' => ($seat = current_seat((int) $p['id'])) ? seat_title($seat) : ''];
   }
   return $out;
 }

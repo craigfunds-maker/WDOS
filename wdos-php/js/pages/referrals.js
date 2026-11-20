@@ -66,11 +66,12 @@ async function register(body) {
       h('div', { class: 'row row--4' }, kpi('users', 'Registered', c.registered, [h('span', { text: tf('{1} started', c.started) })]), kpi('inbox', 'Awaiting review', c.awaiting_review, [h('span', { text: 'Assessment submitted' })]), kpi('check', 'Decided', c.decided, [h('span', { text: tf('{1} selected', c.selected) })]), kpi('clock', 'Incomplete', c.incomplete, [h('span', { text: 'Deadline passed' })]))];
     if (!d.content.complete) parts.push(h('div', { class: 'panel' }, h('b', { text: 'Programme content is not fully loaded' }), h('p', { class: 'faint', style: 'margin:6px 0 0;font-size:13.5px', text: tf('{1} of {2} days are loaded', d.content.days_loaded, d.content.days_expected) + (d.content.assessment ? '.' : ', and the readiness assessment is not loaded.') + ' Candidates can work up to the last loaded day. Load the rest on the setup page, section 8.' })));
     parts.push(card(d.routes[route].label, route === 'open7' ? 'There is no public link for this route. HQ opens it for an applicant after screening.' : 'Referred candidates, WGMN and WNNN forms.',
-      d.items.length ? h('div', { class: 'tablewrap reveal' }, h('table', { class: 'table' }, h('thead', {}, h('tr', {}, ['Candidate', 'Position', 'Stage', 'Deadline', 'Outcome'].map((x) => h('th', { text: x })))),
+      d.items.length ? h('div', { class: 'tablewrap reveal' }, h('table', { class: 'table' }, h('thead', {}, h('tr', {}, ['Candidate', 'Position', 'Stage', 'Score', 'Deadline', 'Outcome'].map((x) => h('th', { text: t(x) })))),
         h('tbody', {}, d.items.map((a) => h('tr', { tabindex: '0', onclick: () => { location.hash = '#/referrals/activations/' + a.id; } },
           h('td', {}, h('div', { class: 'who' }, avatar({ ...a, id: a.user_id }, 34), h('div', {}, h('b', { text: `${a.first_name} ${a.last_name}` }), h('small', { text: a.referrer ? 'Referred by ' + a.referrer : 'Opened by HQ' })))),
           h('td', {}, h('div', {}, h('span', { text: a.role }), h('div', { style: 'display:flex;gap:8px;align-items:center;margin-top:2px' }, flag(a.country_code), h('small', { class: 'faint', text: a.place }), netTag(a.network)))),
           h('td', {}, h('div', { class: 'tagrow' }, h('span', { class: 'tag' + (a.status === 'submitted' ? ' tag--wgmn' : a.status === 'incomplete' ? ' tag--bad' : ''), text: a.stage }), a.extension_status === 'requested' ? h('span', { class: 'tag tag--bad', text: 'Extension asked' }) : null)),
+          h('td', {}, scoreTag(a.score, a.seated)),
           h('td', { class: 'num', text: fmtDate(a.deadline) }), h('td', { text: a.outcome ? d.outcomes[a.outcome] : '' }))))))
         : empty('route', 'Nothing recorded yet', route === 'ref3' ? 'Candidates appear here as soon as they register through a referral link or the referral form.' : 'Open a 7-Day activation for an applicant after screening, with the button above.')));
     body.replaceChildren(...parts);
@@ -89,6 +90,13 @@ function openCard(route, done) {
   return card('Open an activation for an applicant', 'The applicant joins WDOS first. Opening the activation sends the applicant a notification and starts the deadline today.', h('div', { style: 'display:grid;gap:14px' }, h('div', { class: 'grid2' }, field('Applicant', email), field('Position being considered', f.pos), field('Country', f.country), field('State or region', f.state), field('Name of the place', f.area)), err,
     h('div', {}, h('button', { class: 'btn', type: 'button', onclick: async () => { err.textContent = ''; try { await api('/hq/activations/open', { email: email.value, position: f.pos.value, org_unit_id: f.unit(), area_label: f.area.value, route }); toast('Activation opened', '', 'ok'); done(); } catch (e) { err.textContent = e.message; } } }, 'Open activation'))));
 }
+/* v109.34: the activation score, the same one the envoy sees */
+function scoreTag(sc, seated) {
+  if (seated) return h('span', { class: 'tag tag--wnnn', text: t('Approved') });
+  if (!sc) return null;
+  if (!sc.final) return h('small', { class: 'faint', text: tf('{1} so far', sc.score) });
+  return h('span', { class: 'tag ' + (sc.passed ? 'tag--wnnn' : 'tag--bad'), text: (sc.passed ? t('Passed') : t('Not passed')) + ` · ${sc.score}` });
+}
 async function candidate(root, id) {
   const box = h('div', { style: 'display:grid;gap:20px' }, h('div', { class: 'card' }, sk.rows(5))); root.append(h('a', { class: 'btn btn--ghost btn--s', href: '#/referrals/activations', style: 'justify-self:start;margin-bottom:12px' }, 'Back to the register'), box);
   async function load() {
@@ -97,6 +105,11 @@ async function candidate(root, id) {
     const act = async (payload, okMsg) => { try { const r = await api('/hq/activations/' + id, payload); toast(okMsg, r.title || '', 'ok'); load(); } catch (e) { toast('Not saved', e.message, 'bad'); } };
     parts.push(h('section', { class: 'hero' }, avatar(c, 72), h('div', { class: 'grow' }, h('h1', { class: 'display', text: `${c.first_name} ${c.last_name}` }), h('p', { text: `${a.role_title}, ${a.unit}` }),
       h('div', { class: 'hero__meta' }, flag(c.country_code), netTag(a.network), h('span', { class: 'tag', text: a.route_label }), h('span', { class: 'tag', text: ACT_ST[a.status] || a.status }), a.outcome ? h('span', { class: 'tag tag--wnnn', text: d.outcomes[a.outcome] }) : null, c.seated ? h('span', { class: 'tag tag--wnnn', text: 'Appointed' }) : null)), h('a', { class: 'btn btn--quiet btn--s', href: '#/members/' + c.id, text: 'Open member record' })));
+    if (a.score) { const sc = a.score, P = sc.parts;
+      parts.push(card('Activation score', tf('Worked out by WDOS from what she did. The pass mark is {1} of 100. She becomes a volunteer leader only when she has passed and HQ approves her.', sc.pass_mark),
+        h('div', { style: 'display:grid;gap:12px' }, h('div', { style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap' }, h('b', { class: 'display num', style: 'font-size:34px', text: `${sc.score}/100` }), scoreTag(sc, c.seated)),
+          h('dl', { class: 'dl' }, [[t('The three days'), `${P.days} / 30`], [t('Finished on time'), `${P.on_time} / 10`], [t('Understanding statements'), `${P.understanding} / 25`], [t('Written answers'), `${P.answers} / 25`], [t('Readiness'), `${P.readiness} / 10`]].map(([k, v]) => [h('dt', { text: k }), h('dd', { class: 'num', text: v })]).flat()),
+          sc.passed && !c.seated ? h('div', {}, h('button', { class: 'btn btn--lime', type: 'button', onclick: () => { if (confirm(tf('Approve {1} as {2}, {3}? She and the person who referred her are told in the app, on the phone and by email.', c.first_name, a.role_title, a.unit))) act({ action: 'approve' }, t('Approved as a volunteer leader')); } }, icon('check', 18), ' ', t('Approve as volunteer leader'))) : null))); }
     parts.push(card('Candidate information', null, h('dl', { class: 'dl' }, [['Email', c.email], ['Phone', c.phone], ['Lives in', [c.community, c.lga, c.state_region].filter(Boolean).join(', ')], ['Referred by', a.referrer || 'Opened by HQ'], ['Started', fmtDate(a.started_at)], ['Deadline', fmtDate(a.deadline)], a.submitted_at ? ['Assessment submitted', fmtDate(a.submitted_at)] : null].filter(Boolean).flatMap(([k, v]) => [h('dt', { text: k }), h('dd', { text: v })]))));
     if (a.extension_status === 'requested') { const until = input({ type: 'date' });
       parts.push(card('Extension request', a.extension_reason, h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap;align-items:end' }, field('New deadline', until), h('button', { class: 'btn', type: 'button', onclick: () => act({ action: 'extension', approve: true, until: until.value }, 'Extension approved') }, 'Approve'), h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => act({ action: 'extension', approve: false }, 'Extension declined') }, 'Decline')))); }

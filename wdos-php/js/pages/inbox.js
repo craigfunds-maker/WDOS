@@ -20,7 +20,7 @@ export function undoBar(text, seconds, onUndo) {
 export async function render(root, params) {
   const seg = params.tab || '';
   if (/^\d+$/.test(seg)) return thread(root, Number(seg));
-  if (seg === 'new' || seg === 'draft' || seg === 'to') return compose(root, { draft: seg === 'draft' ? Number(params.id) : 0, to: seg === 'to' ? Number(params.id) : 0 });
+  if (seg === 'new' || seg === 'draft' || seg === 'to' || seg === 'to-hq') return compose(root, { draft: seg === 'draft' ? Number(params.id) : 0, to: seg === 'to' ? Number(params.id) : 0, hq: seg === 'to-hq' });
   if (seg === 'drafts') return drafts(root);
   return list(root, seg === 'deleted' ? 'deleted' : 'inbox');
 }
@@ -100,7 +100,7 @@ async function compose(root, opts) {
   root.append(h('a', { class: 'btn btn--ghost btn--s', href: '#/inbox', style: 'margin-bottom:12px' }, t('Back to messages')));
   let o; try { o = await api('/dm/options'); } catch (e) { root.append(card('New message', null, empty('x', 'This page did not load', e.message))); return; }
   let draft = null; if (opts.draft) { try { draft = (await api('/dm/drafts')).drafts.find((d) => d.id === opts.draft) || null; } catch { draft = null; } }
-  const aud0 = draft ? (() => { try { return JSON.parse(draft.audience || '{}'); } catch { return {}; } })() : {};
+  const aud0 = draft ? (() => { try { return JSON.parse(draft.audience || '{}'); } catch { return {}; } })() : (opts.hq && o.who.includes('staff') ? { who: 'staff' } : {});   // v109.34: Message WODDI HQ
   const mode = h('select', { class: 'input', 'data-tour': 'dm-to', 'aria-label': t('Send to') }, h('option', { value: 'one', text: t('One person or a few people') }), o.who.length ? h('option', { value: 'group', text: t('A group') }) : null);
   /* one by one */
   const picked = new Map(); const chips = h('div', { class: 'tagrow' }); const results = h('div', { class: 'picklist' });
@@ -119,6 +119,8 @@ async function compose(root, opts) {
   const state = input({ placeholder: t('State or region (optional)'), maxlength: 120, value: aud0.state || '' });
   const groupBox = h('div', { class: 'grid2', hidden: true }, field('Who', who), field('Network', net), field('Leadership level', lvl, 'Only leaders seated at this level.'), field('Position', pos), ctry ? field('Country', ctry) : null, field('State or region', state, 'Type it exactly as members chose it.'));
   const countLine = h('p', { class: 'muted', style: 'margin:0', 'aria-live': 'polite' });
+  /* v109.34: writing to HQ staff needs no network, level, position or place: only "Who" stays */
+  const filt = [...groupBox.children].slice(1); const onlyWho = () => filt.forEach((f) => { f.hidden = who.value === 'staff'; }); who.addEventListener('change', onlyWho); onlyWho();
   const audience = () => mode.value === 'one' ? { people: [...picked.keys()] } : { who: who.value, network: net.value, level: lvl.value, position: pos.value, country: ctry ? ctry.value : '', state: state.value.trim() };
   const label = () => mode.value === 'one' ? [...picked.values()].map((p) => p.first_name + ' ' + p.last_name).join(', ') : [t(WHO[who.value]), net.value, lvl.selectedOptions[0]?.text, pos.value ? pos.selectedOptions[0]?.text : '', ctry && ctry.value ? ctry.selectedOptions[0].text : '', state.value].filter((x) => x && x !== t('Every level')).join(' · ');
   let ct; const count = () => { clearTimeout(ct); ct = setTimeout(async () => {

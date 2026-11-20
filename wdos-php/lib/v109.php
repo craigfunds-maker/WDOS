@@ -123,7 +123,7 @@ route('GET', '/dm/people', function () {
 });
 route('GET', '/dm/options', function () {
   $u = require_user(); $hq = is_hq($u); $seat = work_seat($u); $envoy = ($u['role'] ?? '') === 'envoy';
-  $who = $hq ? ['leaders', 'members', 'envoys', 'staff', 'everyone'] : ($envoy ? ['members'] : ($seat ? (empty($seat['he_for_she']) ? ['leaders', 'members', 'everyone'] : ['leaders']) : []));
+  $who = $hq ? ['leaders', 'members', 'envoys', 'staff', 'everyone'] : ($envoy ? ['staff', 'members'] : ($seat ? (empty($seat['he_for_she']) ? ['leaders', 'members', 'everyone'] : ['leaders']) : []));
   $pos = $hq ? rows('SELECT code, title_wgmn, title_wnnn, level FROM positions ORDER BY rank_no') : ($seat ? rows('SELECT code, title_wgmn, title_wnnn, level FROM positions WHERE rank_no<>? ORDER BY rank_no', [(int) $seat['rank_no']]) : []);
   $countries = $hq ? rows("SELECT DISTINCT u.country_code code FROM users u WHERE u.country_code IS NOT NULL AND u.status='active'") : [];
   $countries = array_map(fn($c) => ['code' => $c['code'], 'name' => country_name($c['code']) ?: $c['code']], $countries); usort($countries, fn($a, $b) => strcmp($a['name'], $b['name']));

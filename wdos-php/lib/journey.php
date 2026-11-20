@@ -161,13 +161,14 @@ route('GET', '/hq/activations', function () {
     if ($a['status'] === 'submitted') $c['awaiting_review']++; if ($a['status'] === 'completed') $c['decided']++; if ($a['status'] === 'incomplete') $c['incomplete']++; if ($a['outcome'] === 'selected') $c['selected']++;
     $items[] = ['id' => (int) $a['id'], 'user_id' => (int) $a['user_id'], 'first_name' => $a['first_name'], 'last_name' => $a['last_name'], 'has_photo' => (int) $a['has_photo'], 'network' => $a['network'], 'country_code' => $a['country_code'],
       'role' => position_title($a['position_code'], $a['network']), 'place' => trim(($a['area_label'] !== '' ? $a['area_label'] . ', ' : '') . $a['unit'], ', '), 'referrer' => $a['referrer_name'], 'status' => $a['status'],
-      'stage' => activation_stage($a, (int) $a['done']), 'deadline' => $a['deadline'], 'extension_status' => $a['extension_status'], 'outcome' => $a['outcome'], 'started_at' => $a['started_at']];
+      'stage' => activation_stage($a, (int) $a['done']), 'deadline' => $a['deadline'], 'extension_status' => $a['extension_status'], 'outcome' => $a['outcome'], 'started_at' => $a['started_at'],
+      'score' => activation_score($a), 'seated' => (bool) current_seat((int) $a['user_id'])];
   }
   return ['route' => $route, 'routes' => ACT_ROUTES, 'items' => $items, 'counts' => $c, 'content' => activation_content_ready($route), 'outcomes' => ACT_OUTCOMES];
 });
 route('GET', '/hq/activations/(\d+)', function ($id) {
   require_hq(); $a = row('SELECT * FROM activations WHERE id=?', [(int) $id]); if (!$a) fail(404, 'That activation was not found.', 'not_found');
-  return ['activation' => activation_view($a, true), 'outcomes' => ACT_OUTCOMES];
+  return ['activation' => activation_view($a, true) + ['score' => activation_score($a)], 'outcomes' => ACT_OUTCOMES];
 });
 route('POST', '/hq/activations/open', function () {
   $me = require_hq(); $b = body();
@@ -199,10 +200,14 @@ route('POST', '/hq/activations/(\d+)', function ($id) {
     $o = str_in('outcome', 20); if (!isset(ACT_OUTCOMES[$o])) fail(422, 'Choose the outcome.', 'outcome');
     q("UPDATE activations SET status='completed', outcome=?, outcome_note=?, disclosed=?, decided_at=?, decided_by=? WHERE id=?", [$o, $note, str_in('disclosed', 1000), now(), (int) $me['id'], (int) $id]);
     notify($uid, 'activation', 'Your assessment has been reviewed', 'Headquarters will contact you about the next step.', '#/activation');
-  } elseif ($act === 'appoint') {
-    if ($a['outcome'] !== 'selected') fail(409, 'Record the outcome as Selected before appointing.', 'transition');
+  } elseif ($act === 'appoint' || $act === 'approve') {
+    // v109.34: only a candidate who has passed her activation becomes a volunteer leader, and only when HQ approves
+    if ($act === 'appoint' && $a['outcome'] !== 'selected') fail(409, 'Record the outcome as Selected before appointing.', 'transition');
+    if (!in_array($a['status'], ['submitted', 'completed'], true)) fail(409, 'She has not finished her activation yet. HQ approves after she submits her assessment.', 'transition');
     if (current_seat($uid)) fail(409, 'That person already holds a leadership seat.', 'seated');
-    $res['title'] = seat_open($uid, $a['position_code'], $a['network'], (int) $a['org_unit_id'], $a['area_label'], 'appointed', (int) $me['id']);
+    $sc = activation_score($a);
+    if (!$sc['passed']) fail(409, 'She has not passed the activation: score ' . $sc['score'] . ' of 100, the pass mark is ' . ACT_PASS . '. Return it to her with a note, or record another outcome.', 'not_passed');
+    $res['title'] = activation_approve($a, (int) $me['id']);
   } elseif ($act === 'extension') {
     if ($a['extension_status'] !== 'requested') fail(409, 'There is no extension request to decide.', 'transition');
     if (!empty(body()['approve'])) {
