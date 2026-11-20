@@ -80,8 +80,11 @@ function send_mail(string $to, string $toName, string $subject, string $html): b
     CURLOPT_HTTPHEADER => ['api-key: ' . cfg('BREVO_API_KEY'), 'Content-Type: application/json', 'Accept: application/json'],
     CURLOPT_POSTFIELDS => json_encode(['sender' => ['email' => cfg('MAIL_FROM'), 'name' => cfg('MAIL_FROM_NAME', 'WODDI HQ')],
       'to' => [['email' => $to, 'name' => $toName ?: $to]], 'subject' => $subject, 'htmlContent' => $html])]);
-  curl_exec($ch); $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
-  return $code >= 200 && $code < 300;
+  $resp = (string) curl_exec($ch); $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE); $cerr = curl_error($ch); curl_close($ch);
+  $ok = $code >= 200 && $code < 300;
+  // v109.35: remember why it failed (Brevo's own words, never the key), so HQ sees the reason on the Email delivery page
+  $GLOBALS['wdos_mail_err'] = $ok ? '' : mb_substr($code ? 'HTTP ' . $code . ': ' . ((json_decode($resp, true)['message'] ?? '') ?: mb_substr(strip_tags($resp), 0, 200)) : 'No answer from Brevo: ' . $cerr, 0, 300);
+  return $ok;
 }
 
 /* ---- automations: run by the cron URL, each at most once a day ----------- */
@@ -156,7 +159,12 @@ function mail_drain(int $limit = 12): array {
     foreach (rows("SELECT * FROM mail_outbox WHERE status='queued' ORDER BY id LIMIT " . max(1, min(40, $limit))) as $m) {
       if (q("UPDATE mail_outbox SET status='sending', attempts=attempts+1 WHERE id=? AND status='queued'", [(int) $m['id']])->rowCount() === 0) continue;
       if (send_mail($m['to_email'], $m['to_name'], $m['subject'], $m['html'])) { q("UPDATE mail_outbox SET status='sent', sent_at=?, html='' WHERE id=?", [now(), (int) $m['id']]); $sent++; }
-      else { q('UPDATE mail_outbox SET status=? WHERE id=?', [(int) $m['attempts'] + 1 < 3 ? 'queued' : 'failed', (int) $m['id']]); $failed++; if ($failed >= 3) break; }
+      else {
+        $err = (string) ($GLOBALS['wdos_mail_err'] ?? '');
+        try { q('UPDATE mail_outbox SET status=?, last_error=? WHERE id=?', [(int) $m['attempts'] + 1 < 3 ? 'queued' : 'failed', $err, (int) $m['id']]); }
+        catch (PDOException $e) { q('UPDATE mail_outbox SET status=? WHERE id=?', [(int) $m['attempts'] + 1 < 3 ? 'queued' : 'failed', (int) $m['id']]); }   // before migration 044
+        $failed++; if ($failed >= 3) break;
+      }
     }
   } catch (PDOException $e) { /* table arrives with the next migration run */ }
   return ['sent' => $sent, 'failed' => $failed, 'configured' => true];

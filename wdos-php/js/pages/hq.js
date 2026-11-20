@@ -1,7 +1,7 @@
 /* HQ dashboard. Every figure is a count of real rows; an empty system shows empty states, never sample numbers. */
 import { celebrationsPanel } from '../celebrations.js';
 import { leaderActivityPanel } from '../leaderactivity.js';
-import { h, clear, icon, tf, avatar, flag, netTag, card, sk, empty, ago, fmt, greeting, fmtDate } from '../ui.js';
+import { h, t, clear, icon, tf, avatar, flag, netTag, card, sk, empty, ago, fmt, greeting, fmtDate } from '../ui.js';
 import { pushNudge } from '../pushnudge.js';
 import { api } from '../api.js';
 import { app } from '../app.js';
@@ -16,9 +16,9 @@ export function delta(now, prev, days) {
   const p = Math.round(((now - prev) / prev) * 100);
   return h('span', { class: 'delta delta--' + (p > 0 ? 'up' : p < 0 ? 'down' : 'flat') }, icon(p > 0 ? 'up' : p < 0 ? 'down' : 'flat', 14), (p > 0 ? '+' : '') + p + '%');
 }
-export function kpi(ic, label, value, foot) {
+export function kpi(ic, label, value, foot, href) {
   const v = h('div', { class: 'kpi__value', text: '0' }); if (typeof value === 'string' && isNaN(Number(value))) { v.textContent = value; if (value.length > 6) v.style.cssText = 'font-size:24px;line-height:1.3;letter-spacing:0'; } else countUp(v, value);
-  return h('div', { class: 'card kpi reveal' }, h('div', { class: 'kpi__label' }, icon(ic, 17), label), v, h('div', { class: 'kpi__foot' }, foot));
+  return h(href ? 'a' : 'div', { class: 'card kpi reveal' + (href ? ' kpi--link' : ''), href: href || null }, h('div', { class: 'kpi__label' }, icon(ic, 17), label), v, h('div', { class: 'kpi__foot' }, foot));
 }
 export function peopleList(items, hrefFor) {
   return h('div', { class: 'list' }, items.map((p) => h(hrefFor ? 'a' : 'div', { class: hrefFor ? 'list__link' : '', href: hrefFor ? hrefFor(p) : null }, avatar(p, 40),
@@ -73,7 +73,27 @@ export async function render(root) {
     .catch((e) => minutesBox.replaceChildren(empty('x', 'This did not load', e.message)));
   loadOps(); loadTerms();
   const trend = h('div'), split = h('div'), countries = h('div'), seats = h('div'), recent = h('div'), feed = h('div');
-  root.append(hero, pushNudge(), kpis,
+  /* v109.35: volunteer leaders at a glance: every figure opens the list behind it */
+  const glance = h('div', {}, sk.rows(4));
+  const loadGlance = () => api('/hq/leaders-glance').then((g) => {
+    const L = (href, label, n, tone) => h('a', { class: 'list__link', href }, h('div', { class: 'grow' }, h('b', { text: t(label) })), h('span', { class: 'tag' + (tone ? ' tag--' + tone : ''), text: fmt(n) }), icon('chevright', 16));
+    const netTile = (net) => h('a', { class: 'card kpi kpi--link', href: '#/members?kind=leaders&seat_network=' + net, style: 'margin:0' }, h('div', { class: 'kpi__label' }, netTag(net)), h('div', { class: 'kpi__value num', text: fmt(g.by_network[net]) }), h('div', { class: 'kpi__foot' }, h('span', { text: g.total ? Math.round(100 * g.by_network[net] / g.total) + '%' : '' })));
+    const lv = h('div'); bars(lv, { rows: g.by_level.map((l) => ({ label: t(l.label), href: '#/members?kind=leaders&level=' + l.level, segments: [{ name: 'WGMN', color: seriesColor.WGMN, value: l.WGMN }, { name: 'WNNN', color: seriesColor.WNNN, value: l.WNNN }] })) });
+    const ct = h('div'); bars(ct, { rows: g.by_country.map((c) => ({ label: c.name || c.code, lead: flag(c.code), href: '#/members?kind=leaders&seat_country=' + c.code, segments: [{ name: 'WGMN', color: seriesColor.WGMN, value: c.WGMN }, { name: 'WNNN', color: seriesColor.WNNN, value: c.WNNN }] })) });
+    const stt = h('div'); bars(stt, { rows: g.by_state.map((c) => ({ label: c.state, lead: flag(c.code), href: '#/members?kind=leaders&seat_country=' + c.code + '&seat_state=' + encodeURIComponent(c.state), segments: [{ name: 'WGMN', color: seriesColor.WGMN, value: c.WGMN }, { name: 'WNNN', color: seriesColor.WNNN, value: c.WNNN }] })) });
+    glance.replaceChildren(h('div', { style: 'display:grid;gap:18px' },
+      h('div', { class: 'row row--4' }, h('a', { class: 'card kpi kpi--link', href: '#/members?kind=leaders', style: 'margin:0' }, h('div', { class: 'kpi__label' }, icon('award', 17), t('All volunteer leaders')), h('div', { class: 'kpi__value num', text: fmt(g.total) }), h('div', { class: 'kpi__foot' }, h('span', { text: tf('{1} signed in this week', fmt(g.active_7d)) }))), netTile('WGMN'), netTile('WNNN'),
+        h('a', { class: 'card kpi kpi--link', href: '#/envoys', style: 'margin:0' }, h('div', { class: 'kpi__label' }, icon('users', 17), t('WODDI Envoys')), h('div', { class: 'kpi__value num', text: fmt(g.envoys) }), h('div', { class: 'kpi__foot' }, h('span', { text: tf('{1} candidates in activation', fmt(g.in_activation)) })))),
+      h('div', { class: 'row row--2' }, h('div', {}, h('small', { class: 'eyebrow', text: t('By leadership level') }), lv), h('div', {}, h('small', { class: 'eyebrow', text: t('By country') }), ct)),
+      h('div', { class: 'row row--2' }, h('div', {}, h('small', { class: 'eyebrow', text: t('By state or region') }), g.by_state.length ? stt : h('p', { class: 'muted', text: t('No state seats yet.') })),
+        h('div', {}, h('small', { class: 'eyebrow', text: t('Needs attention') }), h('div', { class: 'list list--stack' },
+          L('#/members?kind=leaders&seen=never', 'Never signed in', g.never_signed_in, g.never_signed_in ? 'bad' : ''),
+          L('#/members?kind=leaders&agreement=pending', 'Agreement not yet accepted', g.agreement_pending, g.agreement_pending ? 'bad' : ''),
+          L('#/referrals/activations', 'Candidates waiting for your review', g.awaiting_review, g.awaiting_review ? 'wgmn' : ''),
+          L('#/members?kind=leaders&seen=7d', 'Signed in this week', g.active_7d, ''),
+          h('a', { class: 'list__link', href: '#/hq/activity' }, h('div', { class: 'grow' }, h('b', { text: t("Leaders' activity") }), h('small', { text: t('Tasks, messages, calls, meetings and reports') })), icon('chevright', 16)))))));
+  }).catch((e) => glance.replaceChildren(empty('x', 'This did not load', e.message)));
+  root.append(hero, pushNudge(), kpis, card('Volunteer leaders at a glance', 'Every figure opens the leaders behind it.', glance, legend([{ name: 'WGMN', color: seriesColor.WGMN }, { name: 'WNNN', color: seriesColor.WNNN }])),
     h('div', { class: 'row row--2-1' }, card('New members', 'Registrations per day, by network', trend, legend([{ name: 'WGMN', color: seriesColor.WGMN }, { name: 'WNNN', color: seriesColor.WNNN }])), card('Network split', 'All members to date', split)),
     card('Meetings', 'Coming up and just held: who was invited, who replied, who opened the link and who attended', meet, h('a', { class: 'btn btn--ghost btn--s', href: '#/meetings', text: 'Schedule or open meetings' })),
     card('Video meeting minutes', 'Minutes, the leaders who attended, documents and recordings sent by volunteer leaders', minutesBox, h('a', { class: 'btn btn--ghost btn--s', href: '#/meetings/requests', text: 'All video meetings' })),
@@ -92,10 +112,11 @@ export async function render(root) {
     catch (e) { kpis.replaceChildren(); [trend, split, countries, seats, recent, feed].forEach((x) => x.replaceChildren(empty('x', 'Could not load this', e.message, h('button', { class: 'btn btn--quiet btn--s', onclick: load }, 'Try again')))); return; }
     const k = d.kpis, totals = d.series.map((p) => p.WGMN + p.WNNN);
     kpis.replaceChildren(
-      kpi('users', 'Members', k.members, [h('span', { text: tf('{1} active this week', fmt(k.active_7d)) })]),
-      kpi('plus', tf('Joined in {1} days', days), k.new_now, [h('span', {}, delta(k.new_now, k.new_prev, days), k.new_prev ? ' on the previous ' + days : ''), sparkline(totals)]),
-      kpi('award', 'Volunteer leaders seated', k.leaders, [h('span', { text: k.leaders ? 'Across both networks' : 'Appoint leaders from Members' })]),
-      kpi('globe', 'Countries with members', k.countries, [h('span', { text: 'In Africa and the diaspora' })]));
+      kpi('users', 'Members', k.members, [h('span', { text: tf('{1} active this week', fmt(k.active_7d)) })], '#/members'),
+      kpi('plus', tf('Joined in {1} days', days), k.new_now, [h('span', {}, delta(k.new_now, k.new_prev, days), k.new_prev ? ' on the previous ' + days : ''), sparkline(totals)], '#/members'),
+      kpi('award', 'Volunteer leaders seated', k.leaders, [h('span', { text: k.leaders ? tf('WGMN {1} · WNNN {2}', fmt(k.leaders_wgmn || 0), fmt(k.leaders_wnnn || 0)) : 'Appoint leaders from Members' })], '#/members?kind=leaders'),
+      kpi('globe', 'Countries with members', k.countries, [h('span', { text: 'In Africa and the diaspora' })], '#/members'));
+    loadGlance();
     if (!k.members) {
       const invite = () => h('a', { class: 'btn btn--quiet btn--s', href: '#/', onclick: (e) => { e.preventDefault(); navigator.clipboard?.writeText(location.origin + '/#/'); e.target.textContent = 'Link copied'; } }, 'Copy the joining link');
       trend.replaceChildren(empty('chart', 'No registrations yet', 'This chart draws itself as soon as the first member joins through the network page.', invite()));
@@ -104,12 +125,13 @@ export async function render(root) {
     } else {
       clear(trend).classList.add('reveal'); lineChart(trend, { labels: d.series.map((p) => p.date), series: [{ name: 'WGMN', color: seriesColor.WGMN, values: d.series.map((p) => p.WGMN) }, { name: 'WNNN', color: seriesColor.WNNN, values: d.series.map((p) => p.WNNN) }] });
       donut(clear(split), { label: 'members', items: [{ name: 'WGMN', color: seriesColor.WGMN, value: k.wgmn }, { name: 'WNNN', color: seriesColor.WNNN, value: k.wnnn }] });
-      bars(clear(countries), { rows: d.by_country.map((c) => ({ label: c.name, lead: flag(c.code), segments: [{ name: 'WGMN', color: seriesColor.WGMN, value: Number(c.WGMN) }, { name: 'WNNN', color: seriesColor.WNNN, value: Number(c.WNNN) }] })) });
+      split.append(h('div', { style: 'display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px' }, ...['WGMN', 'WNNN'].map((n) => h('a', { class: 'btn btn--ghost btn--s', href: '#/members?network=' + n }, tf('{1} members: {2}', n, fmt(n === 'WGMN' ? k.wgmn : k.wnnn))))));
+      bars(clear(countries), { rows: d.by_country.map((c) => ({ label: c.name, lead: flag(c.code), href: '#/members?country=' + c.code, segments: [{ name: 'WGMN', color: seriesColor.WGMN, value: Number(c.WGMN) }, { name: 'WNNN', color: seriesColor.WNNN, value: Number(c.WNNN) }] })) });
     }
     if (!k.leaders) seats.replaceChildren(empty('award', 'No leaders seated yet', 'Open a member, choose Appoint to a seat, and the leadership structure builds up here.', h('a', { class: 'btn btn--quiet btn--s', href: '#/members', text: 'Open Members' })));
-    else bars(clear(seats), { rows: d.seats_by_level.map((l) => ({ label: l.label, segments: [{ name: 'WGMN', color: seriesColor.WGMN, value: l.WGMN }, { name: 'WNNN', color: seriesColor.WNNN, value: l.WNNN }] })) });
+    else bars(clear(seats), { rows: d.seats_by_level.map((l) => ({ label: l.label, href: l.level ? '#/members?kind=leaders&level=' + l.level : null, segments: [{ name: 'WGMN', color: seriesColor.WGMN, value: l.WGMN }, { name: 'WNNN', color: seriesColor.WNNN, value: l.WNNN }] })) });
     recent.replaceChildren(d.recent.length ? peopleList(d.recent, (p) => '#/members/' + p.id) : empty('user', 'Nobody has joined yet', 'New members appear here the moment they register.'));
-    feed.replaceChildren(d.activity.length ? h('div', { class: 'list reveal' }, d.activity.map((a) => h('div', {}, h('div', { class: 'nrow__ico' }, icon(a.action === 'registered' ? 'user' : a.action === 'announcement' ? 'megaphone' : a.action === 'appointed' ? 'award' : 'shield', 18)),
+    feed.replaceChildren(d.activity.length ? h('div', { class: 'list reveal' }, d.activity.map((a) => h(a.subject_id ? 'a' : 'div', { class: a.subject_id ? 'list__link' : '', href: a.subject_id ? '#/members/' + a.subject_id : null }, h('div', { class: 'nrow__ico' }, icon(a.action === 'registered' ? 'user' : a.action === 'announcement' ? 'megaphone' : a.action === 'appointed' ? 'award' : 'shield', 18)),
       h('div', { class: 'grow' }, h('b', { text: a.action === 'announcement' ? ACTION.announcement : `${a.subject} ${ACTION[a.action] || a.action}` }), h('small', { text: [a.detail, ago(a.created_at)].filter(Boolean).join(' · ') })))))
       : empty('clock', 'No activity yet', 'Registrations, appointments and HQ actions are recorded here.'));
     void fmtDate;

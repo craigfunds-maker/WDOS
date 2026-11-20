@@ -126,8 +126,8 @@ function self_governance(array &$done): void {
       if ($issues) {
         $lines = []; foreach ($issues as $k => $v) $lines[] = "$k: $v";
         $b = implode('. ', $lines) . '.' . ($fixed ? " $fixed chapter counts were corrected automatically." : '');
-        notify_hq('reminder', 'WDOS daily self-check: ' . count($issues) . ' item(s) need HQ', mb_substr($b, 0, 240), '#/hq/health');
-        hq_mail('WDOS daily self-check', 'Items that need HQ', '<ul><li>' . implode('</li><li>', array_map('htmlspecialchars', $lines)) . '</li></ul>' . ($fixed ? '<p>' . $fixed . ' chapter member counts were corrected automatically.</p>' : ''), '#/hq/health');
+        notify_hq('reminder', 'WDOS daily self-check: ' . count($issues) . ' item(s) need HQ', mb_substr($b, 0, 240), isset($issues['Emails that failed in the last day']) ? '#/hq/system/email' : '#/hq/system');
+        hq_mail('WDOS daily self-check', 'Items that need HQ', '<ul><li>' . implode('</li><li>', array_map('htmlspecialchars', $lines)) . '</li></ul>' . ($fixed ? '<p>' . $fixed . ' chapter member counts were corrected automatically.</p>' : ''), '#/hq/system');
       }
       return ($fixed ? "$fixed counts fixed; " : '') . count($issues) . ' issues';
     });

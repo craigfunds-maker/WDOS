@@ -114,6 +114,10 @@ export function bars(host, { rows }) {
     const on = () => { tip.replaceChildren(h('b', { text: r.label }), ...r.segments.map((g) => h('div', {}, h('span', { style: 'display:inline-flex;align-items:center;gap:7px' }, h('i', { class: 'key', style: `background:${g.color}` }), g.name), h('span', { text: fmt(g.value) })))); tip.classList.add('is-on'); tip.style.top = row.offsetTop + row.offsetHeight + 6 + 'px'; tip.style.right = '0px'; };
     const offf = () => tip.classList.remove('is-on');
     row.addEventListener('pointerenter', on); row.addEventListener('pointerleave', offf); row.addEventListener('focus', on); row.addEventListener('blur', offf);
+    if (r.href) {                       // v109.35: a bar opens the list behind it
+      row.classList.add('bar--link'); row.setAttribute('role', 'link');
+      const open = () => { location.hash = r.href; }; row.addEventListener('click', open); row.addEventListener('keydown', (e) => { if (e.key === 'Enter') open(); });
+    }
     host.append(row);
   });
   host.append(tip);

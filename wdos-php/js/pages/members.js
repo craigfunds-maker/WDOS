@@ -1,11 +1,14 @@
 /* Members. HQ sees everyone and can appoint, reset and suspend; a leader sees her own area, read-only. */
-import { h, clear, icon, avatar, flag, netTag, sk, empty, ago, fmt, fmtDate, toast, input } from '../ui.js';
+import { h, t, tf, clear, icon, avatar, flag, netTag, sk, empty, ago, fmt, fmtDate, toast, input } from '../ui.js';
 import { api, squarePhoto } from '../api.js';
 import { app, go } from '../app.js';
 
 export async function render(root, params) {
   const leader = params.scope === 'leader'; const hq = !leader;
   const state = { q: '', network: '', kind: '', page: 1 };
+  /* v109.35: the HQ dashboard opens this list already filtered (#/members?kind=leaders&seat_country=NG ...) */
+  const FKEYS = ['country', 'seat_network', 'level', 'seat_country', 'seat_state', 'seen', 'agreement']; const extra = {};
+  if (hq) { const qs = new URLSearchParams(location.hash.split('?')[1] || ''); if (qs.get('kind')) state.kind = qs.get('kind'); if (qs.get('network')) state.network = qs.get('network'); FKEYS.forEach((k) => { if (qs.get(k)) extra[k] = qs.get(k); }); }
   const tbody = h('tbody'); const pager = h('div', { class: 'pager' }); const holder = h('div');
   const cols = hq ? ['Member', 'Network', 'Location', 'Role', 'Joined'] : ['Member', 'Phone', 'Location', 'Joined'];
   const table = h('div', { class: 'tablewrap' }, h('table', { class: 'table' }, h('thead', {}, h('tr', {}, cols.map((c, i) => h('th', { class: i > 1 && i < cols.length - 1 ? 'hide-s' : '', text: c })))), tbody));
@@ -15,12 +18,17 @@ export async function render(root, params) {
   const kind = h('select', { class: 'input', style: 'width:auto;min-width:170px', 'aria-label': 'Show' }, [['', 'Everyone'], ['leaders', 'Volunteer leaders'], ['hq', 'HQ staff'], ['suspended', 'Suspended']].map(([v, l]) => h('option', { value: v, text: l })));
   kind.addEventListener('change', () => { state.kind = kind.value; state.page = 1; load(); });
   const count = h('span', { class: 'faint', style: 'margin-left:auto;font-size:13.5px' });
-  root.append(h('section', { class: 'card' }, h('div', { class: 'toolbar' }, h('div', { class: 'search' }, icon('search', 18), search), hq ? segNet : null, hq ? kind : null, count), holder, pager));
+  kind.value = state.kind; segNet.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-pressed', String(['', 'WGMN', 'WNNN'][i] === state.network)));
+  const LV = { country: 'Country', state_region: 'State or region', lga: 'LGA or district', community_cluster: 'Ward or cluster', chapter: 'Chapter' };
+  const words = Object.entries(extra).map(([k, v]) => k === 'level' ? t(LV[v] || v) : k === 'seen' ? (v === 'never' ? t('Never signed in') : t('Signed in this week')) : k === 'agreement' ? t('Agreement not yet accepted') : v);
+  const chip = Object.keys(extra).length ? h('div', { class: 'tagrow', style: 'justify-content:flex-start;margin-bottom:10px' }, h('span', { class: 'tag tag--wgmn', text: tf('Showing: {1}', words.join(' · ')) }),
+    h('a', { class: 'btn btn--ghost btn--s', href: '#/members', onclick: () => { Object.keys(extra).forEach((k) => delete extra[k]); } }, t('Show everyone'))) : null;
+  root.append(h('section', { class: 'card' }, chip, h('div', { class: 'toolbar' }, h('div', { class: 'search' }, icon('search', 18), search), hq ? segNet : null, hq ? kind : null, count), holder, pager));
 
   async function load() {
     holder.replaceChildren(table); tbody.replaceChildren(...sk.table(cols.length, 8)); pager.replaceChildren();
     let r;
-    try { r = await api((hq ? '/hq/members?' : '/leader/members?') + new URLSearchParams({ q: state.q, network: state.network, kind: state.kind, page: state.page, ...(params.as ? { as: params.as } : {}) })); }
+    try { r = await api((hq ? '/hq/members?' : '/leader/members?') + new URLSearchParams({ q: state.q, network: state.network, kind: state.kind, page: state.page, ...(hq ? extra : {}), ...(params.as ? { as: params.as } : {}) })); }
     catch (e) { holder.replaceChildren(empty('x', 'Members did not load', e.message, h('button', { class: 'btn btn--quiet btn--s', onclick: load }, 'Try again'))); return; }
     count.textContent = fmt(r.total) + (r.total === 1 ? ' member' : ' members') + (r.scope ? ' · ' + r.scope : '');
     if (!r.items.length) {

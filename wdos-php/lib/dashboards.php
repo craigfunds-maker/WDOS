@@ -35,12 +35,13 @@ route('GET', '/hq/dashboard', function () {
   $byLevel = [];
   foreach (rows('SELECT p.level, s.network, COUNT(*) c FROM seats s JOIN positions p ON p.code=s.position_code WHERE s.ends_at IS NULL GROUP BY p.level, s.network') as $r) $byLevel[$r['level']][$r['network']] = (int) $r['c'];
   $levels = [];
-  foreach ($labels as $k => $l) $levels[] = ['label' => $l, 'WGMN' => $byLevel[$k]['WGMN'] ?? 0, 'WNNN' => $byLevel[$k]['WNNN'] ?? 0];
+  foreach ($labels as $k => $l) $levels[] = ['level' => $k, 'label' => $l, 'WGMN' => $byLevel[$k]['WGMN'] ?? 0, 'WNNN' => $byLevel[$k]['WNNN'] ?? 0];
   return [
     'days' => $days,
     'kpis' => ['members' => (int) $t['total'], 'wgmn' => (int) $t['wgmn'], 'wnnn' => (int) $t['wnnn'], 'new_now' => (int) $t['new_now'], 'new_prev' => (int) $t['new_prev'],
       'countries' => (int) $t['countries'], 'active_7d' => (int) $t['active_7d'],
       'leaders' => (int) val('SELECT COUNT(DISTINCT user_id) FROM seats WHERE ends_at IS NULL'),
+      'leaders_wgmn' => (int) val("SELECT COUNT(DISTINCT user_id) FROM seats WHERE ends_at IS NULL AND network='WGMN'"), 'leaders_wnnn' => (int) val("SELECT COUNT(DISTINCT user_id) FROM seats WHERE ends_at IS NULL AND network='WNNN'"),
       'push_devices' => (int) val('SELECT COUNT(*) FROM push_subscriptions'),
       'awaiting_profile' => (int) val("SELECT COUNT(*) FROM users WHERE status='pending_profile'")],
     'series' => day_series('1=1', [], $days),
@@ -61,7 +62,18 @@ route('GET', '/hq/members', function () {
   if (in_array($_GET['network'] ?? '', ['WGMN', 'WNNN'], true)) { $w[] = 'u.network=?'; $p[] = $_GET['network']; }
   if (preg_match('/^[A-Z]{2}$/', (string) ($_GET['country'] ?? ''))) { $w[] = 'u.country_code=?'; $p[] = $_GET['country']; }
   $kind = $_GET['kind'] ?? '';
-  if ($kind === 'leaders') $w[] = 'EXISTS (SELECT 1 FROM seats s WHERE s.user_id=u.id AND s.ends_at IS NULL)';
+  // v109.35: the dashboard's leader figures open this list filtered: by seat network, level, country or state, and by sign-in and agreement
+  $seatW = ['s.user_id=u.id', 's.ends_at IS NULL']; $seatP = [];
+  if ($kind === 'leaders') {
+    if (in_array($_GET['seat_network'] ?? '', ['WGMN', 'WNNN'], true)) { $seatW[] = 's.network=?'; $seatP[] = $_GET['seat_network']; }
+    if (in_array($_GET['level'] ?? '', ['country', 'state_region', 'lga', 'community_cluster', 'chapter'], true)) { $seatW[] = 'EXISTS (SELECT 1 FROM positions pp WHERE pp.code=s.position_code AND pp.level=?)'; $seatP[] = $_GET['level']; }
+    if (preg_match('/^[A-Z]{2}$/', (string) ($_GET['seat_country'] ?? ''))) { $seatW[] = 'EXISTS (SELECT 1 FROM org_units so WHERE so.id=s.org_unit_id AND so.country_code=?)'; $seatP[] = $_GET['seat_country']; }
+    if (($st = trim((string) ($_GET['seat_state'] ?? ''))) !== '') { $seatW[] = "EXISTS (SELECT 1 FROM org_units so WHERE so.id=s.org_unit_id AND so.level='state_region' AND so.name=?)"; $seatP[] = mb_substr($st, 0, 120); }
+    if (($_GET['agreement'] ?? '') === 'pending') $seatW[] = "s.acceptance='pending'";
+    $w[] = 'EXISTS (SELECT 1 FROM seats s WHERE ' . implode(' AND ', $seatW) . ')'; $p = array_merge($p, $seatP);
+    if (($_GET['seen'] ?? '') === 'never') $w[] = 'u.last_seen_at IS NULL';
+    if (($_GET['seen'] ?? '') === '7d') { $w[] = 'u.last_seen_at>=?'; $p[] = gmdate('Y-m-d H:i:s', time() - 7 * 86400); }
+  }
   if ($kind === 'hq') $w[] = "u.role IN ('hq_admin','super_admin')";
   if ($kind === 'suspended') $w[] = "u.status='suspended'";
   $where = implode(' AND ', $w);
