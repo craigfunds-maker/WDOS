@@ -75,6 +75,7 @@ function notify_hq(string $kind, string $title, string $body, string $url): void
 function mail_configured(): bool { return (bool) cfg('BREVO_API_KEY') && (bool) cfg('MAIL_FROM'); }
 function send_mail(string $to, string $toName, string $subject, string $html): bool {
   if (!mail_configured()) return false;
+  if (strpos($html, 'data-woddi-logo') === false) $html = '<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#231019">' . mail_logo() . $html . '</div>';   // v109.39
   $ch = curl_init((string) cfg('BREVO_API_URL', 'https://api.brevo.com/v3/smtp/email'));
   curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 12,
     CURLOPT_HTTPHEADER => ['api-key: ' . cfg('BREVO_API_KEY'), 'Content-Type: application/json', 'Accept: application/json'],
@@ -142,9 +143,14 @@ function run_automations(): array {
 }
 
 /* ---- e-mail queue: mail is written here and sent a few at a time after replies, so no page waits for it ---- */
+/* v109.39: every email carries the WODDI logo at the top (Azeez, 20 Nov 2026). mail_wrap puts it in; send_mail adds it to any email
+ * built another way, so nothing goes out without it. The image is served from the app, so it shows once the reader allows images. */
+function mail_logo(): string {
+  return '<div data-woddi-logo="1" style="text-align:center;padding:6px 0 14px"><img src="' . htmlspecialchars(app_origin() . '/assets/logos/woddi-email.png') . '" width="185" height="120" alt="WODDI, the nurturer" style="display:inline-block;width:185px;height:120px;border:0;outline:none"></div>';
+}
 function mail_wrap(string $heading, string $bodyHtml, string $buttonText = '', string $buttonUrl = ''): string {
   $btn = $buttonText !== '' ? '<p style="margin:24px 0"><a href="' . htmlspecialchars($buttonUrl) . '" style="background:#D4006A;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:bold;display:inline-block">' . htmlspecialchars($buttonText) . '</a></p>' : '';
-  return '<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#231019"><div style="border-top:6px solid #D4006A;border-bottom:3px solid #7CB518;padding:22px 4px"><h2 style="margin:0 0 14px;font-size:20px">' . htmlspecialchars($heading) . '</h2>' . $bodyHtml . $btn
+  return '<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#231019">' . mail_logo() . '<div style="border-top:6px solid #D4006A;border-bottom:3px solid #7CB518;padding:22px 4px"><h2 style="margin:0 0 14px;font-size:20px">' . htmlspecialchars($heading) . '</h2>' . $bodyHtml . $btn
     . '<p style="color:#7a6a72;font-size:12.5px;margin-top:26px">WODDI Digital Operating System. You receive this because you hold a WDOS account.</p></div></div>';
 }
 function mail_queue(string $to, string $name, string $subject, string $html): bool {

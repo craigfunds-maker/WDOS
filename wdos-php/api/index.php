@@ -270,8 +270,8 @@ route('POST', '/auth/forgot', function () {
     $tok = token(32);
     q('INSERT INTO password_resets (token_hash,user_id,expires_at) VALUES (?,?,?)', [hash('sha256', $tok), (int) $u['id'], gmdate('Y-m-d H:i:s', time() + 3600)]);
     $link = app_origin() . '/#/reset/' . $tok;
-    after_response(fn() => send_mail($u['email'], $u['first_name'], 'Reset your WDOS password',
-      '<p>Hello ' . htmlspecialchars($u['first_name']) . ',</p><p>Use this link within one hour to choose a new WDOS password:</p><p><a href="' . $link . '">' . $link . '</a></p><p>If you did not ask for this, ignore this message.</p><p>WODDI HQ</p>'));
+    after_response(fn() => send_mail($u['email'], $u['first_name'], 'Reset your WDOS password', mail_wrap('Reset your WDOS password',   // v109.39: branded like every other email
+      '<p>Hello ' . htmlspecialchars($u['first_name']) . ',</p><p>Use this link within one hour to choose a new WDOS password:</p><p><a href="' . $link . '">' . $link . '</a></p><p>If you did not ask for this, ignore this message.</p><p>WODDI HQ</p>', 'Choose a new password', $link)));
   }
   return ['ok' => true, 'sent' => true, 'message' => 'If that email has a WDOS account, a reset link is on its way.'];
 });
