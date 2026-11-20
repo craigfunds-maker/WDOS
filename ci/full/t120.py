@@ -14,7 +14,7 @@ def as_login(uid):
 hq=login('hq@test.local','hq-password-1'); cl=login('leader@test.local','leader-pass-1'); me=int(sql("select id from users where email='leader@test.local'"))
 a=int(sql("select u.id from seats s join users u on u.id=s.user_id join org_units o on o.id=s.org_unit_id where s.ends_at is null and s.network='WGMN' and o.country_code='NG' and o.level='state_region' and u.status='active' order by u.id limit 1"))
 A=as_login(a)
-start=sql("select date_format(utc_timestamp(),'%Y-%m-%d %H:%i:%s')")
+start=sql("select date_format(date_sub(utc_timestamp(), interval 1 minute),'%Y-%m-%d %H:%i:%s')")   # a minute back: her sign-in a moment ago is inside the window
 # what leaders do
 tid=cl.post(B+'/tasks',json={'title':'Count chapter members','assignees':[a]}).json().get('ids',[None])[0] or int(sql("select max(id) from tasks"))
 A.post(B+f'/tasks/{tid}/comment',json={'body':'On it this week'}); A.post(B+f'/tasks/{tid}/status',json={'to':'in_progress'})
