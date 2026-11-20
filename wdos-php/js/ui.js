@@ -160,8 +160,24 @@ export function card(title, sub, body, right) {
 export const greeting = () => { const hr = new Date().getHours(); return t(hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening'); };
 export const theme = {
   get: () => document.documentElement.dataset.theme === 'light' ? 'light' : 'dark',
-  set(t) { document.documentElement.dataset.theme = t; try { localStorage.setItem('wdos.theme', t); } catch { /* private mode */ } document.querySelector('meta[name=theme-color]')?.setAttribute('content', t === 'light' ? '#FAF4F7' : '#130912'); window.dispatchEvent(new Event('wdos:theme')); },
+  set(t) { document.documentElement.dataset.theme = t; try { localStorage.setItem('wdos.theme', t); } catch { /* private mode */ } ambience.paint(); },
   toggle() { this.set(this.get() === 'light' ? 'dark' : 'light'); },
+};
+/* v109.40: ambiences, the mood of her workspace. Kept on this device. WODDI is the default and looks as before. */
+export const AMBIENCES = [
+  { k: 'woddi', name: 'WODDI', desc: 'Magenta and lime, as always', tint: '#D4006A', tint2: '#7CB518', light: '#FAF4F7', dark: '#130912' },
+  { k: 'sunrise', name: 'Sunrise', desc: 'Warm coral and gold', tint: '#F26B3A', tint2: '#F2B13B', light: '#FFF6EF', dark: '#1A0F0B' },
+  { k: 'garden', name: 'Garden', desc: 'Fresh greens', tint: '#7CB518', tint2: '#2E9E6B', light: '#F4F8EE', dark: '#0C130A' },
+  { k: 'lavender', name: 'Lavender', desc: 'Calm violet', tint: '#8B5CF6', tint2: '#D4006A', light: '#F8F4FD', dark: '#120D1C' },
+  { k: 'ocean', name: 'Ocean', desc: 'Cool teal', tint: '#0E9AA7', tint2: '#3F8FE0', light: '#F0F8F9', dark: '#081315' },
+  { k: 'ankara', name: 'Ankara', desc: 'Rich earth and gold', tint: '#C77700', tint2: '#D4006A', light: '#FBF5EA', dark: '#170F07' },
+];
+export const ambience = {
+  get: () => document.documentElement.dataset.ambience || 'woddi',
+  set(k) { const d = document.documentElement; if (k && k !== 'woddi') d.dataset.ambience = k; else delete d.dataset.ambience; try { localStorage.setItem('wdos.ambience', k || 'woddi'); } catch { /* private mode */ } this.paint(); },
+  motif: () => document.documentElement.dataset.motif !== 'off',
+  setMotif(on) { const d = document.documentElement; if (on) delete d.dataset.motif; else d.dataset.motif = 'off'; try { localStorage.setItem('wdos.motif', on ? 'on' : 'off'); } catch { /* private mode */ } },
+  paint() { const a = AMBIENCES.find((x) => x.k === this.get()) || AMBIENCES[0]; document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme.get() === 'light' ? a.light : a.dark); window.dispatchEvent(new Event('wdos:theme')); },
 };
 
 /* An HQ inspiration message: picture on the right, words on the calm left side. The words are live text, never part of the picture. */

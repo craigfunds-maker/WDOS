@@ -1,5 +1,5 @@
 /* WDOS front end entry: session, router, shell (collapsible sidebar, top bar, notification bell). */
-import { h, clear, icon, avatar, toast, ago, theme, empty, i18n, t, tf, langPicker, chime, listenBtn, LANGS } from './ui.js';
+import { h, clear, icon, avatar, toast, ago, theme, ambience, empty, i18n, t, tf, langPicker, chime, listenBtn, LANGS } from './ui.js';
 import { pushSync } from './api.js';
 import { api } from './api.js';
 
@@ -259,6 +259,7 @@ navigator.serviceWorker?.addEventListener('message', (e) => {
 window.addEventListener('wdos:signed-out', () => { if (app.user) { app.user = null; shellEls = null; stopPulse(); toast('You have been signed out', 'Sign in again to continue.', 'bad'); go('#/login'); } });
 
 /* ------------------------------------------------------------------ boot -- */
+ambience.paint();   // v109.40: the phone's top bar takes the room's colour
 window.addEventListener('hashchange', render);
 (async function boot() {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});

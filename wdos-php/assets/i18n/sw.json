@@ -3679,5 +3679,19 @@
 "Congratulations": "Hongera",
 "Congratulations {1}! You passed your 3-day activation. WODDI HQ will now decide on your seat. I am proud of you.": "Hongera {1}! Umefaulu uanzishaji wako wa siku 3. Makao Makuu ya WODDI sasa yataamua nafasi yako. Ninajivunia wewe.",
 "Thank you": "Asante",
-"Hello {1}, thank you for taking part in the activation. HQ did not appoint you this time, but your place in WODDI remains. Keep growing with us and stay in touch.": "Habari {1}, asante kwa kushiriki katika uanzishaji. Makao Makuu hayakukuteua safari hii, lakini nafasi yako katika WODDI inabaki. Endelea kukua pamoja nasi na tuendelee kuwasiliana."
+"Hello {1}, thank you for taking part in the activation. HQ did not appoint you this time, but your place in WODDI remains. Keep growing with us and stay in touch.": "Habari {1}, asante kwa kushiriki katika uanzishaji. Makao Makuu hayakukuteua safari hii, lakini nafasi yako katika WODDI inabaki. Endelea kukua pamoja nasi na tuendelee kuwasiliana.",
+"Ambience": "Mandhari",
+"Choose the mood of your workspace. Only you see it, on this device.": "Chagua hali ya eneo lako la kazi. Ni wewe tu unayeiona, kwenye kifaa hiki.",
+"Show a soft pattern in the background": "Onyesha mchoro laini kwenye mandharinyuma",
+"Sunrise": "Mawio",
+"Garden": "Bustani",
+"Lavender": "Lavenda",
+"Ocean": "Bahari",
+"Ankara": "Ankara",
+"Magenta and lime, as always": "Magenta na kijani-limau, kama kawaida",
+"Warm coral and gold": "Matumbawe ya joto na dhahabu",
+"Fresh greens": "Kijani kibichi",
+"Calm violet": "Zambarau tulivu",
+"Cool teal": "Samawati-kijani baridi",
+"Rich earth and gold": "Udongo tajiri na dhahabu"
 }

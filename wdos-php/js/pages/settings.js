@@ -1,5 +1,5 @@
 /* Settings: profile and photograph, password, fingerprint devices, notifications on this device and per type, theme. */
-import { h, t, tf, icon, avatar, card, sk, toast, agoIn, theme, langPicker, chime, soundOn } from '../ui.js';
+import { h, t, tf, icon, avatar, card, sk, toast, agoIn, theme, ambience, AMBIENCES, langPicker, chime, soundOn } from '../ui.js';
 import { api, squarePhoto, fingerprintSupported, fingerprintEnroll, deviceLabel, pushState, pushEnable, pushDisable, bio } from '../api.js';
 import { app, refreshUser, setLanguage } from '../app.js';
 import { sendTest } from '../pushnudge.js';
@@ -66,7 +66,16 @@ export async function render(root) {
   const soundRow = h('div', { style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap' }, h('label', { class: 'check', for: 's-sound', style: 'flex:1;min-width:220px' }, soundBox, h('span', { text: 'Play the WDOS sound when something new arrives while WDOS is open' })), h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: () => chime(true) }, icon('volume', 16), 'Hear it'));
   const themeSeg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Theme' }, [['dark', 'Dark', 'moon'], ['light', 'Light', 'sun']].map(([v, l, ic]) => h('button', { type: 'button', 'aria-pressed': String(theme.get() === v), style: 'display:inline-flex;gap:8px;align-items:center', onclick: (e) => { theme.set(v); themeSeg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget))); } }, icon(ic, 16), l)));
 
+  /* v109.40: the mood of her workspace */
+  const ambGrid = h('div', { class: 'ambgrid', role: 'group', 'aria-label': t('Ambience') }, AMBIENCES.map((a) => h('button', { type: 'button', class: 'amb', 'data-k': a.k, 'aria-pressed': String(ambience.get() === a.k),
+    onclick: () => { ambience.set(a.k); ambGrid.querySelectorAll('.amb').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.k === a.k))); } },
+    h('span', { class: 'amb__sw', style: `background:radial-gradient(120% 120% at 0 0, ${a.tint}55, transparent 60%), radial-gradient(120% 120% at 100% 100%, ${a.tint2}40, transparent 60%), ${theme.get() === 'light' ? a.light : a.dark}` }, h('i'), h('i', { style: 'background:' + a.tint2 })),
+    h('span', { class: 'amb__name', text: t(a.name) }), h('span', { class: 'amb__desc', text: t(a.desc) }))));
+  const motifBox = h('input', { type: 'checkbox', id: 's-motif' }); motifBox.checked = ambience.motif(); motifBox.addEventListener('change', () => ambience.setMotif(motifBox.checked));
+  const ambCard = card('Ambience', 'Choose the mood of your workspace. Only you see it, on this device.', h('div', { style: 'display:grid;gap:14px' }, ambGrid,
+    h('label', { class: 'check', for: 's-motif' }, motifBox, h('span', { text: t('Show a soft pattern in the background') }))));
+  window.addEventListener('wdos:theme', () => ambGrid.querySelectorAll('.amb').forEach((b) => { const a = AMBIENCES.find((x) => x.k === b.dataset.k); b.firstChild.style.background = `radial-gradient(120% 120% at 0 0, ${a.tint}55, transparent 60%), radial-gradient(120% 120% at 100% 100%, ${a.tint2}40, transparent 60%), ${theme.get() === 'light' ? a.light : a.dark}`; }));
   root.append(h('div', { class: 'setgrid' }, card('Your profile', u.member_no ? 'Membership number ' + u.member_no : null, pForm), card('Sign-in and security', null, security),
-    card('Notifications', 'Choose what reaches you, and where', h('div', { style: 'display:grid;gap:16px' }, devRow, soundRow, prefs)), card('Appearance', 'Saved on this device', h('div', { style: 'display:grid;gap:16px' }, themeSeg, h('label', { class: 'field' }, h('span', { text: 'Language' }), langPicker(setLanguage), h('small', { text: 'The screens are translated. Some long notices, and messages written by HQ, are still in English.' })))), card('Privacy notice', 'What WDOS keeps about you, who can see it, and how to ask for a correction or removal.', h('a', { class: 'btn btn--quiet', href: '/privacy?lang=' + (document.documentElement.lang || 'en'), target: '_blank', rel: 'noopener' }, 'Read the privacy notice'))));
+    card('Notifications', 'Choose what reaches you, and where', h('div', { style: 'display:grid;gap:16px' }, devRow, soundRow, prefs)), ambCard, card('Appearance', 'Saved on this device', h('div', { style: 'display:grid;gap:16px' }, themeSeg, h('label', { class: 'field' }, h('span', { text: 'Language' }), langPicker(setLanguage), h('small', { text: 'The screens are translated. Some long notices, and messages written by HQ, are still in English.' })))), card('Privacy notice', 'What WDOS keeps about you, who can see it, and how to ask for a correction or removal.', h('a', { class: 'btn btn--quiet', href: '/privacy?lang=' + (document.documentElement.lang || 'en'), target: '_blank', rel: 'noopener' }, 'Read the privacy notice'))));
   loadFp(); paintDevice(); loadPrefs();
 }
