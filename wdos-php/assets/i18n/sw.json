@@ -3611,5 +3611,12 @@
 "Brevo is working": "Brevo inafanya kazi",
 "Brevo is refusing this server": "Brevo inakataa seva hii",
 "Sending again": "Inatuma tena",
-"Not sent again": "Hazijatumwa tena"
+"Not sent again": "Hazijatumwa tena",
+"Phone numbers used by two accounts (sign-in with that number is ambiguous)": "Namba za simu zinazotumiwa na akaunti mbili (kuingia kwa namba hiyo kunachanganya)",
+"Members with no country": "Wanachama wasio na nchi",
+"Members not placed in a chapter yet": "Wanachama ambao bado hawajawekwa kwenye tawi",
+"Volunteer leaders who have never signed in": "Viongozi wa kujitolea ambao hawajawahi kuingia",
+"Phone used by two accounts": "Simu inayotumiwa na akaunti mbili",
+"Not in a chapter yet": "Bado hayupo kwenye tawi",
+"No country": "Hakuna nchi"
 }

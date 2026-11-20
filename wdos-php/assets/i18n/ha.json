@@ -3523,5 +3523,12 @@
 "Brevo is working": "Brevo yana aiki",
 "Brevo is refusing this server": "Brevo ya ƙi wannan sabar",
 "Sending again": "Ana sake aikawa",
-"Not sent again": "Ba a sake aikawa ba"
+"Not sent again": "Ba a sake aikawa ba",
+"Phone numbers used by two accounts (sign-in with that number is ambiguous)": "Lambobin waya da asusu biyu ke amfani da su (shiga da wannan lambar ba ta bayyana ba)",
+"Members with no country": "Membobi marasa ƙasa",
+"Members not placed in a chapter yet": "Membobin da ba a sanya su a reshe ba tukuna",
+"Volunteer leaders who have never signed in": "Shugabanni masu sa kai da ba su taɓa shiga ba",
+"Phone used by two accounts": "Waya da asusu biyu ke amfani da ita",
+"Not in a chapter yet": "Ba ta cikin reshe tukuna",
+"No country": "Babu ƙasa"
 }

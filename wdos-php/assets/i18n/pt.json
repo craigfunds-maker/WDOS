@@ -3611,5 +3611,12 @@
 "Brevo is working": "O Brevo está a funcionar",
 "Brevo is refusing this server": "O Brevo recusa este servidor",
 "Sending again": "A enviar de novo",
-"Not sent again": "Não reenviados"
+"Not sent again": "Não reenviados",
+"Phone numbers used by two accounts (sign-in with that number is ambiguous)": "Números de telefone usados por duas contas (entrar com esse número é ambíguo)",
+"Members with no country": "Membros sem país",
+"Members not placed in a chapter yet": "Membros ainda não colocadas num capítulo",
+"Volunteer leaders who have never signed in": "Líderes voluntárias que nunca entraram",
+"Phone used by two accounts": "Telefone usado por duas contas",
+"Not in a chapter yet": "Ainda sem capítulo",
+"No country": "Sem país"
 }

@@ -61,6 +61,10 @@ route('GET', '/hq/members', function () {
   if (($s = trim((string) ($_GET['q'] ?? ''))) !== '') { $w[] = "(CONCAT(u.first_name,' ',u.last_name) LIKE ? OR u.email LIKE ? OR u.member_no LIKE ? OR u.phone LIKE ?)"; $like = '%' . $s . '%'; array_push($p, $like, $like, $like, $like); }
   if (in_array($_GET['network'] ?? '', ['WGMN', 'WNNN'], true)) { $w[] = 'u.network=?'; $p[] = $_GET['network']; }
   if (preg_match('/^[A-Z]{2}$/', (string) ($_GET['country'] ?? ''))) { $w[] = 'u.country_code=?'; $p[] = $_GET['country']; }
+  // v109.36: data that needs tidying, opened from System health
+  if (($_GET['country'] ?? '') === 'none') $w[] = "(u.country_code IS NULL OR u.country_code='') AND u.role='member'";
+  if (($_GET['dup'] ?? '') === 'phone') $w[] = "u.phone<>'' AND u.status='active' AND u.phone IN (SELECT phone FROM (SELECT phone FROM users WHERE status='active' AND phone<>'' GROUP BY phone HAVING COUNT(*)>1) d)";
+  if (($_GET['chapter'] ?? '') === 'none') $w[] = "u.status='active' AND u.role='member' AND u.network IN ('WGMN','WNNN') AND NOT EXISTS (SELECT 1 FROM chapter_members cm WHERE cm.user_id=u.id AND cm.ended_at IS NULL)";
   $kind = $_GET['kind'] ?? '';
   // v109.35: the dashboard's leader figures open this list filtered: by seat network, level, country or state, and by sign-in and agreement
   $seatW = ['s.user_id=u.id', 's.ends_at IS NULL']; $seatP = [];

@@ -3611,5 +3611,12 @@
 "Brevo is working": "Brevo يعمل",
 "Brevo is refusing this server": "Brevo يرفض هذا الخادم",
 "Sending again": "جارٍ الإرسال مجدداً",
-"Not sent again": "لم تُرسل مجدداً"
+"Not sent again": "لم تُرسل مجدداً",
+"Phone numbers used by two accounts (sign-in with that number is ambiguous)": "أرقام هواتف تستخدمها حسابان (تسجيل الدخول بهذا الرقم غير واضح)",
+"Members with no country": "أعضاء بلا بلد",
+"Members not placed in a chapter yet": "أعضاء لم يُوضعوا في فرع بعد",
+"Volunteer leaders who have never signed in": "قائدات متطوعات لم يسجّلن الدخول قط",
+"Phone used by two accounts": "هاتف يستخدمه حسابان",
+"Not in a chapter yet": "ليست في فرع بعد",
+"No country": "بلا بلد"
 }

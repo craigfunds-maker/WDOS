@@ -7,7 +7,7 @@ export async function render(root, params) {
   const leader = params.scope === 'leader'; const hq = !leader;
   const state = { q: '', network: '', kind: '', page: 1 };
   /* v109.35: the HQ dashboard opens this list already filtered (#/members?kind=leaders&seat_country=NG ...) */
-  const FKEYS = ['country', 'seat_network', 'level', 'seat_country', 'seat_state', 'seen', 'agreement']; const extra = {};
+  const FKEYS = ['country', 'seat_network', 'level', 'seat_country', 'seat_state', 'seen', 'agreement', 'dup', 'chapter']; const extra = {};
   if (hq) { const qs = new URLSearchParams(location.hash.split('?')[1] || ''); if (qs.get('kind')) state.kind = qs.get('kind'); if (qs.get('network')) state.network = qs.get('network'); FKEYS.forEach((k) => { if (qs.get(k)) extra[k] = qs.get(k); }); }
   const tbody = h('tbody'); const pager = h('div', { class: 'pager' }); const holder = h('div');
   const cols = hq ? ['Member', 'Network', 'Location', 'Role', 'Joined'] : ['Member', 'Phone', 'Location', 'Joined'];
@@ -20,7 +20,7 @@ export async function render(root, params) {
   const count = h('span', { class: 'faint', style: 'margin-left:auto;font-size:13.5px' });
   kind.value = state.kind; segNet.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-pressed', String(['', 'WGMN', 'WNNN'][i] === state.network)));
   const LV = { country: 'Country', state_region: 'State or region', lga: 'LGA or district', community_cluster: 'Ward or cluster', chapter: 'Chapter' };
-  const words = Object.entries(extra).map(([k, v]) => k === 'level' ? t(LV[v] || v) : k === 'seen' ? (v === 'never' ? t('Never signed in') : t('Signed in this week')) : k === 'agreement' ? t('Agreement not yet accepted') : v);
+  const words = Object.entries(extra).map(([k, v]) => k === 'dup' ? t('Phone used by two accounts') : k === 'chapter' ? t('Not in a chapter yet') : k === 'country' && v === 'none' ? t('No country') : k === 'level' ? t(LV[v] || v) : k === 'seen' ? (v === 'never' ? t('Never signed in') : t('Signed in this week')) : k === 'agreement' ? t('Agreement not yet accepted') : v);
   const chip = Object.keys(extra).length ? h('div', { class: 'tagrow', style: 'justify-content:flex-start;margin-bottom:10px' }, h('span', { class: 'tag tag--wgmn', text: tf('Showing: {1}', words.join(' · ')) }),
     h('a', { class: 'btn btn--ghost btn--s', href: '#/members', onclick: () => { Object.keys(extra).forEach((k) => delete extra[k]); } }, t('Show everyone'))) : null;
   root.append(h('section', { class: 'card' }, chip, h('div', { class: 'toolbar' }, h('div', { class: 'search' }, icon('search', 18), search), hq ? segNet : null, hq ? kind : null, count), holder, pager));

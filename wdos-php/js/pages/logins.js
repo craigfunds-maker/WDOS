@@ -45,7 +45,8 @@ export async function render(root, params = {}) {
       loaded = true; d.countries.forEach((c) => country.append(h('option', { value: c.cc, text: c.name })));
       if (d.countries.some((c) => c.cc === 'NG')) { country.value = 'NG'; return load(); }
     }
-    picked.clear(); d.people.filter((p) => p.can_sign_in && (!added.size || added.has(p.id))).forEach((p) => picked.add(p.id)); paint();
+    // v109.36: nobody is ticked by default (one stray press used to reset every leader's password); only people just added are ticked
+    picked.clear(); d.people.filter((p) => p.can_sign_in && added.has(p.id)).forEach((p) => picked.add(p.id)); paint();
     if (added.size) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   async function issue(btn) {

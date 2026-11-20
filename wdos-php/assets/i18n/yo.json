@@ -3452,5 +3452,12 @@
 "Brevo is working": "Brevo ń ṣiṣẹ́",
 "Brevo is refusing this server": "Brevo kọ olupin yìí",
 "Sending again": "Ń tún ránṣẹ́",
-"Not sent again": "Kò tún ránṣẹ́"
+"Not sent again": "Kò tún ránṣẹ́",
+"Phone numbers used by two accounts (sign-in with that number is ambiguous)": "Àwọn nọ́mbà fóònù tí àkọọ́lẹ̀ méjì ń lò (ìwọlé pẹ̀lú nọ́mbà náà kò ṣe kedere)",
+"Members with no country": "Àwọn ọmọ ẹgbẹ́ tí kò ní orílẹ̀-èdè",
+"Members not placed in a chapter yet": "Àwọn ọmọ ẹgbẹ́ tí a kò tíì fi sínú ẹ̀ka",
+"Volunteer leaders who have never signed in": "Àwọn olórí olùyọ̀ǹda tí kò wọlé rí",
+"Phone used by two accounts": "Fóònù tí àkọọ́lẹ̀ méjì ń lò",
+"Not in a chapter yet": "Kò tíì sí nínú ẹ̀ka",
+"No country": "Kò sí orílẹ̀-èdè"
 }

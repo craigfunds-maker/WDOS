@@ -36,4 +36,9 @@ lv=[l for l in g['by_level'] if l['WGMN']+l['WNNN']>0][0]; x=hq.get(B+'/hq/membe
 x=hq.get(B+'/hq/members?kind=leaders&seen=never').json(); chk('never signed in opens them', x['total']==g['never_signed_in'], (x['total'],g['never_signed_in']))
 dsh=hq.get(B+'/hq/dashboard').json(); chk('dashboard levels carry their key', all('level' in l for l in dsh['seats_by_level'])); chk('leader split on the tile', 'leaders_wgmn' in dsh['kpis'])
 chk('leader cannot open the glance', ld.get(B+'/hq/leaders-glance').status_code in (401,403))
+# v109.36: data checks open their lists
+sy={i['key']:i for i in hq.get(B+'/hq/system').json()['items']}
+chk('data checks listed', {'dup_phone','no_country','no_chapter','never_signed'} <= set(sy), list(sy))
+for k,q in [('no_country','country=none'),('no_chapter','chapter=none'),('dup_phone','dup=phone')]:
+  r=hq.get(B+'/hq/members?'+q).json(); chk(f'{k} opens the same people', r['total']==sy[k]['n'], (k, r['total'], sy[k]['n']))
 print(f'checks {ok+bad} FAILURES {bad}')

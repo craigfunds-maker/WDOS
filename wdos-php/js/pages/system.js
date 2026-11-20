@@ -12,7 +12,7 @@ export async function render(root, params = {}) {
     const e = d.email;
     const items = h('div', { class: 'list list--stack' }, d.items.map((x) => h('a', { class: 'list__link', href: x.href, onclick: (ev) => { if (x.href === '#/hq/system/email') { ev.preventDefault(); emailCard.scrollIntoView({ behavior: 'smooth', block: 'start' }); } } },
       h('div', { class: 'nrow__ico' }, icon(x.n ? 'bell' : 'check', 18)), h('div', { class: 'grow' }, h('b', { text: t(x.label) })),
-      h('span', { class: 'tag ' + (x.n ? 'tag--bad' : 'tag--wnnn'), text: x.n ? fmt(x.n) : t('All clear') }), icon('chevright', 16))));
+      h('span', { class: 'tag ' + (x.n ? (x.soft ? 'tag--wgmn' : 'tag--bad') : 'tag--wnnn'), text: x.n ? fmt(x.n) : t('All clear') }), icon('chevright', 16))));
     const testOut = h('div');
     const showTest = (r) => testOut.replaceChildren(r ? h('div', { class: 'panel', role: 'status', style: 'display:grid;gap:4px' }, h('b', { class: r.ok ? '' : 'bad', text: r.ok ? t('Brevo is working') : t('Brevo is refusing this server') }), h('small', { text: r.message }), h('small', { class: 'faint', text: tf('Checked {1}', ago(r.at)) })) : null);
     showTest(e.test);

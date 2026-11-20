@@ -3427,5 +3427,12 @@
 "Brevo is working": "Brevo na-arụ ọrụ",
 "Brevo is refusing this server": "Brevo na-ajụ sava a",
 "Sending again": "Na-ezigakwa ọzọ",
-"Not sent again": "Ezigaghị ọzọ"
+"Not sent again": "Ezigaghị ọzọ",
+"Phone numbers used by two accounts (sign-in with that number is ambiguous)": "Nọmba ekwentị akaụntụ abụọ na-eji (ịbanye site na nọmba ahụ adịghị doro anya)",
+"Members with no country": "Ndị otu na-enweghị mba",
+"Members not placed in a chapter yet": "Ndị otu etinyebeghị n’alaka",
+"Volunteer leaders who have never signed in": "Ndị ndu ọrụ afọ ofufo na-abanyebeghị mgbe ọ bụla",
+"Phone used by two accounts": "Ekwentị akaụntụ abụọ na-eji",
+"Not in a chapter yet": "Ọ nọbeghị n’alaka",
+"No country": "Enweghị mba"
 }
