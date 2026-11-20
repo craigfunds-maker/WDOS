@@ -74,15 +74,46 @@ export async function pushState() {
   const sub = reg && await reg.pushManager.getSubscription();
   return sub ? 'on' : 'off';
 }
+/* v109.43: subscribing needs an active WDOS worker. Right after an update the new one is still installing and for a few
+ * seconds there is none, and the browser says "Subscription failed - no active Service Worker" (Azeez, 20 Nov 2026).
+ * Wait for it to be active, and if the browser still refuses, wait and try again before giving up. */
+export async function activeReg(ms = 45000) {
+  let reg = await navigator.serviceWorker.getRegistration();
+  if (!reg) reg = await navigator.serviceWorker.register('/sw.js');
+  if (reg.active && reg.active.state === 'activated') return reg;
+  const w = reg.installing || reg.waiting || reg.active;
+  await new Promise((done) => {
+    const t = setTimeout(done, ms);
+    const check = () => { if (reg.active && reg.active.state === 'activated') { clearTimeout(t); done(); } };
+    if (w) w.addEventListener('statechange', check);
+    navigator.serviceWorker.addEventListener('controllerchange', check);
+    reg.addEventListener('updatefound', () => reg.installing && reg.installing.addEventListener('statechange', check));
+    check();
+  });
+  return (await navigator.serviceWorker.getRegistration()) || reg;
+}
+async function subscribeWithRetry(vapid) {
+  for (let i = 0; ; i++) {
+    const reg = await activeReg();
+    try {
+      let sub = await reg.pushManager.getSubscription();
+      if (sub) { const cur = sub.options?.applicationServerKey ? toB64u(sub.options.applicationServerKey) : ''; if (cur && cur !== vapid) { await sub.unsubscribe(); sub = null; } }
+      return sub || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: fromB64u(vapid) });
+    } catch (e) {
+      if (i >= 4 || !/active service worker|no active/i.test(String(e && e.message))) {
+        if (/active service worker|no active/i.test(String(e && e.message))) throw new Error('WDOS is finishing an update on this device. Wait a minute, then press Turn on notifications again.');
+        throw e;
+      }
+      await new Promise((r) => setTimeout(r, 2500 * (i + 1)));
+    }
+  }
+}
 export async function pushEnable(vapid) {
   if (!pushSupported()) throw new Error(isIos() && !isInstalled() ? 'On an iPhone, notifications only work after WDOS is added to the Home Screen. Tap the Share button, choose Add to Home Screen, open WDOS from the new icon, then switch notifications on there.' : 'This browser cannot receive push notifications.');
   if (!vapid) throw new Error('Push keys are not set on the server yet. HQ IT needs to finish /api/setup.');
   const perm = await Notification.requestPermission();
   if (perm !== 'granted') throw new Error('Notifications are blocked for this site. Allow them from the padlock beside the address, then try again.');
-  const reg = await navigator.serviceWorker.ready;
-  let sub = await reg.pushManager.getSubscription();
-  if (sub) { const cur = sub.options?.applicationServerKey ? toB64u(sub.options.applicationServerKey) : ''; if (cur && cur !== vapid) { await sub.unsubscribe(); sub = null; } }
-  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: fromB64u(vapid) });
+  const sub = await subscribeWithRetry(vapid);
   await api('/push/subscribe', { subscription: sub.toJSON() });
   return true;
 }
@@ -91,9 +122,8 @@ export async function pushEnable(vapid) {
 export async function pushSync(vapid) {
   try {
     if (!pushSupported() || !vapid || Notification.permission !== 'granted') return;
-    const reg = await navigator.serviceWorker.ready; let sub = await reg.pushManager.getSubscription(); if (!sub) return;
-    const cur = sub.options?.applicationServerKey ? toB64u(sub.options.applicationServerKey) : '';
-    if (cur && cur !== vapid) { await sub.unsubscribe(); sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: fromB64u(vapid) }); }
+    const reg = await activeReg(); if (!(await reg.pushManager.getSubscription())) return;
+    const sub = await subscribeWithRetry(vapid);
     await api('/push/subscribe', { subscription: sub.toJSON() });
   } catch { /* never blocks the app */ }
 }
