@@ -696,3 +696,41 @@ a.kpi--link{color:inherit;text-decoration:none;cursor:pointer;transition:transfo
 .amb__sw{height:54px;border-radius:9px;border:1px solid rgba(0,0,0,.06);position:relative;overflow:hidden}
 .amb__sw i{position:absolute;bottom:7px;height:10px;border-radius:5px} .amb__sw i:nth-child(1){left:8px;width:38%;background:#D4006A} .amb__sw i:nth-child(2){left:calc(38% + 14px);width:22%;opacity:.85}
 .amb__name{font-weight:700;font-size:14px;display:flex;align-items:center;gap:6px} .amb__desc{font-size:12.5px;color:var(--ink-3);line-height:1.35}
+/* v109.41: the WODDI colours, bold and sharp (Azeez, 20 Nov 2026: "the colors here on wdos are too faint, make it bolder and sharper").
+ * Official: magenta #D4006A, lemon green #7CB518. They now carry the banner, the menu, the numbers and the network tags in full strength
+ * in every ambience. Every text pair checked to WCAG AA: white on magenta 5.2, dark green on lime 6.8, magenta on white 5.2. */
+:root{--brand:#D4006A;--lime:#7CB518;--brand-deep:#9E004F;--lime-dark:#13210A;--accent:#FF3D9E;--s-wgmn:#FF3D9E;--s-wnnn:#7CB518;--lime-ink:#9BD437;--line:#4A2C40;--line-soft:#33202D;
+  --glow:radial-gradient(900px 520px at 12% -8%, rgba(212,0,106,.38), transparent 62%), radial-gradient(700px 480px at 100% 110%, rgba(124,181,24,.18), transparent 60%)}
+:root[data-theme="light"]{--accent:#D4006A;--accent-soft:rgba(212,0,106,.12);--s-wgmn:#D4006A;--s-wnnn:#7CB518;--lime-ink:#4A7A08;--lime-soft:rgba(124,181,24,.18);--line:#DCC6D2;--line-soft:#EBDCE4;
+  --glow:radial-gradient(900px 520px at 12% -8%, rgba(212,0,106,.16), transparent 62%), radial-gradient(700px 480px at 100% 110%, rgba(124,181,24,.16), transparent 60%)}
+/* the banner at the top of each page: solid magenta, white words, a lime line underneath */
+.hero{background:linear-gradient(118deg,#D4006A 0%,#B8005C 52%,#9E004F 100%);border:0;color:#fff;box-shadow:0 18px 40px -22px rgba(158,0,79,.65)}
+.hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:6px;background:#7CB518}
+.hero h1,.hero h2,.hero b,.hero strong{color:#fff} .hero p,.hero small,.hero .muted{color:rgba(255,255,255,.92)} .hero a:not(.btn){color:#fff;text-decoration:underline}
+.hero .btn{background:#fff;color:#B8005C;border-color:#fff} .hero .btn--ghost,.hero .btn--quiet{background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.55)}
+.hero .btn--lime{background:#7CB518;color:#13210A;border-color:#7CB518}
+.hero .tag{background:rgba(255,255,255,.18);color:#fff;border-color:rgba(255,255,255,.4)} .hero .tag--wnnn{background:#7CB518;color:#13210A;border-color:#7CB518} .hero .tag--wgmn{background:#fff;color:#B8005C;border-color:#fff}
+.hero .seg{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.35)} .hero .seg button,.hero .seg a.seg__a{color:#fff}
+.hero .seg button[aria-pressed="true"],.hero .seg a.seg__a[aria-pressed="true"]{background:#fff;color:#B8005C;box-shadow:none}
+.hero .input,.hero select,.hero input{background:#fff;color:#24101D;border-color:#fff}
+.hero .ico{color:inherit}
+/* the menu: the page she is on is solid magenta with a lime edge */
+.nav a[aria-current="page"]{background:#D4006A;color:#fff;font-weight:650} .nav a[aria-current="page"] .ico{color:#fff}
+.nav a[aria-current="page"]::before{background:#7CB518;width:4px}
+.nav a:hover .ico{color:var(--accent)}
+.nav__group{color:var(--lime-ink);letter-spacing:.04em;text-transform:uppercase;font-size:11px;font-weight:750}
+.side__brand{border-bottom:3px solid #D4006A}
+.side__motto{background:#7CB518;color:#13210A} .side__motto b{color:#13210A}
+/* the top bar: a thin magenta to lime line */
+.top{border-bottom:3px solid transparent;border-image:linear-gradient(90deg,#D4006A,#D4006A 60%,#7CB518) 1}
+/* numbers: a coloured top edge, magenta and lime in turn */
+.kpi{border-top:4px solid #D4006A} .kpi:nth-child(even){border-top-color:#7CB518}
+.kpi__label .ico{color:var(--accent)} .kpi:nth-child(even) .kpi__label .ico{color:var(--lime-ink)}
+.card__head h2{font-weight:700}
+/* networks in full colour */
+.tag--wgmn{background:#D4006A;color:#fff;border-color:#D4006A} .tag--wnnn{background:#7CB518;color:#13210A;border-color:#7CB518}
+/* choices that are on */
+.seg button[aria-pressed="true"],.seg a.seg__a[aria-pressed="true"]{background:#D4006A;color:#fff;box-shadow:none}
+.btn--ghost{border-color:color-mix(in srgb,#D4006A 45%,var(--line));color:var(--ink)} .btn--ghost:hover{border-color:#D4006A}
+.btn--lime{background:#7CB518;color:#13210A}
+@media (max-width:760px){.tabbar a[aria-current="page"]{color:var(--accent)} .tabbar a[aria-current="page"] .tabbar__ico{background:#D4006A;color:#fff}}
