@@ -167,3 +167,54 @@ function activation_approve(array $a, int $byId): string {
   after_response(function () { mail_drain(6); push_drain(10); });
   return $title;
 }
+
+/* v109.38: the person who referred a candidate hears how she is doing by email, in the app and on the phone (Azeez, 20 Nov 2026:
+ * "email to woddi envoy if the people they refer are inactive, not logged in, passed activation, appointed to a position or not
+ * considered for a position"). Appointment is told by activation_approve. Each piece of news goes once, kept in envoy_alerts,
+ * and every email carries a button that opens a follow-up message to the candidate with a suggested text. */
+const REF_NEWS = [
+  'nosign'  => ['{name} has not signed in for 3 days', 'She joined through your link but has not opened WDOS in 3 days. Send her a short follow-up message.'],
+  'stalled' => ['{name} did not finish her activation', 'Her 3-day activation time ended before she finished. Send her a short follow-up message to encourage her.'],
+  'passed'  => ['{name} passed her activation', 'She scored {x} of 100. WODDI HQ will now decide on her seat.'],
+  'outcome' => ['{name} was not appointed this time', 'WODDI HQ recorded this outcome: {x}. You can send her a short message.'],
+];
+const REF_MAIL_WORDS = [
+  'en' => ['Dear', 'Send her a message'], 'fr' => ['Chère', 'Lui envoyer un message'], 'pt' => ['Cara', 'Enviar-lhe uma mensagem'],
+  'sw' => ['Mpendwa', 'Mtumie ujumbe'], 'ar' => ['عزيزتي', 'أرسلي لها رسالة'],
+];
+function referrer_tell(int $candidateId, string $kind, string $ref, string $x = ''): bool {
+  if (!isset(REF_NEWS[$kind])) return false;
+  try {
+    $rid = (int) val('SELECT referrer_id FROM referrals WHERE user_id=? AND referrer_id IS NOT NULL', [$candidateId]); if (!$rid) return false;
+    $c = row('SELECT first_name, last_name FROM users WHERE id=?', [$candidateId]);
+    $e = row("SELECT id, email, first_name, role, lang FROM users WHERE id=? AND status='active'", [$rid]);
+    if (!$c || !$e) return false;
+    if (q('INSERT IGNORE INTO envoy_alerts (envoy_id,user_id,kind,ref,sent_at) VALUES (?,?,?,?,?)', [$rid, $candidateId, mb_substr('ref_' . $kind, 0, 16), mb_substr($ref, 0, 32), now()])->rowCount() === 0) return false;
+    $name = trim($c['first_name'] . ' ' . $c['last_name']);
+    $title = str_replace('{name}', $name, REF_NEWS[$kind][0]); $body = str_replace('{x}', $x, REF_NEWS[$kind][1]);
+    $url = '#/inbox/to/' . $candidateId . '?f=' . $kind . '&n=' . rawurlencode((string) $c['first_name']);
+    notify($rid, 'activation', $title, $body, $url);
+    if (filter_var($e['email'], FILTER_VALIDATE_EMAIL) && !preg_match('/\.(invalid|test|local|example)$/i', (string) $e['email'])) {
+      $lang = in_array($e['lang'] ?? '', ['fr', 'pt', 'sw', 'ar'], true) ? $e['lang'] : 'en';
+      [$st, $sb] = note_in($lang, $title, $body) ?? [$title, $body]; [$dear, $btn] = REF_MAIL_WORDS[$lang];
+      mail_queue((string) $e['email'], (string) $e['first_name'], $st, mail_wrap($st, '<p>' . $dear . ' ' . htmlspecialchars((string) $e['first_name']) . ',</p><p>' . htmlspecialchars($sb) . '</p>', $btn, app_url() . '/' . $url));
+    }
+    return true;
+  } catch (Throwable $err) { error_log('[wdos referrer news] ' . $err->getMessage()); return false; }
+}
+/** Daily from 10:00: candidates who stopped signing in, and activations whose time ran out without a submission. Only recent ones, so
+ *  the first run does not send old history. "Not signed in" can come once a week, three times at most; the rest once. */
+function run_referral_news(DateTimeImmutable $d): string {
+  $today = $d->format('Y-m-d'); $n = 0; $week = $d->format('o\WW');
+  $base = "FROM referrals r JOIN users u ON u.id=r.user_id JOIN activations a ON a.id=(SELECT MAX(a2.id) FROM activations a2 WHERE a2.user_id=u.id)
+    WHERE r.referrer_id IS NOT NULL AND u.status='active' AND NOT EXISTS (SELECT 1 FROM seats s WHERE s.user_id=u.id AND s.ends_at IS NULL)";
+  foreach (rows("SELECT u.id $base AND a.status IN ('in_progress','returned') AND a.deadline>=? AND r.created_at<? AND r.created_at>? AND (u.last_seen_at IS NULL OR u.last_seen_at<?)
+      AND (SELECT COUNT(*) FROM envoy_alerts x WHERE x.envoy_id=r.referrer_id AND x.user_id=u.id AND x.kind='ref_nosign')<3 LIMIT 500",
+      [$today, gmdate('Y-m-d H:i:s', time() - 3 * 86400), gmdate('Y-m-d H:i:s', time() - 45 * 86400), gmdate('Y-m-d H:i:s', time() - 3 * 86400)]) as $r)
+    $n += referrer_tell((int) $r['id'], 'nosign', $week) ? 1 : 0;
+  $since = $d->modify('-7 days')->format('Y-m-d');
+  foreach (rows("SELECT u.id, a.id act $base AND a.status IN ('in_progress','returned','incomplete') AND a.submitted_at IS NULL AND a.deadline<? AND a.deadline>=? LIMIT 500", [$today, $since]) as $r)
+    $n += referrer_tell((int) $r['id'], 'stalled', 'a' . $r['act']) ? 1 : 0;
+  return "$n told";
+}
+

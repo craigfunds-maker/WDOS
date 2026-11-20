@@ -96,6 +96,13 @@ async function drafts(root) {
   load();
 }
 
+const FOLLOW = {
+  follow: ['Following up', 'Hello {1}, I am following up on your WODDI volunteer leadership application. How are you getting on? Reply here if you need any help.'],
+  nosign: ['Checking in', 'Hello {1}, I noticed you have not signed in to WDOS for a few days. Your 3-day activation is waiting for you. Sign in and continue where you stopped. If anything is hard, reply here and I will help.'],
+  stalled: ['Your activation', 'Hello {1}, your 3-day activation time ended before you finished. Sign in to WDOS and ask WODDI HQ for more time from your activation page. Reply here if you need help.'],
+  passed: ['Congratulations', 'Congratulations {1}! You passed your 3-day activation. WODDI HQ will now decide on your seat. I am proud of you.'],
+  outcome: ['Thank you', 'Hello {1}, thank you for taking part in the activation. HQ did not appoint you this time, but your place in WODDI remains. Keep growing with us and stay in touch.'],
+};
 async function compose(root, opts) {
   root.append(h('a', { class: 'btn btn--ghost btn--s', href: '#/inbox', style: 'margin-bottom:12px' }, t('Back to messages')));
   let o; try { o = await api('/dm/options'); } catch (e) { root.append(card('New message', null, empty('x', 'This page did not load', e.message))); return; }
@@ -133,6 +140,9 @@ async function compose(root, opts) {
   if (opts.to) { try { const r = await api('/dm/people?id=' + opts.to); r.people.forEach((p) => picked.set(p.id, p)); paintChips(); } catch { /* not reachable: the box stays empty */ } }
   const subject = input({ maxlength: 190, placeholder: t('Subject (optional)'), value: draft?.subject || '' });
   const body = h('textarea', { class: 'input', rows: 6, maxlength: 6000, placeholder: t('Write your message…') }); body.value = draft?.body || '';
+  /* v109.38: a follow-up from the referral news (email, notification or the envoy's list) opens with a suggested message she can change */
+  const fk = new URLSearchParams(location.hash.split('?')[1] || '').get('f'); let hint = null;
+  if (opts.to && !draft && FOLLOW[fk]) { const p = [...picked.values()][0]; subject.value = t(FOLLOW[fk][0]); body.value = tf(FOLLOW[fk][1], p ? p.first_name : ''); hint = h('p', { class: 'muted', style: 'margin:0', text: t('A suggested message. Change it as you like before you send it. She also receives it by email.') }); }
   const err = h('p', { class: 'err', role: 'alert' }); let draftId = draft?.id || 0;
   const send = h('button', { class: 'btn', type: 'button', onclick: async () => {
     err.textContent = ''; if (!body.value.trim()) { err.textContent = t('Write your message first.'); return; }
@@ -147,7 +157,7 @@ async function compose(root, opts) {
   const save = h('button', { class: 'btn btn--quiet', type: 'button', onclick: async () => { try { const r = await api('/dm/drafts', { id: draftId, subject: subject.value, body: body.value, audience: mode.value === 'group' ? audience() : {} }); draftId = r.id; toast('Draft saved', 'Find it under Drafts.', 'ok'); } catch (e) { toast('Not saved', e.message, 'bad'); } } }, t('Save draft'));
   const discard = draft ? h('button', { class: 'btn btn--ghost', type: 'button', onclick: async () => { await api('/dm/drafts/' + draft.id + '/delete', {}); go('#/inbox/drafts'); } }, t('Delete draft')) : null;
   root.append(card('New message', app.user.is_hq ? 'Write to one person, or to a group: by network, leadership level, position, country or state.' : (app.user.is_envoy ? 'You can write to WODDI HQ and to the people who joined through your link.' : 'You can write to HQ, to the leaders above you and to the people in your area.'),
-    h('div', { style: 'display:grid;gap:14px' }, field('Send to', mode), oneBox, groupBox, countLine, field('Subject', subject), field('Message', body), err,
+    h('div', { style: 'display:grid;gap:14px' }, field('Send to', mode), oneBox, groupBox, countLine, hint, field('Subject', subject), field('Message', body), err,
       h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, send, save, discard),
       h('small', { class: 'faint', text: tf('After you press Send you have {1} seconds to undo. Then each person is told in the app, on the phone and by email.', o.undo_seconds) }))));
   count();

@@ -128,8 +128,9 @@ route('POST', '/activation/assessment', function () {
   q('INSERT INTO readiness_responses (activation_id,statements,short_answers,clarification_note,confirmations,readiness,signature_name,submitted_at) VALUES (?,?,?,?,?,?,?,?)',
     [(int) $a['id'], json_encode($st), json_encode($sa, JSON_UNESCAPED_UNICODE), str_in('clarification_note', 1500), implode(',', $conf), $ready, $sig, now()]);
   q("UPDATE activations SET status='submitted', submitted_at=?, return_note='' WHERE id=?", [now(), (int) $a['id']]);
+  $sc = activation_score(array_merge($a, ['status' => 'submitted'])); if ($sc['passed']) referrer_tell((int) $a['user_id'], 'passed', 'a' . $a['id'], (string) $sc['score']);   // v109.38
   notify_hq('activation', 'Assessment submitted: ' . work_name($u), ACT_ROUTES[$a['route']]['label'] . ', ' . position_title($a['position_code'], $a['network']) . ' (' . $a['network'] . ').', '#/referrals/activations/' . $a['id']);
-  after_response(fn() => push_drain(20));
+  after_response(function () { push_drain(20); mail_drain(6); });
   return ['ok' => true];
 });
 route('POST', '/activation/extension', function () {
@@ -200,6 +201,7 @@ route('POST', '/hq/activations/(\d+)', function ($id) {
     $o = str_in('outcome', 20); if (!isset(ACT_OUTCOMES[$o])) fail(422, 'Choose the outcome.', 'outcome');
     q("UPDATE activations SET status='completed', outcome=?, outcome_note=?, disclosed=?, decided_at=?, decided_by=? WHERE id=?", [$o, $note, str_in('disclosed', 1000), now(), (int) $me['id'], (int) $id]);
     notify($uid, 'activation', 'Your assessment has been reviewed', 'Headquarters will contact you about the next step.', '#/activation');
+    if (in_array($o, ['not_selected', 'reserve', 'alternative_role'], true)) referrer_tell($uid, 'outcome', 'a' . $id . $o, ACT_OUTCOMES[$o]);   // v109.38
   } elseif ($act === 'appoint' || $act === 'approve') {
     // v109.34: only a candidate who has passed her activation becomes a volunteer leader, and only when HQ approves
     if ($act === 'appoint' && $a['outcome'] !== 'selected') fail(409, 'Record the outcome as Selected before appointing.', 'transition');
@@ -217,6 +219,6 @@ route('POST', '/hq/activations/(\d+)', function ($id) {
     } else { q("UPDATE activations SET extension_status='declined' WHERE id=?", [(int) $id]); notify($uid, 'activation', 'Extension not approved', $note, '#/activation'); }
   } else fail(422, 'Unknown action.', 'action');
   log_activity((int) $me['id'], $uid, 'activation_' . $act, $note);
-  after_response(fn() => push_drain(10));
+  after_response(function () { push_drain(10); mail_drain(6); });
   return $res;
 });

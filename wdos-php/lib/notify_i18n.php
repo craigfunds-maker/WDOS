@@ -105,6 +105,27 @@ const NOTE_TEMPLATES = [
   // v109.34: the envoy is told her candidate was approved
   ['/^(.+) is now a volunteer leader$/u', '/^HQ approved her as (.+)\. Thank you for bringing her in\.$/u', [
     'ar' => ['{1} أصبحت الآن قائدة متطوعة', 'وافق المقر عليها بصفة {1}. شكراً لأنك جلبتِها.'], 'fr' => ['{1} est maintenant responsable bénévole', 'Le siège l’a approuvée comme {1}. Merci de l’avoir amenée.'], 'pt' => ['{1} é agora líder voluntária', 'A sede aprovou-a como {1}. Obrigada por a ter trazido.'], 'sw' => ['{1} sasa ni kiongozi wa kujitolea', 'HQ imemwidhinisha kama {1}. Asante kwa kumleta.']]],
+  // v109.38: news for the person who referred a candidate
+  ['/^(.+) has not signed in for 3 days$/u', '/^She joined through your link but has not opened WDOS in 3 days\./u', [
+    'ar' => ['{1} لم تسجّل الدخول منذ 3 أيام', 'انضمّت عبر رابطك لكنها لم تفتح WDOS منذ 3 أيام. أرسلي لها رسالة متابعة قصيرة.'],
+    'fr' => ['{1} ne s\'est pas connectée depuis 3 jours', 'Elle a rejoint par votre lien mais n\'a pas ouvert WDOS depuis 3 jours. Envoyez-lui un court message de suivi.'],
+    'pt' => ['{1} não entra há 3 dias', 'Ela juntou-se pelo seu link mas não abre o WDOS há 3 dias. Envie-lhe uma mensagem curta de acompanhamento.'],
+    'sw' => ['{1} hajaingia kwa siku 3', 'Alijiunga kupitia kiungo chako lakini hajafungua WDOS kwa siku 3. Mtumie ujumbe mfupi wa kufuatilia.']]],
+  ['/^(.+) did not finish her activation$/u', '/^Her 3-day activation time ended before she finished\./u', [
+    'ar' => ['{1} لم تُكمل التفعيل', 'انتهت مدة تفعيلها ذات الأيام الثلاثة قبل أن تُكمله. أرسلي لها رسالة متابعة قصيرة لتشجيعها.'],
+    'fr' => ['{1} n\'a pas terminé son activation', 'Le temps de son activation de 3 jours s\'est terminé avant qu\'elle ne finisse. Envoyez-lui un court message pour l\'encourager.'],
+    'pt' => ['{1} não terminou a ativação', 'O tempo da ativação de 3 dias terminou antes de ela concluir. Envie-lhe uma mensagem curta para a encorajar.'],
+    'sw' => ['{1} hakumaliza uanzishaji wake', 'Muda wa uanzishaji wake wa siku 3 uliisha kabla hajamaliza. Mtumie ujumbe mfupi kumtia moyo.']]],
+  ['/^(.+) passed her activation$/u', '/^She scored (\d+) of 100\./u', [
+    'ar' => ['{1} نجحت في التفعيل', 'حصلت على {1} من 100. سيقرّر مقر WODDI الآن بشأن مقعدها.'],
+    'fr' => ['{1} a réussi son activation', 'Elle a obtenu {1} sur 100. Le siège de WODDI va maintenant décider de son poste.'],
+    'pt' => ['{1} passou na ativação', 'Ela obteve {1} em 100. A sede da WODDI vai agora decidir o seu cargo.'],
+    'sw' => ['{1} amefaulu uanzishaji wake', 'Amepata alama {1} kati ya 100. Makao Makuu ya WODDI sasa yataamua nafasi yake.']]],
+  ['/^(.+) was not appointed this time$/u', '/^WODDI HQ recorded this outcome: (.+)\. You can send her a short message\.$/u', [
+    'ar' => ['{1} لم تُعيَّن هذه المرة', 'سجّل مقر WODDI هذه النتيجة: {1}. يمكنك إرسال رسالة قصيرة لها.'],
+    'fr' => ['{1} n\'a pas été nommée cette fois', 'Le siège de WODDI a noté ce résultat : {1}. Vous pouvez lui envoyer un court message.'],
+    'pt' => ['{1} não foi nomeada desta vez', 'A sede da WODDI registou este resultado: {1}. Pode enviar-lhe uma mensagem curta.'],
+    'sw' => ['{1} hakuteuliwa safari hii', 'Makao Makuu ya WODDI yamerekodi matokeo haya: {1}. Unaweza kumtumia ujumbe mfupi.']]],
 ];
 /* One entry per template above, in the same order: its key, its name on the Communications page, the English wording,
  * and what {1} and {2} stand for. WODDI HQ can replace any wording in any language; the change is logged. */
@@ -141,6 +162,10 @@ const NOTE_META = [
   ['gcall_missed', 'Missed group call', 'Missed group call from {1}', 'Open Calls in WDOS to join if the call is still on.', '{1} is the person who called.'],
   ['course_open', 'Monthly course opened', 'New course open: {1}', 'Course {1} of 12 is now open for you. Five short lessons, then a quiz for your certificate.', 'Title: {1} is the course. Message: {1} is its number.'],
   ['envoy_approved', 'Envoy: candidate approved', '{1} is now a volunteer leader', 'HQ approved her as {1}. Thank you for bringing her in.', 'Title: {1} is the candidate. Message: {1} is her seat.'],
+  ['ref_nosign', 'Referrer: candidate not signing in', '{1} has not signed in for 3 days', 'She joined through your link but has not opened WDOS in 3 days. Send her a short follow-up message.', '{1} is the candidate.'],
+  ['ref_stalled', 'Referrer: activation not finished', '{1} did not finish her activation', 'Her 3-day activation time ended before she finished. Send her a short follow-up message to encourage her.', '{1} is the candidate.'],
+  ['ref_passed', 'Referrer: candidate passed activation', '{1} passed her activation', 'She scored {1} of 100. WODDI HQ will now decide on her seat.', 'Title: {1} is the candidate. Message: {1} is her score.'],
+  ['ref_outcome', 'Referrer: candidate not appointed', '{1} was not appointed this time', 'WODDI HQ recorded this outcome: {1}. You can send her a short message.', 'Title: {1} is the candidate. Message: {1} is the outcome.'],
 ];
 /** Wordings WODDI HQ has approved in place of the built-in ones: [key][lang] = [title, body]. */
 function note_overrides(): array {

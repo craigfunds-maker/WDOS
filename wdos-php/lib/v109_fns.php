@@ -243,7 +243,7 @@ function dm_release_due(): int {
       // email in each recipient's language, set-based so a thousand recipients cost a handful of statements
       if (mail_configured()) foreach (DM_MAIL as $l => [$subj, $head, $line, $subjLabel]) {
         $sv = str_replace('{name}', $name, $subj); $lv = str_replace(['{name}', '{title}'], [htmlspecialchars($name), htmlspecialchars($title)], $line);
-        $html = mail_wrap($head, '<p>' . $lv . '</p>' . ($b['subject'] !== '' ? '<p><b>' . $subjLabel . ':</b> ' . htmlspecialchars((string) $b['subject']) . '</p>' : '') . '<p style="color:#5a4a52">' . htmlspecialchars(mb_substr((string) ($first['body'] ?? ''), 0, 300)) . '</p>', 'Open WDOS', app_url() . '/' . $url);
+        $html = mail_wrap($head, '<p>' . $lv . '</p>' . ($b['subject'] !== '' ? '<p><b>' . $subjLabel . ':</b> ' . htmlspecialchars((string) $b['subject']) . '</p>' : '') . '<p style="color:#5a4a52">' . nl2br(htmlspecialchars(mb_substr((string) ($first['body'] ?? ''), 0, 6000))) . '</p>', 'Open WDOS', app_url() . '/' . $url);
         $lw = $l === 'en' ? "(u.lang IS NULL OR u.lang NOT IN ('fr','pt','ar','sw'))" : 'u.lang=?';
         q("INSERT INTO mail_outbox (to_email,to_name,subject,html,created_at,batch_id) SELECT u.email, u.first_name, ?, ?, ?, ? FROM users u WHERE u.status='active' AND u.email LIKE '%@%' AND u.email NOT LIKE '%.invalid' AND u.email NOT LIKE '%.test' AND u.email NOT LIKE '%.local' AND u.email NOT LIKE '%example.%' AND $lw AND $where",
           array_merge([mb_substr($sv, 0, 190), $html, now(), (int) $b['id']], $l === 'en' ? [] : [$l], $wp));

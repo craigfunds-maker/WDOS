@@ -10,16 +10,23 @@ export function stepsBar(a) {
   const label = a.decided ? t('Assessment decided') : a.assessment_submitted ? t('Assessment submitted') : a.days_done >= 3 ? t('3 days done') : a.days_opened ? tf('Day {1} of 3', Math.min(3, a.days_done + 1)) : t('Not started');
   return h('span', { style: 'display:inline-flex;gap:8px;align-items:center' }, dots, h('small', { text: label }));
 }
+/* v109.38: Message opens a follow-up with a suggested text that fits where she is */
+function followHref(p) {
+  const a = p.activation || {}; const sc = a.score || {};
+  const f = p.approved_as ? 'follow' : a.decided ? 'outcome' : sc.passed ? 'passed' : (a.deadline && !a.assessment_submitted && a.deadline < new Date().toISOString().slice(0, 10)) ? 'stalled'
+    : (!p.last_seen_at || Date.now() - Date.parse(p.last_seen_at.replace(' ', 'T') + 'Z') > 3 * 86400000) ? 'nosign' : 'follow';
+  return '#/inbox/to/' + p.id + '?f=' + f;
+}
 export function peopleTable(people, opts = {}) {
   if (!people.length) return empty('users', opts.emptyTitle || 'Nobody has joined through this link yet', opts.emptyText || 'Share the link. Each person who joins appears here, with how far she is in her 3 days.');
   return h('div', { class: 'tablewrap' }, h('table', { class: 'table table--stack-s' }, h('thead', {}, h('tr', {}, ['Person', 'Joined', '3-day activation and score', 'Last seen', ''].map((c, i) => h('th', { class: i === 1 || i === 3 || i === 4 ? 'hide-s' : '', text: c })))),
     h('tbody', {}, people.map((p) => h('tr', { style: 'cursor:default' },
       h('td', {}, h('div', { class: 'who' }, avatar(p, 34), h('div', {}, h('b', { text: `${p.first_name} ${p.last_name}` }), h('small', { class: 'muted', text: [p.network, p.role, p.state_region, p.country].filter(Boolean).join(' · ') }),
-        opts.message === false ? null : h('a', { class: 'btn btn--quiet btn--s show-s', 'data-tour': 'envoy-msg', href: '#/inbox/to/' + p.id, style: 'margin-top:6px' }, icon('send', 16), t('Message'))))),
+        opts.message === false ? null : h('a', { class: 'btn btn--quiet btn--s show-s', 'data-tour': 'envoy-msg', href: followHref(p), style: 'margin-top:6px' }, icon('send', 16), t('Follow up'))))),
       h('td', { class: 'hide-s' }, h('small', { text: fmtDate(p.referred_at) })),
       h('td', {}, stepsBar(p.activation), p.activation && p.activation.deadline && !p.activation.score?.final ? h('small', { class: 'faint', style: 'display:block', text: tf('Finish by {1}', fmtDate(p.activation.deadline)) }) : null, scoreLine(p)),
       h('td', { class: 'hide-s' }, h('small', { text: p.last_seen_at ? ago(p.last_seen_at) : t('Never') })),
-      h('td', { class: 'hide-s' }, opts.message === false ? null : h('a', { class: 'btn btn--quiet btn--s', href: '#/inbox/to/' + p.id }, icon('send', 16), t('Message'))))))));
+      h('td', { class: 'hide-s' }, opts.message === false ? null : h('a', { class: 'btn btn--quiet btn--s', href: followHref(p) }, icon('send', 16), t('Follow up'))))))));
 }
 
 /** v109.34: her activation score (the same one HQ sees) and whether HQ has approved her. */
