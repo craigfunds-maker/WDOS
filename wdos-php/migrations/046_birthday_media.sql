@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS birthday_media (
   lang VARCHAR(8) NOT NULL DEFAULT 'en',
   card MEDIUMBLOB NULL,
   card_at DATETIME NULL,
+  card_live MEDIUMBLOB NULL,      -- the same card without balloons or headline: the dashboard animates those over it
   voice MEDIUMBLOB NULL,
   voice_at DATETIME NULL,
   created_at DATETIME NOT NULL,

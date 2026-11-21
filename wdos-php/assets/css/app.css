@@ -740,3 +740,19 @@ a.kpi--link{color:inherit;text-decoration:none;cursor:pointer;transition:transfo
 .bday__side{display:grid;gap:14px;align-content:center} .bday__side h2{font-size:clamp(28px,3.4vw,40px);margin:0;line-height:1.08} .bday__audio{width:100%}
 @media (max-width:760px){.bday__grid{grid-template-columns:1fr;padding:14px;gap:16px}}
 .photonudge{border:2px dashed #D4006A} .photonudge .card__body{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+/* v109.44: the living birthday card */
+.bdlive{position:relative;width:100%;aspect-ratio:1080/1350;overflow:hidden;border-radius:16px;container-type:inline-size;box-shadow:0 14px 34px -14px rgba(212,0,106,.55);background:#D4006A}
+.bdlive__bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.bdlive__balloon{position:absolute;overflow:visible;transform-origin:50% 0;animation:bdfloat 6s ease-in-out infinite;will-change:transform}
+@keyframes bdfloat{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-6%) rotate(3deg)}}
+.bdlive__conf{position:absolute;top:-4%;width:1.1%;height:2.2%;border-radius:2px;opacity:.85;animation:bdfall var(--d) linear infinite;animation-delay:calc(-1 * var(--w))}
+@keyframes bdfall{0%{transform:translateY(0) rotate(0)}100%{transform:translateY(560cqw) rotate(540deg)}}
+.bdlive__head,.bdlive__name{position:absolute;left:4%;right:4%;text-align:center;white-space:nowrap;font-family:var(--display),Georgia,serif;font-weight:700;color:#fff;text-shadow:0 .4cqw 1.6cqw rgba(120,0,60,.45);line-height:1}
+.bdlive__head{top:18.2%;font-size:10.4cqw}
+.bdlive__name{top:61.4%;font-size:5.6cqw}
+.bdlive__ribbon{position:absolute;left:50%;top:67.3%;transform:translateX(-50%);max-width:84%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#7CB518;color:#13210A;font-weight:800;font-size:2.3cqw;padding:.9cqw 2.6cqw;border-radius:99px;animation:bdrib .8s 1.2s both cubic-bezier(.2,1.4,.4,1)}
+@keyframes bdrib{from{opacity:0;transform:translateX(-50%) scale(.6)}to{opacity:1;transform:translateX(-50%) scale(1)}}
+.bdl{display:inline-block;animation:bdin .55s both cubic-bezier(.2,1.5,.4,1),bdwave 2.6s ease-in-out infinite;animation-delay:calc(var(--i) * 55ms),calc(.9s + var(--i) * 90ms)}
+@keyframes bdin{from{opacity:0;transform:translateY(40%) scale(.4)}to{opacity:1;transform:none}}
+@keyframes bdwave{0%,100%{transform:translateY(0)}50%{transform:translateY(-7%)}}
+@media (prefers-reduced-motion:reduce){.bdlive__balloon,.bdlive__conf,.bdl,.bdlive__ribbon{animation:none}}

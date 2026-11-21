@@ -19,32 +19,60 @@ const BDAY_REPO = 'craigfunds-maker/WDOS';
 
 function bday_lang(array $u): string { $l = (string) ($u['lang'] ?? 'en'); return in_array($l, BDAY_LANGS, true) ? $l : 'en'; }
 
-/** The words she hears. Kokoro speaks English, French and Portuguese clearly; the other languages hear the English greeting. */
+/** The words she hears, in her own language (Azeez, 21 Nov 2026: "the birthday card must change to their selected language,
+ *  so is the voice"). Kokoro (af_heart, ff_siwis, pf_dora) speaks English, French and Portuguese; Kokoro has no Hausa, Yoruba,
+ *  Igbo, Swahili or Arabic, so those use the same voices as the WDOS courses: Piper for Swahili and Arabic, the VITS Open Bible
+ *  voices for Hausa, Yoruba and Igbo. Returns [engine, voice, language code, text]. */
 function bday_voice_text(string $name, string $lang): array {
   $t = [
-    'en' => ['af_heart', 'en-us', "Happy birthday, $name! This is WODDI HQ. Today, we celebrate you, and we thank God for your life. Thank you for all you give to your network, and to the women around you. May your new year be full of joy, good health, and every good thing. Happy birthday, $name. We are proud of you."],
-    'fr' => ['ff_siwis', 'fr-fr', "Joyeux anniversaire, $name ! Ici le siège de WODDI. Aujourd'hui, nous vous célébrons, et nous rendons grâce à Dieu pour votre vie. Merci pour tout ce que vous donnez à votre réseau, et aux femmes autour de vous. Que votre nouvelle année soit pleine de joie, de santé, et de toutes les bonnes choses. Joyeux anniversaire, $name. Nous sommes fiers de vous."],
-    'pt' => ['pf_dora', 'pt-br', "Feliz aniversário, $name! Aqui fala a sede da WODDI. Hoje, celebramos você, e damos graças a Deus pela sua vida. Obrigada por tudo o que dá à sua rede, e às mulheres à sua volta. Que o seu novo ano seja cheio de alegria, saúde, e todas as coisas boas. Feliz aniversário, $name. Temos orgulho de você."],
+    'en' => ['kokoro', 'af_heart', 'en-us', "Happy birthday, $name! This is WODDI HQ. Today, we celebrate you, and we thank God for your life. Thank you for all you give to your network, and to the women around you. May your new year be full of joy, good health, and every good thing. Happy birthday, $name. We are proud of you."],
+    'fr' => ['kokoro', 'ff_siwis', 'fr-fr', "Joyeux anniversaire, $name ! Ici le siège de WODDI. Aujourd'hui, nous vous célébrons, et nous rendons grâce à Dieu pour votre vie. Merci pour tout ce que vous donnez à votre réseau, et aux femmes autour de vous. Que votre nouvelle année soit pleine de joie, de santé, et de toutes les bonnes choses. Joyeux anniversaire, $name. Nous sommes fiers de vous."],
+    'pt' => ['kokoro', 'pf_dora', 'pt-br', "Feliz aniversário, $name! Aqui fala a sede da WODDI. Hoje, celebramos você, e damos graças a Deus pela sua vida. Obrigada por tudo o que dá à sua rede, e às mulheres à sua volta. Que o seu novo ano seja cheio de alegria, saúde, e todas as coisas boas. Feliz aniversário, $name. Temos orgulho de você."],
+    'sw' => ['piper', 'sw', 'sw', "Heri ya siku ya kuzaliwa, $name! Hapa ni Makao Makuu ya WODDI. Leo tunakusherehekea, na tunamshukuru Mungu kwa maisha yako. Asante kwa yote unayotoa kwa mtandao wako, na kwa wanawake wanaokuzunguka. Mwaka wako mpya ujae furaha, afya njema, na kila jambo jema. Heri ya siku ya kuzaliwa, $name. Tunajivunia wewe."],
+    'ar' => ['piper', 'ar', 'ar', "عيد ميلاد سعيد يا $name! معكِ مقر WODDI. اليوم نحتفل بكِ، ونشكر الله على حياتك. شكراً لكِ على كل ما تقدمينه لشبكتك، وللنساء من حولك. نتمنى أن يكون عامك الجديد مليئاً بالفرح والصحة وكل خير. عيد ميلاد سعيد يا $name. نحن فخورون بكِ."],
+    'ha' => ['vits', 'ha', 'ha', "Barka da zagayowar ranar haihuwarki, $name! Wannan hedkwatar WODDI ce. Yau muna murnar ki, kuma muna godiya ga Allah saboda rayuwarki. Mun gode da duk abin da kike bayarwa ga cibiyarki, da matan da ke kewaye da ke. Allah Ya sa sabuwar shekararki ta cika da farin ciki, lafiya, da dukkan alheri. Barka da ranar haihuwa, $name. Muna alfahari da ke."],
+    'yo' => ['vits', 'yo', 'yo', "Ẹ kú ọjọ́ ìbí, $name! Olú-ilé-iṣẹ́ WODDI ló ń sọ̀rọ̀. Lónìí, a ń ṣe ayẹyẹ rẹ, a sì ń dúpẹ́ lọ́wọ́ Ọlọ́run fún ẹ̀mí rẹ. A dúpẹ́ fún gbogbo ohun tí o ń fún nẹ́tíwọ̀ọ̀kì rẹ, àti àwọn obìnrin tó yí ọ ká. Kí ọdún tuntun rẹ kún fún ayọ̀, ìlera, àti gbogbo ohun rere. Ẹ kú ọjọ́ ìbí, $name. Inú wa dùn sí ọ."],
+    'ig' => ['vits', 'ig', 'ig', "Ụbọchị ọmụmụ ọma, $name! Nke a bụ isi ụlọ ọrụ WODDI. Taa, anyị na-eme gị ememe, ma na-ekele Chineke maka ndụ gị. Daalụ maka ihe niile ị na-enye netwọk gị, na ụmụnwanyị gbara gị gburugburu. Ka afọ ọhụrụ gị jupụta n'ọṅụ, ezi ahụike, na ihe ọma niile. Ụbọchị ọmụmụ ọma, $name. Anyị na-anya isi na gị."],
   ];
   return $t[$lang] ?? $t['en'];
+}
+/** "Happy Birthday" on the card, as the design for her language says it; the dashboard animates it letter by letter. */
+const BDAY_HEAD = ['en' => 'Happy Birthday', 'fr' => 'Joyeux anniversaire', 'pt' => 'Feliz aniversário', 'sw' => 'Heri ya siku ya kuzaliwa', 'ar' => 'عيد ميلاد سعيد',
+  'ha' => 'Barka da zagayowar ranar haihuwa', 'ig' => 'Ụbọchị ọmụmụ ọma', 'yo' => 'Ẹ ku ọjọ ìbí'];
+/** Her designation in her language: the role is translated where WDOS has it, the place stays as written. */
+function bday_designation_in(string $des, string $lang): string {
+  if ($lang === 'en' || $des === '') return $des;
+  static $dict = [];
+  if (!isset($dict[$lang])) { $f = __DIR__ . '/../assets/i18n/' . $lang . '.json'; $dict[$lang] = is_file($f) ? (json_decode((string) file_get_contents($f), true) ?: []) : []; }
+  $d = $dict[$lang]; if (isset($d[$des])) return (string) $d[$des];
+  $p = strpos($des, ', '); $role = $p === false ? $des : substr($des, 0, $p); $place = $p === false ? '' : substr($des, $p);
+  if (preg_match('/^Member, (WGMN|WNNN)$/', $des, $m)) return (string) ($d['Member'] ?? 'Member') . ', ' . $m[1];
+  return (isset($d[$role]) ? (string) $d[$role] : $role) . $place;
 }
 
 /** Her row for this birthday, made the first time it is needed. */
 function bday_row(int $uid, int $year): array {
   $r = row('SELECT user_id, year, token, lang, card_at, voice_at FROM birthday_media WHERE user_id=? AND year=?', [$uid, $year]);
-  if ($r) return $r;
+  if ($r) {
+    // she changed her language since: the card is made again in the new one, and the voice is spoken again in it
+    $now = bday_lang(row('SELECT lang FROM users WHERE id=?', [$uid]) ?: []);
+    if ($now !== $r['lang']) { q('UPDATE birthday_media SET lang=?, card=NULL, card_at=NULL, card_live=NULL, voice=NULL, voice_at=NULL WHERE user_id=? AND year=?', [$now, $uid, $year]); $r['lang'] = $now; $r['card_at'] = null; $r['voice_at'] = null; }
+    return $r;
+  }
   $u = row('SELECT lang FROM users WHERE id=?', [$uid]) ?: [];
   q('INSERT IGNORE INTO birthday_media (user_id,year,token,lang,created_at) VALUES (?,?,?,?,?)', [$uid, $year, bin2hex(random_bytes(20)), bday_lang($u), now()]);
   return row('SELECT user_id, year, token, lang, card_at, voice_at FROM birthday_media WHERE user_id=? AND year=?', [$uid, $year]);
 }
 
 /** The card as a JPEG: the design for her language, her photo in the circle, her name under it. Kept once made. */
-function bday_card(int $uid, int $year, bool $fresh = false): ?string {
-  if (!$fresh && ($b = val('SELECT card FROM birthday_media WHERE user_id=? AND year=? AND card IS NOT NULL', [$uid, $year]))) return (string) $b;
+function bday_card(int $uid, int $year, bool $fresh = false, bool $live = false): ?string {
+  $col = $live ? 'card_live' : 'card';
+  if (!$fresh && ($b = val("SELECT $col FROM birthday_media WHERE user_id=? AND year=? AND $col IS NOT NULL", [$uid, $year]))) return (string) $b;
   if (!function_exists('imagecreatefromjpeg')) return null;
   $u = row('SELECT id, first_name, last_name, lang FROM users WHERE id=?', [$uid]); if (!$u) return null;
   $r = bday_row($uid, $year);
-  $tpl = __DIR__ . '/../assets/birthday/card-' . $r['lang'] . '.jpg'; if (!is_file($tpl)) $tpl = __DIR__ . '/../assets/birthday/card-en.jpg';
+  $pre = $live ? 'live-' : 'card-';   // live: no balloons and no headline, the dashboard animates them over it
+  $tpl = __DIR__ . '/../assets/birthday/' . $pre . $r['lang'] . '.jpg'; if (!is_file($tpl)) $tpl = __DIR__ . '/../assets/birthday/' . $pre . 'en.jpg';
   $im = imagecreatefromjpeg($tpl); if (!$im) return null;
   imagealphablending($im, true);
   $cx = 540; $cy = 600; $R = 186; $D = $R * 2;
@@ -67,22 +95,25 @@ function bday_card(int $uid, int $year, bool $fresh = false): ?string {
     $ini = mb_strtoupper(mb_substr(bday_plain($u['first_name']), 0, 1) . mb_substr((string) $u['last_name'], 0, 1));
     bday_text_centered($im, $ini, 140, $cy + 50, imagecolorallocate($im, 212, 0, 106), 380);
   }
+  if (!$live) {   // on the live card the dashboard writes her name and designation itself, letter by letter
   // her name, white, as large as fits on one line
-  $name = trim((string) $u['first_name']) !== '' ? trim((string) $u['first_name'] . ' ' . (string) $u['last_name']) : 'Dear sister';
-  bday_text_centered($im, $name, 58, 884, imagecolorallocate($im, 255, 255, 255), 940, imagecolorallocatealpha($im, 100, 0, 50, 90));
-  // her designation under it on a lemon green ribbon (Azeez: "the card must carry their name, their designation, their profile picture")
-  $des = bday_designation($uid);
-  if ($des !== '') {
-    $font = __DIR__ . '/../assets/fonts/ttf/DejaVuSans-Bold.ttf'; $fs = 24;
-    for (; $fs > 14; $fs--) { $b = imagettfbbox($fs, 0, $font, $des); if (($b[2] - $b[0]) <= 860) break; }
-    $b = imagettfbbox($fs, 0, $font, $des); $tw = $b[2] - $b[0]; $pw = $tw + 56; $x0 = (int) (540 - $pw / 2); $y0 = 906; $ph = 46; $r = 23;
-    $lime = imagecolorallocate($im, 124, 181, 24);
-    imagefilledrectangle($im, $x0 + $r, $y0, $x0 + $pw - $r, $y0 + $ph, $lime);
-    imagefilledellipse($im, $x0 + $r, $y0 + $r, $ph, $ph, $lime); imagefilledellipse($im, $x0 + $pw - $r, $y0 + $r, $ph, $ph, $lime);
-    imagettftext($im, $fs, 0, (int) (540 - $tw / 2 - $b[0]), $y0 + (int) (($ph + $fs) / 2) + 1, imagecolorallocate($im, 19, 33, 10), $font, $des);
+    $name = trim((string) $u['first_name'] . ' ' . (string) $u['last_name']); if ($name === '') $name = 'WODDI';
+    bday_text_centered($im, $name, 58, 884, imagecolorallocate($im, 255, 255, 255), 940, imagecolorallocatealpha($im, 100, 0, 50, 90));
+    // her designation under it on a lemon green ribbon (Azeez: "the card must carry their name, their designation, their profile picture")
+    $des = bday_designation_in(bday_designation($uid), (string) $r['lang']);
+    if ($des !== '') {
+      $font = __DIR__ . '/../assets/fonts/ttf/DejaVuSans-Bold.ttf'; $fs = 24;
+      for (; $fs > 14; $fs--) { $b = imagettfbbox($fs, 0, $font, $des); if (($b[2] - $b[0]) <= 860) break; }
+      $b = imagettfbbox($fs, 0, $font, $des); $tw = $b[2] - $b[0]; $pw = $tw + 56; $x0 = (int) (540 - $pw / 2); $y0 = 906; $ph = 46; $r = 23;
+      $lime = imagecolorallocate($im, 124, 181, 24);
+      imagefilledrectangle($im, $x0 + $r, $y0, $x0 + $pw - $r, $y0 + $ph, $lime);
+      imagefilledellipse($im, $x0 + $r, $y0 + $r, $ph, $ph, $lime); imagefilledellipse($im, $x0 + $pw - $r, $y0 + $r, $ph, $ph, $lime);
+      imagettftext($im, $fs, 0, (int) (540 - $tw / 2 - $b[0]), $y0 + (int) (($ph + $fs) / 2) + 1, imagecolorallocate($im, 19, 33, 10), $font, $des);
+    }
   }
   ob_start(); imagejpeg($im, null, 88); $jpg = (string) ob_get_clean();
-  q('UPDATE birthday_media SET card=?, card_at=? WHERE user_id=? AND year=?', [$jpg, now(), $uid, $year]);
+  if ($live) q('UPDATE birthday_media SET card_live=? WHERE user_id=? AND year=?', [$jpg, $uid, $year]);
+  else q('UPDATE birthday_media SET card=?, card_at=? WHERE user_id=? AND year=?', [$jpg, now(), $uid, $year]);
   return $jpg;
 }
 /** What she is in WODDI, as her dashboard says it: her seat, her envoy title, or her network membership. */
@@ -113,10 +144,11 @@ function bday_today(array $u): int {
 }
 
 /* ---- her card and voice, without signing in (the token in her email) ------ */
-if (isset($METHOD, $PATH) && $METHOD === 'GET' && preg_match('#^/birthday/([a-f0-9]{40})/(card\.jpg|voice\.mp3)$#', $PATH, $m)) {
+if (isset($METHOD, $PATH) && $METHOD === 'GET' && preg_match('#^/birthday/([a-f0-9]{40})/(card\.jpg|card-live\.jpg|voice\.mp3)$#', $PATH, $m)) {
   $r = row('SELECT user_id, year FROM birthday_media WHERE token=?', [$m[1]]);
   if (!$r) { http_response_code(404); exit; }
   if ($m[2] === 'card.jpg') { $b = bday_card((int) $r['user_id'], (int) $r['year']); $mime = 'image/jpeg'; }
+  elseif ($m[2] === 'card-live.jpg') { $b = bday_card((int) $r['user_id'], (int) $r['year'], false, true); $mime = 'image/jpeg'; }
   else { $b = val('SELECT voice FROM birthday_media WHERE token=? AND voice IS NOT NULL', [$m[1]]); $mime = 'audio/mpeg'; }
   if (!$b) { http_response_code(404); exit; }
   header('Content-Type: ' . $mime); header('Cache-Control: private, max-age=86400'); header('Content-Length: ' . strlen((string) $b)); echo $b; exit;
@@ -129,11 +161,13 @@ route('GET', '/me/birthday-card', function () {
   $r = bday_row((int) $u['id'], $year);
   if (!$r['card_at']) bday_card((int) $u['id'], $year);
   $r = bday_row((int) $u['id'], $year);
-  return ['today' => true, 'name' => $u['first_name'], 'card' => $r['card_at'] ? bday_card_url($r) : null, 'voice' => $r['voice_at'] ? bday_voice_url($r) : null];
+  return ['today' => true, 'name' => $u['first_name'], 'card' => $r['card_at'] ? bday_card_url($r) : null, 'voice' => $r['voice_at'] ? bday_voice_url($r) : null,
+    'live' => $r['card_at'] ? app_origin() . '/api/birthday/' . $r['token'] . '/card-live.jpg' : null, 'headline' => BDAY_HEAD[$r['lang']] ?? BDAY_HEAD['en'], 'lang' => $r['lang'],
+    'full_name' => trim($u['first_name'] . ' ' . $u['last_name']), 'designation' => bday_designation_in(bday_designation((int) $u['id']), (string) $r['lang'])];
 });
 /* she changed her photo on her birthday: make the card again with the new one */
 function bday_photo_changed(int $uid): void {
-  try { $u = row('SELECT id, dob FROM users WHERE id=?', [$uid]); if ($u && ($y = bday_today($u))) { bday_row($uid, $y); bday_card($uid, $y, true); } } catch (Throwable $e) { /* never blocks the upload */ }
+  try { $u = row('SELECT id, dob FROM users WHERE id=?', [$uid]); if ($u && ($y = bday_today($u))) { bday_row($uid, $y); bday_card($uid, $y, true); bday_card($uid, $y, true, true); } } catch (Throwable $e) { /* never blocks the upload */ }
 }
 
 /* ---- the greeting itself, called once on the day by run_automations -------- */
@@ -214,9 +248,10 @@ function bday_voice_due(): array {
   for ($i = 0; $i <= 3; $i++) {
     $day = $d->modify("+$i days"); $year = (int) $day->format('Y');
     foreach (rows("SELECT u.id, u.first_name, u.lang FROM users u LEFT JOIN birthday_media b ON b.user_id=u.id AND b.year=?
-                   WHERE u.status='active' AND u.dob IS NOT NULL AND DATE_FORMAT(u.dob,'%m-%d')=? AND (b.voice_at IS NULL) LIMIT 300", [$year, $day->format('m-d')]) as $u) {
-      $lang = bday_lang($u); [$voice, $code, $text] = bday_voice_text(trim((string) $u['first_name']) ?: 'dear sister', $lang);
-      $out[] = ['id' => (int) $u['id'], 'year' => $year, 'voice' => $voice, 'lang' => $code, 'text' => $text];
+                   WHERE u.status='active' AND u.dob IS NOT NULL AND DATE_FORMAT(u.dob,'%m-%d')=? AND (b.voice_at IS NULL OR b.lang<>(CASE WHEN u.lang IN ('en','fr','pt','sw','ar','ha','ig','yo') THEN u.lang ELSE 'en' END)) LIMIT 300", [$year, $day->format('m-d')]) as $u) {
+      $r = bday_row((int) $u['id'], $year); $lang = (string) $r['lang'];      // her current language
+      [$engine, $voice, $code, $text] = bday_voice_text(trim(bday_plain((string) $u['first_name'])) ?: 'WODDI', $lang);
+      $out[] = ['id' => (int) $u['id'], 'year' => $year, 'engine' => $engine, 'voice' => $voice, 'lang' => $code, 'text' => $text];
     }
   }
   return $out;

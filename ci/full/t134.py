@@ -36,6 +36,17 @@ os.makedirs('/tmp/shots',exist_ok=True); open('/tmp/shots/bday-card.jpg','wb').w
 ci=Image.open(io.BytesIO(c.content)); chk('card is 1080 by 1350', ci.size==(1080,1350), ci.size)
 px=ci.convert('RGB').getpixel((540,615)); chk('her photo is in the circle, not the empty pink', abs(px[0]-px[1])>30 and px!=(242,215,228), px)
 chk('a wrong link shows nothing', requests.get(B+'/birthday/'+'0'*40+'/card.jpg').status_code==404)
+# in her language: the card, the headline the dashboard animates, and her designation
+sql(f"update users set lang='ha' where id={eid}")
+r=env.get(B+'/me/birthday-card').json()
+chk('after she changes her language the card is made again in it', r.get('lang')=='ha' and r.get('headline','').startswith('Barka'), r)
+chk('her designation is in her language too', r.get('designation','').startswith('Wakiliyar WODDI ta Jiha'), r.get('designation'))
+lv=requests.get(r['live']); chk('the living card picture (no balloons, the dashboard animates them) is served', lv.ok and lv.headers.get('content-type')=='image/jpeg' and lv.content!=requests.get(r['card']).content)
+bj=requests.get('http://localhost:8080/js/bdaycard.js').text; css=requests.get('http://localhost:8080/assets/css/app.css').text
+chk('balloons float and letters come in one by one on her dashboard', 'balloonSvg' in bj and '@keyframes bdfloat' in css and '@keyframes bdin' in css and 'prefers-reduced-motion:reduce){.bdlive__balloon' in css)
+src=open('/home/claude/wdos-php/lib/birthday.php').read()
+chk('a voice for every language: Kokoro, Piper and the Open Bible voices', all(x in src for x in ["'en' => ['kokoro', 'af_heart'","'sw' => ['piper'","'ar' => ['piper'","'ha' => ['vits'","'yo' => ['vits'","'ig' => ['vits'"]))
+sql(f"update users set lang='en' where id={eid}")
 # the greeting on the day
 sql("delete from cron_runs where job='birthdays'; delete from mail_outbox")
 out=cron(NOW)
@@ -50,6 +61,7 @@ chk('voice list refused without the GitHub token', S().get(B+'/voice/birthdays')
 chk('voice list refused with a made-up token', S().get(B+'/voice/birthdays',headers={'X-GitHub-OIDC':'aaa.bbb.ccc'}).status_code==401)
 chk('voice upload refused without the GitHub token', S().post(B+f'/voice/birthdays/{eid}/{TODAY[:4]}',data=b'ID3'+b'x'*3000).status_code==401)
 # with the voice in place, her dashboard plays it
+os.makedirs('/tmp/shots',exist_ok=True)
 sql(f"update birthday_media set voice=0x494433{'00'*2500}, voice_at=utc_timestamp() where user_id={eid}")
 r=env.get(B+'/me/birthday-card').json(); chk('when the voice has arrived, the dashboard has it', (r.get('voice') or '').endswith('/voice.mp3'), r)
 v=requests.get(r['voice']); chk('the voice is served as MP3', v.ok and v.headers.get('content-type')=='audio/mpeg')
