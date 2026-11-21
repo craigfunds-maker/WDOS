@@ -311,12 +311,41 @@ export function meter(n, cap, min) {
 }
 export const CH_TAG = { developing: '', eligible: 'tag--wgmn', active: 'tag--wnnn', full: 'tag--bad', merged: '', closed: '' };
 
-/* The WDOS notification sound. One short chime, at a steady volume, when something new arrives while the app is open. */
-let chimeEl = null, chimeAt = 0;
+/* The WDOS notification sound. One short chime, at a steady volume, when something new arrives while the app is open.
+ * v109.44 (Azeez, 21 Nov 2026: "the notification tone doesn't play on mobile, only on PC"): phones only let a page make sound
+ * after a touch, and only from a player that the touch itself started. So the first touch anywhere in WDOS quietly starts
+ * (and stops) both the sound player and a Web Audio player with the tone already decoded; later chimes then play on phones too.
+ * Web Audio is tried first because iPhones keep it unlocked more reliably than an <audio> element. */
+const TONE = '/assets/audio/wdos-notify.mp3';
+let chimeEl = null, chimeAt = 0, actx = null, abuf = null, unlocked = false;
 export const soundOn = () => { try { return localStorage.getItem('wdos.sound') !== 'off'; } catch { return true; } };
+function unlockSound() {
+  if (unlocked) return; unlocked = true;
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (AC && !actx) {
+      actx = new AC();
+      const s = actx.createBufferSource(); s.buffer = actx.createBuffer(1, 1, 22050); s.connect(actx.destination); s.start(0);   // a silent tick inside the touch
+      fetch(TONE).then((r) => r.arrayBuffer()).then((b) => new Promise((ok, no) => actx.decodeAudioData(b, ok, no))).then((d) => { abuf = d; }).catch(() => {});
+    }
+    if (actx && actx.state === 'suspended') actx.resume().catch(() => {});
+  } catch { actx = null; }
+  try {
+    chimeEl = chimeEl || new Audio(TONE); chimeEl.preload = 'auto'; chimeEl.muted = true;
+    const p = chimeEl.play(); if (p) p.then(() => { chimeEl.pause(); chimeEl.currentTime = 0; chimeEl.muted = false; }).catch(() => { chimeEl.muted = false; });
+  } catch { /* no audio element here */ }
+}
+['pointerdown', 'touchend', 'keydown', 'click'].forEach((e) => window.addEventListener(e, unlockSound, { capture: true, passive: true }));
 export function chime(force = false) {
   if (!force && (!soundOn() || Date.now() - chimeAt < 4000)) return; chimeAt = Date.now();
-  try { chimeEl = chimeEl || new Audio('/assets/audio/wdos-notify.mp3'); chimeEl.volume = 0.9; chimeEl.currentTime = 0; chimeEl.play().catch(() => { /* the browser allows sound only after the first touch */ }); } catch { /* no audio on this device */ }
+  try {
+    if (actx && abuf) {
+      if (actx.state === 'suspended') actx.resume().catch(() => {});
+      const s = actx.createBufferSource(), g = actx.createGain(); g.gain.value = 0.9; s.buffer = abuf; s.connect(g); g.connect(actx.destination); s.start(0); return;
+    }
+  } catch { /* fall back to the audio element */ }
+  try { chimeEl = chimeEl || new Audio(TONE); chimeEl.muted = false; chimeEl.volume = 0.9; chimeEl.currentTime = 0; chimeEl.play().catch(() => { /* before her first touch the phone keeps quiet */ }); } catch { /* no audio on this device */ }
+  try { if (navigator.vibrate && /Android/i.test(navigator.userAgent)) navigator.vibrate([120, 80, 160]); } catch { /* */ }
 }
 
 /* A short list of choices as large touch rows (radio buttons), for questions where a drop-down would cut the words short on a phone.

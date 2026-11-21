@@ -3,6 +3,9 @@ import { h, t, tf, icon, avatar, card, sk, empty, ago, fmt, fmtDate, toast, gree
 import { api } from '../api.js';
 import { app } from '../app.js';
 import { kpi } from './hq.js';
+import { birthdayAsk } from '../birthday.js';
+import { birthdayCard } from '../bdaycard.js';
+import { photoNudge } from '../photoask.js';
 
 export function stepsBar(a) {
   if (!a) return h('span', { class: 'tag', text: t('Not started') });
@@ -58,8 +61,9 @@ function leadersList(list) {
 export async function render(root) {
   const top = h('div', {}, sk.rows(2)), kp = h('div', { class: 'row row--4' }, sk.kpi(), sk.kpi(), sk.kpi(), sk.kpi()), lead = h('div', {}, sk.rows(4)), ppl = h('div', {}, sk.rows(3)), side = h('div', {}, sk.rows(2));
   const sub = h('p', { text: t('Share your referral link. Volunteer leaders who join through it are yours to follow up: WDOS tells you when one has an overdue task, stops signing in or leaves her seat.') });
+  const u = app.user;   // v109.44: her birthday card on the day, the photo card until she adds one, and the birthday question she was asked about
   root.append(h('section', { class: 'hero' }, h('h1', { class: 'display', text: tf('{1}, {2}', greeting(), app.user.first_name) }), sub),
-    top, kp, h('div', { class: 'row row--2-1' }, h('div', { style: 'display:grid;gap:20px' }, card('Volunteer leaders you brought in', 'Those who need you are at the top. Send her a message.', lead), card('Everyone who joined through your link', 'Members and leaders, and how far each is in her first days.', ppl)), side));
+    birthdayCard(), photoNudge(u), u.dob ? '' : birthdayAsk(), top, kp, h('div', { class: 'row row--2-1' }, h('div', { style: 'display:grid;gap:20px' }, card('Volunteer leaders you brought in', 'Those who need you are at the top. Send her a message.', lead), card('Everyone who joined through your link', 'Members and leaders, and how far each is in her first days.', ppl)), side));
   let d; try { d = await api('/envoy/home'); } catch (e) { top.replaceChildren(h('div', { class: 'card' }, empty('x', 'Your dashboard did not load', e.message))); kp.replaceChildren(); lead.replaceChildren(); ppl.replaceChildren(); side.replaceChildren(); return; }
   if (d.designation) sub.before(h('p', { class: 'muted', style: 'margin:0', text: d.designation }));
   const k = d.kpis, L = d.leader_kpis || { brought_in: 0, serving: 0, attention: 0, overdue: 0 };

@@ -42,6 +42,8 @@ function route(string $method, string $pattern, callable $fn): void {
   $res = $fn(...$m);
   out($res ?? ['ok' => true]);
 }
+require __DIR__ . '/../lib/birthday.php';    // v109.44: birthday card (her photo, name, designation) and Kokoro voice. Before the routes
+                                             // that call it: a new photo on her birthday remakes her card.
 
 /* ---------------------------------------------------------------- setup -- */
 if (str_starts_with($PATH, '/setup')) { require __DIR__ . '/../lib/setup.php'; exit; }
@@ -315,7 +317,7 @@ route('POST', '/me/password', function () {
   notify((int) $u['id'], 'account', 'Your password was changed', 'If this was not you, contact WODDI HQ straight away.', '#/settings');
   after_response(fn() => push_drain(5));
 });
-route('POST', '/me/photo', function () { $u = require_user(); photo_from_upload((int) $u['id']); return ['ok' => true, 'v' => time()]; });
+route('POST', '/me/photo', function () { $u = require_user(); photo_from_upload((int) $u['id']); if (function_exists('bday_photo_changed')) bday_photo_changed((int) $u['id']); return ['ok' => true, 'v' => time()]; });
 /* HQ sets or replaces a member's photograph, for leaders who send theirs by WhatsApp or email. */
 route('POST', '/hq/members/(\d+)/photo', function ($id) {
   $me = require_hq(); if (!val('SELECT 1 FROM users WHERE id=?', [(int) $id])) fail(404, 'That member was not found.', 'not_found');

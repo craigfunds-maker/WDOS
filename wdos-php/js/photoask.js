@@ -1,14 +1,23 @@
 /* v109.33: after she signs in without a profile photograph, WDOS asks her to take one with the camera or choose one from
- * her phone (Azeez, 19 Nov 2026). It opens over her dashboard, never in place of it, and "Not now" closes it until her next
- * sign-in. The photo is cropped to a square in the browser and becomes her profile picture everywhere in WDOS. */
+ * her phone (Azeez, 19 Nov 2026). It opens over her dashboard, never in place of it. The photo is cropped to a square in the browser and becomes her profile picture everywhere in WDOS. */
 import { h, t, icon, avatar, toast } from './ui.js';
 import { api, squarePhoto } from './api.js';
 import { app, refreshUser, reshell } from './app.js';
 
-const KEY = 'wdos.photoask';
+/* v109.44 (Azeez, 21 Nov 2026: "this should keep showing on their dashboard until they snap or upload their profile pictures"):
+ * the question opens every time she opens WDOS without a photo, not once per sign-in, and a card stays at the top of her
+ * dashboard until the photo is saved. "Not now" only closes it for this visit. */
+let askedThisVisit = false;
 export function needsPhoto(u) {
   if (!u || u.is_hq || u.has_photo || u.status === 'pending_profile') return false;
-  try { return !sessionStorage.getItem(KEY); } catch { return true; }
+  return !askedThisVisit;
+}
+/** The card at the top of her dashboard while she has no photo. It cannot be dismissed. */
+export function photoNudge(u) {
+  if (!u || u.is_hq || u.has_photo || u.status === 'pending_profile') return '';
+  return h('section', { class: 'card nudge photonudge', id: 'photo-nudge' }, h('div', { class: 'card__body' }, avatar(u, 56),
+    h('div', { class: 'grow', style: 'min-width:220px' }, h('b', {}, icon('camera', 18), ' ', t('Add your profile photo')), h('p', { class: 'muted', style: 'margin:4px 0 0', text: t('Leaders and members can see who you are. Take a clear photo of your face now, or choose one from your phone.') })),
+    h('button', { class: 'btn btn--lime', type: 'button', onclick: () => askPhoto() }, icon('camera', 18), t('Take or upload a photo'))));
 }
 const squareFromCanvas = (video, size = 512) => {
   const w = video.videoWidth, hgt = video.videoHeight, s = Math.min(w, hgt); const c = document.createElement('canvas'); c.width = c.height = size;
@@ -18,7 +27,7 @@ const squareFromCanvas = (video, size = 512) => {
 };
 
 export function askPhoto(after = () => {}) {
-  try { sessionStorage.setItem(KEY, '1'); } catch { /* private mode: asked again next load, which is fine */ }
+  askedThisVisit = true;
   document.querySelector('.hwpanel.photoask')?.remove();
   let stream = null; let data = null;
   const stop = () => { if (stream) stream.getTracks().forEach((x) => x.stop()); stream = null; };
@@ -58,7 +67,7 @@ export function askPhoto(after = () => {}) {
     if (!data) return; const b = actions.querySelector('button'); if (b) b.disabled = true;
     try {
       const r = await api('/me/photo', { data }); await refreshUser(); app.user._v = r.v;
-      toast(t('Your profile photo is saved'), t('You can change it any time in Settings.'), 'ok'); close(); reshell();
+      toast(t('Your profile photo is saved'), t('You can change it any time in Settings.'), 'ok'); close(); document.getElementById('photo-nudge')?.remove(); reshell();
     } catch (e) { err.textContent = e.message; if (b) b.disabled = false; }
   }
   function start() {

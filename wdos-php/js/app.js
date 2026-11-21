@@ -12,7 +12,7 @@ export const kindIcon = (k) => KIND_ICON[k] || 'bell';
 
 /* ---------------------------------------------------------------- routes -- */
 const pages = {
-  welcome: () => import('./pages/welcome.js'), login: () => import('./pages/login.js'), envoyjoin: () => import('./pages/envoyjoin.js'), envoyguide: () => import('./pages/envoyguide.js'), system: () => import('./pages/system.js'), drive: () => import('./pages/drive.js'), placement: () => import('./pages/placement.js'),
+  welcome: () => import('./pages/welcome.js'), login: () => import('./pages/login.js'), envoyjoin: () => import('./pages/envoyjoin.js'), envoyguide: () => import('./pages/envoyguide.js'), bday: () => import('./pages/bday.js'), system: () => import('./pages/system.js'), drive: () => import('./pages/drive.js'), placement: () => import('./pages/placement.js'),
   hq: () => import('./pages/hq.js'), members: () => import('./pages/members.js'), announcements: () => import('./pages/announcements.js'),
   leader: () => import('./pages/leader.js'), home: () => import('./pages/home.js'),
   reporting: () => import('./pages/reporting.js'), tasks: () => import('./pages/tasks.js'), meetings: () => import('./pages/meetings.js'), structure: () => import('./pages/structure.js'),
@@ -43,10 +43,12 @@ function resolve(path) {
     if (seg[0] === 'notifications') return sh('notifications', 'Notifications');
     if (seg[0] === 'settings') return sh('settings', 'Settings');
     if (seg[0] === 'help') return sh('help', 'Help and private reports');
-    if (seg[0] === 'envoy-guide') return sh('envoyguide', 'Video guide');     // v109.34: the envoy's own video guide (Azeez, 20 Nov)
+    if (seg[0] === 'envoy-guide') return sh('envoyguide', 'Video guide');
+    if (seg[0] === 'birthday') return sh('bday', 'My birthday card');     // v109.44     // v109.34: the envoy's own video guide (Azeez, 20 Nov)
     return sh('envoy', 'My envoy dashboard');      // v109.31: no Tasks and no How to use WDOS for envoys (Azeez, 19 Nov)
   }
   switch (seg[0]) {
+    case 'birthday': return sh('bday', 'My birthday card');     // v109.44: her card from WODDI HQ and her spoken message
     case 'leaders': if (!u.is_hq) return sh(u.is_leader ? 'leader' : 'home', u.is_leader ? 'Leadership dashboard' : 'Home');
       return !seg[1] ? sh('leader', 'Leader dashboards', { pick: true }) : seg[2] === 'members' ? sh('members', 'Members in this leader\'s area', { scope: 'leader', as: seg[1] }) : sh('leader', 'Leader dashboard', { as: seg[1] });
     case 'members': return u.is_hq ? sh('members', 'Members', { id: seg[1] }) : u.is_leader ? sh('members', 'My members', { scope: 'leader' }) : sh('home', 'Home');

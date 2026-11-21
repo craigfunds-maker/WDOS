@@ -106,7 +106,7 @@ function insp_weekly_for(?string $network, int $week): ?array {
  *  The birthday card is for everyone. Weekly and monthly inspiration is written for volunteer leaders only. */
 function insp_today(array $u, string $lang = 'en'): ?array {
   $d = hq_today();
-  if ($u['dob'] && substr($u['dob'], 5) === $d->format('m-d')) {
+  if ($u['dob'] && substr($u['dob'], 5) === $d->format('m-d') && !function_exists('bday_card')) {   // v109.44: her own card (lib/birthday.php) takes this place
     return ['id' => 0, 'kind' => 'birthday', 'seq' => 0, 'network' => (string) $u['network'], 'label' => 'Happy birthday', 'theme' => '', 'headline' => 'A day to celebrate you',
       'key_thought' => 'Everyone at WODDI HQ is celebrating you today.', 'body' => '', 'image' => insp_photo('messages/celebration.webp'), 'first_name' => $u['first_name']];
   }

@@ -1,6 +1,6 @@
 /* WDOS service worker: installable offline shell + push notifications.
  * Bump BUILD with every release. The page reloads itself once per build. */
-const BUILD = 'v109.43';
+const BUILD = 'v109.44';
 const CACHE = 'wdos-' + BUILD;
 const SHELL = ['/', '/index.html', '/manifest.json', '/assets/css/app.css', '/assets/favicon.svg',
   '/assets/fonts/inter-latin-wght-normal.woff2', '/assets/fonts/fraunces-latin-wght-normal.woff2',
@@ -37,7 +37,7 @@ self.addEventListener('push', (e) => {
       try { const r = await fetch('/api/push/latest', { credentials: 'same-origin', headers: { 'X-WDOS': '1' } }); d = (await r.json()).item; } catch { d = null; }
     }
     d = d || { title: 'WDOS', body: 'You have a new notification.', url: '#/notifications' };
-    await self.registration.showNotification(d.title, { body: d.body || '', icon: '/assets/icons/woddi-notify-192.png', badge: '/assets/icons/icon-192.png', tag: d.id ? 'wdos-' + d.id : undefined, data: { url: d.url || '#/notifications' } });
+    await self.registration.showNotification(d.title, { body: d.body || '', icon: '/assets/icons/woddi-notify-192.png', image: d.image || undefined, badge: '/assets/icons/icon-192.png', tag: d.id ? 'wdos-' + d.id : undefined, renotify: !!d.id, silent: false, vibrate: [200, 100, 200, 100, 300], data: { url: d.url || '#/notifications' } });
     (await self.clients.matchAll({ type: 'window' })).forEach((c) => c.postMessage({ type: 'wdos:push' }));
   })());
 });
