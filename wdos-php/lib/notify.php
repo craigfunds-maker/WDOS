@@ -209,6 +209,8 @@ function mail_twin_flush(): void {
       foreach ($people as $p) {
         $key = (int) $p['id'] . '|' . $kind . '|' . $title; $addr = strtolower((string) $p['email']);
         if (isset($done[$key]) || isset($GLOBALS['wdos_mailed'][$addr])) continue; $done[$key] = 1;
+        // already emailed about this in the last few minutes, by the announcement's own email or a reminder's: not again
+        if (val("SELECT 1 FROM mail_outbox WHERE to_email=? AND created_at>=? AND subject LIKE ? LIMIT 1", [(string) $p['email'], gmdate('Y-m-d H:i:s', time() - 600), '%' . mb_substr($title, 0, 40) . '%'])) continue;
         $lang = (string) ($p['lang'] ?: 'en');
         [$tt, $bb] = ($lang !== 'en' && ($tr = note_in($lang, $title, $body))) ? $tr : [$title, $body];
         $link = app_url() . '/' . ltrim($url !== '' ? $url : '#/notifications', '/');

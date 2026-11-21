@@ -50,7 +50,7 @@ try:
     r=hq.post(B+'/hq/announcements',json={'title':'Leaders meeting on Friday','body':'All leaders meet on Friday at 4pm.','network':'ALL','role':'leaders','by_email':True}); chk('HQ sends an announcement by email too', r.ok, r.text)
     aid=int(sql("select max(id) from announcements"))
     chk('the announcement is emailed to the leader', mails('WDOS: Leaders meeting on Friday%')==1, sql("select to_email from mail_outbox where subject like '%Leaders meeting%'"))
-    r=hq.post(B+'/hq/announcements',json={'title':'In the app only','body':'Not emailed.','network':'ALL','role':'leaders'}); chk('without the email box it is not emailed', mails('WDOS: In the app only%')==0)
+    r=hq.post(B+'/hq/announcements',json={'title':'In the app only','body':'Not emailed.','network':'ALL','role':'leaders'}); chk('without the email box, leaders still get it by email (v109.44: leaders and envoys get every announcement by email)', mails('WDOS: In the app only%')==1)
     sql(f"update announcements set sent_at=utc_timestamp() - interval 3 day where id={aid}"); tick()
     chk('unread after 2 days: reminder in the app and by email', notes('Reminder: Leaders meeting on Friday%')==1 and mails('WDOS: Reminder: Leaders meeting%')==1)
     ld.post(B+f'/announcements/{aid}/ack',json={})
