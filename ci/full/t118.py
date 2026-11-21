@@ -29,7 +29,7 @@ chk('one card at a time (leader)', len(c['cards'])==1, c)
 chk('leader: the week\'s message on Monday, the thought for today on other days', c['cards'][0]['kind']==('weekly' if wd==1 else 'daily'), c)
 # 3. scheduled sends: Monday 08:00 Lagos, with a birthday today
 today=datetime.datetime.now(datetime.UTC).replace(tzinfo=None)+datetime.timedelta(hours=1)
-sql(f"update users set dob='1985-{today:%m-%d}', email='bday.t118@wdos-mail.org' where email='leader@test.local'")
+sql(f"update users set dob='1985-11-23', email='bday.t118@wdos-mail.org' where email='leader@test.local'")   # v109.44: WDOS's day (the cron's test date), as for every other send
 sql("update users u set u.email=concat('ldr',u.id,'@wdos-mail.org') where exists (select 1 from seats s where s.user_id=u.id and s.ends_at is null) and u.email like '%.local' and u.email<>'bday.t118@wdos-mail.org'")
 sql("update users u set u.email=concat('mem',u.id,'@wdos-mail.org') where u.status='active' and u.email like '%.local' and not exists (select 1 from seats s where s.user_id=u.id and s.ends_at is null)")
 sql("delete from app_settings where k like 'sent_%' or k like 'dob_ask_%'; delete from cron_runs; delete from mail_outbox; delete from auto_sends; delete from dob_asks")
@@ -42,7 +42,7 @@ chk('daily thought to members', 'daily' in sends and int(sends['daily'][1])>=1, 
 chk('no daily for leaders on the weekly Monday', sql("select count(*) from notifications n join seats s on s.user_id=n.user_id and s.ends_at is null where n.title like 'Thought for today%'")=='0')
 chk('member got the thought for today', sql(f"select count(*) from notifications where user_id={mem} and title like 'Thought for today:%'")=='1')
 chk('emails queued for the leaders', int(sql("select count(*) from mail_outbox where subject like 'WDOS: Weekly inspiration:%'") or 0)>=1)
-chk('birthday email to her', sql("select count(*) from mail_outbox where to_email='bday.t118@wdos-mail.org' and subject like 'WDOS: Happy birthday%'")=='1')
+chk('birthday email to her', sql("select count(*) from mail_outbox where to_email='bday.t118@wdos-mail.org' and subject like 'Happy birthday%'")=='1')   # v109.44: her card email
 chk('the leaders\' weekly email carries the week\'s thoughts', int(sql("select count(*) from mail_outbox where subject like 'WDOS: Weekly inspiration:%' and html like '%Your thoughts for this week%'") or 0)>=1)
 chk('members get the week\'s thoughts by email', int(sql("select count(*) from mail_outbox where subject='WDOS: Your thoughts for this week'") or 0)>=1)
 chk('leaders do not get a second email', sql("select count(*) from mail_outbox o join users u on u.email=o.to_email join seats s on s.user_id=u.id and s.ends_at is null where o.subject='WDOS: Your thoughts for this week'")=='0')
