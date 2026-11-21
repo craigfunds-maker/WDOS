@@ -1,0 +1,25 @@
+# Speaks each member's birthday greeting from WODDI HQ in a Kokoro voice, with her name, and sends it to WDOS (v109.44).
+# Runs every morning for birthdays from today to three days ahead. GitHub's signed OIDC token proves the job to WDOS,
+# so there is no password or key to keep. WDOS only accepts this file, on the main branch of craigfunds-maker/WDOS.
+name: Birthday voice
+on:
+  schedule: [{ cron: '17 0,6,12,18 * * *' }]
+  workflow_dispatch:
+permissions: { id-token: write, contents: read }
+concurrency: { group: birthday-voice, cancel-in-progress: false }
+jobs:
+  voice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: Kokoro
+        run: |
+          sudo apt-get -qq update && sudo apt-get -qq install -y ffmpeg espeak-ng >/dev/null
+          pip install -q numpy soundfile kokoro-onnx; mkdir -p /tmp/m
+          curl -sSL -o /tmp/m/kokoro-v1.0.onnx https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx
+          curl -sSL -o /tmp/m/voices-v1.0.bin https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin
+      - name: Speak and send
+        run: python tools/birthday/voice.py /tmp/m
