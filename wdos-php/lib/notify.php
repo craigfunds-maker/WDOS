@@ -190,7 +190,7 @@ function app_url(): string { return rtrim((string) cfg('APP_URL', 'https://' . (
  * volunteer leader or a WODDI Envoy now also goes by email (a missed call, not a ringing one). Where WDOS already emailed her in
  * the same request (task and meeting reminders already do), she does not get a second one. Sent at the end of the request, in her
  * language when WDOS has the wording, with the WODDI logo. Ordinary members are not emailed for these, to keep the Brevo allowance. */
-const MAIL_TWIN_KINDS = ['task', 'announcement', 'meeting', 'call', 'report', 'reminder'];
+const MAIL_TWIN_KINDS = ['task', 'announcement', 'meeting', 'call', 'report', 'reminder', 'vacancy'];
 function mail_twin_note(string $where, array $params, string $kind, string $title, string $body, string $url): void {
   if (!in_array($kind, MAIL_TWIN_KINDS, true)) return;
   if ($kind === 'call' && !preg_match('/^Missed/i', $title)) return;       // a ringing call is answered in the app; a missed one is emailed

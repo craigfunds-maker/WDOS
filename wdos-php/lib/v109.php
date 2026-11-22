@@ -219,7 +219,7 @@ route('GET', '/envoy/home', function () {
     'leader_kpis' => ['brought_in' => count($leaders), 'serving' => count(array_filter($leaders, fn($l) => $l['serving'])), 'attention' => count(array_filter($leaders, fn($l) => (bool) $l['flags'])),
       'overdue' => array_sum(array_column($leaders, 'tasks_overdue'))],
     'tasks' => ['open' => (int) val("SELECT COUNT(*) FROM tasks WHERE assignee_id=? AND status IN ('open','in_progress')", [$me]), 'submitted' => (int) val("SELECT COUNT(*) FROM tasks WHERE assignee_id=? AND status='submitted'", [$me]), 'overdue' => (int) val("SELECT COUNT(*) FROM tasks WHERE assignee_id=? AND status IN ('open','in_progress') AND due_on IS NOT NULL AND due_on<?", [$me, work_today()])],
-    'unread' => dm_unread_total($me)];
+    'unread' => dm_unread_total($me), 'leadmap' => function_exists('lm_envoy_summary') ? lm_envoy_summary($u) : null];      // v109.46: the leadership seats in her state
 });
 route('GET', '/hq/envoys', function () {
   require_hq(); $list = [];

@@ -789,3 +789,51 @@ a.kpi--link{color:inherit;text-decoration:none;cursor:pointer;transition:transfo
 .eform__stamp{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-weight:700;color:var(--lime-ink)} .eform__ref{padding:4px 12px;border-radius:99px;background:#7CB518;color:#13210A;font-size:13px} .eform__ref--wait{background:#FFE9F3;color:#B0004F}
 .eform__note{display:flex;gap:10px;align-items:center;padding:14px 16px;border-radius:var(--r-l);background:var(--raised)}
 @media print{.side,.top,.tabbar,.eform__foot{display:none!important} .main{background:#fff!important} .eform__part{box-shadow:none;break-inside:avoid}}
+/* v109.46: the leadership map, the leaderboard and the leader activity file */
+.lm-pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.lm-pick .field{margin:0} .lm-pick select:disabled{opacity:.75}
+.lm-crumbs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:14px;color:var(--ink-2)} .lm-crumbs a{color:var(--accent);text-decoration:none} .lm-crumbs a:hover{text-decoration:underline}
+.lm-seats{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.lm-seat{display:grid;gap:12px;align-content:start;padding:16px;border-radius:var(--r-l);border:1px solid var(--line);background:var(--raised)}
+.lm-seat.is-vacant{border:2px dashed color-mix(in srgb,var(--bad) 55%,var(--line));background:transparent}
+.lm-seat__top{display:flex;gap:12px;align-items:center} .lm-seat__top b{font-size:16px}
+.lm-vac{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;flex:none;color:var(--bad);border:2px dashed color-mix(in srgb,var(--bad) 55%,transparent)}
+.lm-vac--s{width:36px;height:36px}
+.lm-facts{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:14px} .lm-facts dt{color:var(--ink-3)} .lm-facts dd{margin:0;overflow-wrap:anywhere}
+.lm-mks{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px}
+.lm-mk{padding:8px 10px;border-radius:var(--r-m);background:var(--sunken);border:1px solid var(--line-soft);display:grid;gap:2px} .lm-mk b{font-size:18px;font-variant-numeric:tabular-nums} .lm-mk small{color:var(--ink-3);font-size:12px;line-height:1.25}
+.lm-mk.is-bad b{color:var(--bad)}
+.lm-chain{display:grid;gap:8px}
+.lm-chain__step{display:grid;gap:6px;padding:10px 14px;border-radius:var(--r-m);border:1px solid var(--line);background:var(--raised);color:inherit;text-decoration:none;position:relative}
+.lm-chain__step+.lm-chain__step::before{content:"";position:absolute;left:24px;top:-9px;height:9px;border-left:2px solid var(--brand)}
+.lm-chain__step small{color:var(--ink-3)} a.lm-chain__step:hover{border-color:var(--brand)}
+.lm-chain__seats,.lm-cell{display:flex;gap:6px;flex-wrap:wrap}
+.lm-chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 4px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:13px;max-width:100%}
+.lm-chip small{color:var(--ink-3);font-size:11.5px} .lm-chip .avatar{flex:none}
+.lm-chip.is-vacant{border-style:dashed;border-color:color-mix(in srgb,var(--bad) 60%,transparent);color:var(--bad);padding-left:8px}
+.lm-link{display:grid;gap:10px;padding:16px;border-radius:var(--r-l);border:2px solid var(--lime);background:var(--lime-soft)}
+.lm-link__url{display:flex;gap:8px;align-items:center;flex-wrap:wrap} .lm-link__url code{overflow-wrap:anywhere;font-size:14px;flex:1 1 220px}
+.lm-board th.is-sorted{color:var(--accent)} .lm-board td .who small{display:block}
+.lm-medal{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;font-weight:700;color:#fff;background:#D4006A} .lm-medal--2{background:#7CB518} .lm-medal--3{background:#C77700}
+.lm-rules summary{cursor:pointer;color:var(--accent);font-weight:600} .lm-rules ul{margin:8px 0;padding-left:20px;display:grid;gap:4px}
+.lm-tl{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.lm-tl li{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border-radius:var(--r-m);border:1px solid var(--line-soft);background:var(--raised)}
+.lm-tl__ico{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--accent-soft);color:var(--accent)}
+[dir="rtl"] .lm-chain__step+.lm-chain__step::before{left:auto;right:24px}
+@media (max-width:640px){.lm-seats{grid-template-columns:1fr} .lm-facts{grid-template-columns:1fr} .lm-facts dt{margin-top:4px}}
+.lm-board td:nth-child(2){min-width:280px} .lm-board th{white-space:nowrap} .card__body{min-width:0}
+/* v109.46: the Leadership Activation Framework */
+.fw-gates{list-style:none;margin:6px 0 0;padding:0;display:flex;gap:8px;flex-wrap:wrap} .fw-gates li{display:inline-flex;gap:6px;align-items:center;padding:4px 10px;border-radius:999px;border:1px dashed var(--line);color:var(--ink-2);font-size:13.5px}
+.fw-gates li.is-ok{border-style:solid;border-color:color-mix(in srgb,var(--good) 50%,transparent);color:var(--good)}
+.fw-task{display:grid;gap:10px} .fw-task.is-bad{border-color:color-mix(in srgb,var(--bad) 55%,var(--line))}
+.fw-tick{display:flex;gap:10px;align-items:flex-start;line-height:1.45} .fw-tick input{width:20px;height:20px;flex:none;margin-top:2px}
+.fw-read{display:grid;gap:10px;max-height:340px;overflow:auto;padding:12px 14px;border-radius:var(--r-m);background:var(--sunken);border:1px solid var(--line-soft)} .fw-read h4{margin:0 0 4px} .fw-read p{margin:0;line-height:1.55}
+.fw-quiz{margin:0;padding-left:22px;display:grid;gap:14px} .fw-opts{display:grid;gap:6px;margin-top:6px}
+.fw-opt{display:flex;gap:10px;align-items:center;padding:8px 12px;border-radius:var(--r-m);border:1px solid var(--line);cursor:pointer;min-height:44px} .fw-opt input{width:20px;height:20px;flex:none}
+.fw-opt:has(input:checked){border-color:var(--brand);background:var(--accent-soft)}
+.fw-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;padding:8px;border-radius:var(--r-m);border:1px solid var(--line-soft)}
+.fw-review{display:grid;grid-template-columns:120px 1fr auto;gap:10px;align-items:end;padding-top:10px;border-top:1px solid var(--line-soft)}
+.notice--bad{border-color:color-mix(in srgb,var(--bad) 50%,transparent);color:var(--bad)}
+@media (max-width:640px){.fw-review{grid-template-columns:1fr}}
+/* v109.46 fixes: wide tables scroll inside their card; seat cards keep their own height */
+.card .tablewrap{max-width:100%;overflow-x:auto} .card__body{min-width:0} .lm-seats{align-items:start} .lm-board{min-width:1100px}

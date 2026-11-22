@@ -9,6 +9,11 @@ import { photoNudge } from '../photoask.js';
 
 export function stepsBar(a) {
   if (!a) return h('span', { class: 'tag', text: t('Not started') });
+  if (a.score && a.score.framework) {      // v109.46: the Leadership Activation Framework: 3 days, or 7 for a woman who applied with no referral
+    const n = a.score.days_total || 3, dn = a.score.days_done || 0;
+    return h('span', { style: 'display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap' }, h('span', { class: 'steps3', 'aria-label': tf('{1} of {2} days done', dn, n) }, Array.from({ length: n }, (_, i) => h('i', { class: i < dn ? 'is-done' : '' }))),
+      h('small', { text: t(a.score.decision_label) + ' · ' + tf('Day {1} of {2}', Math.min(n, dn), n) }));
+  }
   const dots = h('span', { class: 'steps3', 'aria-label': tf('{1} of 3 days done', a.days_done) }, [1, 2, 3].map((n) => h('i', { class: n <= a.days_done ? 'is-done' : n <= a.days_opened ? 'is-open' : '' })));
   const label = a.decided ? t('Assessment decided') : a.assessment_submitted ? t('Assessment submitted') : a.days_done >= 3 ? t('3 days done') : a.days_opened ? tf('Day {1} of 3', Math.min(3, a.days_done + 1)) : t('Not started');
   return h('span', { style: 'display:inline-flex;gap:8px;align-items:center' }, dots, h('small', { text: label }));
@@ -39,7 +44,7 @@ export function scoreLine(p) {
   const s = p.activation && p.activation.score; if (!s) return null;
   if (!s.final) return h('small', { class: 'faint', style: 'display:block;margin-top:4px', text: tf('Score so far: {1} of 100', s.score) });
   return h('div', { style: 'margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap' }, h('b', { class: 'num', text: tf('{1} of 100', s.score) }),
-    h('span', { class: 'tag ' + (s.passed ? 'tag--wnnn' : 'tag--bad'), text: s.passed ? t('Passed, waiting for HQ approval') : tf('Below the pass mark of {1}', s.pass_mark) }));
+    h('span', { class: 'tag ' + (s.passed ? 'tag--wnnn' : 'tag--bad'), text: s.passed ? t('Passed, waiting for HQ approval') : s.framework && s.gates && Object.values(s.gates).includes(false) ? t('Pending corrections: a mandatory step is missing') : tf('Below the pass mark of {1}', s.pass_mark) }));
 }
 
 /** A flag in her language: the number goes into a whole sentence, so it translates. */
@@ -81,6 +86,12 @@ export async function render(root) {
     kpi('users', t('People who joined'), k.referred, [h('span', { text: tf('{1} in the last 30 days', fmt(k.referred_30)) })]),
     kpi('eye', t('Visits to your link'), k.visits_30, [h('span', { text: tf('{1} in total', fmt(k.visits_total)) })]));
   lead.replaceChildren(leadersList(d.leaders || []));
+  if (d.leadmap) {      // v109.46: the leadership seats in her state, both networks, and a way to fill the vacant ones
+    const M = d.leadmap;
+    top.append(card(tf('Leadership in {1}', M.state), tf('{1} of {2} LGAs have no principal leader yet. {3} LGA seats are vacant across both networks.', M.lgas_without, M.lgas, M.vacant_lga),
+      h('div', { style: 'display:grid;gap:10px' }, h('div', { class: 'lm-cell' }, M.seats.map((x) => h('span', { class: 'lm-chip' + (x.filled ? '' : ' is-vacant') }, icon('user', 14), h('span', { text: x.filled ? x.name : t('Vacant') }), h('small', { text: `${x.network} · ${x.title}` })))),
+        h('a', { class: 'btn btn--primary btn--s', href: M.url, style: 'justify-self:start' }, icon('tree', 16), h('span', { text: 'See every seat and share a link for a vacant one' })))));
+  }
   ppl.replaceChildren(peopleTable(d.people));
   side.replaceChildren(
     card('Messages', null, h('div', { style: 'display:grid;gap:10px' }, h('p', { style: 'margin:0', text: d.unread ? tf('{1} unread', d.unread) : t('No unread messages.') }), h('a', { class: 'btn btn--quiet', href: '#/inbox' }, t('Open messages')))),

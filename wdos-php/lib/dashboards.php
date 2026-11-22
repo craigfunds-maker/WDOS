@@ -49,6 +49,7 @@ route('GET', '/hq/dashboard', function () {
                           FROM users u JOIN org_units ou ON ou.level='country' AND ou.country_code=u.country_code
                           WHERE u.status<>'pending_profile' AND u.network IS NOT NULL GROUP BY u.country_code, ou.name ORDER BY total DESC, ou.name LIMIT 8"),
     'seats_by_level' => $levels,
+    'activations' => function_exists('fw_summary') ? fw_summary($days) : [],      // v109.46: the 3-Day and 7-Day activations, by status, with scores
     'recent' => people_brief('1=1', [], 7),
     'activity' => rows("SELECT a.id, a.action, a.detail, a.created_at, COALESCE(NULLIF(TRIM(CONCAT(s.first_name,' ',s.last_name)),''),'A member') AS subject, a.subject_id
                         FROM activity_log a LEFT JOIN users s ON s.id=a.subject_id ORDER BY a.id DESC LIMIT 8"),
@@ -149,7 +150,7 @@ route('POST', '/hq/members/(\d+)/seat', function ($id) {
   $u = row("SELECT * FROM users WHERE id=? AND status<>'pending_profile'", [$id]);
   if (!$u) fail(404, 'That member was not found.', 'not_found');
   q('UPDATE seats SET ends_at=? WHERE user_id=? AND ends_at IS NULL', [now(), $id]);   // one open seat per person: close before opening
-  if (!empty($b['vacate'])) { log_activity((int) $me['id'], $id, 'seat_closed'); return ['ok' => true]; }
+  if (!empty($b['vacate'])) { log_activity((int) $me['id'], $id, 'seat_closed'); if (function_exists('lm_vacancy_scan')) after_response(function () { lm_vacancy_scan(); push_drain(10); }); return ['ok' => true]; }
   $pos = row('SELECT * FROM positions WHERE code=?', [str_in('position', 40)]);
   if (!$pos) fail(422, 'Choose a position.', 'position');
   $unit = row('SELECT * FROM org_units WHERE id=?', [(int) ($b['org_unit_id'] ?? 0)]);
@@ -163,7 +164,10 @@ route('POST', '/hq/members/(\d+)/seat', function ($id) {
   $hfs = !empty($b['he_for_she']);
   // He-for-She Champions serve as deputies, assistants or administrative secretaries only
   if ($hfs && !preg_match('/^(deputy_|assistant_)|_secretary$/', $pos['code'])) fail(422, 'A He-for-She Champion can be appointed as a deputy, an assistant or an administrative secretary only.', 'he_for_she');
-  $title = seat_open($id, $pos['code'], $net, (int) $unit['id'], $chap && $area === '' ? $chap['name'] : $area, $status, (int) $me['id']);
+  $lv = $pos['level'];       // v109.46: the LGA and ward of the seat, so it shows in the right place on the leadership map
+  $place = ['lga' => in_array($lv, ['lga', 'community_cluster', 'chapter'], true) ? ($chap ? (string) $chap['lga'] : (str_in('lga', 120) ?: ($lv === 'lga' ? $area : (string) $u['lga']))) : '',
+    'community' => in_array($lv, ['community_cluster', 'chapter'], true) ? ($chap ? (string) $chap['community'] : (str_in('community', 120) ?: ($lv === 'community_cluster' ? $area : (string) $u['community']))) : ''];
+  $title = seat_open($id, $pos['code'], $net, (int) $unit['id'], $chap && $area === '' ? $chap['name'] : $area, $status, (int) $me['id'], $place);
   q('UPDATE seats SET chapter_id=?, he_for_she=? WHERE user_id=? AND ends_at IS NULL', [$chap ? (int) $chap['id'] : null, $hfs ? 1 : 0, $id]);
   if ($hfs) { q("UPDATE users SET participant_class='he_for_she' WHERE id=?", [$id]); chapter_leave($id, 'he_for_she'); }
   if (function_exists('seat_term_set') && ($b['term_ends_on'] ?? '') !== '') seat_term_set((int) val('SELECT id FROM seats WHERE user_id=? AND ends_at IS NULL', [$id]), (string) $b['term_ends_on'], (int) $me['id']);
@@ -251,6 +255,8 @@ route('GET', '/leader/dashboard', function () {
     'breakdown' => rows("SELECT COALESCE(NULLIF($col,''),'Not stated') label, COUNT(*) total FROM users u JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND $w GROUP BY label ORDER BY total DESC, label LIMIT 8", $p),
     'recent' => people_brief($w, $p, 7),
     'team' => $team, 'reports_to' => $above, 'workspace' => leader_workspace($u, $seat),
+    'leadmap' => function_exists('lm_summary') ? lm_summary((int) $who['id']) : null,
+    'candidates' => function_exists('fw_people_brief') ? fw_people_brief((int) $who['id']) : [], 'confirm' => function_exists('fw_confirm_requests') && (int) $who['id'] === (int) $u['id'] ? fw_confirm_requests((int) $u['id']) : [],      // v109.46: the volunteer leaders under her, and the seats still vacant
     'person' => ['id' => (int) $who['id'], 'first_name' => $who['first_name'], 'last_name' => $who['last_name'], 'has_photo' => (int) $who['has_photo'], 'member_no' => $who['member_no'], 'network' => $seat['network'],
       'country_code' => $who['country_code'], 'country' => country_name((string) $who['country_code']), 'seat' => ['title' => seat_title($seat), 'network' => $seat['network']]], 'viewing' => (int) $who['id'] !== (int) $u['id'],
   ];

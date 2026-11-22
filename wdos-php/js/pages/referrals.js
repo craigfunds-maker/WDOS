@@ -4,9 +4,10 @@ import { api } from '../api.js';
 import { app } from '../app.js';
 import { kpi } from './hq.js';
 import { INSTITUTE } from './invite.js';
+import { hqView } from '../actfw.js';
 
 const urlOf = (code) => `${location.origin}/#/r/${code}`;
-const ACT_ST = { in_progress: 'In progress', submitted: 'Awaiting review', returned: 'Returned', completed: 'Decided', incomplete: 'Incomplete' };
+const ACT_ST = { in_progress: 'In progress', submitted: 'Awaiting review', returned: 'Pending corrections', completed: 'Decided', incomplete: 'Incomplete', support: 'Requiring support' };
 
 export async function render(root, params) {
   const hq = app.user.is_hq; const tab = params.tab || '';
@@ -103,6 +104,14 @@ async function candidate(root, id) {
     let d; try { d = await api('/hq/activations/' + id); } catch (e) { box.replaceChildren(h('div', { class: 'card' }, empty('x', 'This candidate did not open', e.message))); return; }
     const a = d.activation, c = a.candidate, ex = a.existing; const parts = [];
     const act = async (payload, okMsg) => { try { const r = await api('/hq/activations/' + id, payload); toast(okMsg, r.title || '', 'ok'); load(); } catch (e) { toast('Not saved', e.message, 'bad'); } };
+    if (a.scheme === 'fw') {      // v109.46: the Leadership Activation Framework: tasks, evidence, scores, decision
+      box.replaceChildren(h('section', { class: 'hero' }, avatar(c, 72), h('div', { class: 'grow' }, h('h1', { class: 'display', text: `${c.first_name} ${c.last_name}` }), h('p', { text: `${a.role_title}, ${a.unit}` }),
+        h('div', { class: 'hero__meta' }, flag(c.country_code), netTag(a.network), c.seated ? h('span', { class: 'tag tag--wnnn', text: 'Appointed' }) : null)), h('a', { class: 'btn btn--quiet btn--s', href: '#/members/' + c.id, text: 'Member record' })),
+        card('Candidate information', null, h('dl', { class: 'dl' }, [['Email', c.email], ['Phone', c.phone], ['Lives in', [c.community, c.lga, c.state_region].filter(Boolean).join(', ')], ['Referred by', a.referrer || t('No referral: she applied herself')], ['Started', fmtDate(a.started_at)], ['Deadline', fmtDate(a.deadline)]].map(([k, v]) => [h('dt', { text: k }), h('dd', { text: v || '–' })]).flat())),
+        ...(a.extension_status === 'requested' ? [(() => { const until = input({ type: 'date' }); return card('Extension request', a.extension_reason, h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap;align-items:end' }, field('New deadline', until), h('button', { class: 'btn', type: 'button', onclick: () => act({ action: 'extension', approve: true, until: until.value }, 'Extension approved') }, 'Approve'), h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => act({ action: 'extension' }, 'Extension declined') }, 'Decline'))); })()] : []),
+        ...hqView(a, load, act));
+      return;
+    }
     parts.push(h('section', { class: 'hero' }, avatar(c, 72), h('div', { class: 'grow' }, h('h1', { class: 'display', text: `${c.first_name} ${c.last_name}` }), h('p', { text: `${a.role_title}, ${a.unit}` }),
       h('div', { class: 'hero__meta' }, flag(c.country_code), netTag(a.network), h('span', { class: 'tag', text: a.route_label }), h('span', { class: 'tag', text: ACT_ST[a.status] || a.status }), a.outcome ? h('span', { class: 'tag tag--wnnn', text: d.outcomes[a.outcome] }) : null, c.seated ? h('span', { class: 'tag tag--wnnn', text: 'Appointed' }) : null)), h('a', { class: 'btn btn--quiet btn--s', href: '#/members/' + c.id, text: 'Open member record' })));
     if (a.score) { const sc = a.score, P = sc.parts;

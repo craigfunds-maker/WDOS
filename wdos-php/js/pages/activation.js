@@ -1,6 +1,7 @@
 /* The candidate's activation journey: one day at a time, then the Understanding and Readiness Assessment.
  * Wording follows the current WDOS. The days and the assessment are content loaded from the current WDOS. */
-import { h, card, sk, empty, fmtDate, toast, docReader } from '../ui.js';
+import { h, t, card, sk, empty, fmtDate, toast, docReader } from '../ui.js';
+import { candidateView } from '../actfw.js';
 import { api } from '../api.js';
 
 export async function render(root) {
@@ -8,6 +9,13 @@ export async function render(root) {
   async function draw() {
     let a; try { a = (await api('/activation')).activation; } catch (e) { box.replaceChildren(h('div', { class: 'card' }, empty('x', 'Your activation did not load', e.message))); return; }
     if (!a) { box.replaceChildren(h('div', { class: 'card' }, empty('route', 'No activation in progress', 'You do not currently have an activation to complete. If you were referred, open the referral form for your network.', h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap;justify-content:center' }, h('a', { class: 'btn btn--quiet btn--s', href: '#/', text: 'Go to my home page' }))))); return; }
+    if (a.scheme === 'fw') {      // v109.46: the Leadership Activation Framework
+      const parts = candidateView(a, draw);
+      if (a.status === 'incomplete') { const reason = h('textarea', { class: 'input', rows: 3, placeholder: t('Tell us briefly why you need more time') });
+        parts.push(card('Your activation period has ended', 'The time allowed for this activation has passed. You can ask for an extension below, and a person will review it.', a.extension_status ? h('p', { text: { requested: t('Extension requested. HQ will reply.'), declined: t('The extension was not approved.') }[a.extension_status] || '' })
+          : h('div', { style: 'display:grid;gap:12px' }, reason, h('div', {}, h('button', { class: 'btn', type: 'button', onclick: async () => { try { await api('/activation/extension', { reason: reason.value }); toast(t('Extension requested'), '', 'ok'); draw(); } catch (e) { toast(t('Not sent'), e.message, 'bad'); } } }, t('Ask for an extension')))))); }
+      box.replaceChildren(...parts); return;
+    }
     const days = a.days, done = days.filter((d) => d.status === 'completed').length; const assessed = ['submitted', 'completed'].includes(a.status); const parts = [];
     parts.push(h('section', { class: 'card' }, h('div', { class: 'card__body', style: 'display:grid;gap:12px' }, h('span', { class: 'tag', style: 'justify-self:start', text: a.route_label }),
       h('h2', { class: 'display', style: 'font-size:26px;margin:0', text: tf('Welcome, {1}', a.first_name) }),

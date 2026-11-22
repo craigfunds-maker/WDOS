@@ -16,9 +16,11 @@ function position_title(string $code, string $network): string {
 }
 
 /** Open a leadership seat (closing any seat the person already holds). New seats wait for the leader to accept the Agreement. */
-function seat_open(int $userId, string $position, string $network, int $unitId, string $area, string $status, int $byId): string {
+function seat_open(int $userId, string $position, string $network, int $unitId, string $area, string $status, int $byId, array $place = []): string {
   q('UPDATE seats SET ends_at=? WHERE user_id=? AND ends_at IS NULL', [now(), $userId]);
   q("INSERT INTO seats (user_id,position_code,network,org_unit_id,area_label,status,appointed_by,starts_at,acceptance) VALUES (?,?,?,?,?,?,?,?,'pending')", [$userId, $position, $network, $unitId, $area, $status, $byId, now()]);
+  // v109.46: the whole place of the seat (LGA or district, ward or community cluster, chapter), so the leadership map puts her in the right ward
+  if ($place) try { q('UPDATE seats SET lga=?, community=?, chapter_id=COALESCE(?,chapter_id) WHERE user_id=? AND ends_at IS NULL', [mb_substr((string) ($place['lga'] ?? ''), 0, 120), mb_substr((string) ($place['community'] ?? ''), 0, 120), !empty($place['chapter_id']) ? (int) $place['chapter_id'] : null, $userId]); } catch (PDOException $e) { /* columns arrive with migration 048 */ }
   $title = position_title($position, $network) . ', ' . ($area !== '' ? $area : (string) val('SELECT name FROM org_units WHERE id=?', [$unitId]));
   log_activity($byId, $userId, 'appointed', $title);
   notify($userId, 'appointment', 'You have been appointed ' . $title, 'WODDI HQ has recorded your leadership seat. Open WDOS to read and accept the Volunteer Leadership Agreement.', '#/appointment');
@@ -63,12 +65,16 @@ function ref_member_link(array $u, array $seat): array {
 }
 
 /* ---- activation ------------------------------------------------------------ */
-function activation_start(int $userId, string $route, string $network, string $position, int $unitId, string $area, string $referrer): int {
+function activation_start(int $userId, string $route, string $network, string $position, int $unitId, string $area, string $referrer, array $place = []): int {
   $open = row("SELECT id FROM activations WHERE user_id=? AND status IN ('in_progress','returned','submitted') ORDER BY id DESC LIMIT 1", [$userId]);
   if ($open) return (int) $open['id'];
   $deadline = (new DateTimeImmutable('now', new DateTimeZone('Africa/Lagos')))->modify('+' . ACT_ROUTES[$route]['days'] . ' days')->format('Y-m-d');
-  return ins('INSERT INTO activations (user_id,route,network,position_code,org_unit_id,area_label,referrer_name,status,deadline,started_at) VALUES (?,?,?,?,?,?,?,?,?,?)',
+  if (current_seat($userId)) return 0;          // v109.46: a leader already seated does no activation
+  $id = ins('INSERT INTO activations (user_id,route,network,position_code,org_unit_id,area_label,referrer_name,status,deadline,started_at) VALUES (?,?,?,?,?,?,?,?,?,?)',
     [$userId, $route, $network, $position, $unitId, mb_substr($area, 0, 120), mb_substr($referrer, 0, 160), 'in_progress', $deadline, now()]);
+  try { q("UPDATE activations SET scheme='fw' WHERE id=?", [$id]); } catch (PDOException $e) { /* migration 049 */ }     // v109.46: every new activation follows the framework
+  if ($place) try { q('UPDATE activations SET lga=?, community=?, chapter_id=? WHERE id=?', [mb_substr((string) ($place['lga'] ?? ''), 0, 120), mb_substr((string) ($place['community'] ?? ''), 0, 120), !empty($place['chapter_id']) ? (int) $place['chapter_id'] : null, $id]); } catch (PDOException $e) { /* migration 048 */ }
+  return $id;
 }
 /** Called when someone joins. $ref comes from the joining form: {code, position, category, name}. Never blocks the signup. */
 function referral_attach(int $userId, array $f, $ref): ?int {
@@ -78,7 +84,8 @@ function referral_attach(int $userId, array $f, $ref): ?int {
     if ($link && $link['kind'] !== 'envoy' && $link['network'] !== $f['network']) $link = null;                     // a WGMN link cannot place someone in WNNN; an envoy's link serves both networks
     $position = $link && $link['position_code'] !== '' ? $link['position_code'] : (string) ($ref['position'] ?? '');
     $pos = $position !== '' ? row('SELECT * FROM positions WHERE code=?', [$position]) : null;
-    $cat = $link && $link['kind'] === 'envoy' ? 'envoy' : (isset(REF_CATS[$ref['category'] ?? '']) ? $ref['category'] : ($link ? 'volunteer_leader' : ''));
+    $ownerEnvoy = $link && val("SELECT 1 FROM users WHERE id=? AND role='envoy'", [(int) $link['owner_id']]);     // v109.46: an Envoy's vacant-seat link counts as an Envoy referral
+    $cat = $link && ($link['kind'] === 'envoy' || $ownerEnvoy) ? 'envoy' : (isset(REF_CATS[$ref['category'] ?? '']) ? $ref['category'] : ($link ? 'volunteer_leader' : ''));
     $name = $link ? trim($link['o_first'] . ' ' . $link['o_last']) : mb_substr(trim((string) ($ref['name'] ?? '')), 0, 160);
     if (!$link && !$pos) return null;
     q('DELETE FROM referrals WHERE user_id=?', [$userId]);
@@ -89,8 +96,14 @@ function referral_attach(int $userId, array $f, $ref): ?int {
     $unitId = $link && $link['org_unit_id'] ? (int) $link['org_unit_id'] : (int) $f['org_unit_id'];
     if ($pos['level'] === 'country') $unitId = (int) (val("SELECT id FROM org_units WHERE level='country' AND country_code=?", [$f['country_code']]) ?? $unitId);
     $area = $link && $link['area_label'] !== '' ? $link['area_label'] : ($pos['level'] === 'lga' ? $f['lga'] : (in_array($pos['level'], ['community_cluster', 'chapter'], true) ? $f['community'] : ''));
-    $aid = activation_start($userId, 'ref3', $f['network'], $pos['code'], $unitId, (string) $area, $name);
-    notify_hq('activation', 'Referral activation started: ' . $who, position_title($pos['code'], $f['network']) . ', ' . $f['state_region'] . ', ' . country_name($f['country_code']) . ($name !== '' ? ". Referred by $name." : '.'), '#/referrals/activations/' . $aid);
+    $lvl = $pos['level'];      // v109.46: the place of the seat she was referred for, from the seat link where there is one, otherwise from her own address
+    $place = ['lga' => in_array($lvl, ['lga', 'community_cluster', 'chapter'], true) ? (string) (($link['lga'] ?? '') !== '' ? $link['lga'] : ($lvl === 'lga' ? $area : $f['lga'])) : '',
+      'community' => in_array($lvl, ['community_cluster', 'chapter'], true) ? (string) (($link['community'] ?? '') !== '' ? $link['community'] : ($lvl === 'community_cluster' ? $area : $f['community'])) : '',
+      'chapter_id' => $link['chapter_id'] ?? null];
+    // v109.46 (Azeez, 22 Nov): anyone who came by a referral (a link, or a person she names) does the 3-Day route; only a woman with no referral does 7 days
+    $aid = activation_start($userId, ($link || $name !== '') ? 'ref3' : 'open7', $f['network'], $pos['code'], $unitId, (string) $area, $name, $place);
+    if (!$aid) return null;
+    notify_hq('activation', (ACT_ROUTES[(string) val('SELECT route FROM activations WHERE id=?', [$aid])]['label'] ?? 'Activation') . ' started: ' . $who, position_title($pos['code'], $f['network']) . ', ' . $f['state_region'] . ', ' . country_name($f['country_code']) . ($name !== '' ? ". Referred by $name." : '.'), '#/referrals/activations/' . $aid);
     return $aid;
   } catch (Throwable $e) { error_log('[wdos referral] ' . $e->getMessage()); return null; }
 }
@@ -130,6 +143,8 @@ function activation_content_ready(string $route): array {
  * The pass mark is 60. HQ can appoint only a candidate who has passed. */
 const ACT_PASS = 60;
 function activation_score(array $a): array {
+  if (!isset($a['scheme'], $a['started_at'], $a['status']) && !empty($a['id'])) $a = row('SELECT * FROM activations WHERE id=?', [(int) $a['id']]) ?: $a;
+  if (($a['scheme'] ?? 'v1') === 'fw' && function_exists('fw_score')) return fw_score($a);      // v109.46: the Leadership Activation Framework
   $days = max(1, (int) (ACT_ROUTES[$a['route']]['days'] ?? 3));
   $done = (int) val('SELECT COUNT(*) FROM activation_progress WHERE activation_id=? AND completed_at IS NOT NULL', [(int) $a['id']]);
   $parts = ['days' => min(30, (int) round(30 * min($done, $days) / $days)), 'on_time' => 0, 'understanding' => 0, 'answers' => 0, 'readiness' => 0];
@@ -148,7 +163,7 @@ function activation_score(array $a): array {
  *  in the app, on the phone and by email. */
 function activation_approve(array $a, int $byId): string {
   $uid = (int) $a['user_id'];
-  $title = seat_open($uid, $a['position_code'], $a['network'], (int) $a['org_unit_id'], $a['area_label'], 'appointed', $byId);
+  $title = seat_open($uid, $a['position_code'], $a['network'], (int) $a['org_unit_id'], $a['area_label'], 'appointed', $byId, ['lga' => $a['lga'] ?? '', 'community' => $a['community'] ?? '', 'chapter_id' => $a['chapter_id'] ?? null]);
   q("UPDATE activations SET status='completed', outcome='selected', decided_at=COALESCE(decided_at,?), decided_by=COALESCE(decided_by,?) WHERE id=?", [now(), $byId, (int) $a['id']]);
   $u = row('SELECT * FROM users WHERE id=?', [$uid]);
   $site = function_exists('app_origin') ? app_origin() : '';

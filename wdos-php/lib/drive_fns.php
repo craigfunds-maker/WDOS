@@ -70,6 +70,10 @@ function run_drive_jobs(array &$done): void {
   if ((int) $d->format('G') >= 8 && $d->format('N') === '1' && claim_send('country_week_' . $d->format('Y-m-d'))) $done['country_week'] = run_country_reports($d);
   if ((int) $d->format('G') >= 10 && claim_send('referral_news_' . $d->format('Y-m-d'))) $done['referral_news'] = run_referral_news($d);   // v109.38
   if ((int) $d->format('G') >= 9 && function_exists('run_envoy_accept_nudges') && claim_send('envoy_accept_' . $d->format('Y-m-d'))) $done['envoy_accept'] = run_envoy_accept_nudges($d);   // v109.45
+  // v109.46: a seat that has just lost its leader is announced to the Country Representative and Deputy (and the State Envoy); Mondays, the count of vacant seats
+  try { val('SELECT 1 FROM seat_vacancy_alerts LIMIT 1'); $ok = function_exists('lm_vacancy_scan'); } catch (PDOException $e) { $ok = false; }
+  if ($ok && claim_send('vacancy_scan_' . $d->format('Y-m-d-H'))) $done['vacancy_scan'] = lm_vacancy_scan();
+  if ($ok && (int) $d->format('G') >= 9 && $d->format('N') === '1' && claim_send('vacancy_week_' . $d->format('Y-m-d'))) $done['vacancy_week'] = lm_vacancy_digest();
 }
 /** Tuesdays from 09:00: a leader or envoy who has never signed in and has a real email gets a link to choose her password (valid 7 days). At most 4 weeks. */
 function run_signin_nudges(DateTimeImmutable $d): string {

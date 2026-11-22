@@ -93,7 +93,8 @@ export async function render(root) {
           L('#/members?kind=leaders&seen=7d', 'Signed in this week', g.active_7d, ''),
           h('a', { class: 'list__link', href: '#/hq/activity' }, h('div', { class: 'grow' }, h('b', { text: t("Leaders' activity") }), h('small', { text: t('Tasks, messages, calls, meetings and reports') })), icon('chevright', 16)))))));
   }).catch((e) => glance.replaceChildren(empty('x', 'This did not load', e.message)));
-  root.append(hero, pushNudge(), kpis, card('Volunteer leaders at a glance', 'Every figure opens the leaders behind it.', glance, legend([{ name: 'WGMN', color: seriesColor.WGMN }, { name: 'WNNN', color: seriesColor.WNNN }])),
+  const actBox = h('div');       // v109.46: the 3-Day and 7-Day activations, by status, with their scores
+  root.append(hero, pushNudge(), kpis, card('Volunteer leaders at a glance', 'Every figure opens the leaders behind it.', glance, legend([{ name: 'WGMN', color: seriesColor.WGMN }, { name: 'WNNN', color: seriesColor.WNNN }])), actBox,
     h('div', { class: 'row row--2-1' }, card('New members', 'Registrations per day, by network', trend, legend([{ name: 'WGMN', color: seriesColor.WGMN }, { name: 'WNNN', color: seriesColor.WNNN }])), card('Network split', 'All members to date', split)),
     card('Meetings', 'Coming up and just held: who was invited, who replied, who opened the link and who attended', meet, h('a', { class: 'btn btn--ghost btn--s', href: '#/meetings', text: 'Schedule or open meetings' })),
     card('Video meeting minutes', 'Minutes, the leaders who attended, documents and recordings sent by volunteer leaders', minutesBox, h('a', { class: 'btn btn--ghost btn--s', href: '#/meetings/requests', text: 'All video meetings' })),
@@ -117,6 +118,14 @@ export async function render(root) {
       kpi('award', 'Volunteer leaders seated', k.leaders, [h('span', { text: k.leaders ? tf('WGMN {1} · WNNN {2}', fmt(k.leaders_wgmn || 0), fmt(k.leaders_wnnn || 0)) : 'Appoint leaders from Members' })], '#/members?kind=leaders'),
       kpi('globe', 'Countries with members', k.countries, [h('span', { text: 'In Africa and the diaspora' })], '#/members'));
     loadGlance();
+    if (d.activations && d.activations.ref3) {
+      const A = d.activations; const cell = (v, bad) => h('td', { class: 'num' }, v ? h('b', { class: bad ? 'bad' : '', text: String(v) }) : '0');
+      actBox.replaceChildren(card('Leadership activation', tf('Candidates in the 3-Day and 7-Day activations, last {1} days. Referred women do 3 days; women who applied with no referral do 7. Pass mark 80.', d.days),
+        h('div', { class: 'tablewrap' }, h('table', { class: 'table' }, h('thead', {}, h('tr', {}, ['', 'In progress', 'Awaiting review', 'Pending corrections', 'Requiring support', 'Ran out of time', 'Activated', 'Average score', 'Pass rate'].map((x, i) => h('th', { class: i ? 'num' : '', text: x })))),
+          h('tbody', {}, ['ref3', 'open7'].map((r) => { const x = A[r]; return h('tr', { style: 'cursor:pointer', onclick: () => { location.hash = '#/referrals/activations'; } }, h('td', {}, h('b', { text: x.label })), cell(x.in_progress + x.not_started), cell(x.submitted + x.verified), cell(x.pending_corrections, true), cell(x.requiring_support, true), cell(x.incomplete, true), cell(x.activated),
+            h('td', { class: 'num', text: x.average === null ? '–' : x.average + '/100' }), h('td', { class: 'num', text: x.pass_rate === null ? '–' : x.pass_rate + '%' })); })))),
+        h('a', { class: 'btn btn--ghost btn--s', href: '#/referrals/activations', text: 'Open the activation register' })));
+    }
     if (!k.members) {
       const invite = () => h('a', { class: 'btn btn--quiet btn--s', href: '#/', onclick: (e) => { e.preventDefault(); navigator.clipboard?.writeText(location.origin + '/#/'); e.target.textContent = 'Link copied'; } }, 'Copy the joining link');
       trend.replaceChildren(empty('chart', 'No registrations yet', 'This chart draws itself as soon as the first member joins through the network page.', invite()));

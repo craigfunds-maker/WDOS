@@ -2,7 +2,7 @@
 import { birthdayAsk } from '../birthday.js';
 import { birthdayCard } from '../bdaycard.js';
 import { photoNudge } from '../photoask.js';
-import { h, clear, icon, avatar, flag, netTag, card, sk, empty, ago, agoIn, fmt, greeting, fmtDate, NETS, inspCard } from '../ui.js';
+import { h, t, clear, icon, avatar, flag, netTag, card, sk, empty, ago, agoIn, fmt, greeting, fmtDate, NETS, inspCard } from '../ui.js';
 import { pushNudge } from '../pushnudge.js';
 import { goodMotherArt } from '../goodmother.js';
 import { api } from '../api.js';
@@ -27,12 +27,13 @@ export async function render(root, params = {}) {
   const hero = h('section', { class: 'hero' }, h('div', { class: 'hero__id' }, h('img', { class: 'hero__disc', src: net.disc, alt: net.name }), avatar(u, 76)), h('div', { class: 'grow' }, h('h1', { class: 'display', text: viewing ? `${u.first_name} ${u.last_name}` : tf('{1}, {2}', greeting(), u.first_name) }), h('p', { text: u.seat?.title || '' }), meta), gmMap ? h('figure', { class: 'hero__map', title: 'What a Good Mother is called in ' + (u.country || 'your country') }, goodMotherArt(u.country_code, u.country)) : null, seg);
   const work = h('div', { style: 'display:grid;gap:20px' }); const kpis = h('div', { class: 'row row--4' }); const trend = h('div'), breakdown = h('div'), team = h('div'), recent = h('div');
   const breakCard = card('Where your members are', null, breakdown);
-  const today = h('div', { hidden: true });
+  const today = h('div', { hidden: true }); const lmBox = h('div');      // v109.46: the volunteer leaders under her, by place
+
   if (!viewing) api('/inspiration/today?lang=' + document.documentElement.lang).then((r) => { const cs = r.cards && r.cards.length ? r.cards : (r.card ? [r.card] : []); if (cs.length) { today.hidden = false; today.style.cssText = 'display:grid;gap:16px'; cs.forEach((c) => today.append(inspCard(c))); } }).catch(() => {});
   const todo = viewing ? {} : u.todo || {}; const nudge = (title, text, href, label) => h('section', { class: 'card nudge' }, h('div', { class: 'card__body', style: 'display:flex;gap:16px;align-items:center;flex-wrap:wrap' }, h('div', { class: 'grow' }, h('b', { text: title }), h('p', { class: 'muted', style: 'margin:4px 0 0', text })), h('a', { class: 'btn', href, text: label })));
   if (todo.appointment) root.append(hero, nudge('Accept your appointment', 'Read the Volunteer Leadership Agreement to the end and accept it to take up your seat.', '#/appointment', 'Read the Agreement'));
   else if (todo.onboarding > 0) root.append(hero, nudge('Your onboarding', (todo.onboarding === 1 ? tf('{1} required step is still to finish. Work through each step in order.', todo.onboarding) : tf('{1} required steps are still to finish. Work through each step in order.', todo.onboarding)), '#/onboarding', 'Continue my onboarding'));
-  root.append(hero, viewing ? '' : birthdayCard(), viewing ? '' : photoNudge(u), viewing ? '' : pushNudge(), (!viewing && !u.dob) ? birthdayAsk() : '', today, work, kpis, h('div', { class: 'row row--2-1' }, card('New members in your area', 'Registrations per day', trend), breakCard),
+  root.append(hero, viewing ? '' : birthdayCard(), viewing ? '' : photoNudge(u), viewing ? '' : pushNudge(), (!viewing && !u.dob) ? birthdayAsk() : '', today, lmBox, work, kpis, h('div', { class: 'row row--2-1' }, card('New members in your area', 'Registrations per day', trend), breakCard),
     h('div', { class: 'row row--2' }, card('Your leadership team', 'Leaders serving under your seat', team), card('Newest members', null, recent, h('a', { class: 'btn btn--ghost btn--s', href: viewing ? `#/leaders/${u.id}/members` : '#/members', text: viewing ? 'All members in this area' : 'All my members' }))));
 
   async function load() {
@@ -41,7 +42,25 @@ export async function render(root, params = {}) {
     let d;
     try { d = await api('/leader/dashboard?days=' + days + as); }
     catch (e) { kpis.replaceChildren(); [trend, breakdown, team, recent].forEach((x) => x.replaceChildren(empty('x', 'Could not load this', e.message, h('button', { class: 'btn btn--quiet btn--s', onclick: load }, 'Try again')))); return; }
-    const k = d.kpis;
+    const k = d.kpis; const L = d.leadmap;
+    // v109.46: candidates who named her as their reporting officer, and the candidates she referred, with their activation day and score
+    const conf = d.confirm || [], cands = d.candidates || [];
+    const confBox = conf.length ? card('Confirm a contact', 'A candidate in her activation says she contacted you. Confirm it if it happened. This is a required step for her.', h('div', { class: 'list' }, conf.map((c) => h('div', {}, avatar(c.candidate, 40),
+      h('div', { class: 'grow' }, h('b', { text: `${c.candidate.first_name} ${c.candidate.last_name}` }), h('small', { text: `${c.role} · ${c.evidence.how || ''} · ${c.evidence.when || ''}` }), c.evidence.agreed ? h('small', { class: 'faint', style: 'display:block', text: c.evidence.agreed }) : null),
+      h('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' }, h('button', { class: 'btn btn--lime btn--s', type: 'button', onclick: async () => { try { await api(`/activation/${c.activation_id}/confirm-contact`, {}); load(); } catch (e) { alert(e.message); } } }, t('Yes, she contacted me')),
+        h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: async () => { try { await api(`/activation/${c.activation_id}/confirm-contact`, { not_contacted: true }); load(); } catch (e) { alert(e.message); } } }, t('Not yet'))))))) : null;
+    const candBox = cands.length ? card('Candidates you referred', 'Their 3-Day or 7-Day activation, as WODDI HQ sees it.', h('div', { class: 'list' }, cands.map((c) => h('div', {}, avatar(c, 36),
+      h('div', { class: 'grow' }, h('b', { text: `${c.first_name} ${c.last_name}` }), h('small', { text: `${c.role} · ${t(c.route)} · ${tf('Day {1} of {2}', c.days_done, c.days_total)}` })),
+      h('div', { class: 'tagrow' }, h('span', { class: 'tag', text: t(c.status) }), h('span', { class: 'tag ' + (c.passed ? 'tag--wnnn' : ''), text: tf('{1} of 100', c.score) })))))) : null;
+    root.querySelectorAll('[data-act]').forEach((x) => x.remove()); today.after(...[confBox, candBox].filter(Boolean)); [confBox, candBox].forEach((x) => x && x.setAttribute('data-act', '1'));
+    if (L && L.places) {
+      const tile = (v, l, bad) => h('div', { class: 'lm-mk' + (bad ? ' is-bad' : '') }, h('b', { text: fmt(v) }), h('small', { text: l }));
+      lmBox.replaceChildren(card('Volunteer leaders in your area', tf('Every {1} under your seat, who leads it, and which seats are still vacant.', globalThis.tr(L.child_label)),
+        h('div', { style: 'display:grid;gap:12px' }, h('div', { class: 'lm-mks' }, tile(L.leaders, 'Leaders under you'), tile(L.active_7d, 'Active this week'), tile(L.vacant, 'Vacant seats one level down', L.vacant > 0),
+          tile(L.no_leader, tf('{1}s with no principal leader', globalThis.tr(L.child_label)), L.no_leader > 0), tile(L.places, tf('{1}s in your area', globalThis.tr(L.child_label)))),
+          viewing ? null : h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, h('a', { class: 'btn btn--primary btn--s', href: L.url }, icon('tree', 16), h('span', { text: 'Open the leaders in my area' })),
+            h('a', { class: 'btn btn--ghost btn--s', href: '#/leadmap/board', text: 'Leaderboard' }), h('a', { class: 'btn btn--ghost btn--s', href: '#/team', text: 'My leaders' })))));
+    }
     meta.replaceChildren(flag(d.seat.country_code), netTag(d.seat.network), h('span', { class: 'tag', text: d.seat.status === 'appointed' ? 'Appointed' : d.seat.status === 'acting' ? 'Acting' : 'Pending confirmation' }), h('span', { class: 'tag', text: tf('Since {1}', fmtDate(d.seat.since)) }), u.member_no ? h('span', { class: 'tag num', text: u.member_no }) : null);
     kpis.replaceChildren(
       kpi('users', 'Members in your area', k.members, [h('span', { text: tf('{1} active this week', fmt(k.active_7d)) })]),

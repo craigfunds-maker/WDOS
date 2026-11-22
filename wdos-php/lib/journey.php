@@ -82,14 +82,98 @@ function activation_view(array $a, bool $forHq = false): array {
     'unit' => trim(($a['area_label'] !== '' ? $a['area_label'] . ', ' : '') . $unit, ', '), 'referrer' => $a['referrer_name'], 'status' => $a['status'], 'deadline' => $a['deadline'],
     'extension_status' => $a['extension_status'], 'return_note' => $a['return_note'], 'outcome' => $forHq ? $a['outcome'] : '', 'disclosed' => $a['disclosed'], 'started_at' => $a['started_at'], 'submitted_at' => $a['submitted_at'], 'decided_at' => $a['decided_at'],
     'first_name' => $u['first_name'], 'last_name' => $u['last_name'], 'notice' => ACT_NOTICE, 'days' => $days, 'content' => activation_content_ready($a['route']), 'form' => readiness_form($a['network'], $forHq), 'profile' => ['dob' => $u['dob'], 'phone' => $u['phone'], 'email' => $u['email'], 'country' => country_name((string) $u['country_code']), 'state_region' => $u['state_region'], 'lga' => $u['lga'], 'community' => $u['community']], 'existing' => $existing];
+  if (($a['scheme'] ?? 'v1') === 'fw') {      // v109.46: the Leadership Activation Framework: tasks, evidence, scores, gates
+    $n = fw_place($a); $nv = ['nets' => [$a['network']], 'contact' => false, 'links' => false, 'kpis' => false, 'role' => 'leader', 'root' => $n, 'up' => $n, 'rank' => 99];
+    $cov = ['place' => lm_place_name($n), 'seats' => array_map(fn($c) => ['title' => $c['title'], 'filled' => $c['filled'], 'name' => $c['filled'] ? trim($c['person']['first_name'] . ' ' . $c['person']['last_name']) : null], array_values(array_filter(lm_seats_at($n, [$a['network']], $nv, false), fn($c) => empty($c['extra'])))),
+      'below' => lm_depth($n) < 5 ? array_map(fn($c) => ['name' => $c['name'], 'vacant' => $c['vacant'], 'leaders' => $c['leaders'], 'members' => $c['members'], 'principal' => ($p = array_values(array_filter($c['slots'], fn($x) => $x['principal']))[0]['holder'] ?? null) ? trim($p['first_name'] . ' ' . $p['last_name']) : null], lm_children($n, $nv)) : [],
+      'below_label' => lm_depth($n) < 5 ? lm_level_label(LM_LEVELS[lm_depth($n)], $n['cc']) : ''];
+    $v += ['scheme' => 'fw', 'fw' => fw_state($a), 'orientation' => FW_ORIENTATION, 'quiz_a' => fw_quiz_public(FW_QUIZ_A), 'quiz_b' => fw_quiz_public(FW_QUIZ_B), 'officers' => fw_officers($a), 'coverage' => $cov,
+      'support_note' => $a['support_note'] ?? '', 'compliance_breach' => $forHq ? ($a['compliance_breach'] ?? '') : ''];
+    $v['role_title'] = lm_title($a['position_code'], $a['network'], $n['cc']); $v['unit'] = lm_place_name($n);      // the structure document's title and the seat's own place
+  } else $v['scheme'] = 'v1';
   if ($forHq) $v += ['outcome_note' => $a['outcome_note'], 'extension_reason' => $a['extension_reason'], 'candidate' => ['id' => (int) $u['id'], 'first_name' => $u['first_name'], 'last_name' => $u['last_name'], 'has_photo' => (int) $u['has_photo'], 'email' => $u['email'], 'phone' => $u['phone'],
     'country_code' => $u['country_code'], 'state_region' => $u['state_region'], 'lga' => $u['lga'], 'community' => $u['community'], 'member_no' => $u['member_no'], 'seated' => (bool) current_seat((int) $u['id'])], 'position' => $a['position_code'], 'org_unit_id' => (int) $a['org_unit_id'], 'area_label' => $a['area_label']];
   return $v;
 }
-route('GET', '/activation', function () { $u = require_user(); $a = activation_mine((int) $u['id']); return ['activation' => $a ? activation_view($a) : null]; });
+route('GET', '/activation', function () { $u = require_user(); $a = activation_mine((int) $u['id']); if ($a) fw_touch_access($a); return ['activation' => $a ? activation_view($a) : null]; });
+/* v109.46: one task of the Leadership Activation Framework, with its evidence. A task returned for corrections can be sent again. */
+route('POST', '/activation/task/([a-z]{3,20})', function ($key) {
+  $u = require_user(); $a = activation_mine((int) $u['id']);
+  if (!$a || ($a['scheme'] ?? '') !== 'fw') fail(404, 'You do not currently have an activation to complete.', 'none');
+  if ($a['status'] === 'incomplete') fail(409, 'The time allowed for this activation has passed. You can ask for an extension.', 'incomplete');
+  if ($a['status'] === 'support') fail(409, 'WODDI HQ is arranging support for you first. They will open your activation again.', 'support');
+  if (!in_array($a['status'], ['in_progress', 'returned', 'submitted'], true)) fail(409, 'Your activation is already decided.', 'transition');
+  if (!in_array($key, fw_keys($a['route']), true)) fail(404, 'That task is not part of your activation.', 'not_found');
+  $st = fw_state($a); $t = array_column($st['tasks'], null, 'key');
+  if (in_array($t[$key]['status'], ['submitted', 'verified'], true)) fail(409, 'You have already sent this task. WODDI HQ may return it to you with remarks.', 'sent');
+  foreach ($st['tasks'] as $x) if ($x['day'] < FW_TASKS[$key][0] && !in_array($x['status'], ['submitted', 'verified'], true)) fail(409, 'Finish Day ' . $x['day'] . ' first: ' . $x['title'] . '.', 'order');
+  [$ev, $files, $officer] = fw_take($key, body(), $a, (int) $u['id']);
+  $auto = fw_auto($key, $ev, $a); $was = $t[$key]['status'];
+  q('INSERT INTO activation_tasks (activation_id,task_key,status,evidence,files,auto_score,submitted_at,officer_id) VALUES (?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE status=VALUES(status), evidence=VALUES(evidence), files=VALUES(files), auto_score=VALUES(auto_score),
+     submitted_at=VALUES(submitted_at), officer_id=VALUES(officer_id), score=NULL, reviewer_id=NULL, reviewed_at=NULL, resubmissions=resubmissions+' . ($was === 'pending_corrections' ? 1 : 0) . ($key === 'contact' ? ', confirmed_at=NULL, confirmed_by=NULL' : ''),
+    [(int) $a['id'], $key, 'submitted', json_encode($ev, JSON_UNESCAPED_UNICODE), implode(',', $files), $auto, now(), $officer]);
+  foreach ($files as $f) try { q("INSERT INTO doc_links (file_id,owner_type,owner_id,added_by,created_at) VALUES (?,'activation',?,?,?)", [$f, (int) $a['id'], (int) $u['id'], now()]); } catch (PDOException $e) { /* already linked */ }
+  $name = work_name($u); $aUrl = '#/referrals/activations/' . $a['id'];
+  if ($key === 'contact') {         // her reporting officer confirms the contact in WDOS; HQ when there is no officer above the seat
+    if ($officer) { notify($officer, 'activation', $name . ' says she contacted you', 'She is in her activation for ' . position_title($a['position_code'], $a['network']) . '. Confirm the contact on your dashboard if it happened.', '#/'); }
+    else notify_hq('activation', 'Confirm a contact: ' . $name, 'She named WODDI HQ as her reporting officer (no leader serves above the seat yet).', $aUrl);
+  }
+  $after = fw_state(array_merge($a, ['status' => $a['status']]));
+  $doneA = !array_filter($after['tasks'], fn($x) => $x['stage'] === 'A' && !in_array($x['status'], ['submitted', 'verified'], true));
+  if ($doneA && FW_TASKS[$key][1] === 'A' && $a['route'] === 'open7') notify_hq('activation', 'Day 3 review: ' . $name, 'Days 1 to 3 are in (' . $after['stage_a'] . ' of 100 so far). She carries on with Days 4 to 7.', $aUrl);
+  if ($after['final'] && $a['status'] !== 'submitted') {
+    q("UPDATE activations SET status='submitted', submitted_at=?, return_note='' WHERE id=?", [now(), (int) $a['id']]);
+    notify_hq('activation', ($a['route'] === 'open7' ? 'Day 7 review: ' : 'Day 3 review: ') . $name, ACT_ROUTES[$a['route']]['label'] . ', ' . position_title($a['position_code'], $a['network']) . '. Score so far ' . $after['score'] . ' of 100. Verify her evidence.', $aUrl);
+    if ($after['passed']) referrer_tell((int) $a['user_id'], 'passed', 'a' . $a['id'], (string) $after['score']);
+  } elseif ($a['status'] === 'returned' && !$after['corrections']) q("UPDATE activations SET status=? WHERE id=?", [$after['final'] ? 'submitted' : 'in_progress', (int) $a['id']]);
+  log_activity((int) $u['id'], null, 'activation_task', FW_TASKS[$key][4], 'activation', (int) $a['id']);
+  after_response(function () { push_drain(20); mail_drain(6); });
+  return ['ok' => true, 'auto_score' => $auto, 'state' => fw_score(row('SELECT * FROM activations WHERE id=?', [(int) $a['id']]))];
+});
+/* The reporting officer (or HQ) confirms that the candidate contacted her: the mandatory reporting-relationship gate. */
+route('POST', '/activation/(\d+)/confirm-contact', function ($id) {
+  $u = require_user(); $t = row("SELECT t.*, a.user_id, a.status a_status FROM activation_tasks t JOIN activations a ON a.id=t.activation_id WHERE t.activation_id=? AND t.task_key='contact'", [(int) $id]);
+  if (!$t) fail(404, 'There is no contact to confirm.', 'not_found');
+  if (!is_hq($u) && (int) $t['officer_id'] !== (int) $u['id']) fail(403, 'Only the reporting officer she named, or WODDI HQ, can confirm this contact.', 'forbidden');
+  if (!empty(body()['not_contacted'])) {
+    q("UPDATE activation_tasks SET status='pending_corrections', remarks=?, confirmed_at=NULL WHERE activation_id=? AND task_key='contact'", ['Your reporting officer says you have not contacted her yet. Contact her, then send this task again.', (int) $id]);
+    q("UPDATE activations SET status='returned' WHERE id=? AND status IN ('in_progress','submitted')", [(int) $id]);
+    notify((int) $t['user_id'], 'activation', 'Your contact was not confirmed', 'Your reporting officer says you have not contacted her yet. Contact her and send the Day 3 task again.', '#/activation');
+  } else {
+    q("UPDATE activation_tasks SET confirmed_at=?, confirmed_by=? WHERE activation_id=? AND task_key='contact'", [now(), (int) $u['id'], (int) $id]);
+    notify((int) $t['user_id'], 'activation', 'Your reporting officer confirmed your contact', 'Day 3 · Leadership connection is confirmed.', '#/activation');
+  }
+  log_activity((int) $u['id'], (int) $t['user_id'], 'activation_contact_' . (empty(body()['not_contacted']) ? 'confirmed' : 'denied'));
+  after_response(fn() => push_drain(10));
+  return ['ok' => true];
+});
+/* HQ reviews one task: verify it (with a score of her choosing, up to the task's points), or return it for corrections with remarks. */
+route('POST', '/hq/activations/(\d+)/task/([a-z]{3,20})', function ($id, $key) {
+  $me = require_hq(); $a = row('SELECT * FROM activations WHERE id=?', [(int) $id]); if (!$a || ($a['scheme'] ?? '') !== 'fw') fail(404, 'That activation was not found.', 'not_found');
+  if (!in_array($key, fw_keys($a['route']), true)) fail(404, 'That task is not part of this activation.', 'not_found');
+  $t = row('SELECT * FROM activation_tasks WHERE activation_id=? AND task_key=?', [(int) $id, $key]); if (!$t) fail(409, 'She has not sent this task yet.', 'not_sent');
+  $b = body(); $act = str_in('action', 16); $rem = str_in('remarks', 1500); $pts = FW_TASKS[$key][3];
+  if ($act === 'verify') {
+    $sc = array_key_exists('score', $b) && $b['score'] !== '' && $b['score'] !== null ? (int) $b['score'] : null;
+    if ($sc === null) $sc = (int) $t['auto_score'] + ($key === 'contact' && $t['confirmed_at'] ? 10 : 0);
+    if ($sc < 0 || $sc > $pts) fail(422, 'The score for this task is between 0 and ' . $pts . '.', 'score');
+    if ($key === 'contact' && !$t['confirmed_at']) { q('UPDATE activation_tasks SET confirmed_at=?, confirmed_by=? WHERE activation_id=? AND task_key=?', [now(), (int) $me['id'], (int) $id, $key]); }
+    q("UPDATE activation_tasks SET status='verified', score=?, reviewer_id=?, reviewed_at=?, remarks=? WHERE activation_id=? AND task_key=?", [min($pts, $sc), (int) $me['id'], now(), $rem, (int) $id, $key]);
+  } elseif ($act === 'correct') {
+    if (mb_strlen($rem) < 3) fail(422, 'Write the remarks: what she should correct or add.', 'remarks');
+    q("UPDATE activation_tasks SET status='pending_corrections', reviewer_id=?, reviewed_at=?, remarks=? WHERE activation_id=? AND task_key=?", [(int) $me['id'], now(), $rem, (int) $id, $key]);
+    $ext = (new DateTimeImmutable('now', new DateTimeZone('Africa/Lagos')))->modify('+3 days')->format('Y-m-d');
+    q("UPDATE activations SET status='returned', deadline=GREATEST(deadline, ?) WHERE id=? AND status IN ('in_progress','submitted','returned','incomplete')", [$ext, (int) $id]);
+    notify((int) $a['user_id'], 'activation', 'Pending corrections: ' . FW_TASKS[$key][4], $rem, '#/activation');
+  } else fail(422, 'Unknown action.', 'action');
+  log_activity((int) $me['id'], (int) $a['user_id'], 'activation_task_' . $act, FW_TASKS[$key][4] . ($rem !== '' ? ': ' . $rem : ''));
+  after_response(fn() => push_drain(10));
+  return ['ok' => true, 'state' => fw_state(row('SELECT * FROM activations WHERE id=?', [(int) $id]))];
+});
 route('POST', '/activation/day/(\d+)', function ($n) {
   $u = require_user(); $a = activation_mine((int) $u['id']); $n = (int) $n; $b = body();
   if (!$a) fail(404, 'You do not currently have an activation to complete.', 'none');
+  if (($a['scheme'] ?? '') === 'fw') fail(409, 'Your activation follows the new framework. Open My Activation to see your tasks.', 'framework');
   if ($a['status'] === 'incomplete') fail(409, 'The time allowed for this activation has passed. You can ask for an extension.', 'incomplete');
   if ($a['status'] !== 'in_progress') fail(409, 'Your activation days are already complete.', 'transition');
   $days = activation_days($a['route']); $day = null; foreach ($days as $d) if ($d['day'] === $n) $day = $d;
@@ -113,7 +197,7 @@ route('POST', '/activation/day/(\d+)', function ($n) {
 });
 route('POST', '/activation/assessment', function () {
   $u = require_user(); $a = activation_mine((int) $u['id']); $b = body();
-  if (!$a || !in_array($a['status'], ['in_progress', 'returned'], true)) fail(409, 'There is no assessment waiting for you.', 'transition');
+  if (!$a || !in_array($a['status'], ['in_progress', 'returned'], true) || ($a['scheme'] ?? '') === 'fw') fail(409, 'There is no assessment waiting for you.', 'transition');
   $c = activation_content_ready($a['route']); if (!$c['complete']) fail(409, 'The rest of this activation is still being loaded by WODDI HQ. Your progress is saved.', 'content');
   $done = (int) val('SELECT COUNT(*) FROM activation_progress WHERE activation_id=? AND completed_at IS NOT NULL', [(int) $a['id']]);
   if ($done < $c['days_loaded']) fail(409, 'Finish every day of the activation first.', 'order');
@@ -144,6 +228,7 @@ route('POST', '/activation/extension', function () {
 
 /* ---------------------------------------------------- HQ activation register -- */
 function activation_stage(array $a, int $done): string {
+  if (($a['scheme'] ?? '') === 'fw') { $st = fw_state($a); return $st['decision_label'] . ($st['decision'] === 'in_progress' ? ', Day ' . $st['days_done'] . ' of ' . $st['days_total'] . ' done' : ''); }
   if ($a['status'] === 'completed') return 'Decided';
   if ($a['status'] === 'submitted') return 'Awaiting review';
   if ($a['status'] === 'returned') return 'Returned';
@@ -163,7 +248,7 @@ route('GET', '/hq/activations', function () {
     $items[] = ['id' => (int) $a['id'], 'user_id' => (int) $a['user_id'], 'first_name' => $a['first_name'], 'last_name' => $a['last_name'], 'has_photo' => (int) $a['has_photo'], 'network' => $a['network'], 'country_code' => $a['country_code'],
       'role' => position_title($a['position_code'], $a['network']), 'place' => trim(($a['area_label'] !== '' ? $a['area_label'] . ', ' : '') . $a['unit'], ', '), 'referrer' => $a['referrer_name'], 'status' => $a['status'],
       'stage' => activation_stage($a, (int) $a['done']), 'deadline' => $a['deadline'], 'extension_status' => $a['extension_status'], 'outcome' => $a['outcome'], 'started_at' => $a['started_at'],
-      'score' => activation_score($a), 'seated' => (bool) current_seat((int) $a['user_id'])];
+      'score' => activation_score($a), 'seated' => (bool) current_seat((int) $a['user_id']), 'scheme' => $a['scheme'] ?? 'v1'];
   }
   return ['route' => $route, 'routes' => ACT_ROUTES, 'items' => $items, 'counts' => $c, 'content' => activation_content_ready($route), 'outcomes' => ACT_OUTCOMES];
 });
@@ -180,8 +265,12 @@ route('POST', '/hq/activations/open', function () {
   $unit = row("SELECT id FROM org_units WHERE id=? AND level<>'hq'", [(int) ($b['org_unit_id'] ?? 0)]); if (!$unit) fail(422, 'Choose the country or state.', 'unit');
   $area = str_in('area_label', 120);
   if (in_array($pos['level'], ['lga', 'community_cluster', 'chapter'], true) && $area === '') fail(422, 'Name the LGA, cluster or chapter this position covers.', 'area');
-  $route = str_in('route', 8) === 'ref3' ? 'ref3' : 'open7';
-  $aid = activation_start((int) $u['id'], $route, (string) $u['network'], $pos['code'], (int) $unit['id'], $area, '');
+  // v109.46 (Azeez, 22 Nov): a referred woman does the 3-Day route; only a woman with no referral does the 7-Day route
+  $route = val("SELECT 1 FROM referrals WHERE user_id=? AND (link_id IS NOT NULL OR referrer_name<>'')", [(int) $u['id']]) ? 'ref3' : 'open7';
+  $lv = $pos['level'];       // v109.46: the whole place of the seat she is considered for
+  $place = ['lga' => in_array($lv, ['lga', 'community_cluster', 'chapter'], true) ? (str_in('lga', 120) ?: ($lv === 'lga' ? $area : (string) $u['lga'])) : '',
+    'community' => in_array($lv, ['community_cluster', 'chapter'], true) ? (str_in('community', 120) ?: ($lv === 'community_cluster' ? $area : (string) $u['community'])) : '', 'chapter_id' => (int) ($b['chapter_id'] ?? 0) ?: null];
+  $aid = activation_start((int) $u['id'], $route, (string) $u['network'], $pos['code'], (int) $unit['id'], $area, '', $place);
   notify((int) $u['id'], 'activation', 'Your ' . ACT_ROUTES[$route]['label'] . ' is open', 'You are being considered for ' . position_title($pos['code'], (string) $u['network']) . '. Open WDOS to begin Day 1.', '#/activation');
   log_activity((int) $me['id'], (int) $u['id'], 'activation_opened', ACT_ROUTES[$route]['label']);
   after_response(fn() => push_drain(10));
@@ -202,13 +291,23 @@ route('POST', '/hq/activations/(\d+)', function ($id) {
     q("UPDATE activations SET status='completed', outcome=?, outcome_note=?, disclosed=?, decided_at=?, decided_by=? WHERE id=?", [$o, $note, str_in('disclosed', 1000), now(), (int) $me['id'], (int) $id]);
     notify($uid, 'activation', 'Your assessment has been reviewed', 'Headquarters will contact you about the next step.', '#/activation');
     if (in_array($o, ['not_selected', 'reserve', 'alternative_role'], true)) referrer_tell($uid, 'outcome', 'a' . $id . $o, ACT_OUTCOMES[$o]);   // v109.38
+  } elseif (in_array($act, ['support', 'resume', 'breach'], true) && ($a['scheme'] ?? '') === 'fw') {      // v109.46: the framework's other decisions
+    if ($act === 'support') { if (mb_strlen($note) < 3) fail(422, 'Write what support she needs.', 'note');
+      q("UPDATE activations SET status='support', support_note=? WHERE id=?", [$note, (int) $id]); notify($uid, 'activation', 'WODDI HQ will support you', $note, '#/activation'); }
+    elseif ($act === 'resume') { $ext = (new DateTimeImmutable('now', new DateTimeZone('Africa/Lagos')))->modify('+3 days')->format('Y-m-d');
+      q("UPDATE activations SET status='in_progress', support_note='', deadline=GREATEST(deadline, ?) WHERE id=?", [$ext, (int) $id]); notify($uid, 'activation', 'Your activation is open again', 'Continue from where you stopped.', '#/activation'); }
+    else q('UPDATE activations SET compliance_breach=? WHERE id=?', [$note, (int) $id]);      // an empty note clears it
   } elseif ($act === 'appoint' || $act === 'approve') {
     // v109.34: only a candidate who has passed her activation becomes a volunteer leader, and only when HQ approves
     if ($act === 'appoint' && $a['outcome'] !== 'selected') fail(409, 'Record the outcome as Selected before appointing.', 'transition');
     if (!in_array($a['status'], ['submitted', 'completed'], true)) fail(409, 'She has not finished her activation yet. HQ approves after she submits her assessment.', 'transition');
     if (current_seat($uid)) fail(409, 'That person already holds a leadership seat.', 'seated');
     $sc = activation_score($a);
-    if (!$sc['passed']) fail(409, 'She has not passed the activation: score ' . $sc['score'] . ' of 100, the pass mark is ' . ACT_PASS . '. Return it to her with a note, or record another outcome.', 'not_passed');
+    if (($a['scheme'] ?? '') === 'fw') {          // v109.46: Activated only when both stages pass and HQ has verified every piece of evidence
+      $st = fw_state($a);
+      if (!$st['passed']) fail(409, 'She has not passed: ' . ($st['missing_gates'] ? 'missing ' . implode(', ', $st['missing_gates']) . '; ' : '') . 'Days 1 to 3 scored ' . $st['stage_a'] . ($st['stage_b'] !== null ? ', Days 4 to 7 scored ' . $st['stage_b'] : '') . ' (pass mark ' . FW_PASS . ' each)' . ($st['breach'] ? '; a compliance breach is recorded' : '') . '.', 'not_passed');
+      if (!$st['verified_all']) fail(409, 'Verify each task\'s evidence first. HQ activates only when all of it is verified.', 'not_verified');
+    } elseif (!$sc['passed']) fail(409, 'She has not passed the activation: score ' . $sc['score'] . ' of 100, the pass mark is ' . ACT_PASS . '. Return it to her with a note, or record another outcome.', 'not_passed');
     $res['title'] = activation_approve($a, (int) $me['id']);
   } elseif ($act === 'extension') {
     if ($a['extension_status'] !== 'requested') fail(409, 'There is no extension request to decide.', 'transition');

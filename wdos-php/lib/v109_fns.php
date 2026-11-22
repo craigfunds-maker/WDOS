@@ -19,7 +19,7 @@ const HQ_FEATURES = [
 /** Which API paths belong to which feature. Paths a person uses for herself (her profile, her notifications) are never gated. */
 const HQ_FEATURE_PATHS = [
   'members' => '#^/(hq/members|hq/leader-logins|hq/leaders/add|hq/signin-drive|hq/volunteers|hq/age-transition|leader/(dashboard|members))#',
-  'structure' => '#^/(hq/seats|hq/terms|structure|leadership)#',
+  'structure' => '#^/(hq/seats|hq/terms|structure|leadership|leadmap)#',
   'chapters' => '#^/(chapters|zones|clusters|hq/journeys|hq/placement)#',
   'referrals' => '#^/(referrals|hq/activations|hq/envoy)#',
   'reports' => '#^/(reporting|reports)#',
@@ -277,7 +277,7 @@ function envoy_people(int $envoyId): array {
     $started = $p['act_id'] ? (int) val('SELECT COUNT(*) FROM activation_progress WHERE activation_id=?', [(int) $p['act_id']]) : 0;
     $out[] = ['id' => (int) $p['id'], 'first_name' => $p['first_name'], 'last_name' => $p['last_name'], 'has_photo' => (int) $p['has_photo'], 'network' => $p['network'], 'country' => country_name($p['country_code']), 'state_region' => $p['state_region'],
       'role' => $p['position_code'] ? position_title((string) $p['position_code'], (string) $p['network']) : '', 'referred_at' => $p['referred_at'], 'last_seen_at' => $p['last_seen_at'],
-      'activation' => $p['act_id'] ? ['status' => $p['act_status'], 'deadline' => $p['deadline'], 'days_done' => $days, 'days_opened' => $started, 'days_total' => 3, 'assessment_submitted' => $p['submitted_at'] !== null, 'decided' => $p['outcome'] !== '',
+      'activation' => $p['act_id'] ? ['status' => $p['act_status'], 'deadline' => $p['deadline'], 'days_done' => $days, 'days_opened' => $started, 'days_total' => $p['act_route'] === 'open7' ? 7 : 3, 'assessment_submitted' => $p['submitted_at'] !== null, 'decided' => $p['outcome'] !== '',
         // v109.34: the same score HQ sees, and whether HQ has approved her yet
         'score' => activation_score(['id' => (int) $p['act_id'], 'route' => $p['act_route'], 'deadline' => $p['deadline']])] : null,
       'approved_as' => ($seat = current_seat((int) $p['id'])) ? seat_title($seat) : ''];

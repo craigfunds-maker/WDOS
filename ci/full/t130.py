@@ -28,6 +28,11 @@ ng=sql("select id from org_units where level='country' and country_code='NG'"); 
 def reg(name, posc, n):
   s=S(); r=s.post(B+'/auth/register',json={'network':'WGMN','first_name':name,'last_name':'Cand','dob':'1984-03-03','phone':f'+234803{X}{n}','country_id':int(ng),'state_id':int(st),'lga':'Test LGA','community':'Test','email':f'{name.lower()}.{X}@example.org','password':'member-pass-1','consent':True,'referral':{'code':code,'position':posc}})
   return s, r
+# v109.46: new activations follow the Leadership Activation Framework (tested in t137). This suite keeps testing the earlier
+# day-by-day journey, which still runs for candidates who started before the change.
+_reg_fw=reg
+def reg(*a, **k):
+  s, r = _reg_fw(*a, **k); sql("update activations set scheme='v1' where scheme='fw'"); return s, r
 import os, datetime
 def cron(now): return subprocess.run(['bash','-c','. /tmp/env.sh; php /home/claude/wdos-php/lib/cron_cli.php'],env=dict(os.environ, ADMIN_KEY='x', WDOS_TEST_NOW=now, BREVO_API_KEY='ci-not-real', MAIL_FROM='wdos-ci@wdos-mail.org', BREVO_API_URL='http://127.0.0.1:9/v3/smtp/email'),capture_output=True,text=True)
 lag=datetime.datetime.now(datetime.UTC).replace(tzinfo=None)+datetime.timedelta(hours=1); NOW=lag.strftime('%Y-%m-%d')+' 10:30'

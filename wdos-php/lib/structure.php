@@ -2,7 +2,6 @@
 declare(strict_types=1);
 /* Leadership structure (every seat in scope, filled or vacant), appointment acceptance and guided onboarding. */
 
-const STRUCTURE_COUNTRIES = 'AE AO AT AU BE BF BI BJ BR BW CA CD CF CG CH CI CM CN CV DE DJ DZ EG ER ES ET FR GA GB GH GM GN GQ GW IE IN IT JM KE KM LR LS LY MA MG ML MR MU MW MY MZ NA NE NG NL NO NZ PT QA RW SA SC SD SE SL SN SO SS ST SZ TD TG TN TR TT TZ UG US ZA ZM ZW';
 route('GET', '/structure', function () {
   $u = require_user(); $seat = work_seat($u);
   if (!is_hq($u) && !$seat) fail(403, 'The leadership structure opens for volunteer leaders and WODDI HQ.', 'forbidden');
