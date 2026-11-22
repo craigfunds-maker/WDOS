@@ -37,7 +37,7 @@ const LM_TITLES = [
   'assistant_chapter_lead' => ['Assistant Chapter Coordinator', 'Assistant Chapter Coordinator', 'Assistant Chapter Lead', 'Assistant Chapter Lead'],
 ];
 /* Leaderboard score. Shown to everyone who sees the board, so the ranking can be checked by hand. */
-const LM_SCORE = ['leaders_brought' => 10, 'members_brought' => 2, 'meetings_attended' => 3, 'punctual' => 2, 'meetings_held' => 5, 'reports_on_time' => 5, 'reports_late' => 2,
+const LM_SCORE = ['active_days' => 1, 'leaders_brought' => 10, 'members_brought' => 2, 'meetings_attended' => 3, 'punctual' => 2, 'meetings_held' => 5, 'reports_on_time' => 5, 'reports_late' => 2,
   'tasks_on_time' => 3, 'tasks_late' => 1, 'programmes' => 4, 'reports_overdue' => -3, 'tasks_overdue' => -1];
 const LM_PUNCTUAL_MIN = 10;          // joined within ten minutes of the start counts as on time
 
@@ -197,7 +197,7 @@ function lm_kpis(array $ids, int $days): array {
   $from = gmdate('Y-m-d H:i:s', time() - $days * 86400); $fromD = gmdate('Y-m-d', time() - $days * 86400); $today = work_today(); $nowS = now();
   $z = ['leaders_brought' => 0, 'leaders_total' => 0, 'candidates' => 0, 'members_brought' => 0, 'meetings_invited' => 0, 'meetings_attended' => 0, 'meetings_missed' => 0, 'joined_timed' => 0, 'punctual' => 0,
     'meetings_held' => 0, 'reports_due' => 0, 'reports_on_time' => 0, 'reports_late' => 0, 'reports_overdue' => 0, 'tasks' => 0, 'tasks_on_time' => 0, 'tasks_late' => 0, 'tasks_overdue' => 0, 'tasks_open' => 0,
-    'programmes' => 0, 'people_reached' => 0, 'actions' => 0];
+    'programmes' => 0, 'people_reached' => 0, 'actions' => 0, 'active_days' => 0];
   foreach ($ids as $id) $out[(int) $id] = $z;
   $put = function (array $rs, array $map) use (&$out) { foreach ($rs as $r) { $id = (int) $r['id']; if (!isset($out[$id])) continue; foreach ($map as $k) $out[$id][$k] = (int) ($r[$k] ?? 0); } };
   // people she brought: leaders are referred people who now hold (or held) a seat; members are people who joined through her link without a seat in view
@@ -225,6 +225,8 @@ function lm_kpis(array $ids, int $days): array {
       SUM(status IN " . TASK_OPEN . " AND due_on IS NOT NULL AND due_on<?) tasks_overdue, SUM(status IN " . TASK_OPEN . ") tasks_open
     FROM tasks WHERE assignee_id IN ($in) AND (created_at>=? OR due_on>=?) AND status<>'cancelled' GROUP BY assignee_id", [$today, $from, $fromD]), ['tasks', 'tasks_on_time', 'tasks_late', 'tasks_overdue', 'tasks_open']);
   $put(rows("SELECT actor_id id, COUNT(*) actions FROM activity_log WHERE actor_id IN ($in) AND created_at>=? GROUP BY actor_id", [$from]), ['actions']);
+  // v109.47: the days she used WDOS in the period (one row a day, written when she is on WDOS), for "most active"
+  try { $put(rows("SELECT user_id id, COUNT(*) active_days FROM user_days WHERE user_id IN ($in) AND day>=? GROUP BY user_id", [$fromD]), ['active_days']); } catch (PDOException $e) { /* migration 050 */ }
   foreach ($out as &$k) {
     $k['punctuality'] = $k['joined_timed'] ? (int) round(100 * $k['punctual'] / $k['joined_timed']) : null;
     $k['attendance'] = $k['meetings_invited'] ? (int) round(100 * min($k['meetings_attended'], $k['meetings_invited']) / $k['meetings_invited']) : null;

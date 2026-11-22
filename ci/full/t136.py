@@ -148,7 +148,7 @@ row=lambda i: [x for x in b['rows'] if x['id']==i][0]
 k=row(wd_id)['kpis']; chk('the ward leader: attended, on time, task done on time, one programme with 40 reached', k['meetings_attended']==1 and k['punctuality']==100 and k['tasks_on_time']==1 and k['programmes']==1 and k['people_reached']==40, k)
 k=row(cand_id)['kpis']; chk('the new Eket leader: attended but late, one task overdue', k['meetings_attended']==1 and k['punctuality']==0 and k['tasks_overdue']==1, k)
 k=row(sc_id)['kpis']; chk('the State Coordinator: one leader brought in, one meeting held', k['leaders_brought']==1 and k['leaders_total']==1 and k['meetings_held']==1, k)
-chk('the score is the published formula', row(wd_id)['kpis']['score']==3+2+3+4, row(wd_id)['kpis']['score'])
+chk('the score is the published formula (with one point a day on WDOS)', row(wd_id)['kpis']['score']==3+2+3+4+row(wd_id)['kpis']['active_days'], row(wd_id)['kpis'])
 chk('ranked by score, highest first', [x['kpis']['score'] for x in b['rows']]==sorted([x['kpis']['score'] for x in b['rows']],reverse=True) and b['rows'][0]['rank']==1)
 chk('sorting by leaders brought puts the State Coordinator first', hq.get(B+'/leadmap/leaderboard',params={'cc':'NG','sort':'leaders_brought'}).json()['rows'][0]['id']==sc_id)
 lb=sc.get(B+'/leadmap/leaderboard').json(); chk('a leader sees the board for her own area: herself and those under her', {x['id'] for x in lb['rows']}=={sc_id,wd_id,cand_id,ib_id}, [x['first_name'] for x in lb['rows']])

@@ -27,14 +27,16 @@ const tr = (s) => (globalThis.tr ? globalThis.tr(s) : s);
 
 /** A button that opens the file chooser and uploads. purpose 'report' accepts PDF and Word only. onDone(file) runs after the upload. */
 export function uploadButton(label, purpose, onDone, opts = {}) {
-  const accept = purpose === 'report' ? '.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document' : '.pdf,.doc,.docx,.xlsx,.pptx,.csv,.jpg,.jpeg,.png';
+  const accept = purpose === 'report' ? '.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    : purpose === 'room' ? '.pdf,.doc,.docx,.xlsx,.pptx,.csv,.jpg,.jpeg,.png,.mp4,.webm,.mp3,.m4a,.ogg,.wav,image/*,video/mp4,video/webm,audio/*' : '.pdf,.doc,.docx,.xlsx,.pptx,.csv,.jpg,.jpeg,.png';
+  const maxMb = purpose === 'room' ? 15 : 10;
   const pick = h('input', { type: 'file', accept, hidden: true, multiple: !!opts.multiple });
   const state = h('small', { class: 'faint', 'aria-live': 'polite' });
   const btn = h('button', { class: opts.cls || 'btn btn--quiet', type: 'button', onclick: () => pick.click() }, icon('plus', 18), label);
   pick.addEventListener('change', async () => {
     const files = [...pick.files]; pick.value = ''; if (!files.length) return;
     for (const f of files) {
-      if (f.size > 10 * 1048576) { toast(tr('That file is too large'), tr('The limit is 10 MB. Save the report as a PDF, or make the pictures in it smaller.'), 'bad'); continue; }
+      if (f.size > maxMb * 1048576) { toast(tr('That file is too large'), maxMb === 15 ? tr('The limit is 15 MB. Share a longer video as a link.') : tr('The limit is 10 MB. Save the report as a PDF, or make the pictures in it smaller.'), 'bad'); continue; }
       btn.disabled = true; state.textContent = tf('Uploading {1}…', f.name);
       try { const r = await api('/files', { name: f.name, data: await packFile(f, (p) => { state.textContent = tf('Uploading {1}… {2}%', f.name, p); }), purpose }); await onDone(r.file); state.textContent = ''; }
       catch (e) { state.textContent = ''; toast(tr('Not uploaded'), e.message, 'bad'); }
@@ -42,7 +44,7 @@ export function uploadButton(label, purpose, onDone, opts = {}) {
     }
   });
   return h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, btn, pick, state,
-    h('small', { class: 'faint', text: purpose === 'report' ? tr('PDF or Word (.docx), up to 10 MB.') : tr('PDF, Word, Excel, PowerPoint, CSV or a picture, up to 10 MB.') }));
+    h('small', { class: 'faint', text: purpose === 'report' ? tr('PDF or Word (.docx), up to 10 MB.') : purpose === 'room' ? tr('Documents and pictures up to 10 MB; voice notes and MP4 videos up to 15 MB.') : tr('PDF, Word, Excel, PowerPoint, CSV or a picture, up to 10 MB.') }));
 }
 
 /** The list of documents. Each opens in a new tab (PDF and pictures) or downloads (Word, Excel). */

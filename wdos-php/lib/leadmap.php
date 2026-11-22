@@ -93,11 +93,11 @@ route('GET', '/leadmap/leaderboard', function () {
   $rows = array_map(fn($s) => ['id' => $s['user_id'], 'first_name' => $s['person']['first_name'], 'last_name' => $s['person']['last_name'], 'has_photo' => $s['person']['has_photo'], 'last_seen_at' => $s['person']['last_seen_at'],
     'title' => lm_title($s['position_code'], $s['network'], $s['place']['cc']), 'network' => $s['network'], 'level' => $s['level'], 'cc' => $s['place']['cc'], 'place' => lm_place_name(lm_cut($s['place'], $s['depth'])),
     'from' => $s['person']['from'], 'came_by' => $jr[$s['user_id']]['referral']['category_label'] ?? '', 'route' => $jr[$s['user_id']]['activation']['route_label'] ?? '', 'kpis' => $k[$s['user_id']]], $list);
-  $sort = (string) ($_GET['sort'] ?? 'score'); $keys = ['score', 'leaders_brought', 'members_brought', 'meetings_attended', 'punctuality', 'meetings_held', 'reports_on_time', 'tasks_on_time', 'programmes'];
+  $sort = (string) ($_GET['sort'] ?? 'score'); $keys = ['score', 'active_days', 'leaders_brought', 'members_brought', 'meetings_attended', 'punctuality', 'meetings_held', 'reports_on_time', 'tasks_on_time', 'programmes'];
   if (!in_array($sort, $keys, true)) $sort = 'score';
   usort($rows, fn($a, $b) => [($b['kpis'][$sort] ?? -1), $b['kpis']['score'], $a['last_name']] <=> [($a['kpis'][$sort] ?? -1), $a['kpis']['score'], $b['last_name']]);
   foreach ($rows as $i => &$r) $r['rank'] = $i + 1; unset($r);
-  $sum = []; foreach (['leaders_brought', 'members_brought', 'meetings_attended', 'meetings_held', 'reports_on_time', 'reports_overdue', 'tasks_on_time', 'tasks_overdue', 'programmes', 'people_reached', 'joined_timed', 'punctual'] as $f) $sum[$f] = array_sum(array_map(fn($r) => $r['kpis'][$f], $rows));
+  $sum = []; foreach (['active_days', 'leaders_brought', 'members_brought', 'meetings_attended', 'meetings_held', 'reports_on_time', 'reports_overdue', 'tasks_on_time', 'tasks_overdue', 'programmes', 'people_reached', 'joined_timed', 'punctual'] as $f) $sum[$f] = array_sum(array_map(fn($r) => $r['kpis'][$f], $rows));
   $sum['punctuality'] = $sum['joined_timed'] ? (int) round(100 * $sum['punctual'] / $sum['joined_timed']) : null; $sum['leaders'] = count($rows);
   return ['rows' => array_slice($rows, 0, 500), 'total' => count($rows), 'sum' => $sum, 'days' => $days, 'sort' => $sort, 'place' => $n, 'name' => lm_place_name($n), 'networks' => $v['nets'], 'score_rules' => LM_SCORE, 'punctual_min' => LM_PUNCTUAL_MIN];
 });

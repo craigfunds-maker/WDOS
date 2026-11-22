@@ -1,16 +1,16 @@
 /* v109.46: the volunteer leader leaderboard. Every figure comes from WDOS records over the chosen period: leaders and members she brought in,
  * meetings attended and on time, meetings and programmes held, reports and tasks on time, and what is overdue. The score is a published
  * formula shown on the page, so anyone can check a rank by hand. HQ sees every leader; a leader sees herself and those under her. */
-import { h, t, tf, icon, avatar, flag, netTag, card, sk, empty, fmt, tabs } from '../ui.js';
+import { h, t, tf, icon, avatar, avatarOn, flag, netTag, card, sk, empty, fmt, tabs } from '../ui.js';
 import { api } from '../api.js';
 import { app, go } from '../app.js';
 import { kpi } from './hq.js';
 import { query, mapUrl, seen } from './leadmap.js';
 
-const COLS = [['score', 'Score'], ['leaders_brought', 'Leaders brought'], ['members_brought', 'Members brought'], ['meetings_attended', 'Meetings attended'], ['punctuality', 'On time'],
+const COLS = [['score', 'Score'], ['active_days', 'Active days'], ['leaders_brought', 'Leaders brought'], ['members_brought', 'Members brought'], ['meetings_attended', 'Meetings attended'], ['punctuality', 'On time'],
   ['meetings_held', 'Meetings held'], ['reports_on_time', 'Reports on time'], ['tasks_on_time', 'Tasks on time'], ['programmes', 'Programmes']];
 const LEVELS = [['', 'Every level'], ['country', 'Country'], ['state_region', 'State or region'], ['lga', 'LGA or district'], ['community_cluster', 'Ward or community cluster'], ['chapter', 'Chapter']];
-const RULE = { leaders_brought: 'each leader she brought in', members_brought: 'each member she brought in', meetings_attended: 'each meeting attended', punctual: 'each meeting joined on time',
+const RULE = { active_days: 'each day she used WDOS', leaders_brought: 'each leader she brought in', members_brought: 'each member she brought in', meetings_attended: 'each meeting attended', punctual: 'each meeting joined on time',
   meetings_held: 'each meeting she held', reports_on_time: 'each report on time', reports_late: 'each report in late', tasks_on_time: 'each task done on time', tasks_late: 'each task done late',
   programmes: 'each programme or outreach recorded', reports_overdue: 'each report overdue', tasks_overdue: 'each task overdue' };
 
@@ -36,13 +36,13 @@ export async function render(root) {
     kpi('tasks', 'Tasks done on time', s.tasks_on_time, [h('span', { text: tf('{1} overdue · {2} programmes, {3} people reached', s.tasks_overdue, s.programmes, fmt(s.people_reached)) })]));
   if (!d.rows.length) box.replaceChildren(empty('award', 'No leader in this area yet', 'Leaders appear here once WODDI HQ records their seats.'));
   else box.replaceChildren(h('div', { class: 'tablewrap', style: 'min-width:0;max-width:100%;overflow-x:auto' }, h('table', { class: 'table lm-board' },
-    h('thead', {}, h('tr', {}, h('th', { class: 'num', text: '#' }), h('th', { text: 'Leader' }), COLS.map(([k, l]) => h('th', { class: 'num' + (k === d.sort ? ' is-sorted' : ''), text: l })), h('th', { class: 'num', text: 'Overdue' }))),
+    h('thead', {}, h('tr', {}, h('th', { class: 'num', text: '#' }), h('th', { text: 'Leader' }), COLS.map(([k, l]) => h('th', { class: 'num is-sortable' + (k === d.sort ? ' is-sorted' : ''), scope: 'col', tabindex: '0', title: t('Rank by this'), onclick: () => set('sort', k), onkeydown: (e) => { if (e.key === 'Enter') set('sort', k); } }, l, k === d.sort ? ' ▼' : '')), h('th', { class: 'num', text: 'Overdue' }))),
     h('tbody', {}, d.rows.map((r) => { const k = r.kpis;
       return h('tr', { style: 'cursor:pointer', onclick: () => go('#/leader-file/' + r.id) },
         h('td', { class: 'num' }, r.rank <= 3 ? h('span', { class: 'lm-medal lm-medal--' + r.rank, text: String(r.rank) }) : String(r.rank)),
-        h('td', {}, h('div', { class: 'who' }, avatar(r, 36), h('div', {}, h('b', { text: `${r.first_name} ${r.last_name}` }), h('small', { text: `${r.title} · ${r.place}` }),
+        h('td', {}, h('a', { class: 'who lm-name', href: '#/leader-file/' + r.id, onclick: (e) => e.stopPropagation() }, avatarOn(r, 36), h('div', {}, h('b', { text: `${r.first_name} ${r.last_name}` }), h('small', { text: `${r.title} · ${r.place}` }),
           h('small', { class: 'faint', text: [r.came_by, r.route, seen(r.last_seen_at)].filter(Boolean).join(' · ') })), flag(r.cc), netTag(r.network))),
-        h('td', { class: 'num' }, h('b', { text: String(k.score) })), h('td', { class: 'num', text: String(k.leaders_brought) }), h('td', { class: 'num', text: String(k.members_brought) }),
+        h('td', { class: 'num' }, h('b', { text: String(k.score) })), h('td', { class: 'num', text: String(k.active_days || 0) }), h('td', { class: 'num', text: String(k.leaders_brought) }), h('td', { class: 'num', text: String(k.members_brought) }),
         h('td', { class: 'num', text: `${k.meetings_attended}` }), h('td', { class: 'num', text: k.punctuality === null ? '–' : k.punctuality + '%' }), h('td', { class: 'num', text: String(k.meetings_held) }),
         h('td', { class: 'num', text: `${k.reports_on_time}/${k.reports_due}` }), h('td', { class: 'num', text: `${k.tasks_on_time}/${k.tasks}` }), h('td', { class: 'num', text: String(k.programmes) }),
         h('td', { class: 'num' }, k.reports_overdue + k.tasks_overdue ? h('span', { class: 'tag tag--bad', text: String(k.reports_overdue + k.tasks_overdue) }) : '0'));

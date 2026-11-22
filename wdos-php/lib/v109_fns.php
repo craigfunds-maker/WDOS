@@ -105,8 +105,9 @@ function upload_bytes(array $u, string $data, int $max = 16000000): string {
   if ($bin === false) fail(422, 'That file could not be read. Choose it again.', 'file');
   return $bin;
 }
-function doc_store(array $u, string $name, string $bin, bool $reportOnly, bool $media = false): array {
+function doc_store(array $u, string $name, string $bin, bool $reportOnly, bool $media = false, bool $either = false): array {
   if ($bin === '') fail(422, 'Choose a file first.', 'file');
+  if ($either) $media = isset(DOC_TYPES_MEDIA[doc_sniff($bin, $name)]);      // v109.47: a region chat takes documents, pictures, voice notes and videos
   if ($media) {
     if (strlen($bin) > REC_MAX) fail(422, 'That recording is too large. The limit is 15 MB. Record a shorter voice note, or send the minutes as a document.', 'size');
     $mime = doc_sniff($bin, $name); $types = DOC_TYPES_MEDIA;
@@ -139,6 +140,7 @@ function doc_can(array $u, int $fileId): bool {
     if ($l['owner_type'] === 'report' && ($r = row('SELECT * FROM report_instances WHERE id=?', [(int) $l['owner_id']]))) { $rt = rp_rights($u, $r); if ($rt['view'] || $rt['review']) return true; }
     if ($l['owner_type'] === 'meeting' && ($mm = row('SELECT * FROM meeting_requests WHERE id=?', [(int) $l['owner_id']])) && (mr_role($u, $mm) !== '' || in_array((int) $u['id'], mr_attended($mm), true))) return true;
     if ($l['owner_type'] === 'task' && ($t = row(TASK_SELECT . ' WHERE t.id=?', [(int) $l['owner_id']]))) { if ((int) $t['assignee_id'] === (int) $u['id'] || task_can_manage($u, $t)) return true; }
+    if ($l['owner_type'] === 'room' && function_exists('rm_file_ok') && rm_file_ok($u, (int) $l['owner_id'])) return true;      // v109.47: shared in a region chat or forum
   }
   return false;
 }

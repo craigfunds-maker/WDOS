@@ -115,6 +115,7 @@ function session_start_for(int $userId, string $method = 'password'): void {
     [hash('sha256', $tok), $userId, $method, mb_substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 250), now(), gmdate('Y-m-d H:i:s', time() + SESSION_DAYS * 86400)]);
   setcookie(SESSION_COOKIE, $tok, ['expires' => time() + SESSION_DAYS * 86400, 'path' => '/', 'secure' => is_https(), 'httponly' => true, 'samesite' => 'Lax']);
   q('UPDATE users SET last_seen_at=? WHERE id=?', [now(), $userId]);
+  try { q('INSERT IGNORE INTO user_days (user_id,day) VALUES (?,?)', [$userId, gmdate('Y-m-d')]); } catch (PDOException $e) { /* migration 050 */ }
 }
 function session_end(): void {
   $tok = $_COOKIE[SESSION_COOKIE] ?? '';
@@ -131,8 +132,10 @@ function current_user(): ?array {
   if (!$s) return null;
   $u = row('SELECT * FROM users WHERE id=?', [(int) $s['user_id']]);
   if ($u && in_array($u['status'], ['suspended', 'withdrawn'], true)) { $u = null; return null; }
-  if ($u && (!$u['last_seen_at'] || strtotime($u['last_seen_at'] . ' UTC') < time() - 600)) {
+  // v109.47: refreshed every two minutes, so a green "online" dot (seen in the last five minutes) is true; one row a day for "most active"
+  if ($u && (!$u['last_seen_at'] || strtotime($u['last_seen_at'] . ' UTC') < time() - 120)) {
     q('UPDATE users SET last_seen_at=? WHERE id=?', [now(), (int) $u['id']]);
+    try { q('INSERT IGNORE INTO user_days (user_id,day) VALUES (?,?)', [(int) $u['id'], gmdate('Y-m-d')]); } catch (PDOException $e) { /* migration 050 */ }
   }
   return $u;
 }

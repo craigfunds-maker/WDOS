@@ -2,7 +2,7 @@
  * every leadership seat there, filled or vacant, the leaders above, and the places below with their own seats.
  * HQ sees everything. A leader sees her own area and the leadership above her. A State Envoy sees her state in both networks and shares a
  * link for each vacant seat. The server decides all of this; this page only draws what it is given. */
-import { h, t, tf, icon, avatar, flag, netTag, card, sk, empty, agoIn, fmt, fmtDate, toast, tabs } from '../ui.js';
+import { h, t, tf, icon, avatar, avatarOn, flag, netTag, card, sk, empty, agoIn, fmt, fmtDate, toast, tabs } from '../ui.js';
 import { api } from '../api.js';
 import { app, go } from '../app.js';
 import { kpi } from './hq.js';
@@ -12,6 +12,7 @@ const STATUS = { acting: ['Acting', 'tag--wgmn'], pending: ['Pending', ''], on_l
 export const query = () => new URLSearchParams((location.hash.split('?')[1] || ''));
 export const mapUrl = (place, extra = {}) => { const q = new URLSearchParams(); KEYS.forEach((k) => { if (place && place[k]) q.set(k, place[k]); }); Object.entries(extra).forEach(([k, v]) => { if (v) q.set(k, v); }); const s = q.toString(); return '#/leadmap' + (s ? '?' + s : ''); };
 const pct = (v) => v === null || v === undefined ? '–' : v + '%';
+const roomChatUrl = (net, place) => { const p = new URLSearchParams({ network: net }); ['cc', 'state', 'lga', 'comm'].forEach((k) => place[k] && p.set(k, place[k])); return '#/rooms/r?' + p.toString(); };
 export const seen = (x) => x ? tf('Seen {1}', agoIn(x)) : t('Not signed in yet');
 
 /** How she came: "Referred by Ada (a WODDI Envoy) · 3-Day Referral Activation, completed". */
@@ -43,14 +44,14 @@ function seatCard(s, d, onLink) {
   }
   const p = s.person; const st = STATUS[s.status];
   return h('div', { class: 'lm-seat' },
-    h('div', { class: 'lm-seat__top' }, avatar(p, 52), h('div', { class: 'grow' }, h('b', { text: `${p.first_name} ${p.last_name}` }), h('div', { class: 'faint', text: s.title }),
+    h('div', { class: 'lm-seat__top' }, avatarOn(p, 52), h('div', { class: 'grow' }, h('b', { text: `${p.first_name} ${p.last_name}` }), h('div', { class: 'faint', text: s.title }),
       h('div', { class: 'tagrow', style: 'justify-content:flex-start;margin-top:4px' }, net, st ? h('span', { class: 'tag ' + st[1], text: st[0] }) : null, s.he_for_she ? h('span', { class: 'tag tag--wnnn', text: 'He-for-She Champion' }) : null,
         s.acceptance === 'pending' ? h('span', { class: 'tag', text: 'Agreement not accepted' }) : null))),
     h('dl', { class: 'lm-facts' },
       h('dt', { text: 'Comes from' }), h('dd', { text: p.from || '–' }),
       h('dt', { text: 'How she came' }), h('dd', { text: cameBy(s.journey) }),
       h('dt', { text: 'Serving since' }), h('dd', { text: s.since ? fmtDate(s.since) : '–' }),
-      h('dt', { text: 'Last on WDOS' }), h('dd', { text: seen(p.last_seen_at) })),
+      h('dt', { text: 'Last on WDOS' }), h('dd', { text: seen(p.last_seen_at) + (p.last_seen_at && Date.now() - new Date(p.last_seen_at.replace(' ', 'T') + 'Z') < 300000 ? ' · ' + t('online now') : '') })),
     miniKpis(s.kpis),
     d.kpis_on ? h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' },
       h('a', { class: 'btn btn--quiet btn--s', href: '#/leader-file/' + p.id }, icon('eye', 16), h('span', { text: 'Open her activity file' })),
@@ -106,6 +107,8 @@ export async function render(root) {
   head.replaceChildren(h('div', { class: 'card__body', style: 'display:grid;gap:14px' },
     h('div', { style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap' }, d.place.cc ? flag(d.place.cc) : icon('globe', 26), h('div', { class: 'grow' }, h('h2', { class: 'display', style: 'margin:0;font-size:26px', text: d.depth ? d.name : t('WODDI around the world') }),
       h('small', { class: 'faint', text: d.depth ? t(d.level_label) + (d.view === 'up' ? ' · ' + t('the leadership above you') : '') : tf('{1} countries', d.children.length) })), crumbs),
+    d.depth >= 1 && d.depth <= 4 && (d.role !== 'envoy' || d.depth <= 2) ? h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, (d.network ? [d.network] : d.networks).map((n) =>
+      h('a', { class: 'btn btn--quiet btn--s', href: roomChatUrl(n, d.place) }, icon('send', 16), h('span', { text: tf('{1} region chat and forum', n) })))) : null,
     pick, d.role === 'envoy' ? h('p', { class: 'notice', style: 'margin:0', text: 'As State Envoy you support both state teams. You see who fills each seat and share links for the vacant ones. You are not their supervisor, so their activity figures are not shown here.' }) : null));
 
   /* ---- the figures for this place ---- */
@@ -141,6 +144,7 @@ export async function render(root) {
   if (d.child_label && d.children.length) {
     const search = h('input', { class: 'input', type: 'search', placeholder: tf('Find a {1}', t(d.child_label).toLowerCase()), 'aria-label': tf('Find a {1}', t(d.child_label)) });
     const only = h('select', { class: 'input', style: 'width:auto', 'aria-label': t('Show') }, [['', 'Every place'], ['vacant', 'With a vacant seat'], ['none', 'With no principal leader'], ['filled', 'Fully filled']].map(([v, l]) => h('option', { value: v, text: l })));
+    if (['vacant', 'none', 'filled'].includes(q.get('show'))) only.value = q.get('show');      // v109.47: opened from a dashboard tile
     const nets = d.network ? [d.network] : d.networks;
     const tbl = h('div', { class: 'tablewrap' });
     const paint = () => {

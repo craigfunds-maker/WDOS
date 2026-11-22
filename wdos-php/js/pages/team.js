@@ -2,7 +2,7 @@
  * tasks, and one touch to message her, ring her in WDOS or on her phone, give her a task or invite her to a meeting.
  * Choose several leaders on the list to start a group voice call or a meeting with them.
  * The server decides who is "under her seat" (the same rule as tasks and messages); this page only shows what it is given. */
-import { h, t, tf, icon, avatar, netTag, card, sk, empty, agoIn, fmt, fmtDate, toast, input, field } from '../ui.js';
+import { h, t, tf, icon, avatar, avatarOn, netTag, card, sk, empty, agoIn, fmt, fmtDate, toast, input, field } from '../ui.js';
 import { api } from '../api.js';
 import { app, go } from '../app.js';
 import { kpi } from './hq.js';
@@ -55,7 +55,7 @@ async function list(root) {
       const tick = h('input', { type: 'checkbox', checked: picked.has(p.id), 'aria-label': tf('Choose {1}', `${p.first_name} ${p.last_name}`), style: 'width:22px;height:22px;flex:none',
         onchange: (e) => { if (e.target.checked) picked.set(p.id, { id: p.id, name: `${p.first_name} ${p.last_name}`, first_name: p.first_name, last_name: p.last_name }); else picked.delete(p.id); paintBar(); } });
       return h('div', { class: 'list__link', style: 'display:flex;align-items:center;gap:10px;flex-wrap:nowrap' }, tick,
-        h('a', { href: '#/team/' + p.id, style: 'display:flex;align-items:center;gap:10px;flex:1;min-width:0;color:inherit;text-decoration:none' }, avatar(p, 40),
+        h('a', { href: '#/team/' + p.id, style: 'display:flex;align-items:center;gap:10px;flex:1;min-width:0;color:inherit;text-decoration:none' }, avatarOn(p, 40),
           h('div', { class: 'grow', style: 'min-width:0' }, h('b', { text: `${p.first_name} ${p.last_name}` }), h('small', { text: `${p.title}, ${p.area}` }),
             h('small', { style: 'display:block', class: p.last_seen_at ? 'muted' : 'bad', text: seen(p.last_seen_at) })), icon('chevright', 16)));
     })) : empty('users', q ? 'No leader by that name' : 'No leaders under your seat yet', 'WODDI HQ appoints leaders. As seats below yours are filled, they appear here.'));
@@ -80,7 +80,7 @@ async function profile(root, id) {
     d.can.meet ? act('calendar', 'Invite to a meeting', async () => { let r; try { r = await api('/meetings'); } catch (e) { toast(e.message, '', 'error'); return; } slot.replaceChildren(meetingForm(r, () => slot.replaceChildren(), { invitees: [{ id: p.id, name }] })); slot.scrollIntoView({ behavior: 'smooth', block: 'start' }); }) : null,
     d.can.dashboard ? act('eye', 'Open her dashboard', null, { href: '#/leaders/' + p.id }) : null);
   const hero = h('section', { class: 'card' }, h('div', { class: 'card__body', style: 'display:grid;gap:16px' },
-    h('div', { style: 'display:flex;gap:14px;align-items:center;flex-wrap:wrap' }, avatar(p, 64),
+    h('div', { style: 'display:flex;gap:14px;align-items:center;flex-wrap:wrap' }, avatarOn(p, 64),
       h('div', { class: 'grow', style: 'min-width:0;display:grid;gap:4px' }, h('h2', { class: 'display', style: 'margin:0;font-size:24px', text: name }), h('span', { class: 'muted', text: p.title }),
         h('div', { class: 'tagrow', style: 'justify-content:flex-start' }, netTag(p.network), h('span', { class: 'tag' + (p.last_seen_at ? '' : ' tag--bad'), text: seen(p.last_seen_at) }),
           !p.accepted ? h('span', { class: 'tag tag--bad', text: t('Has not accepted the Leadership Agreement yet') }) : null,

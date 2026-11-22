@@ -20,7 +20,8 @@ require __DIR__ . '/../lib/followup_fns.php';
 require __DIR__ . '/../lib/workcheck_fns.php';
 require __DIR__ . '/../lib/courses_fns.php';
 require __DIR__ . '/../lib/leadmap_fns.php';
-require __DIR__ . '/../lib/activation_fw.php';   // v109.46: the 3-Day and 7-Day Leadership Activation Framework   // v109.46: the leadership map (seats by place, KPIs, vacancy alerts)
+require __DIR__ . '/../lib/activation_fw.php';
+require __DIR__ . '/../lib/rooms_fns.php';     // v109.47: region group chats and forums (shared functions; routes in rooms.php)   // v109.46: the 3-Day and 7-Day Leadership Activation Framework   // v109.46: the leadership map (seats by place, KPIs, vacancy alerts)
 require __DIR__ . '/../lib/drive_fns.php';     // v109.37: sign-in drive, missing-detail asks, weekly country report   // before any route: the 5-minute timer (in inspire.php) fetches the course photographs
 
 set_exception_handler(function (Throwable $e) {
@@ -433,7 +434,8 @@ require __DIR__ . '/../lib/dashboards.php';
 require __DIR__ . '/../lib/reporting.php';
 require __DIR__ . '/../lib/work.php';
 require __DIR__ . '/../lib/structure.php';
-require __DIR__ . '/../lib/leadmap.php';      // v109.46: the leadership map, seat links, leader files and the leaderboard
+require __DIR__ . '/../lib/leadmap.php';
+require __DIR__ . '/../lib/rooms.php';        // v109.47: region group chats and forums      // v109.46: the leadership map, seat links, leader files and the leaderboard
 require __DIR__ . '/../lib/journey.php';
 require __DIR__ . '/../lib/comms.php';
 require __DIR__ . '/../lib/amend.php';

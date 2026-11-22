@@ -22,7 +22,7 @@ route('POST', '/files', function () {
   $u = require_user(); $b = body(); $data = (string) ($b['data'] ?? '');
   if (!str_starts_with($data, 'upload:')) { throttle('upload:' . (int) $u['id'], 80, 3600); throttle_hit('upload:' . (int) $u['id']); }
   $bin = upload_bytes($u, $data);
-  return ['ok' => true, 'file' => doc_store($u, mb_substr(basename((string) ($b['name'] ?? 'document')), 0, 190), $bin, ($b['purpose'] ?? '') === 'report', ($b['purpose'] ?? '') === 'recording')];
+  return ['ok' => true, 'file' => doc_store($u, mb_substr(basename((string) ($b['name'] ?? 'document')), 0, 190), $bin, ($b['purpose'] ?? '') === 'report', ($b['purpose'] ?? '') === 'recording', ($b['purpose'] ?? '') === 'room')];
 });
 route('GET', '/files/(\d+)', function ($id) {
   $u = require_user(); if (!doc_can($u, (int) $id)) fail(404, 'That file was not found, or it is outside your area.', 'not_found');
