@@ -91,7 +91,12 @@ route('POST', '/envoy/acceptance', function () {
   if ($pc !== range(0, count(EA_C) - 1)) fail(422, 'Please tick every commitment in Part C.', 'part_c');
   if (empty($b['declaration'])) fail(422, 'Please tick the declaration in Part E.', 'declaration');
   $sig = (string) ($b['signature'] ?? '');
-  if (!preg_match('#^data:image/png;base64,[A-Za-z0-9+/=]{200,}$#', $sig) || strlen($sig) > 400000) fail(422, 'Please sign in the signature box with your finger or mouse.', 'signature');
+  /* v109.49: a phone that cannot draw a signature well is no barrier. She may type her full name instead; it is kept as a typed signature. */
+  if (!empty($b['signature_typed'])) {
+    $typed = ea_clean(strip_tags((string) ($b['signature_text'] ?? '')), 190);
+    if (mb_strlen($typed) < 3 || !preg_match('/\p{L}.*\p{L}/u', $typed)) fail(422, 'Please type your full name as your signature.', 'signature');
+    $sig = 'typed:' . $typed;
+  } elseif (!preg_match('#^data:image/png;base64,[A-Za-z0-9+/=]{200,}$#', $sig) || strlen($sig) > 400000) fail(422, 'Please sign in the signature box with your finger or mouse, or type your full name instead.', 'signature');
   q('INSERT INTO envoy_acceptances (user_id,full_name,country,profession,organisation,email,phone,network,effective_date,focus,first_30_days,support_needed,part_b,part_c,signature,signed_name,preferred_contact,accepted_at,ip)
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
     [(int) $u['id'], $f['full_name'], $f['country'], $f['profession'], $f['organisation'], $f['email'], $f['phone'], $f['network'], $pre['effective_date'] ?: null,

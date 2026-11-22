@@ -133,7 +133,7 @@ it=[i for i in w['items'] if i['workflow_id']=='W01'][0]; chk('T32: verification
 hq.post(B+'/hq/workflows',json={**it,'eligible_weight':10,'verified_by':'QA Tester','verification_date':'2026-11-11'}); sc=hq.get(B+'/hq/workflows').json()['score']; chk('T32: score is verified weight over eligible weight', sc['score']==25.0, sc)
 
 # ---- health and reconciliation
-hh=hq.get(B+'/hq/health').json(); chk('T22: live integrity checks all clear', all(v==0 for v in hh['reconcile'].values()) and hh['build']=='v109.48', hh['reconcile'])
+hh=hq.get(B+'/hq/health').json(); chk('T22: live integrity checks all clear', all(v==0 for v in hh['reconcile'].values()) and hh['build']=='v109.49', hh['reconcile'])
 chk('health is HQ only and shows no secrets', s1.get(B+'/hq/health').status_code==403 and 'KEY' not in json.dumps(hh).upper().replace('INSTITUTE_KEY',''))
 # ---- D08 approved: automatic move, thirty days after the notice
 def run(): return subprocess.run('. /tmp/env.sh; php /home/claude/age.php',shell=True,capture_output=True,text=True).stdout

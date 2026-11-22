@@ -67,6 +67,7 @@ function fill(d) {
     body.network = F.network; body.signed_name = F.signed_name.value.trim();
     body.part_b = B.map(([c], i) => c.checked ? i : -1).filter((i) => i >= 0); body.part_c = C.map(([c], i) => c.checked ? i : -1).filter((i) => i >= 0);
     body.declaration = decl.checked; body.signature = pad.empty() ? '' : pad.data();
+    if (pad.typed()) { body.signature_typed = true; body.signature_text = pad.text(); body.signature = ''; }
     btn.disabled = true;
     try {
       await api('/envoy/acceptance', body);
@@ -74,7 +75,7 @@ function fill(d) {
       app.user = (await api('/me')).user; reshell(); go('#/'); setTimeout(afterSignIn, 900);
     } catch (e) {
       btn.disabled = false; err.textContent = e.message;
-      const map = { part_b: 'eb0', part_c: 'ec0', declaration: 'edecl', signature: 'esig', signed_name: 'ef-signed' };
+      const map = { part_b: 'eb0', part_c: 'ec0', declaration: 'edecl', signature: pad.typed() ? 'esig-typed' : 'esig', signed_name: 'ef-signed' };
       const el = document.getElementById(map[e.code] || 'ef-' + e.code); if (el) { el.setAttribute('aria-invalid', 'true'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.focus?.(); }
     }
   } },
@@ -100,7 +101,7 @@ function fill(d) {
       h('label', { class: 'field', for: 'ef-signed' }, h('span', { text: t('Envoy name') }), F.signed_name),
       h('div', { class: 'field eform__have' }, h('span', { text: t('Date') }), h('div', { class: 'input eform__fixed', text: fmtDate(d.today) })),
       field('preferred_contact', 'Preferred contact or WhatsApp number', { type: 'tel', max: 40, optional: true })),
-    h('div', { class: 'field' }, h('span', { text: t('Envoy signature') }), h('small', { text: t('Sign in the box with your finger or mouse.') }), pad.el)),
+    h('div', { class: 'field' }, h('span', { text: t('Envoy signature') }), pad.el)),
   h('div', { class: 'eform__foot' }, progress, err, btn,
     h('small', { class: 'muted', text: t('Part F (WODDI acknowledgement) is completed by WODDI HQ after you accept.') })));
   if (!F.preferred_contact.value) F.preferred_contact.value = p.phone || '';
@@ -119,8 +120,17 @@ function signaturePad() {
   c.addEventListener('pointermove', (e) => { if (!drawing) return; const p = pos(e); x.strokeStyle = '#231019'; x.lineWidth = 4.5; x.lineCap = 'round'; x.lineJoin = 'round'; x.beginPath(); x.moveTo(...last); x.lineTo(...p); x.stroke(); last = p; used = true; e.preventDefault(); });
   const up = () => { drawing = false; };
   c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
-  const wrap = h('div', { class: 'eform__sigwrap' }, c, h('button', { type: 'button', class: 'btn btn--ghost btn--s', onclick: clear }, t('Clear')));
-  return { el: wrap, empty: () => !used, data: () => c.toDataURL('image/png') };
+  /* v109.49: if her phone makes drawing hard, she types her full name instead. It counts as her signature. */
+  let typed = false;
+  const typedIn = h('input', { class: 'input eform__typedsig', id: 'esig-typed', maxlength: 190, autocomplete: 'name', 'aria-label': t('Type your full name as your signature') });
+  const drawBox = h('div', { class: 'eform__sigdraw' }, h('small', { class: 'faint', text: t('Sign in the box with your finger or mouse.') }), c, h('button', { type: 'button', class: 'btn btn--ghost btn--s', onclick: clear }, t('Clear')));
+  const typeBox = h('div', { class: 'eform__sigtype', hidden: true }, typedIn, h('small', { text: t('Your typed full name counts as your signature.') }));
+  const sw = h('button', { type: 'button', class: 'linkish eform__sigswitch' });
+  const paint = () => { drawBox.hidden = typed; typeBox.hidden = !typed; sw.textContent = typed ? t('Sign with my finger instead') : t('Cannot sign on your phone? Type your full name instead'); };
+  sw.addEventListener('click', () => { typed = !typed; paint(); if (typed) setTimeout(() => typedIn.focus(), 50); });
+  paint();
+  const wrap = h('div', { class: 'eform__sigwrap' }, drawBox, typeBox, sw);
+  return { el: wrap, empty: () => (typed ? typedIn.value.trim().length < 3 : !used), data: () => c.toDataURL('image/png'), typed: () => typed, text: () => typedIn.value.trim() };
 }
 
 /* ---- her accepted form (and HQ's view of it) ---- */
@@ -142,7 +152,7 @@ function viewRecord(d, params) {
     part('D', 'First alignment and practical contribution', row('One practical contribution I can begin with in the first 30 days', r.first_30_days), row('Any support, information or connection I need from WODDI HQ', r.support_needed)),
     part('E', 'Declaration and signature', h('div', { class: 'eform__done' }, h('span', { class: 'eform__box is-on' }, icon('check', 14)), h('span', { text: t('Declaration confirmed.') })),
       h('div', { class: 'eform__grid' }, row('Envoy name', r.signed_name), row('Date', fmtDate(r.accepted_at)), row('Preferred contact or WhatsApp number', r.preferred_contact),
-        h('div', { class: 'eform__row' }, h('span', { text: t('Envoy signature') }), h('img', { class: 'eform__sigimg', src: r.signature, alt: tf('Signature of {1}', r.signed_name) })))),
+        h('div', { class: 'eform__row' }, h('span', { text: t('Envoy signature') }), (String(r.signature || '').startsWith('typed:') ? h('span', { class: 'eform__sigtyped' }, h('b', { text: String(r.signature).slice(6) }), h('small', { text: t('Typed signature') })) : h('img', { class: 'eform__sigimg', src: r.signature, alt: tf('Signature of {1}', r.signed_name) }))))),
     ackPart,
     h('div', { class: 'eform__foot' }, h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => window.print() }, icon('download', 16), ' ', t('Print or save as PDF')),
       params.hq ? h('a', { class: 'btn btn--ghost', href: '#/envoys/forms' }, t('All envoy forms')) : h('a', { class: 'btn btn--ghost', href: '#/' }, t('Back to my dashboard'))));

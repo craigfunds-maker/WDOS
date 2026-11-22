@@ -4280,5 +4280,12 @@
 "Free. Opens full screen and works on a weak network.": "Gratuite. S'ouvre en plein écran et fonctionne avec un réseau faible.",
 "Install": "Installer",
 "WDOS is on your home screen": "WDOS est sur votre écran d'accueil",
-"Open it from there next time, like any app.": "Ouvrez-la de là la prochaine fois, comme toute application."
+"Open it from there next time, like any app.": "Ouvrez-la de là la prochaine fois, comme toute application.",
+"Type your full name as your signature": "Tapez votre nom complet comme signature",
+"Your typed full name counts as your signature.": "Votre nom complet tapé vaut signature.",
+"Sign with my finger instead": "Signer avec mon doigt",
+"Cannot sign on your phone? Type your full name instead": "Impossible de signer sur votre téléphone ? Tapez plutôt votre nom complet",
+"Typed signature": "Signature tapée",
+"Please type your full name as your signature.": "Veuillez taper votre nom complet comme signature.",
+"Please sign in the signature box with your finger or mouse, or type your full name instead.": "Veuillez signer dans le cadre avec votre doigt ou la souris, ou tapez plutôt votre nom complet."
 }
