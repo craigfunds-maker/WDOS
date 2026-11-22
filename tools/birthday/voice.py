@@ -6,7 +6,7 @@
 # It proves who it is with GitHub's signed OIDC token, so no password or key is kept anywhere.
 #   python voice.py list            -> /tmp/bday_items.json and the engines needed, one per line, in /tmp/bday_engines
 #   python voice.py speak <models>  -> speaks and sends them
-import json, os, subprocess, sys, urllib.request, wave
+import json, os, subprocess, sys, urllib.error, urllib.request, wave
 
 SITE = os.environ.get('WDOS_SITE', 'https://woddicrm.org').rstrip('/')
 AUD = 'woddicrm-birthday-voice'
@@ -23,7 +23,16 @@ def call(path, data=None, ctype=None):
     with urllib.request.urlopen(req, timeout=60) as r: return json.load(r)
 
 def listing():
-    items = call('/voice/birthdays')['items']
+    try:
+        items = call('/voice/birthdays')['items']
+    except urllib.error.HTTPError as e:
+        # 404: the live WDOS does not have the birthday voice service yet (released with v109.44); 5xx: the site is busy.
+        # Neither is this job's fault, so it waits for the next run instead of failing and emailing the repo owner.
+        if e.code == 404 or e.code >= 500:
+            print(f'WDOS answered {e.code}; nothing to speak this run'); items = []
+        else: raise
+    except urllib.error.URLError as e:
+        print('WDOS could not be reached:', e.reason, '- trying again next run'); items = []
     json.dump(items, open('/tmp/bday_items.json', 'w'))
     engines = sorted({it.get('engine', 'kokoro') for it in items})
     open('/tmp/bday_engines', 'w').write('\n'.join(engines))
