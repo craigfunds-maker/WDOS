@@ -2,6 +2,7 @@
  * Every step can be read or listened to. */
 import { h, icon, card, sk, empty, fmtDate, toast, listenBtn, meter, CH_TAG } from '../ui.js';
 import { api } from '../api.js';
+import { inviteText } from './invite.js';
 import { kpi } from './hq.js';
 import { app, refreshUser } from '../app.js';
 
@@ -31,7 +32,7 @@ export async function render(root) {
       if (!x.open) body.append(h('small', { class: 'faint', text: 'Opens on ' + fmtDate(x.opens_on) }));
       else if (x.kind === 'referral') {
         const url = location.origin + '/#/r/' + d.referrals.code; const r = d.referrals;
-        body.append(h('div', { class: 'jref' }, h('code', { text: url }), h('button', { class: 'btn btn--quiet btn--s', type: 'button', onclick: async () => { try { if (navigator.share) await navigator.share({ title: 'WODDI', text: 'Join me in WODDI', url }); else { await navigator.clipboard.writeText(url); toast('Link copied', 'Paste it in WhatsApp or a text message.', 'ok'); } } catch { /* closed the share sheet */ } } }, icon('send', 16), 'Share my link')),
+        body.append(h('div', { class: 'jref' }, h('code', { text: url }), h('button', { class: 'btn btn--quiet btn--s', type: 'button', onclick: async () => { try { if (navigator.share) await navigator.share({ title: 'WDOS', text: inviteText(url) }); else { await navigator.clipboard.writeText(inviteText(url)); toast('Link copied', 'Paste it in WhatsApp or a text message.', 'ok'); } } catch { /* closed the share sheet */ } } }, icon('send', 16), 'Share my link')),
           h('div', { class: 'jcount' }, [['Opened my link', r.opened], ['Registered', r.registered], ['Completed seven days', r.verified]].map(([l, n]) => h('div', {}, h('b', { class: 'num', text: String(n) }), h('small', { text: l })))),
           h('small', { class: 'faint', text: tf('Your aim is {1} women. You can keep inviting after this step.', r.target) }));
         if (!x.done) body.append(h('div', {}, done('I understand')));

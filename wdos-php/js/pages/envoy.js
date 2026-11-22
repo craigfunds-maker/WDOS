@@ -73,7 +73,7 @@ export async function render(root) {
   let d; try { d = await api('/envoy/home'); } catch (e) { top.replaceChildren(h('div', { class: 'card' }, empty('x', 'Your dashboard did not load', e.message))); kp.replaceChildren(); lead.replaceChildren(); ppl.replaceChildren(); side.replaceChildren(); return; }
   if (d.designation) sub.before(h('p', { class: 'muted', style: 'margin:0', text: d.designation }));
   const k = d.kpis, L = d.leader_kpis || { brought_in: 0, serving: 0, attention: 0, overdue: 0 };
-  const msg = t('Join WODDI through my link:') + ' ' + d.link;
+  const msg = t('Join WODDI on WDOS, the WODDI Digital Operating System. Register free as a member, or step forward as a volunteer leader in your area. Use my link:') + ' ' + d.link;
   const copy = async () => { try { await navigator.clipboard.writeText(d.link); toast(t('Link copied'), t('Paste it into WhatsApp, a text or an email.'), 'ok'); } catch { toast(t('Copy it by hand'), d.link, 'info'); } };
   const share = navigator.share ? h('button', { class: 'btn btn--quiet', type: 'button', onclick: () => navigator.share({ title: 'WODDI', text: msg }).catch(() => {}) }, icon('send', 18), t('Share')) : null;
   top.replaceChildren(card('Your referral link', d.status === 'active' ? 'Everyone who joins through this link is counted as yours.' : d.status === 'pending' ? 'HQ is checking your sign-up. Your link switches on when HQ approves you.' : 'Your link is paused by HQ. Nobody can join through it until HQ switches it back on.',
