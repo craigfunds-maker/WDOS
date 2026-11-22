@@ -8,6 +8,11 @@ def chk(n,c,x=''):
 def sql(q): return subprocess.run(['bash','-c','. /tmp/env.sh; mariadb --socket=/tmp/mdb.sock -uroot "$DB_NAME" -N'],input=q,capture_output=True,text=True).stdout.strip()
 def login(e,p):
   s=requests.Session(); s.headers.update({'X-WDOS':'1'}); r=s.post(B+'/auth/login',json={'email':e,'password':p}); return s if r.ok else r
+# v109.45: envoys must accept their appointment form before anything else works; these tests are about other things
+_login_before_v10945=login
+def login(*a,**k):
+  sql("insert ignore into envoy_acceptances (user_id,accepted_at) select id, utc_timestamp() from users where role='envoy'")
+  return _login_before_v10945(*a,**k)
 hq=login('hq@test.local','hq-password-1'); ld=login('leader@test.local','leader-pass-1')
 taken=sql("select phone from users where phone<>'' and phone is not null and role='member' limit 1")
 rows=[{'state':'Abia','name':'Prof. Testa Example-Nweke','phone':'08000000001'},

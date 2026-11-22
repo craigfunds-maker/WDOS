@@ -20,6 +20,7 @@ export async function api(path, body, method) {
   let data = null; try { data = await res.json(); } catch { /* not JSON */ }
   if (!res.ok || (data && data.ok === false)) {
     if (res.status === 401 && data?.error === 'signed_out') window.dispatchEvent(new Event('wdos:signed-out'));
+    if (res.status === 403 && data?.error === 'envoy_acceptance') window.dispatchEvent(new Event('wdos:envoy-form'));   // v109.45: back to her form
     throw new ApiError(data?.message || 'WDOS could not complete that. Please try again.', data?.error || 'error', res.status, data);
   }
   return data;

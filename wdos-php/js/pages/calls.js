@@ -17,15 +17,16 @@ export async function render(root, params) {
   const search = input({ type: 'search', placeholder: t('Search a leader by name'), 'aria-label': t('Search a leader by name') });
   const people = h('div', {}, sk.rows(4)), recent = h('div', {}, sk.rows(3));
   root.append(intro);
-  if (!app.user.is_hq) root.append(h('div', { style: 'margin-bottom:16px' }, hqBtn));
+  const invited = !app.user.is_hq && !app.user.is_leader && !app.user.is_envoy;     // v109.45: someone an envoy referred rings her envoy only
+  if (!app.user.is_hq && !invited) root.append(h('div', { style: 'margin-bottom:16px' }, hqBtn));
   const picked = new Map(); const gbar = h('div', { class: 'toolbar', style: 'flex-wrap:wrap' }); let max = 8;
   const withHq = h('input', { type: 'checkbox', style: 'width:20px;height:20px', onchange: () => paintG() });
   const paintG = () => { const n = picked.size + (withHq.checked ? 1 : 0); gbar.replaceChildren(h('span', { class: 'tag', text: picked.size ? tf('{1} chosen', picked.size) : t('Tick leaders to call them together') }),
-    app.user.is_hq ? null : h('label', { style: 'display:flex;gap:6px;align-items:center' }, withHq, h('span', { text: t('Bring in WODDI HQ too') })),
+    app.user.is_hq || invited ? null : h('label', { style: 'display:flex;gap:6px;align-items:center' }, withHq, h('span', { text: t('Bring in WODDI HQ too') })),
     h('button', { class: 'btn btn--s', type: 'button', disabled: picked.size < 1 || n > max - 1, onclick: () => groupCall([...picked.values(), ...(withHq.checked ? [{ id: 'hq', name: 'WODDI HQ' }] : [])]) }, icon('phone', 16), ' ', n > max - 1 ? tf('Group call: {1} people at most', max - 1) : t('Group call'))); };
   const groups = h('div'); const missed = h('div');
   root.append(missed);
-  root.append(card(app.user.is_hq ? 'Serving leaders' : 'Leaders you can ring', null, h('div', { style: 'display:grid;gap:10px' }, search, gbar, people)), groups, card('Recent calls', null, recent));
+  root.append(card(app.user.is_hq ? 'Serving leaders and WODDI Envoys' : app.user.is_envoy ? 'People who joined through your link' : invited ? 'Your WODDI Envoy' : 'Leaders you can ring', null, h('div', { style: 'display:grid;gap:10px' }, search, gbar, people)), groups, card('Recent calls', null, recent));
 
   let timer = null;
   search.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(load, 350); });
@@ -159,7 +160,7 @@ function callScreen(id, name, title, mic, role) {
 /* ---- incoming calls: the open app asks every few seconds ---- */
 let shown = null;
 export function ringWatch() {
-  const u = app.user; if (!u || !(u.is_hq || u.is_leader) || ringWatch.on) return; ringWatch.on = true;
+  const u = app.user; if (!u || !(u.is_hq || u.is_leader || u.can_call) || ringWatch.on) return; ringWatch.on = true;
   const tick = async () => {
     if (!app.user) { ringWatch.on = false; return; }
     if (document.visibilityState === 'visible' && !document.querySelector('.callstage, .vcall')) {

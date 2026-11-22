@@ -12,7 +12,7 @@ export const kindIcon = (k) => KIND_ICON[k] || 'bell';
 
 /* ---------------------------------------------------------------- routes -- */
 const pages = {
-  welcome: () => import('./pages/welcome.js'), login: () => import('./pages/login.js'), envoyjoin: () => import('./pages/envoyjoin.js'), envoyguide: () => import('./pages/envoyguide.js'), bday: () => import('./pages/bday.js'), system: () => import('./pages/system.js'), drive: () => import('./pages/drive.js'), placement: () => import('./pages/placement.js'),
+  welcome: () => import('./pages/welcome.js'), login: () => import('./pages/login.js'), envoyjoin: () => import('./pages/envoyjoin.js'), envoyguide: () => import('./pages/envoyguide.js'), bday: () => import('./pages/bday.js'), envoyform: () => import('./pages/envoyform.js'), envoyforms: () => import('./pages/envoyforms.js'), system: () => import('./pages/system.js'), drive: () => import('./pages/drive.js'), placement: () => import('./pages/placement.js'),
   hq: () => import('./pages/hq.js'), members: () => import('./pages/members.js'), announcements: () => import('./pages/announcements.js'),
   leader: () => import('./pages/leader.js'), home: () => import('./pages/home.js'),
   reporting: () => import('./pages/reporting.js'), tasks: () => import('./pages/tasks.js'), meetings: () => import('./pages/meetings.js'), structure: () => import('./pages/structure.js'),
@@ -38,12 +38,16 @@ function resolve(path) {
   // v109.32: only HQ staff must choose their own password before anything else (their logins open everyone's records).
   // Envoys and leaders go straight to their dashboard and change it in Settings when they want (Azeez, 19 Nov).
   if (u.is_hq && u.must_change_password && u.has_password !== false) return sh('firstpw', 'Choose your own password');
+  // v109.45: until she accepts her appointment, every page is her Acceptance & Commitment Form (the server refuses the rest too)
+  if (u.is_envoy && u.envoy_form_needed && seg[0] !== 'settings') return sh('envoyform', 'WODDI Envoy appointment', { gate: true });
   if (u.is_envoy) {                    // a WODDI Envoy has a limited dashboard: her link, the people she referred, messages to them, notifications, settings
     if (seg[0] === 'inbox') return sh('inbox', 'Messages', { tab: seg[1], id: seg[2] });
     if (seg[0] === 'notifications') return sh('notifications', 'Notifications');
     if (seg[0] === 'settings') return sh('settings', 'Settings');
     if (seg[0] === 'help') return sh('help', 'Help and private reports');
     if (seg[0] === 'envoy-guide') return sh('envoyguide', 'Video guide');
+    if (seg[0] === 'envoy-form') return sh('envoyform', 'My appointment form');     // v109.45
+    if (seg[0] === 'calls') return sh('calls', 'Voice calls', { id: seg[1] });         // v109.45: she rings HQ and the people she referred
     if (seg[0] === 'birthday') return sh('bday', 'My birthday card');     // v109.44     // v109.34: the envoy's own video guide (Azeez, 20 Nov)
     return sh('envoy', 'My envoy dashboard');      // v109.31: no Tasks and no How to use WDOS for envoys (Azeez, 19 Nov)
   }
@@ -80,11 +84,13 @@ function resolve(path) {
     case 'handoff': return u.is_hq ? sh('handoff', 'Handoff register') : sh('home', 'Home');
     case 'hq': if (u.is_hq && seg[1] === 'drive') return sh('drive', 'Sign-in drive'); if (u.is_hq && seg[1] === 'placement') return sh('placement', 'Members waiting for a chapter'); if (u.is_hq && (seg[1] === 'system' || seg[1] === 'health')) return sh('system', 'System health', { part: seg[2] }); if (u.is_hq && seg[1] === 'birthdays') return sh('birthdays', 'Members with no date of birth'); if (u.is_hq && seg[1] === 'activity') return sh('leaderactivity', "Leaders' activity", { leader: seg[2] }); if (u.is_hq && seg[1] === 'logins') return sh('logins', seg[2] === 'envoys' ? 'Envoy sign-in details' : 'Leader logins', { only: seg[2] === 'envoys' ? 'envoy' : '' }); return u.is_hq ? sh('hq', 'HQ dashboard') : sh(u.is_leader ? 'leader' : 'home', u.is_leader ? 'Leadership dashboard' : 'Home');
     case 'team': return (u.is_hq || u.is_leader) ? sh('team', seg[1] ? 'Leader' : 'My leaders', { id: seg[1] }) : sh('home', 'Home');
-    case 'calls': return (u.is_hq || u.is_leader) ? sh('calls', 'Voice calls', { id: seg[1] }) : sh('home', 'Home');
+    case 'calls': return (u.is_hq || u.is_leader || u.can_call) ? sh('calls', 'Voice calls', { id: seg[1] }) : sh('home', 'Home');
     case 'tasks': return sh('tasks', 'Tasks', { tab: seg[1] });
     case 'meetings': return seg[1] === 'requests' ? sh('meetreq', 'Video meetings', { id: seg[2] }) : sh('meetings', 'Meetings', { tab: seg[1] });
     case 'inbox': return sh('inbox', 'Messages', { tab: seg[1], id: seg[2] });
-    case 'envoys': return u.is_hq ? sh('envoys', 'WODDI Envoys', { id: seg[1] }) : sh('home', 'Home');
+    case 'envoys': if (u.is_hq && seg[1] === 'forms') return sh('envoyforms', 'Envoy appointment forms');      // v109.45
+      if (u.is_hq && seg[2] === 'form') return sh('envoyform', 'Envoy appointment form', { hq: true, id: seg[1] });
+      return u.is_hq ? sh('envoys', 'WODDI Envoys', { id: seg[1] }) : sh('home', 'Home');
     case 'guide': return sh('guide', 'How to use WDOS');
     case 'legacy': return u.role === 'super_admin' ? sh('legacy', 'Old WDOS records') : sh('home', 'Home');
     case 'structure': return (u.is_hq || u.is_leader) ? sh('structure', 'Leadership structure') : sh('home', 'Home');
@@ -135,7 +141,8 @@ export function reshell() { shellEls = null; render(); }
 /* v109.33: no profile photo yet: ask for one first (camera or upload), then the walkthrough if she has not seen it */
 /* v109.37: then, if this device does not get notifications yet, ask to switch them on */
 function maybePush() { const u = app.user; if (!u || u.status === 'pending_profile' || !('Notification' in window || /iPhone|iPad/.test(navigator.userAgent))) return maybeGuide(); import('./pushask.js').then(async (m) => { if (await m.needsPushAsk()) m.askPush(() => maybeGuide()); else maybeGuide(); }).catch(() => maybeGuide()); }
-export function afterSignIn() { const u = app.user; if (u && !u.is_hq && !u.has_photo && u.status !== 'pending_profile') import('./photoask.js').then((m) => { if (m.needsPhoto(app.user)) m.askPhoto(() => maybePush()); else maybePush(); }).catch(() => maybePush()); else maybePush(); }
+export function afterSignIn() { const u = app.user; if (u && u.envoy_form_needed) return;   /* v109.45: her appointment form comes first; the photo and other prompts after */
+  if (u && !u.is_hq && !u.has_photo && u.status !== 'pending_profile') import('./photoask.js').then((m) => { if (m.needsPhoto(app.user)) m.askPhoto(() => maybePush()); else maybePush(); }).catch(() => maybePush()); else maybePush(); }
 /* A leader or envoy who has not seen the walkthrough yet gets it once, after sign-in. It stays under How to use WDOS. */
 /* v109.2: a device clock that is hours off (for example a computer set to another country's time zone, with the hour typed in by hand)
  * makes every meeting time and countdown wrong. Compare with the server once per sign-in and say so plainly. */
@@ -152,7 +159,7 @@ export function maybeGuide() { checkClock(); const u = app.user; if (!u || u.gui
 
 /* ----------------------------------------------------------------- shell -- */
 /* An HQ login limited to some areas sees only those areas in the menu. The server refuses the rest anyway. */
-const HQ_AREA = { '#/hq/drive': 'members', '#/hq/placement': 'chapters', '#/members': 'members', '#/hq/logins': 'members', '#/hq/activity': 'members', '#/leaders': 'members', '#/leadership': 'structure', '#/structure': 'structure', '#/chapters': 'chapters', '#/referrals': 'referrals', '#/envoys': 'referrals', '#/reports': 'reports', '#/reporting': 'reports',
+const HQ_AREA = { '#/envoys/forms': 'referrals', '#/hq/drive': 'members', '#/hq/placement': 'chapters', '#/members': 'members', '#/hq/logins': 'members', '#/hq/activity': 'members', '#/leaders': 'members', '#/leadership': 'structure', '#/structure': 'structure', '#/chapters': 'chapters', '#/referrals': 'referrals', '#/envoys': 'referrals', '#/reports': 'reports', '#/reporting': 'reports',
   '#/tasks': 'tasks', '#/meetings': 'tasks', '#/meetings/requests': 'tasks', '#/calendar': 'tasks', '#/communications': 'communications', '#/inspiration': 'communications', '#/messages': 'communications', '#/cases': 'cases',
   '#/rules': 'administration', '#/handoff': 'administration', '#/legacy': 'administration', '#/coverage': 'administration', '#/ai': 'administration', '#/integrations': 'administration', '#/voices': 'administration' };
 function hqAllowed(u, items) {
@@ -163,8 +170,9 @@ function hqAllowed(u, items) {
 }
 function navItems() {
   const u = app.user; const comm = [['Communication'], ['#/community', 'spark', 'WODDI Community'], ['#/courses', 'award', 'Personal development'], ['#/inbox', 'send', 'Messages'], ['#/messages', 'inbox', u.is_hq ? 'Help desk messages' : 'Messages with HQ'], ['#/announcements', 'megaphone', 'Announcements'], ['#/library', 'book', 'Document library'], ['#/notifications', 'bell', 'Notifications'], ['Account'], u.is_hq ? null : ['#/guide', 'award', 'How to use WDOS'], ['#/help', 'book', 'Help and private reports'], ['#/settings', 'sliders', 'Settings']].filter(Boolean);
-  if (u.is_envoy) return [['WODDI Envoy'], ['#/', 'grid', 'My dashboard'], ['#/inbox', 'send', 'Messages'], ['#/notifications', 'bell', 'Notifications'], ['#/envoy-guide', 'play', 'Video guide'], ['Account'], ['#/help', 'book', 'Help and private reports'], ['#/settings', 'sliders', 'Settings']];
-  if (u.is_hq) return hqAllowed(u, [['Overview'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/leaders', 'eye', 'Leader dashboards'], ['#/leadership', 'tree', 'Leadership'], ['#/structure', 'users', 'Who holds each seat'], ['#/chapters', 'grid', 'Chapters'], ['#/referrals', 'route', 'Referral and activation'], ['#/envoys', 'users', 'WODDI Envoys'], ['#/hq/drive', 'send', 'Sign-in drive'], ['Work'], ['#/reports', 'chart', 'Reports'], ['#/reporting', 'book', 'Leader reports'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ['#/meetings/requests', 'calendar', 'Video meetings'], ['#/calls', 'phone', 'Voice calls'], ['#/calendar', 'calendar', 'Annual calendar'], ['Communication'], ['#/communications', 'megaphone', 'Communications'], ['#/inspiration', 'award', 'Inspiration messages'], ...comm.slice(1, -3), ['Administration'], ['#/staff', 'users', 'Staff and logins'], ['#/hq/logins', 'key', 'Leader logins'], ['#/voices', 'volume', 'Guide voices'], ['#/rules', 'sliders', 'System rules'], ['#/handoff', 'check', 'Handoff register'], u.role === 'super_admin' ? ['#/legacy', 'book', 'Old WDOS records'] : null, ['#/coverage', 'chart', 'Digital coverage'], ['#/cases', 'eye', 'Confidential cases'], ['#/ai', 'spark', 'AI assistant'], ['#/integrations', 'link', 'Integrations'], ...comm.slice(-3)]);
+  if (u.is_envoy && u.envoy_form_needed) return [['WODDI Envoy'], ['#/', 'award', 'My appointment form'], ['Account'], ['#/settings', 'sliders', 'Settings']];
+  if (u.is_envoy) return [['WODDI Envoy'], ['#/', 'grid', 'My dashboard'], ['#/calls', 'phone', 'Voice calls'], ['#/inbox', 'send', 'Messages'], ['#/notifications', 'bell', 'Notifications'], ['#/envoy-guide', 'play', 'Video guide'], ['Account'], ['#/envoy-form', 'award', 'My appointment form'], ['#/help', 'book', 'Help and private reports'], ['#/settings', 'sliders', 'Settings']];
+  if (u.is_hq) return hqAllowed(u, [['Overview'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/leaders', 'eye', 'Leader dashboards'], ['#/leadership', 'tree', 'Leadership'], ['#/structure', 'users', 'Who holds each seat'], ['#/chapters', 'grid', 'Chapters'], ['#/referrals', 'route', 'Referral and activation'], ['#/envoys', 'users', 'WODDI Envoys'], ['#/envoys/forms', 'award', 'Envoy appointment forms'], ['#/hq/drive', 'send', 'Sign-in drive'], ['Work'], ['#/reports', 'chart', 'Reports'], ['#/reporting', 'book', 'Leader reports'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ['#/meetings/requests', 'calendar', 'Video meetings'], ['#/calls', 'phone', 'Voice calls'], ['#/calendar', 'calendar', 'Annual calendar'], ['Communication'], ['#/communications', 'megaphone', 'Communications'], ['#/inspiration', 'award', 'Inspiration messages'], ...comm.slice(1, -3), ['Administration'], ['#/staff', 'users', 'Staff and logins'], ['#/hq/logins', 'key', 'Leader logins'], ['#/voices', 'volume', 'Guide voices'], ['#/rules', 'sliders', 'System rules'], ['#/handoff', 'check', 'Handoff register'], u.role === 'super_admin' ? ['#/legacy', 'book', 'Old WDOS records'] : null, ['#/coverage', 'chart', 'Digital coverage'], ['#/cases', 'eye', 'Confidential cases'], ['#/ai', 'spark', 'AI assistant'], ['#/integrations', 'link', 'Integrations'], ...comm.slice(-3)]);
   if (u.is_leader) return [['My leadership'], ['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'My members'], ['#/team', 'award', 'My leaders'], ['#/chapters', 'grid', 'Chapters'], u.chapter || (u.seat && u.seat.level === 'chapter') ? ['#/chapter', 'users', 'My chapter'] : null, ['#/leadership', 'tree', 'Leadership'], ['#/structure', 'users', 'Who holds each seat'], ['#/referrals', 'route', 'Referral links'], ['#/onboarding', 'book', 'Onboarding'], ['Work'], u.he_for_she ? null : ['#/reports', 'chart', 'Reports'], ['#/reporting', 'book', 'My reports'], ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ['#/meetings/requests', 'calendar', 'Video meetings'], ['#/calls', 'phone', 'Voice calls'], ['#/calendar', 'calendar', 'Annual calendar'], ...comm].filter(Boolean);
   return [['My network'], ['#/', 'grid', 'Home'], u.journey ? ['#/journey', 'route', 'My seven-day journey'] : null, ['#/chapter', 'users', 'My chapter'], ['#/invite', 'send', 'My 3 referrals'], ['#/leadership', 'tree', 'Leadership'], u.zone_supervisor ? ['#/chapters', 'grid', 'My zone chapters'] : null, u.todo && u.todo.activation ? ['#/activation', 'route', 'My Activation'] : null, ['#/tasks', 'tasks', 'Tasks'], ['#/meetings', 'calendar', 'Meetings'], ['#/calendar', 'calendar', 'Annual calendar'], ...comm].filter(Boolean);
 }
@@ -198,7 +206,7 @@ function buildShell() {
     h('header', { class: 'top' }, h('button', { class: 'iconbtn top__menu', type: 'button', 'aria-label': 'Open the menu', 'aria-controls': 'side', onclick: () => shell.classList.add('nav-open') }, icon('menu')), title, h('div', { class: 'grow' }), listenBtn(() => { const m = document.querySelector('main'); return m ? m.innerText.replace(/\s*\n+\s*/g, '. ').slice(0, 4000) : ''; }, 'Listen to this page'), langPicker(setLanguage), themeBtn, bellWrap, meWrap),
     h('main', {}, page));
   /* On a phone the main destinations sit in a bar at the bottom, as in a native app. "More" opens the full menu. */
-  const tabs = u.is_envoy ? [['#/', 'grid', 'Dashboard'], ['#/inbox', 'send', 'Messages'], ['#/notifications', 'bell', 'Alerts'], ['#/settings', 'sliders', 'Settings']]
+  const tabs = u.is_envoy && u.envoy_form_needed ? [['#/', 'award', 'My form'], ['#/settings', 'sliders', 'Settings']] : u.is_envoy ? [['#/', 'grid', 'Dashboard'], ['#/calls', 'phone', 'Calls'], ['#/inbox', 'send', 'Messages'], ['#/notifications', 'bell', 'Alerts'], ['#/settings', 'sliders', 'Settings']]
     : u.is_hq ? [['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/reporting', 'chart', 'Reporting'], ['#/notifications', 'bell', 'Alerts']]
     : u.is_leader ? [['#/', 'grid', 'Dashboard'], ['#/tasks', 'tasks', 'Tasks'], ['#/reporting', 'chart', 'Reporting'], ['#/inbox', 'send', 'Messages']]
     : [['#/', 'grid', 'Home'], ['#/chapter', 'users', 'Chapter'], ['#/messages', 'send', 'Messages'], ['#/notifications', 'bell', 'Alerts']];
@@ -251,13 +259,15 @@ async function pulse(announce = true) {
     app.latest = Math.max(app.latest, r.latest);
   } catch { /* offline or signed out: the next tick tries again */ }
 }
-function startPulse() { stopPulse(); app.latest = 0; pulse(false); pulseTimer = setInterval(pulse, 25000); if (app.user && (app.user.is_hq || app.user.is_leader)) import('./pages/calls.js').then((m) => m.ringWatch()).catch(() => {}); }   // v109.13: incoming voice calls
+function startPulse() { stopPulse(); app.latest = 0; pulse(false); pulseTimer = setInterval(pulse, 25000); if (app.user && (app.user.is_hq || app.user.is_leader || app.user.can_call)) import('./pages/calls.js').then((m) => m.ringWatch()).catch(() => {}); }   // v109.13: incoming voice calls
 function stopPulse() { clearInterval(pulseTimer); pulseTimer = null; app.unread = 0; }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) pulse(); });
 navigator.serviceWorker?.addEventListener('message', (e) => {
   if (e.data?.type === 'wdos:push') pulse();                       // a push landed while the app is open: refresh the bell now
   if (e.data?.type === 'wdos:new-build') { try { if (sessionStorage.getItem('wdos.build') !== e.data.build) { sessionStorage.setItem('wdos.build', e.data.build); location.reload(); } } catch { /* ignore */ } }
 });
+// v109.45: the server says her envoy form comes first: show it
+window.addEventListener('wdos:envoy-form', () => { if (app.user && app.user.is_envoy && !app.user.envoy_form_needed) { app.user.envoy_form_needed = true; reshell(); } });
 window.addEventListener('wdos:signed-out', () => { if (app.user) { app.user = null; shellEls = null; stopPulse(); toast('You have been signed out', 'Sign in again to continue.', 'bad'); go('#/login'); } });
 
 /* ------------------------------------------------------------------ boot -- */

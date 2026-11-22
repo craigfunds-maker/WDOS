@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Configuration comes from environment variables (Render) or from
  * config.local.php beside index.html (shared hosting / cPanel). */
 
-const WDOS_BUILD = 'v109.44';
+const WDOS_BUILD = 'v109.45';
 
 function cfg(string $key, ?string $default = null): ?string {
   static $local = null;
@@ -207,7 +207,7 @@ function public_user(array $u): array {
     'is_hq' => is_hq($u), 'is_leader' => (bool) $seat,
     'seat' => $seat ? ['position' => $seat['position_code'], 'title' => seat_title($seat), 'status' => $seat['status'], 'network' => $seat['network'], 'level' => $seat['position_level'], 'acceptance' => $seat['acceptance'] ?? '', 'id' => (int) $seat['id'], 'term_ends_on' => $seat['term_ends_on'] ?? null] : null, 'todo' => $todo,
     'created_at' => $u['created_at'], 'email_is_phone' => str_ends_with((string) $u['email'], '@phone.wdos.invalid'),
-    'is_envoy' => ($u['role'] ?? '') === 'envoy', 'designation' => (string) ($u['designation'] ?? ''), 'hq_features' => function_exists('hq_features_of') && is_hq($u) ? hq_features_of($u) : null, 'guide_seen' => !empty($u['guide_seen_at']), 'lang' => (string) ($u['lang'] ?? ''),
+    'is_envoy' => ($u['role'] ?? '') === 'envoy', 'envoy_form_needed' => function_exists('ea_needed') && ea_needed($u), 'can_call' => function_exists('ea_can_call') && !is_hq($u) && ea_can_call($u), 'designation' => (string) ($u['designation'] ?? ''), 'hq_features' => function_exists('hq_features_of') && is_hq($u) ? hq_features_of($u) : null, 'guide_seen' => !empty($u['guide_seen_at']), 'lang' => (string) ($u['lang'] ?? ''),
   ] + (function_exists('amend_brief') ? amend_brief($u) : []) + ['he_for_she' => $seat ? (int) ($seat['he_for_she'] ?? 0) === 1 : false] + (function_exists('handoff_brief') ? handoff_brief($u) : []);
 }
 function age_on(string $dob, ?int $at = null): int {

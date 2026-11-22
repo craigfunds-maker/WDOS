@@ -69,6 +69,7 @@ function run_drive_jobs(array &$done): void {
   if ((int) $d->format('G') >= 10 && claim_send('detail_ask_' . $d->format('Y-m-d'))) $done['detail_ask'] = run_detail_asks($d);
   if ((int) $d->format('G') >= 8 && $d->format('N') === '1' && claim_send('country_week_' . $d->format('Y-m-d'))) $done['country_week'] = run_country_reports($d);
   if ((int) $d->format('G') >= 10 && claim_send('referral_news_' . $d->format('Y-m-d'))) $done['referral_news'] = run_referral_news($d);   // v109.38
+  if ((int) $d->format('G') >= 9 && function_exists('run_envoy_accept_nudges') && claim_send('envoy_accept_' . $d->format('Y-m-d'))) $done['envoy_accept'] = run_envoy_accept_nudges($d);   // v109.45
 }
 /** Tuesdays from 09:00: a leader or envoy who has never signed in and has a real email gets a link to choose her password (valid 7 days). At most 4 weeks. */
 function run_signin_nudges(DateTimeImmutable $d): string {

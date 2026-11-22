@@ -17,6 +17,11 @@ def until(fn,secs=40):
     return False
 def login(e,p):
     s=S(); r=s.post(B+'/auth/login',json={'email':e,'password':p}); assert r.ok,(e,r.text[:200]); return s
+# v109.45: envoys must accept their appointment form before anything else works; these tests are about other things
+_login_before_v10945=login
+def login(*a,**k):
+  sql("insert ignore into envoy_acceptances (user_id,accepted_at) select id, utc_timestamp() from users where role='envoy'")
+  return _login_before_v10945(*a,**k)
 sql("delete from login_attempts")
 hq=login('hq@test.local','hq-password-1'); ld=login('leader@test.local','leader-pass-1'); anon=S()
 PDF=b'%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n'+b'x'*2000
@@ -124,6 +129,7 @@ ev.post(B+'/me/password',json={'current_password':e['temporary_password'],'new_p
 me=ev.get(B+'/me').json()['user']; chk('envoy profile', me['is_envoy'] and not me['is_leader'] and not me['is_hq'], me)
 chk('envoy has no leader dashboard', ev.get(B+'/leader/dashboard').status_code in (403,404))
 chk('envoy cannot open HQ areas', ev.get(B+'/hq/members').status_code==403)
+sql("insert ignore into envoy_acceptances (user_id,accepted_at) select id, utc_timestamp() from users where role='envoy'")   # v109.45: past her appointment form
 home=ev.get(B+'/envoy/home').json(); chk('envoy home', home['kpis']['referred']==0 and code in home['link'], home)
 chk('a member cannot open the envoy page', m.get(B+'/envoy/home').status_code==403)
 lk=S().get(B+'/ref/'+code).json(); chk('envoy link is public', lk['link']['kind']=='envoy', lk)

@@ -42,6 +42,7 @@ function route(string $method, string $pattern, callable $fn): void {
   $res = $fn(...$m);
   out($res ?? ['ok' => true]);
 }
+require __DIR__ . '/../lib/envoy_accept.php';    // v109.45: the envoy appointment form, and the guard that holds envoys at it
 require __DIR__ . '/../lib/birthday.php';    // v109.44: birthday card (her photo, name, designation) and Kokoro voice. Before the routes
                                              // that call it: a new photo on her birthday remakes her card.
 
@@ -57,6 +58,7 @@ if (!preg_match('#^/(health|config|me|me/lang|auth/.+|geo/.+|positions|public/.+
   $pp = current_user();
   if ($pp && $pp['status'] === 'pending_profile') fail(403, 'Finish your profile first. Fill in your details to continue.', 'profile_incomplete');
 }
+ea_guard($METHOD, $PATH);     // v109.45: an envoy who has not accepted her appointment form can do nothing else
 
 /* ----------------------------------------------------------------- misc -- */
 route('GET', '/health', fn() => ['ok' => true, 'build' => WDOS_BUILD, 'db' => (bool) val('SELECT 1'), 'time' => now()]);

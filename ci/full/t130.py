@@ -11,6 +11,11 @@ def chk(n,c,x=''):
 def sql(q): return subprocess.run(['bash','-c','. /tmp/env.sh; mariadb --socket=/tmp/mdb.sock -uroot "$DB_NAME" -N'],input=q,capture_output=True,text=True).stdout.strip()
 def S(): s=requests.Session(); s.headers.update(H); return s
 def login(e,p): s=S(); r=s.post(B+'/auth/login',json={'email':e,'password':p}); assert r.ok,(e,r.text[:200]); return s
+# v109.45: envoys must accept their appointment form before anything else works; these tests are about other things
+_login_before_v10945=login
+def login(*a,**k):
+  sql("insert ignore into envoy_acceptances (user_id,accepted_at) select id, utc_timestamp() from users where role='envoy'")
+  return _login_before_v10945(*a,**k)
 sql("delete from login_attempts")
 hq=login('hq@test.local','hq-password-1')
 r=hq.post(B+'/hq/envoys',json={'first_name':'Testenv','last_name':'Envoy','email':f'te.{X}@example.org','phone':'','country_code':'NG'}); chk('envoy made', r.ok, r.text)

@@ -14,6 +14,11 @@ def chk(n,c,e=''):
     if not c: bad+=1; print('FAIL',n,str(e)[:500])
 def login(e,p):
     s=S(); r=s.post(B+'/auth/login',json={'email':e,'password':p}); assert r.ok,(e,r.text[:200]); return s
+# v109.45: envoys must accept their appointment form before anything else works; these tests are about other things
+_login_before_v10945=login
+def login(*a,**k):
+  sql("insert ignore into envoy_acceptances (user_id,accepted_at) select id, utc_timestamp() from users where role='envoy'")
+  return _login_before_v10945(*a,**k)
 sql("delete from login_attempts"); sql("delete from rate_limits") if sql("show tables like 'rate_limits'") else None
 hq=login('hq@test.local','hq-password-1'); ld=login('leader@test.local','leader-pass-1')
 cc=sql("select country_code from org_units where level='country' and country_code='NG' limit 1") or sql("select country_code from org_units where level='country' limit 1")
@@ -27,6 +32,7 @@ r=a.post(B+'/envoy/join',json=form(reach_plan='x')); chk('where she will share i
 r=a.post(B+'/envoy/join',json=form(country_code='ZZ')); chk('unknown country refused', r.status_code==422, r.text)
 r=a.post(B+'/envoy/join',json=form(password='short')); chk('short password refused', r.status_code==422, r.text)
 r=a.post(B+'/envoy/join',json=form()); chk('envoy signed up', r.ok and r.json()['live'] is True and r.json()['user']['is_envoy'], r.text)
+sql("insert ignore into envoy_acceptances (user_id,accepted_at) select id, utc_timestamp() from users where role='envoy'")   # v109.45: past her appointment form
 eid=int(sql(f"select id from users where email='halima.{X}@wdos-mail.org'"))
 h=a.get(B+'/envoy/home'); chk('she is signed in and sees her dashboard', h.ok and h.json()['status']=='active' and '/#/r/' in h.json()['link'], h.text)
 chk('her link is on', sql(f"select l.active from envoys e join referral_links l on l.id=e.link_id where e.user_id={eid}")=='1')

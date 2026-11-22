@@ -14,7 +14,21 @@ declare(strict_types=1);
 
 const VC_RING_SECONDS = 45;
 
-function vc_can_call(array $u): bool { return is_hq($u) || (bool) work_seat($u); }
+function vc_can_call(array $u): bool { return is_hq($u) || (bool) work_seat($u) || vc_is_envoy($u) || (bool) vc_my_envoy($u); }
+/* v109.45 (Azeez, 22 Nov 2026): "the state envoy too should be able to make voice calls to HQ and to the people they referred".
+ * An envoy rings WODDI HQ and anyone who joined through her link; the people she referred can ring her back; HQ can ring envoys. */
+function vc_is_envoy(array $u): bool {
+  return ($u['role'] ?? '') === 'envoy' && (bool) val("SELECT 1 FROM envoys WHERE user_id=? AND status='active'", [(int) $u['id']]) && !(function_exists('ea_needed') && ea_needed($u));
+}
+function vc_my_envoy(array $u): ?int {
+  if (($u['role'] ?? '') === 'envoy' || is_hq($u)) return null;
+  $e = val("SELECT r.referrer_id FROM referrals r JOIN users eu ON eu.id=r.referrer_id AND eu.role='envoy' AND eu.status='active' WHERE r.user_id=? LIMIT 1", [(int) $u['id']]);
+  return $e ? (int) $e : null;
+}
+function vc_person(array $r, string $title): array {
+  return ['id' => (int) $r['id'], 'first_name' => $r['first_name'], 'last_name' => $r['last_name'], 'name' => trim($r['first_name'] . ' ' . $r['last_name']), 'has_photo' => (int) $r['has_photo'] === 1, 'network' => $r['network'] ?? '', 'title' => $title];
+}
+function vc_like(string $q): string { return '%' . str_replace(['%', '_'], ['\\%', '\\_'], $q) . '%'; }
 
 /** Serving leaders this person may ring, as SQL over seats sc / users u / positions p / org_units o. */
 function vc_reach_sql(array $u): array {
@@ -25,6 +39,20 @@ function vc_reach_sql(array $u): array {
   return [$base . ' AND o.path LIKE ? AND sc.network=?', [$seat['unit_path'] . '%', $seat['network']]];
 }
 function vc_people(array $u, string $q = '', ?int $only = null): array {
+  if (!is_hq($u) && !work_seat($u)) {                     // v109.45: an envoy, or someone an envoy referred
+    $w = "u.status='active' AND u.id<>?"; $p = [(int) $u['id']];
+    if (vc_is_envoy($u)) { $w .= ' AND u.id IN (SELECT r.user_id FROM referrals r WHERE r.referrer_id=?)'; $p[] = (int) $u['id']; }
+    elseif ($e = vc_my_envoy($u)) { $w .= ' AND u.id=?'; $p[] = $e; }
+    else return [];
+    if ($q !== '') { $w .= " AND CONCAT(u.first_name,' ',u.last_name) LIKE ?"; $p[] = vc_like($q); }
+    if ($only !== null) { $w .= ' AND u.id=?'; $p[] = $only; }
+    $out = [];
+    foreach (rows("SELECT u.id, u.first_name, u.last_name, u.has_photo, u.network, u.role, u.designation FROM users u WHERE $w ORDER BY u.first_name, u.last_name LIMIT 400", $p) as $r) {
+      $seat = current_seat((int) $r['id']);
+      $out[] = vc_person($r, $r['role'] === 'envoy' ? ((string) $r['designation'] ?: 'WODDI Envoy') : ($seat ? seat_title($seat) : 'Joined through your link'));
+    }
+    return $out;
+  }
   [$w, $p] = vc_reach_sql($u);
   if ($q !== '') { $w .= " AND CONCAT(u.first_name,' ',u.last_name) LIKE ?"; $p[] = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $q) . '%'; }
   if ($only !== null) { $w .= ' AND u.id=?'; $p[] = $only; }
@@ -35,6 +63,13 @@ function vc_people(array $u, string $q = '', ?int $only = null): array {
     $id = (int) $r['id']; if (isset($out[$id])) continue;
     $out[$id] = ['id' => $id, 'first_name' => $r['first_name'], 'last_name' => $r['last_name'], 'name' => trim($r['first_name'] . ' ' . $r['last_name']), 'has_photo' => (int) $r['has_photo'] === 1, 'network' => $r['network'],
       'title' => seat_title($r)];
+  }
+  if (is_hq($u)) {                                        // v109.45: HQ can ring WODDI Envoys too
+    $w2 = "u.role='envoy' AND u.status='active' AND e.status='active'"; $p2 = [];
+    if ($q !== '') { $w2 .= " AND CONCAT(u.first_name,' ',u.last_name) LIKE ?"; $p2[] = vc_like($q); }
+    if ($only !== null) { $w2 .= ' AND u.id=?'; $p2[] = $only; }
+    foreach (rows("SELECT u.id, u.first_name, u.last_name, u.has_photo, u.network, u.designation FROM users u JOIN envoys e ON e.user_id=u.id WHERE $w2 ORDER BY u.first_name LIMIT 200", $p2) as $r)
+      if (!isset($out[(int) $r['id']])) $out[(int) $r['id']] = vc_person($r, (string) $r['designation'] ?: 'WODDI Envoy');
   }
   return array_values($out);
 }
@@ -93,16 +128,18 @@ route('GET', '/calls', function () {
 function str_in_get(string $k): string { return mb_substr(trim((string) ($_GET[$k] ?? '')), 0, 60); }
 
 route('POST', '/calls', function () {
-  $u = require_user(); if (!vc_can_call($u)) fail(403, 'Voice calls are for volunteer leaders and WODDI HQ.', 'forbidden');
+  $u = require_user(); if (!vc_can_call($u)) fail(403, 'Voice calls are for volunteer leaders, WODDI Envoys and WODDI HQ.', 'forbidden');
   throttle('vcall:' . (int) $u['id'], 40, 3600); throttle_hit('vcall:' . (int) $u['id']);
   $to = body()['to'] ?? null; $hq = $to === 'hq'; $callee = $hq ? null : (int) $to;
   if ($hq && is_hq($u)) fail(422, 'You are WODDI HQ. Choose a leader to ring.', 'to');
-  if (!$hq) { if ($callee < 1 || !vc_people($u, '', $callee)) fail(403, 'You can ring leaders in your own country and network, and WODDI HQ.', 'to'); }
+  if ($hq && vc_my_envoy($u) && !work_seat($u)) fail(403, 'You can ring the WODDI Envoy who invited you.', 'to');
+  if (!$hq) { if ($callee < 1 || !vc_people($u, '', $callee)) fail(403, vc_is_envoy($u) ? 'You can ring WODDI HQ and the people who joined through your link.' : 'You can ring leaders in your own country and network, and WODDI HQ.', 'to'); }
   // one call at a time: anything this person was still ringing is cancelled
   q("UPDATE voice_calls SET status='cancelled', ended_at=? WHERE caller_id=? AND status='ringing'", [now(), (int) $u['id']]);
   $room = 'WODDI-call-' . bin2hex(random_bytes(10));
   $id = ins('INSERT INTO voice_calls (caller_id,callee_id,to_hq,room,status,created_at) VALUES (?,?,?,?,?,?)', [(int) $u['id'], $callee, $hq ? 1 : 0, $room, 'ringing', now()]);
-  $from = trim($u['first_name'] . ' ' . $u['last_name']); $seat = work_seat($u); $who = $seat ? seat_title($seat) : 'WODDI HQ';
+  $from = trim($u['first_name'] . ' ' . $u['last_name']); $seat = work_seat($u);
+  $who = $seat ? seat_title($seat) : (is_hq($u) ? 'WODDI HQ' : (($u['role'] ?? '') === 'envoy' ? ((string) ($u['designation'] ?? '') ?: 'WODDI Envoy') : 'Joined through your link'));
   if ($hq) notify_hq('call', 'Voice call from ' . $from, $who, '#/calls/' . $id);
   else notify($callee, 'call', 'Voice call from ' . $from, $who, '#/calls/' . $id);
   log_activity((int) $u['id'], $callee, 'voice_call', $hq ? 'Rang WODDI HQ' : 'Rang ' . vc_name((int) $callee), 'call', (int) $id);
@@ -112,7 +149,7 @@ route('POST', '/calls', function () {
 
 /** Asked every few seconds by the open app: calls ringing for me now. */
 route('GET', '/calls/ring', function () {
-  $u = require_user(); if (!vc_can_call($u)) return ['calls' => []];
+  $u = require_user();      // v109.45: anyone can be rung (an envoy rings people who are not leaders), so anyone is asked
   vc_expire(); $me = (int) $u['id'];
   $w = '(callee_id=?' . (is_hq($u) ? ' OR to_hq=1' : '') . ')';
   $list = rows("SELECT * FROM voice_calls WHERE status='ringing' AND $w AND caller_id<>? AND created_at >= ? ORDER BY id DESC LIMIT 5", [$me, $me, gmdate('Y-m-d H:i:s', time() - VC_RING_SECONDS)]);

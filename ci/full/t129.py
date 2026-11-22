@@ -9,6 +9,11 @@ def chk(n,c,x=''):
 def sql(q): return subprocess.run(['bash','-c','. /tmp/env.sh; mariadb --socket=/tmp/mdb.sock -uroot "$DB_NAME" -N'],input=q,capture_output=True,text=True).stdout.strip()
 def S(): s=requests.Session(); s.headers.update({'X-WDOS':'1'}); return s
 def login(e,p): s=S(); r=s.post(B+'/auth/login',json={'email':e,'password':p}); return s if r.ok else r
+# v109.45: envoys must accept their appointment form before anything else works; these tests are about other things
+_login_before_v10945=login
+def login(*a,**k):
+  sql("insert ignore into envoy_acceptances (user_id,accepted_at) select id, utc_timestamp() from users where role='envoy'")
+  return _login_before_v10945(*a,**k)
 def cron(now): return subprocess.run(['bash','-c','. /tmp/env.sh; php /home/claude/wdos-php/lib/cron_cli.php'],env=dict(os.environ, ADMIN_KEY='x', WDOS_TEST_NOW=now, BREVO_API_KEY='ci-not-real', MAIL_FROM='wdos-ci@wdos-mail.org', BREVO_API_URL='http://127.0.0.1:9/v3/smtp/email'),capture_output=True,text=True).stdout
 hq=login('hq@test.local','hq-password-1'); ld=login('leader@test.local','leader-pass-1')
 # a seated leader who has never signed in, with a Nigerian phone and a real-looking email

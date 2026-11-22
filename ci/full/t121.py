@@ -8,6 +8,11 @@ def chk(n,c,x=''):
 def sql(q): return subprocess.run(['bash','-c','. /tmp/env.sh; mariadb --socket=/tmp/mdb.sock -uroot "$DB_NAME" -N'],input=q,capture_output=True,text=True).stdout.strip()
 def login(e,p):
   s=requests.Session(); s.headers.update({'X-WDOS':'1'}); r=s.post(B+'/auth/login',json={'email':e,'password':p}); return s if r.ok else None
+# v109.45: envoys must accept their appointment form before anything else works; these tests are about other things
+_login_before_v10945=login
+def login(*a,**k):
+  sql("insert ignore into envoy_acceptances (user_id,accepted_at) select id, utc_timestamp() from users where role='envoy'")
+  return _login_before_v10945(*a,**k)
 hq=login('hq@test.local','hq-password-1'); ld=login('leader@test.local','leader-pass-1')
 # give the Nigerian seat holders real-looking emails (test addresses ending .local are not sign-in addresses)
 sql("update users u set u.email=concat('l',u.id,'@wdos-mail.org') where exists (select 1 from seats s join org_units o on o.id=s.org_unit_id where s.user_id=u.id and s.ends_at is null and o.country_code='NG') and u.email like '%.local' and u.email<>'leader@test.local'")
