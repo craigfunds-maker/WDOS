@@ -89,7 +89,8 @@ function activation_view(array $a, bool $forHq = false): array {
       'below_label' => lm_depth($n) < 5 ? lm_level_label(LM_LEVELS[lm_depth($n)], $n['cc']) : ''];
     $v += ['scheme' => 'fw', 'fw' => fw_state($a), 'orientation' => FW_ORIENTATION, 'quiz_a' => fw_quiz_public(FW_QUIZ_A), 'quiz_b' => fw_quiz_public(FW_QUIZ_B), 'officers' => fw_officers($a), 'coverage' => $cov,
       'support_note' => $a['support_note'] ?? '', 'compliance_breach' => $forHq ? ($a['compliance_breach'] ?? '') : ''];
-    $v['role_title'] = lm_title($a['position_code'], $a['network'], $n['cc']); $v['unit'] = lm_place_name($n);      // the structure document's title and the seat's own place
+    $v['role_title'] = lm_title($a['position_code'], $a['network'], $n['cc']);      // the structure document's title
+    if ((string) val('SELECT level FROM positions WHERE code=?', [$a['position_code']]) !== 'chapter' || (int) ($a['chapter_id'] ?? 0)) $v['unit'] = lm_place_name($n);      // the seat's own place; a chapter not yet chosen keeps the name given
   } else $v['scheme'] = 'v1';
   if ($forHq) $v += ['outcome_note' => $a['outcome_note'], 'extension_reason' => $a['extension_reason'], 'candidate' => ['id' => (int) $u['id'], 'first_name' => $u['first_name'], 'last_name' => $u['last_name'], 'has_photo' => (int) $u['has_photo'], 'email' => $u['email'], 'phone' => $u['phone'],
     'country_code' => $u['country_code'], 'state_region' => $u['state_region'], 'lga' => $u['lga'], 'community' => $u['community'], 'member_no' => $u['member_no'], 'seated' => (bool) current_seat((int) $u['id'])], 'position' => $a['position_code'], 'org_unit_id' => (int) $a['org_unit_id'], 'area_label' => $a['area_label']];
