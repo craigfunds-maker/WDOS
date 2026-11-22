@@ -45,8 +45,9 @@ chk('the country seats show who holds them; WNNN country seats show vacant', [s[
 chk('the WNNN country title follows the structure document (Country Lead)', d['seats'][2]['title']=='Country Lead', d['seats'][2]['title'])
 akk=[c for c in d['children'] if c['name']=='Akwa Ibom'][0]
 chk('Akwa Ibom: State Coordinator and State Lead filled, both assistants vacant', akk['vacant']==2 and akk['leaders']==4, akk)
+ib,ib_id,_=reg('Ibionolead',lga='Ibiono Ibom',comm='Ward 1'); seat(ib_id,'district_coordinator',ak,area_label='Ibiono Ibom')   # spelt without the hyphen of the official list
 d=hq.get(B+'/leadmap',params={'cc':'NG','state':'Akwa Ibom'}).json()
-chk('Akwa Ibom lists its 31 LGAs', d['child_label']=='LGA' and len(d['children'])==31, len(d.get('children',[])))
+chk('Akwa Ibom lists its 31 LGAs (Ibiono Ibom matched to the official Ibiono-Ibom, not listed twice)', d['child_label']=='LGA' and len(d['children'])==31, len(d.get('children',[])))
 st=d['seats'][0]
 chk('a leader card says where she comes from and how she came', st['person']['id']==sc_id and 'Uyo' in st['person']['from'] and 'Akwa Ibom' in st['person']['from'] and 'journey' in st, st)
 chk('HQ sees her figures', st.get('kpis') is not None and 'score' in st['kpis'], st.get('kpis'))
@@ -78,7 +79,7 @@ r=requests.get(B+'/leadmap',headers=H); chk('the map needs sign-in', r.status_co
 mem,mem_id,_=reg('Plainmember'); r=mem.get(B+'/leadmap'); chk('a member without a seat cannot open it', r.status_code==403)
 # ---- the leader dashboard shows leaders, not members
 dd=sc.get(B+'/leader/dashboard').json()['leadmap']
-chk('her dashboard counts the leaders under her and the vacant LGA seats', dd['leaders']==2 and dd['places']==31 and dd['vacant']==61 and dd['child_label']=='LGA', dd)
+chk('her dashboard counts the leaders under her and the vacant LGA seats', dd['leaders']==3 and dd['places']==31 and dd['vacant']==60 and dd['child_label']=='LGA', dd)
 # ---- a link for one vacant seat
 r=sc.post(B+'/leadmap/seat-link',json={'cc':'NG','state':'Akwa Ibom','lga':'Eket','network':'WGMN','position':'district_coordinator'}); chk('the State Coordinator gets a link for the vacant Eket seat', r.ok, r.text)
 L=r.json()['link']; chk('the link names the seat and its place', L['role'].startswith('LGA') and 'Eket' in L['place'] and '/#/r/' in L['url'], L)
@@ -150,7 +151,7 @@ k=row(sc_id)['kpis']; chk('the State Coordinator: one leader brought in, one mee
 chk('the score is the published formula', row(wd_id)['kpis']['score']==3+2+3+4, row(wd_id)['kpis']['score'])
 chk('ranked by score, highest first', [x['kpis']['score'] for x in b['rows']]==sorted([x['kpis']['score'] for x in b['rows']],reverse=True) and b['rows'][0]['rank']==1)
 chk('sorting by leaders brought puts the State Coordinator first', hq.get(B+'/leadmap/leaderboard',params={'cc':'NG','sort':'leaders_brought'}).json()['rows'][0]['id']==sc_id)
-lb=sc.get(B+'/leadmap/leaderboard').json(); chk('a leader sees the board for her own area: herself and those under her', {x['id'] for x in lb['rows']}=={sc_id,wd_id,cand_id}, [x['first_name'] for x in lb['rows']])
+lb=sc.get(B+'/leadmap/leaderboard').json(); chk('a leader sees the board for her own area: herself and those under her', {x['id'] for x in lb['rows']}=={sc_id,wd_id,cand_id,ib_id}, [x['first_name'] for x in lb['rows']])
 r=sc.get(B+'/leadmap/leaderboard',params={'cc':'NG','state':'Lagos'}); chk('not another state', r.status_code==403)
 # ---- one leader's file
 f=sc.get(B+f'/leadmap/leader/{wd_id}').json()

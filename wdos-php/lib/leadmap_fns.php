@@ -41,7 +41,8 @@ const LM_SCORE = ['leaders_brought' => 10, 'members_brought' => 2, 'meetings_att
   'tasks_on_time' => 3, 'tasks_late' => 1, 'programmes' => 4, 'reports_overdue' => -3, 'tasks_overdue' => -1];
 const LM_PUNCTUAL_MIN = 10;          // joined within ten minutes of the start counts as on time
 
-function lm_k(?string $s): string { return mb_strtolower(trim((string) $s)); }
+/** A place name for matching: case, spaces, hyphens, dots and apostrophes ignored ("Ibiono Ibom" is the official "Ibiono-Ibom"). */
+function lm_k(?string $s): string { return (string) preg_replace("/[\\s\\-\\.'’,]+/u", '', mb_strtolower(trim((string) $s))); }
 function lm_slug(string $s): string { return trim((string) preg_replace('/[^a-z0-9]+/', '-', strtolower($s)), '-'); }
 function lm_title(string $code, string $net, string $cc): string {
   $code = LM_ALIAS[$code] ?? $code;
@@ -276,7 +277,7 @@ function lm_children(array $n, array $v): array {
   $mem = [];
   $col = [0 => 'country_code', 1 => 'state_region', 2 => 'lga', 3 => 'community', 4 => 'chapter_id'][$d]; $w = "status='active' AND network IN ('" . implode("','", $nets) . "')"; $p = [];
   foreach ([1 => ['country_code', 'cc'], 2 => ['state_region', 'state'], 3 => ['lga', 'lga'], 4 => ['community', 'comm']] as $i => [$c2, $k2]) if ($d >= $i) { $w .= " AND $c2=?"; $p[] = $n[$k2]; }
-  foreach (rows("SELECT LOWER($col) k, COUNT(*) n FROM users WHERE $w GROUP BY LOWER($col)", $p) as $r) $mem[(string) $r['k']] = (int) $r['n'];
+  foreach (rows("SELECT LOWER($col) k, COUNT(*) n FROM users WHERE $w GROUP BY LOWER($col)", $p) as $r) { $kk = $d === 4 ? (string) $r['k'] : lm_k((string) $r['k']); $mem[$kk] = ($mem[$kk] ?? 0) + (int) $r['n']; }
   $out = [];
   foreach ($kids as $kid) {
     $pl = $kid['place']; $under = array_values(array_filter($seats, fn($s) => lm_inside($s['place'], $pl)));
@@ -291,7 +292,7 @@ function lm_children(array $n, array $v): array {
       }
     }
     $mk = $d === 4 ? (string) $pl['chapter'] : lm_k([0 => $pl['cc'], 1 => $pl['state'], 2 => $pl['lga'], 3 => $pl['comm']][$d]);
-    if ($d === 0) $mk = strtolower($pl['cc']);
+    if ($d === 0) $mk = lm_k($pl['cc']);
     $out[] = ['name' => $kid['name'], 'place' => $pl, 'slots' => $slots, 'vacant' => $vac, 'leaders' => count($under), 'members' => $d === 4 ? ($kid['members'] ?? 0) : ($mem[$mk] ?? 0),
       'network' => $kid['network'] ?? null, 'status' => $kid['status'] ?? null];
   }
