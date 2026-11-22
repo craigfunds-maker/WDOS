@@ -32,4 +32,9 @@ chk('it is kept as a typed signature, markup removed', rec['signature']=='typed:
 chk('her dashboard opens after accepting', e.get(B+'/envoy/home').ok)
 f=hq.get(B+f'/hq/envoy-acceptances/{u}').json()['record']
 chk('HQ sees the typed signature on her form', f['signature']=='typed:Envts1 Test', f['signature'])
+# v109.50: an envoy has no seat above her
+PWH=subprocess.run(['php','-r','echo password_hash("Envts-pw-1", PASSWORD_DEFAULT);'],capture_output=True,text=True).stdout
+sql(f"update users set password_hash='{PWH}' where id={u}; update envoys set state_region='Akwa Ibom' where user_id={u}"); e2=login(f'ts1.{X}@wdos-mail.org','Envts-pw-1')
+m=e2.get(B+'/leadmap?cc=NG&state=Akwa%20Ibom').json()
+chk('an envoy is shown no leadership above her', m.get('above')==[] and m.get('role')=='envoy', {k:m.get(k) for k in ('above','role')})
 print(ok,'passed, FAILURES',bad)

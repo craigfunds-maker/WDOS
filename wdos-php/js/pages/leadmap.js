@@ -106,7 +106,7 @@ export async function render(root) {
   trail.forEach((c, i) => { if (i) crumbs.append(h('span', { 'aria-hidden': 'true', text: '›' })); crumbs.append(c.here ? h('b', { text: c.name }) : (i === 0 && d.role !== 'hq') ? h('span', { class: 'faint', text: c.name }) : h('a', { href: mapUrl(c.place, { network: q.get('network'), days: q.get('days') }), text: c.name })); });
   head.replaceChildren(h('div', { class: 'card__body', style: 'display:grid;gap:14px' },
     h('div', { style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap' }, d.place.cc ? flag(d.place.cc) : icon('globe', 26), h('div', { class: 'grow' }, h('h2', { class: 'display', style: 'margin:0;font-size:26px', text: d.depth ? d.name : t('WODDI around the world') }),
-      h('small', { class: 'faint', text: d.depth ? t(d.level_label) + (d.view === 'up' ? ' · ' + t('the leadership above you') : '') : tf('{1} countries', d.children.length) })), crumbs),
+      h('small', { class: 'faint', text: d.depth ? t(d.level_label) + (d.view === 'up' && d.role !== 'envoy' ? ' · ' + t('the leadership above you') : '') : tf('{1} countries', d.children.length) })), crumbs),
     d.depth >= 1 && d.depth <= 4 && (d.role !== 'envoy' || d.depth <= 2) ? h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, (d.network ? [d.network] : d.networks).map((n) =>
       h('a', { class: 'btn btn--quiet btn--s', href: roomChatUrl(n, d.place) }, icon('send', 16), h('span', { text: tf('{1} region chat and forum', n) })))) : null,
     pick, d.role === 'envoy' ? h('p', { class: 'notice', style: 'margin:0', text: 'As State Envoy you support both state teams. You see who fills each seat and share links for the vacant ones. You are not their supervisor, so their activity figures are not shown here.' }) : null));

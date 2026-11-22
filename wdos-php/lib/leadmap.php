@@ -37,7 +37,8 @@ route('GET', '/leadmap', function () {
     'place' => $n, 'depth' => $d, 'name' => lm_place_name($n), 'level' => $d ? LM_LEVELS[$d - 1] : 'hq', 'level_label' => $d ? lm_level_label(LM_LEVELS[$d - 1], $n['cc']) : 'Headquarters',
     'child_label' => $d < 5 ? ($d === 0 ? 'Country' : lm_level_label(LM_LEVELS[$d], $n['cc'])) : null,
     'view' => $how, 'role' => $v['role'], 'networks' => $v['nets'], 'network' => count($nets) === 1 ? $nets[0] : '', 'root' => $v['root'], 'can_link' => $v['links'] && $how === 'down', 'kpis_on' => (bool) $kp, 'days' => $days,
-    'levels' => $levels, 'above' => $above, 'seats' => $here, 'children' => $kids,
+    // v109.50: a WODDI Envoy holds no seat in the line, so nobody is "above" her; her map is her state's seats only (Azeez)
+    'levels' => $levels, 'above' => $v['role'] === 'envoy' ? [] : $above, 'seats' => $here, 'children' => $kids,
     'totals' => ['leaders' => count($sub) + count(array_filter($here, fn($s) => $s['filled'])), 'vacant_here' => $vacHere, 'vacant_next' => $vacKids, 'members' => (int) val("SELECT COUNT(*) FROM users WHERE $memW", $memP),
       'activations' => array_column($act, 'n', 'route'), 'places' => count($kids)],
     'score_rules' => LM_SCORE,
