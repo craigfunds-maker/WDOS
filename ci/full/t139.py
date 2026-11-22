@@ -29,6 +29,13 @@ r=e.post(B+'/envoy/acceptance',json=dict(base,signature='',signature_typed=True,
 chk('a typed full name is accepted as her signature', r.ok, r.text)
 rec=e.get(B+'/envoy/acceptance').json()['record']
 chk('it is kept as a typed signature, markup removed', rec['signature']=='typed:Envts1 Test', rec['signature'])
+# v109.50: Part F is completed automatically the moment she accepts
+chk('Part F is acknowledged automatically on acceptance', rec.get('ack') and rec['ack']['ref'].startswith('WODDI-ENV-') and rec['ack']['name']=='WODDI HQ' and 'automatically' in rec['ack']['title'], rec.get('ack'))
+chk('her thank-you notification carries the reference', sql(f"select count(*) from notifications where user_id={u} and body like '%WODDI-ENV-%'")!='0')
+# an envoy who accepted before this and is still waiting is acknowledged by migration 051
+e3,u3=envoy('ts3'); sql(f"insert into envoy_acceptances (user_id,accepted_at) values ({u3}, utc_timestamp())")
+subprocess.run(['bash','-c','. /tmp/env.sh; mariadb --socket=/tmp/mdb.sock -uroot "$DB_NAME" < /home/claude/wdos-php/migrations/051_envoy_auto_ack.sql'])
+chk('migration 051 acknowledges an envoy who was waiting', sql(f"select ack_ref from envoy_acceptances where user_id={u3}").startswith('WODDI-ENV-'))
 chk('her dashboard opens after accepting', e.get(B+'/envoy/home').ok)
 f=hq.get(B+f'/hq/envoy-acceptances/{u}').json()['record']
 chk('HQ sees the typed signature on her form', f['signature']=='typed:Envts1 Test', f['signature'])

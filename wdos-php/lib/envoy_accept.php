@@ -106,17 +106,27 @@ route('POST', '/envoy/acceptance', function () {
   if ($pre['phone'] === '' && $f['phone'] !== '') q('UPDATE users SET phone=? WHERE id=?', [$f['phone'], (int) $u['id']]);
   if ($pre['email'] === '' && $f['email'] !== '' && !val('SELECT 1 FROM users WHERE email=? AND id<>?', [$f['email'], (int) $u['id']])) q('UPDATE users SET email=? WHERE id=?', [$f['email'], (int) $u['id']]);
   log_activity((int) $u['id'], null, 'envoy_acceptance', 'Accepted the WODDI Envoy appointment', 'envoy', (int) $u['id']);
+  /* v109.50: Part F is completed the moment she accepts (Azeez, 22 Nov): no envoy waits for HQ to acknowledge by hand.
+   * It is marked plainly as automatic; HQ can still acknowledge again under an officer's name from her form. */
+  $ref = ea_auto_ack((int) $u['id']);
   $name = trim($u['first_name'] . ' ' . $u['last_name']); $des = $pre['designation'];
-  notify((int) $u['id'], 'appointment', 'Thank you for accepting your appointment', 'Your WODDI Envoy Acceptance & Commitment Form is with WODDI HQ.', '#/envoy-form');
-  notify_hq('appointment', $name . ' accepted her envoy appointment', $des . ': the Acceptance & Commitment Form is signed.', '#/envoys/' . (int) $u['id'] . '/form');
+  notify((int) $u['id'], 'appointment', 'Thank you for accepting your appointment', 'WODDI HQ has acknowledged it. Your official reference is ' . $ref . '.', '#/envoy-form');
+  notify_hq('appointment', $name . ' accepted her envoy appointment', $des . ': the Acceptance & Commitment Form is signed and acknowledged, reference ' . $ref . '.', '#/envoys/' . (int) $u['id'] . '/form');
   $sum = ea_summary_html(ea_record((int) $u['id']));
   if (real_email($f['email'] ?: (string) $u['email'])) mail_queue($f['email'] ?: (string) $u['email'], (string) $u['first_name'], 'Your WODDI Envoy appointment: accepted',
-    mail_wrap('Thank you, ' . htmlspecialchars((string) $u['first_name']), '<p>WODDI HQ has received your signed <b>WODDI Envoy Appointment Acceptance &amp; Commitment Form</b>. Welcome, and thank you for standing with us. No woman is left out.</p>' . $sum, 'Open my dashboard', app_url() . '/#/'));
-  mail_queue(hq_inbox(), 'WODDI HQ', 'Envoy accepted: ' . $name, mail_wrap($name . ' accepted her appointment', '<p>' . htmlspecialchars($des) . ' has signed the WODDI Envoy Acceptance &amp; Commitment Form in WDOS. It is waiting for HQ\'s acknowledgement (Part F).</p>' . $sum, 'Open the form', app_url() . '/#/envoys/' . (int) $u['id'] . '/form'));
+    mail_wrap('Thank you, ' . htmlspecialchars((string) $u['first_name']), '<p>WODDI HQ has received and acknowledged your signed <b>WODDI Envoy Appointment Acceptance &amp; Commitment Form</b>.</p><p><b>Official reference:</b> ' . htmlspecialchars($ref) . '</p><p>Welcome, and thank you for standing with us. No woman is left out.</p>' . $sum, 'Open my dashboard', app_url() . '/#/'));
+  mail_queue(hq_inbox(), 'WODDI HQ', 'Envoy accepted: ' . $name, mail_wrap($name . ' accepted her appointment', '<p>' . htmlspecialchars($des) . ' has signed the WODDI Envoy Acceptance &amp; Commitment Form in WDOS. Part F was completed automatically, reference ' . htmlspecialchars($ref) . '.</p>' . $sum, 'Open the form', app_url() . '/#/envoys/' . (int) $u['id'] . '/form'));
   after_response(function () { push_drain(10); mail_drain(6); });
   return ['ok' => true, 'record' => ea_public(ea_record((int) $u['id']))];
 });
 
+function ea_ref(int $id): string { return 'WODDI-ENV-' . hq_today()->format('Y') . '-' . str_pad((string) $id, 5, '0', STR_PAD_LEFT); }
+function ea_auto_ack(int $id): string {
+  $ref = ea_ref($id);
+  q('UPDATE envoy_acceptances SET ack_by=NULL, ack_name=?, ack_title=?, ack_ref=?, ack_at=? WHERE user_id=? AND ack_at IS NULL', ['WODDI HQ', 'Acknowledged automatically on acceptance', $ref, now(), $id]);
+  log_activity($id, $id, 'envoy_acceptance_ack', 'Envoy appointment acknowledged automatically on acceptance, ref ' . $ref, 'envoy', $id);
+  return (string) (val('SELECT ack_ref FROM envoy_acceptances WHERE user_id=?', [$id]) ?: $ref);
+}
 function ea_public(array $r): array {
   return ['full_name' => $r['full_name'], 'country' => $r['country'], 'profession' => $r['profession'], 'organisation' => $r['organisation'], 'email' => $r['email'],
     'phone' => $r['phone'], 'network' => $r['network'], 'effective_date' => $r['effective_date'], 'focus' => $r['focus'], 'first_30_days' => $r['first_30_days'],
@@ -156,7 +166,7 @@ route('POST', '/hq/envoy-acceptances/(\d+)/acknowledge', function ($id) {
   $b = body(); $name = ea_clean((string) ($b['name'] ?? trim($me['first_name'] . ' ' . $me['last_name'])), 190); $title = ea_clean((string) ($b['title'] ?? $me['designation'] ?? ''), 190);
   $ref = ea_clean((string) ($b['ref'] ?? ''), 80);
   if ($name === '' || $title === '') fail(422, 'Please give the name and title of the authorised representative.', 'name');
-  if ($ref === '') $ref = 'WODDI-ENV-' . hq_today()->format('Y') . '-' . str_pad((string) (int) $id, 5, '0', STR_PAD_LEFT);
+  if ($ref === '') $ref = ea_ref((int) $id);
   q('UPDATE envoy_acceptances SET ack_by=?, ack_name=?, ack_title=?, ack_ref=?, ack_at=? WHERE user_id=?', [(int) $me['id'], $name, $title, $ref, now(), (int) $id]);
   notify((int) $id, 'appointment', 'WODDI HQ has acknowledged your appointment', 'Official reference ' . $ref . '. Thank you for serving as a WODDI Envoy.', '#/envoy-form');
   $u = row('SELECT email, first_name FROM users WHERE id=?', [(int) $id]);

@@ -103,7 +103,7 @@ function fill(d) {
       field('preferred_contact', 'Preferred contact or WhatsApp number', { type: 'tel', max: 40, optional: true })),
     h('div', { class: 'field' }, h('span', { text: t('Envoy signature') }), pad.el)),
   h('div', { class: 'eform__foot' }, progress, err, btn,
-    h('small', { class: 'muted', text: t('Part F (WODDI acknowledgement) is completed by WODDI HQ after you accept.') })));
+    h('small', { class: 'muted', text: t('Part F (WODDI acknowledgement) is added automatically when you accept, with your official reference.') })));
   if (!F.preferred_contact.value) F.preferred_contact.value = p.phone || '';
   const root2 = h('div', {}, form);
   if (missing.length) setTimeout(() => F[missing[0]]?.focus?.({ preventScroll: true }), 400);
