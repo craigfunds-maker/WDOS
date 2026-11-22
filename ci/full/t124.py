@@ -11,6 +11,11 @@ def login(e,p):
 def cron(now):
   env=dict(os.environ, ADMIN_KEY='t124', WDOS_TEST_NOW=now)
   return subprocess.run(['bash','-c','. /tmp/env.sh; php /home/claude/wdos-php/lib/cron_cli.php'],env=env,capture_output=True,text=True).stdout
+# v109.45: envoys must accept their appointment form before anything else works; this test is about other things
+_login_before_v10945=login
+def login(*a,**k):
+  sql("insert ignore into envoy_acceptances (user_id,accepted_at) select id, utc_timestamp() from users where role='envoy'")
+  return _login_before_v10945(*a,**k)
 hq=login('hq@test.local','hq-password-1')
 d=hq.post(B+'/hq/envoys/import',json={'rows':[{'state':'Lagos','name':'Test Envoy Person','phone':'08000000099'}]}).json(); env=d['added'][0]['id']
 x=hq.post(B+'/hq/leader-logins/bulk',json={'country':'NG','levels':['envoy'],'ids':[env],'confirm':True}).json(); tmp=x['issued'][0]['temporary_password']

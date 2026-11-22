@@ -60,7 +60,8 @@ chk('nobody with a date of birth is asked', sql("select count(*) from dob_asks a
 cron('2026-11-24 09:30'); chk('not asked again the next day', sql("select count(*) from auto_sends where kind='dob_ask'")=='1')
 cron('2026-12-08 09:30'); chk('asked a second time after 14 days', sql("select max(asks) from dob_asks")=='2')
 cron('2026-12-23 09:30'); chk('never more than twice', sql("select max(asks) from dob_asks")=='2' and sql("select count(*) from auto_sends where kind='dob_ask'")=='2')
-# 5. HQ panel
+# 5. HQ panel (it shows the real day's birthdays, so her birthday moves to today here)
+sql(f"update users set dob='1985-{today:%m-%d}' where email='bday.t118@wdos-mail.org'")
 r=hq.get(B+'/hq/celebrations').json()
 chk('HQ sees today\'s birthday', any(p['name'] for p in r['today']), r['today'])
 chk('HQ sees the sends', {s['kind'] for s in r['sends']}>={'birthday','weekly','daily'}, r['sends'])
