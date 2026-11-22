@@ -4266,5 +4266,19 @@
 "Online now": "متصلة الآن",
 "Offline · seen {1}": "غير متصلة · شوهدت {1}",
 "Offline · not signed in yet": "غير متصلة · لم تسجّل الدخول بعد",
-"Offline": "غير متصلة"
+"Offline": "غير متصلة",
+"Dark screen": "شاشة داكنة",
+"Light screen": "شاشة فاتحة",
+"Install the WDOS app": "تثبيت تطبيق WDOS",
+"Add WDOS to your home screen": "إضافة WDOS إلى الشاشة الرئيسية",
+"It opens full screen like an app, and you sign in less often.": "يفتح بملء الشاشة مثل التطبيق، وتسجّلين الدخول مرات أقل.",
+"Tap the Share button at the bottom of Safari.": "اضغطي زر المشاركة أسفل Safari.",
+"Scroll down and tap Add to Home Screen.": "مرّري للأسفل واضغطي إضافة إلى الشاشة الرئيسية.",
+"Tap Add. The WDOS icon appears on your home screen.": "اضغطي إضافة. تظهر أيقونة WDOS على شاشتك الرئيسية.",
+"Got it": "فهمت",
+"Get the WDOS app": "احصلي على تطبيق WDOS",
+"Free. Opens full screen and works on a weak network.": "مجاني. يفتح بملء الشاشة ويعمل على شبكة ضعيفة.",
+"Install": "تثبيت",
+"WDOS is on your home screen": "أصبح WDOS على شاشتك الرئيسية",
+"Open it from there next time, like any app.": "افتحيه من هناك في المرة القادمة، مثل أي تطبيق."
 }

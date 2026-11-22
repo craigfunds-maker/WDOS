@@ -4039,5 +4039,19 @@
 "Online now": "Nọ n'ịntanetị ugbu a",
 "Offline · seen {1}": "Anọghị n'ịntanetị · a hụrụ ya {1}",
 "Offline · not signed in yet": "Anọghị n'ịntanetị · abatabeghị",
-"Offline": "Anọghị n'ịntanetị"
+"Offline": "Anọghị n'ịntanetị",
+"Dark screen": "Ihuenyo gbara ọchịchịrị",
+"Light screen": "Ihuenyo na-egbuke egbuke",
+"Install the WDOS app": "Wụnye ngwa WDOS",
+"Add WDOS to your home screen": "Tinye WDOS na ihuenyo mbụ",
+"It opens full screen like an app, and you sign in less often.": "Ọ na-emepe ihuenyo zuru ezu dị ka ngwa, ị na-abanyekwa obere ugboro.",
+"Tap the Share button at the bottom of Safari.": "Pịa bọtịnụ Kesaa n'okpuru Safari.",
+"Scroll down and tap Add to Home Screen.": "Kpugharịa gaa n'ala ma pịa Tinye na Ihuenyo Mbụ.",
+"Tap Add. The WDOS icon appears on your home screen.": "Pịa Tinye. Akara WDOS na-apụta n'ihuenyo mbụ gị.",
+"Got it": "Aghọtara m",
+"Get the WDOS app": "Nweta ngwa WDOS",
+"Free. Opens full screen and works on a weak network.": "N'efu. Ọ na-emepe ihuenyo zuru ezu ma na-arụ ọrụ na netwọk adịghị ike.",
+"Install": "Wụnye",
+"WDOS is on your home screen": "WDOS dị n'ihuenyo mbụ gị",
+"Open it from there next time, like any app.": "Mepee ya site ebe ahụ oge ọzọ, dị ka ngwa ọ bụla."
 }

@@ -42,6 +42,8 @@ export function h(tag, attrs = {}, ...kids) {
 export const clear = (n) => { while (n.firstChild) n.removeChild(n.firstChild); return n; };
 
 const I = {
+  refresh: ['M21 12a9 9 0 1 1-2.64-6.36', 'M21 3v6h-6'],
+  share: ['M12 3v12', 'M8 7l4-4 4 4', 'M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7'], download: ['M12 3v12', 'M8 11l4 4 4-4', 'M5 19h14'],
   grid: ['r:3,3,7,7,1.5', 'r:14,3,7,7,1.5', 'r:14,14,7,7,1.5', 'r:3,14,7,7,1.5'],
   users: ['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2', 'c:9,7,4', 'M22 21v-2a4 4 0 0 0-3-3.87', 'M16 3.13a4 4 0 0 1 0 7.75'],
   face: ['M8 3H5a2 2 0 0 0-2 2v3', 'M16 3h3a2 2 0 0 1 2 2v3', 'M8 21H5a2 2 0 0 1-2-2v-3', 'M16 21h3a2 2 0 0 0 2-2v-3', 'M9 9.5v1', 'M15 9.5v1', 'M12 9v4.5h-1', 'M9 16.5c1.8 1.3 4.2 1.3 6 0'],

@@ -54,7 +54,7 @@ async function list(root) {
     box.replaceChildren(rows.length ? h('div', { class: 'list list--stack' }, rows.map((p) => {
       const tick = h('input', { type: 'checkbox', checked: picked.has(p.id), 'aria-label': tf('Choose {1}', `${p.first_name} ${p.last_name}`), style: 'width:22px;height:22px;flex:none',
         onchange: (e) => { if (e.target.checked) picked.set(p.id, { id: p.id, name: `${p.first_name} ${p.last_name}`, first_name: p.first_name, last_name: p.last_name }); else picked.delete(p.id); paintBar(); } });
-      return h('div', { class: 'list__link', style: 'display:flex;align-items:center;gap:10px;flex-wrap:nowrap' }, tick,
+      return h('div', { class: 'list__link', style: 'display:flex;align-items:center;gap:10px;flex-wrap:nowrap' }, h('label', { class: 'tickhit' }, tick),
         h('a', { href: '#/team/' + p.id, style: 'display:flex;align-items:center;gap:10px;flex:1;min-width:0;color:inherit;text-decoration:none' }, avatarOn(p, 40),
           h('div', { class: 'grow', style: 'min-width:0' }, h('b', { text: `${p.first_name} ${p.last_name}` }), h('small', { text: `${p.title}, ${p.area}` }),
             h('small', { style: 'display:block', class: p.last_seen_at ? 'muted' : 'bad', text: seen(p.last_seen_at) })), icon('chevright', 16)));

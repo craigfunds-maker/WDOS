@@ -4266,5 +4266,19 @@
 "Online now": "Online agora",
 "Offline · seen {1}": "Offline · vista {1}",
 "Offline · not signed in yet": "Offline · ainda não entrou",
-"Offline": "Offline"
+"Offline": "Offline",
+"Dark screen": "Ecrã escuro",
+"Light screen": "Ecrã claro",
+"Install the WDOS app": "Instalar a aplicação WDOS",
+"Add WDOS to your home screen": "Adicionar o WDOS ao ecrã principal",
+"It opens full screen like an app, and you sign in less often.": "Abre em ecrã inteiro como uma aplicação, e inicia sessão menos vezes.",
+"Tap the Share button at the bottom of Safari.": "Toque no botão Partilhar no fundo do Safari.",
+"Scroll down and tap Add to Home Screen.": "Deslize e toque em Adicionar ao ecrã principal.",
+"Tap Add. The WDOS icon appears on your home screen.": "Toque em Adicionar. O ícone do WDOS aparece no seu ecrã principal.",
+"Got it": "Entendi",
+"Get the WDOS app": "Obter a aplicação WDOS",
+"Free. Opens full screen and works on a weak network.": "Gratuita. Abre em ecrã inteiro e funciona com rede fraca.",
+"Install": "Instalar",
+"WDOS is on your home screen": "O WDOS está no seu ecrã principal",
+"Open it from there next time, like any app.": "Abra-o daí da próxima vez, como qualquer aplicação."
 }

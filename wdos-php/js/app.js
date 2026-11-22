@@ -1,6 +1,7 @@
 /* WDOS front end entry: session, router, shell (collapsible sidebar, top bar, notification bell). */
 import { h, clear, icon, avatar, toast, ago, theme, ambience, empty, i18n, t, tf, langPicker, chime, listenBtn, LANGS } from './ui.js';
 import { pushSync } from './api.js';
+import { canInstall, installApp, installNudge, standalone } from './install.js';
 import { api } from './api.js';
 
 export const app = { user: null, config: { google: false, push: false, vapid: '', mail: false, build: '' }, unread: 0, latest: 0 };
@@ -114,19 +115,52 @@ function resolve(path) {
   }
 }
 let shellEls = null, navToken = 0;
+/* v109.48: native-app behaviour on a phone. A detail page has a back arrow; going back returns her to where she was on the page before. */
+const TAB_ROOTS = new Set(['#/', '#/members', '#/reporting', '#/notifications', '#/tasks', '#/inbox', '#/chapter', '#/messages', '#/calls', '#/settings']);
+const scrollAt = new Map(); let restoreNext = null, inAppSteps = 0, lastHash = location.hash || '#/';
+const isDeep = () => { const hh = location.hash || '#/'; return !TAB_ROOTS.has(hh) && (hh.split('?')[0].split('/').filter(Boolean).length > 2 || hh.includes('?')); };
+window.addEventListener('hashchange', () => { scrollAt.set(lastHash, window.scrollY); lastHash = location.hash || '#/'; inAppSteps++; });
+function goBack() { if (inAppSteps > 0 && history.length > 1) { inAppSteps -= 2; history.back(); window.addEventListener('hashchange', () => { restoreNext = { y: scrollAt.get(location.hash || '#/') || 0 }; }, { once: true, capture: true }); } else { inAppSteps = 0; location.hash = '#/'; } }
+function tabTap(e) {
+  try { if (navigator.vibrate && /Android/i.test(navigator.userAgent)) navigator.vibrate(6); } catch { /* not allowed */ }
+  if (e.currentTarget.getAttribute('href') === (location.hash || '#/')) { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+}
+/* When the phone keyboard is open, the bottom bar steps aside so the box she is typing in stays in view. */
+if (window.visualViewport) { const kb = () => document.documentElement.classList.toggle('kb-open', window.innerHeight - window.visualViewport.height > 140); window.visualViewport.addEventListener('resize', kb); }
+/* Pull down at the top of a page to refresh it, in the installed app (the browser has its own). */
+(() => {
+  let y0 = null, pulled = 0, el = null;
+  const ready = () => standalone() && shellEls && window.scrollY <= 0 && !document.querySelector('.hwpanel,.vcall,.callstage,.drawer.is-open,.shell.nav-open');
+  window.addEventListener('touchstart', (e) => { if (e.touches.length === 1 && ready()) { y0 = e.touches[0].clientY; pulled = 0; } else y0 = null; }, { passive: true });
+  window.addEventListener('touchmove', (e) => {
+    if (y0 === null) return; pulled = Math.max(0, e.touches[0].clientY - y0); if (window.scrollY > 0) { y0 = null; return; }
+    if (!el) { el = h('div', { class: 'ptr', 'aria-hidden': 'true' }, icon('refresh', 20)); document.body.append(el); }
+    const d = Math.min(pulled, 110); el.style.transform = `translate(-50%, ${d - 46}px) rotate(${d * 3}deg)`; el.classList.toggle('is-ready', pulled > 80);
+  }, { passive: true });
+  window.addEventListener('touchend', () => {
+    if (y0 === null || !el) { y0 = null; return; } const go2 = pulled > 80; y0 = null;
+    if (go2) { el.classList.add('is-spin'); el.style.transform = 'translate(-50%, 20px)'; Promise.resolve(render()).finally(() => setTimeout(() => { el?.remove(); el = null; }, 350)); }
+    else { el.remove(); el = null; }
+  });
+})();
+const pageText = () => { const m = document.querySelector('main'); return m ? m.innerText.replace(/\s*\n+\s*/g, '. ').slice(0, 4000) : ''; };
+/* The language list keeps its place first and its alphabetical order; on a phone it shows as a small button with the language code. */
+function topLang() { const sel = langPicker(setLanguage); return h('label', { class: 'top__lang' }, h('span', { class: 'top__langcode', 'aria-hidden': 'true' }, icon('globe', 18), h('b', { text: (i18n.lang || 'en').toUpperCase() })), sel); }
 async function render() {
   const token = ++navToken;
   const path = (location.hash || '#/').slice(1).split('?')[0];
   const r = resolve(path);
   let outlet;
-  if (r.shell) { if (!shellEls) buildShell(); shellEls.title.textContent = t(r.title); markNav(path); outlet = shellEls.page; shellEls.shell.classList.remove('nav-open'); }
+  if (r.shell) { if (!shellEls) buildShell(); shellEls.title.textContent = t(r.title); markNav(path); outlet = shellEls.page; shellEls.shell.classList.remove('nav-open'); shellEls.shell.classList.toggle('is-deep', isDeep()); shellEls.shell.classList.toggle('is-home', (location.hash || '#/') === '#/'); }
   else { shellEls = null; clear(root); outlet = root; }
   document.title = (r.title ? t(r.title) + ' · ' : '') + 'WDOS';
   try {
     const mod = await pages[r.name]();
     if (token !== navToken) return;                    // a newer navigation won
-    clear(outlet); window.scrollTo(0, 0);
+    clear(outlet); const back = restoreNext; restoreNext = null; window.scrollTo(0, 0);
+    if (r.shell) { outlet.classList.remove('page-in', 'page-back'); void outlet.offsetWidth; outlet.classList.add(back ? 'page-back' : 'page-in'); }
     await mod.render(outlet, r.params);
+    if (back && back.y) requestAnimationFrame(() => window.scrollTo(0, back.y));
   } catch (e) {
     if (token !== navToken) return;
     console.error(e); clear(outlet);
@@ -210,15 +244,19 @@ function buildShell() {
   meWrap.append(h('button', { class: 'iconbtn', type: 'button', 'aria-label': 'Your account', onclick: (e) => { e.stopPropagation(); togglePop(meWrap, mePanel); } }, avatar(u, 34)));
   const themeBtn = h('button', { class: 'iconbtn', type: 'button', 'aria-label': 'Switch between dark and light', onclick: () => { theme.toggle(); themeBtn.replaceChildren(icon(theme.get() === 'light' ? 'moon' : 'sun')); } }, icon(theme.get() === 'light' ? 'moon' : 'sun'));
   const page = h('div', { class: 'page', id: 'page' });
+  /* v109.48: on a phone a page opened from another page has a back arrow, as in a native app */
+  const backBtn = h('button', { class: 'iconbtn top__back', type: 'button', 'aria-label': 'Back', onclick: goBack }, icon('back'));
   const main = h('div', { class: 'main' },
-    h('header', { class: 'top' }, h('button', { class: 'iconbtn top__menu', type: 'button', 'aria-label': 'Open the menu', 'aria-controls': 'side', onclick: () => shell.classList.add('nav-open') }, icon('menu')), title, h('div', { class: 'grow' }), listenBtn(() => { const m = document.querySelector('main'); return m ? m.innerText.replace(/\s*\n+\s*/g, '. ').slice(0, 4000) : ''; }, 'Listen to this page'), langPicker(setLanguage), themeBtn, bellWrap, meWrap),
-    h('main', {}, page));
+    h('header', { class: 'top' }, h('button', { class: 'iconbtn top__menu', type: 'button', 'aria-label': 'Open the menu', 'aria-controls': 'side', onclick: () => shell.classList.add('nav-open') }, icon('menu')),
+      backBtn, h('img', { class: 'top__brand', src: u.is_hq ? '/assets/icons/icon-192.png' : disc, alt: '' }), title, h('div', { class: 'grow' }),
+      h('span', { class: 'top__desk' }, listenBtn(pageText, 'Listen to this page')), topLang(), h('span', { class: 'top__desk' }, themeBtn, bellWrap), meWrap),
+    h('main', {}, installNudge(), page));
   /* On a phone the main destinations sit in a bar at the bottom, as in a native app. "More" opens the full menu. */
   const tabs = u.is_envoy && u.envoy_form_needed ? [['#/', 'award', 'My form'], ['#/settings', 'sliders', 'Settings']] : u.is_envoy ? [['#/', 'grid', 'Dashboard'], ['#/calls', 'phone', 'Calls'], ['#/inbox', 'send', 'Messages'], ['#/notifications', 'bell', 'Alerts'], ['#/settings', 'sliders', 'Settings']]
     : u.is_hq ? [['#/', 'grid', 'Dashboard'], ['#/members', 'users', 'Members'], ['#/reporting', 'chart', 'Reporting'], ['#/notifications', 'bell', 'Alerts']]
     : u.is_leader ? [['#/', 'grid', 'Dashboard'], ['#/tasks', 'tasks', 'Tasks'], ['#/reporting', 'chart', 'Reporting'], ['#/inbox', 'send', 'Messages']]
     : [['#/', 'grid', 'Home'], ['#/chapter', 'users', 'Chapter'], ['#/messages', 'send', 'Messages'], ['#/notifications', 'bell', 'Alerts']];
-  const tabbar = h('nav', { class: 'tabbar', 'aria-label': 'Quick menu' }, tabs.map((it) => h('a', { href: it[0] }, h('span', { class: 'tabbar__ico' }, icon(it[1], 22), it[0] === '#/notifications' ? h('i', { class: 'tabbar__n', hidden: true, 'data-unread': '' }) : null), h('span', { text: it[2] }))),
+  const tabbar = h('nav', { class: 'tabbar', 'aria-label': 'Quick menu' }, tabs.map((it) => h('a', { href: it[0], onclick: tabTap }, h('span', { class: 'tabbar__ico' }, icon(it[1], 22), it[0] === '#/notifications' ? h('i', { class: 'tabbar__n', hidden: true, 'data-unread': '' }) : null), h('span', { text: it[2] }))),
     h('button', { type: 'button', 'data-tour': 'more', 'aria-controls': 'side', onclick: () => shell.classList.add('nav-open') }, h('span', { class: 'tabbar__ico' }, icon('menu', 22)), h('span', { text: 'More' })));
   shell.append(side, h('div', { class: 'scrim', onclick: () => shell.classList.remove('nav-open') }), main, tabbar);
   root.append(shell);
@@ -226,15 +264,22 @@ function buildShell() {
   paintUnread();
 }
 let openPop = null;
-function closePop() { openPop?.remove(); openPop = null; }
-function togglePop(anchor, build) { const was = openPop && openPop.parentNode === anchor; closePop(); if (was) return; openPop = build(); anchor.append(openPop); }
+function closePop() { openPop?.remove(); openPop = null; popAnchor = null; }
+let popAnchor = null;
+/* On a phone the panel is a sheet at the bottom of the screen, so it hangs from the page itself: the frosted top bar would otherwise hold it inside its own 64 pixels. */
+function togglePop(anchor, build) { const was = openPop && popAnchor === anchor; closePop(); if (was) return; openPop = build(); popAnchor = anchor; (window.matchMedia('(max-width: 900px)').matches ? document.body : anchor).append(openPop); }
 document.addEventListener('click', (e) => { if (openPop && !openPop.contains(e.target)) closePop(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closePop(); shellEls?.shell.classList.remove('nav-open'); } });
 
 function mePanel() {
   const u = app.user;
   return h('div', { class: 'pop menu', style: 'width:240px' }, h('div', { style: 'padding:10px 12px 12px;border-bottom:1px solid var(--line-soft);margin-bottom:6px' }, h('b', { text: `${u.first_name} ${u.last_name}` }), h('div', { class: 'faint', style: 'font-size:13px;overflow-wrap:anywhere', text: u.email })),
-    h('a', { href: '#/settings', onclick: closePop }, icon('sliders', 18), 'Settings'), h('button', { type: 'button', onclick: () => { closePop(); signOut(); } }, icon('logout', 18), 'Sign out'));
+    h('a', { href: '#/settings', onclick: closePop }, icon('sliders', 18), 'Settings'),
+    /* v109.48: on a phone these leave the top bar and live here */
+    h('button', { type: 'button', class: 'm-only', onclick: () => { closePop(); if (window.speechSynthesis && speechSynthesis.speaking) { speechSynthesis.cancel(); return; } listenBtn(pageText, 'Listen to this page').click(); } }, icon('volume', 18), t(window.speechSynthesis && speechSynthesis.speaking ? 'Stop' : 'Listen to this page')),
+    h('button', { type: 'button', class: 'm-only', onclick: () => { theme.toggle(); closePop(); } }, icon(theme.get() === 'light' ? 'moon' : 'sun', 18), t(theme.get() === 'light' ? 'Dark screen' : 'Light screen')),
+    canInstall() ? h('button', { type: 'button', onclick: () => { closePop(); installApp(); } }, icon('download', 18), t('Install the WDOS app')) : null,
+    h('button', { type: 'button', onclick: () => { closePop(); signOut(); } }, icon('logout', 18), 'Sign out'));
 }
 export function notifRow(n, onOpen) {
   return h('a', { class: 'nrow' + (n.read_at ? '' : ' is-new'), href: n.url || '#/notifications', onclick: () => { if (!n.read_at) api('/notifications/read', { ids: [n.id] }).then((r) => setUnread(r.unread)).catch(() => {}); onOpen && onOpen(); } },

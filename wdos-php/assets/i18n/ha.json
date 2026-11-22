@@ -4135,5 +4135,19 @@
 "Online now": "Tana kan layi yanzu",
 "Offline · seen {1}": "Ba ta kan layi · an gan ta {1}",
 "Offline · not signed in yet": "Ba ta kan layi · ba ta shiga ba tukuna",
-"Offline": "Ba ta kan layi"
+"Offline": "Ba ta kan layi",
+"Dark screen": "Allon duhu",
+"Light screen": "Allon haske",
+"Install the WDOS app": "Saka manhajar WDOS",
+"Add WDOS to your home screen": "Saka WDOS a allon farko",
+"It opens full screen like an app, and you sign in less often.": "Tana buɗewa cikakken allo kamar manhaja, kuma za ki rika shiga ƙasa da yawa.",
+"Tap the Share button at the bottom of Safari.": "Taɓa maɓallin Raba a ƙasan Safari.",
+"Scroll down and tap Add to Home Screen.": "Gungura ƙasa ki taɓa Ƙara zuwa Allon Farko.",
+"Tap Add. The WDOS icon appears on your home screen.": "Taɓa Ƙara. Alamar WDOS za ta bayyana a allon farkonki.",
+"Got it": "Na gane",
+"Get the WDOS app": "Samu manhajar WDOS",
+"Free. Opens full screen and works on a weak network.": "Kyauta. Tana buɗewa cikakken allo kuma tana aiki a kan raunin hanyar sadarwa.",
+"Install": "Saka",
+"WDOS is on your home screen": "WDOS tana kan allon farkonki",
+"Open it from there next time, like any app.": "Buɗe ta daga can a gaba, kamar kowace manhaja."
 }

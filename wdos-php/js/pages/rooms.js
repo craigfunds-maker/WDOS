@@ -36,7 +36,7 @@ function composer(placeholder, onSend, opts = {}) {
     catch (e) { toast(t('Not sent'), e.message, 'bad'); } finally { send.disabled = false; }
   });
   if (!opts.title) text.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) send.click(); });
-  return h('div', { class: 'rm-compose' }, title, h('div', { class: 'rm-compose__row' }, text, send), list, up,
+  return h('div', { class: 'rm-compose' + (opts.title ? '' : ' rm-compose--chat') }, title, h('div', { class: 'rm-compose__row' }, text, send), list, up,
     h('small', { class: 'faint', text: 'Paste a web link and it becomes tappable. A video larger than 10 MB: share its link instead.' }));
 }
 function msgView(m, onRemove, mine) {
@@ -103,7 +103,9 @@ async function room(root) {
   }
   // the group chat: the last 80 messages, then new ones every few seconds while the page is open
   const chat = h('div', { class: 'rm-chat', role: 'log', 'aria-live': 'polite' }, sk.rows(3)); let last = 0, timer = null;
-  const add = (ms, initial) => { if (initial) chat.replaceChildren(); ms.forEach((m) => { chat.append(msgView(m, remove, m.author.id === app.user.id)); last = Math.max(last, m.id); }); if (ms.length) chat.scrollTop = chat.scrollHeight; };
+  const add = (ms, initial) => { if (initial) chat.replaceChildren(); ms.forEach((m) => { chat.append(msgView(m, remove, m.author.id === app.user.id)); last = Math.max(last, m.id); }); if (ms.length) { chat.scrollTop = chat.scrollHeight;
+    // on a phone the page itself scrolls: open at the newest message, and follow new ones only if she is already at the bottom
+    if (window.matchMedia('(max-width: 900px)').matches) { const atEnd = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 160; if (initial || atEnd) requestAnimationFrame(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: initial ? 'auto' : 'smooth' })); } } };
   refresh = async () => { try { const d = await api('/rooms/chat?' + qstr); last = 0; add(d.messages, true); if (!d.messages.length) chat.replaceChildren(empty('send', 'No message yet', 'Say hello to the leaders of this region.')); } catch (e) { chat.replaceChildren(empty('x', 'The chat did not open', e.message)); } };
   const poll = async () => { if (!chat.isConnected) { clearInterval(timer); return; } if (document.hidden) return; try { const d = await api('/rooms/chat?' + qstr + '&after=' + last); if (d.messages.length) { if (!last) chat.replaceChildren(); add(d.messages); } } catch { /* the next poll tries again */ } };
   body.append(card('Group chat', tf('Everyone serving in {1} ({2}) reads this.', R.name, R.network), h('div', { style: 'display:grid;gap:12px' }, chat,

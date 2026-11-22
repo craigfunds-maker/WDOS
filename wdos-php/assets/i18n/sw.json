@@ -4266,5 +4266,19 @@
 "Online now": "Mtandaoni sasa",
 "Offline · seen {1}": "Nje ya mtandao · alionekana {1}",
 "Offline · not signed in yet": "Nje ya mtandao · bado hajaingia",
-"Offline": "Nje ya mtandao"
+"Offline": "Nje ya mtandao",
+"Dark screen": "Skrini nyeusi",
+"Light screen": "Skrini nyeupe",
+"Install the WDOS app": "Sakinisha programu ya WDOS",
+"Add WDOS to your home screen": "Weka WDOS kwenye skrini ya mwanzo",
+"It opens full screen like an app, and you sign in less often.": "Inafunguka skrini nzima kama programu, na unaingia mara chache.",
+"Tap the Share button at the bottom of Safari.": "Gusa kitufe cha Shiriki chini ya Safari.",
+"Scroll down and tap Add to Home Screen.": "Sogeza chini na uguse Ongeza kwenye Skrini ya Mwanzo.",
+"Tap Add. The WDOS icon appears on your home screen.": "Gusa Ongeza. Ikoni ya WDOS inaonekana kwenye skrini yako ya mwanzo.",
+"Got it": "Nimeelewa",
+"Get the WDOS app": "Pata programu ya WDOS",
+"Free. Opens full screen and works on a weak network.": "Bure. Inafunguka skrini nzima na inafanya kazi kwenye mtandao dhaifu.",
+"Install": "Sakinisha",
+"WDOS is on your home screen": "WDOS iko kwenye skrini yako ya mwanzo",
+"Open it from there next time, like any app.": "Ifungue kutoka hapo wakati ujao, kama programu yoyote."
 }

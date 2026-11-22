@@ -855,3 +855,81 @@ a.kpi--link{color:inherit;text-decoration:none;cursor:pointer;transition:transfo
 .rm-topic:hover{border-color:var(--brand)}
 .lm-mk--link{cursor:pointer;text-decoration:none;color:inherit} .lm-mk--link:hover{border-color:var(--brand)} .lm-mk--link small::after{content:" ›"}
 .lm-board th.is-sortable{cursor:pointer;user-select:none} .lm-board th.is-sortable:hover{color:var(--accent)} .lm-board a.lm-name{color:inherit;text-decoration:none} .lm-board a.lm-name:hover b{text-decoration:underline}
+
+/* v109.48: WDOS on a phone, built to feel like an installed app.
+ * 1. Nothing is ever wider than the screen: every page column is clamped to the screen width.
+ * 2. A native top bar: back arrow on detail pages, the page title in full, a small language button, her photo.
+ * 3. Touch: every control is at least 40-44 px, and boxes are 16 px so the iPhone does not zoom in when she types.
+ * 4. Sheets slide up from the bottom; the bottom bar steps aside for the keyboard; pages slide in. */
+.page{grid-template-columns:minmax(0,1fr);overflow-wrap:break-word} .page>*,.card__body>*,.card__head>*{min-width:0}
+.rm-list,.lm-list{grid-template-columns:minmax(0,1fr)} .rm-item>*{min-width:0} .rm-item .tag,.rm-item .rm-badge{flex:none}
+.page img,.page video{max-width:100%}
+.top__brand,.top__back,.top__langcode,.installnudge,.m-only{display:none}
+a,button,label,select,input,textarea,summary,[role=button]{touch-action:manipulation}
+.page-in{animation:pagein .22s var(--ease) both} .page-back{animation:pageback .22s var(--ease) both}
+@keyframes pagein{from{opacity:0;transform:translateX(14px)}} @keyframes pageback{from{opacity:0;transform:translateX(-14px)}}
+[dir=rtl] .page-in{animation-name:pageback} [dir=rtl] .page-back{animation-name:pagein}
+@keyframes sheetup{from{transform:translateY(100%)}}
+.ptr{position:fixed;top:calc(env(safe-area-inset-top) + 8px);left:50%;z-index:90;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--surface);color:var(--ink-3);box-shadow:var(--shadow-2);transform:translate(-50%,-46px);pointer-events:none}
+.ptr.is-ready{color:var(--accent)} .ptr.is-spin svg{animation:ptrspin .7s linear infinite} @keyframes ptrspin{to{transform:rotate(360deg)}}
+.iosteps{margin:0;padding:0;list-style:none;display:grid;gap:12px;counter-reset:st} .iosteps li{display:flex;gap:12px;align-items:center;font-size:15.5px}
+.iosteps__ico{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--sunken);color:var(--accent)}
+@media (max-width:900px){
+  .tabbar{grid-auto-columns:minmax(0,1fr)} .tabbar a>span:last-child,.tabbar button>span:last-child{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .top{gap:6px;padding-inline:8px 10px} .top .grow{display:none} .top__desk{display:none}
+  .top h1{flex:1 1 auto;min-width:0;font-size:17px;font-weight:700;letter-spacing:-.01em}
+  .top__brand{display:block;flex:none;width:34px;height:34px;border-radius:50%;object-fit:cover;margin-inline-start:4px}
+  .shell.is-deep .top__brand{display:none} .shell.is-deep .top__back{display:grid;flex:none} [dir=rtl] .top__back svg{transform:scaleX(-1)}
+  .top__lang{position:relative;flex:none;display:block}
+  .top__langcode{display:inline-flex;align-items:center;gap:5px;height:40px;padding:0 11px;border-radius:99px;border:1px solid var(--line);color:var(--ink-2);font-size:13px;letter-spacing:.02em}
+  .top .top__lang .langpick{position:absolute;inset:0;width:100%;height:100%;min-width:0;max-width:none;opacity:0;cursor:pointer;font-size:16px;padding:0}
+  .menu .m-only{display:flex}
+  .pop,[dir=rtl] .pop{position:fixed;left:8px;right:8px;top:auto;bottom:calc(76px + env(safe-area-inset-bottom));width:auto;max-height:70dvh;overflow:auto;border-radius:20px;animation:sheetup .24s var(--ease);transform-origin:bottom center}
+  .menu .m-only,.menu a,.menu button{min-height:48px}
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]),select,textarea{font-size:16px}
+  .seg__a{min-height:40px;display:inline-flex;align-items:center;justify-content:center} .btn--s{min-height:40px}
+  .iconbtn{min-width:44px;min-height:44px} summary{min-height:44px;display:flex;align-items:center;gap:8px}
+  input[type=checkbox],input[type=radio]{width:22px;height:22px;flex:none;accent-color:var(--brand)} input[type=range]{min-height:32px}
+  .ltour__read,.linkish,.linkbtn{min-height:40px;display:inline-flex;align-items:center}
+  .kb-open .tabbar{display:none} .kb-open .page{padding-bottom:24px}
+  .shell.is-home .installnudge:not([hidden]){display:flex;align-items:center;gap:12px;margin:12px 12px 0;padding:12px 12px 12px 14px;border-radius:18px;background:var(--surface);border:1px solid var(--line)}
+  .installnudge img{width:40px;height:40px;border-radius:10px;flex:none} .installnudge .grow{min-width:0;display:grid} .installnudge small{color:var(--ink-3);font-size:12.5px}
+  .card:hover,.kpi--link:hover,a.kpi--link:hover,.inspmini:hover,.pdx-card:hover{transform:none}
+  .kpi--link:active,a.kpi--link:active,.rm-item:active,.nrow:active{transform:scale(.98)}
+}
+@media (max-width:640px){
+  .hwpanel{place-items:end stretch;padding:0}
+  .hwpanel>.card,.hwpanel__box{width:100%;max-height:92dvh;overflow:auto;border-radius:22px 22px 0 0;padding-bottom:env(safe-area-inset-bottom);animation:sheetup .26s var(--ease)}
+}
+@media (prefers-reduced-motion:reduce){.page-in,.page-back,.pop,.hwpanel>.card,.hwpanel__box{animation:none}}
+@supports (overflow:clip){.main{overflow-x:clip}}
+@media (max-width:900px){
+  .page :where(div,section,article,form,fieldset,ul,ol,li,dl,dd,p,label,header,footer,nav,table){min-width:0}
+  .kv>div>*{min-width:0;overflow-wrap:anywhere} .kv>div>:last-child{text-align:end}
+  .toolbar{padding:12px 14px} .toolbar .search{min-width:0;flex:1 1 180px}
+  .tablewrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+}
+@media (max-width:900px){
+  .page .btn{max-width:100%;white-space:normal;text-align:center;line-height:1.25;padding-block:8px}
+  .page a:not([class]){padding-block:10px;-webkit-box-decoration-break:clone}
+  .switch{width:50px;height:30px} .switch input{inset:-8px -4px;width:auto;height:auto} .switch i::after{width:24px;height:24px} .switch input:checked+i::after{transform:translateX(20px)}
+  .check{padding-block:9px;font-size:15px} .check input{width:22px;height:22px;margin-top:0}
+  .lm-chip{white-space:normal;min-width:0} .lm-chip>*{min-width:0;overflow-wrap:anywhere}
+}
+[dir=rtl] .switch i::after{left:auto;right:3px} [dir=rtl] .switch input:checked+i::after{transform:translateX(-18px)}
+@media (max-width:900px){[dir=rtl] .switch input:checked+i::after{transform:translateX(-20px)}}
+.pickrow{display:flex;align-items:center;gap:10px;flex:1;min-width:0;min-height:44px;cursor:pointer}
+@media (max-width:900px){.chip{min-height:40px} .seg button{min-height:40px}}
+.tickhit{display:grid;place-items:center;flex:none;min-width:44px;min-height:44px;margin:-8px 0;margin-inline-start:-10px;cursor:pointer}
+@media (max-width:900px){label:has(>input[type=checkbox]):not(.switch):not(.tickhit),label:has(>input[type=radio]):not(.switch){min-height:44px;align-items:center}}
+/* v109.48: the chat box stays at the bottom of the screen above the tabs, as in a messaging app */
+@media (max-width:900px){
+  .rm-compose--chat{position:sticky;bottom:calc(70px + env(safe-area-inset-bottom));z-index:6;background:var(--surface);margin:0 -16px -16px;padding:10px 12px 12px;border-radius:0 0 var(--r-l) var(--r-l);box-shadow:0 -10px 24px -18px rgba(0,0,0,.5)}
+  .kb-open .rm-compose--chat{bottom:env(safe-area-inset-bottom)}
+  .rm-compose--chat>small{display:none} .rm-compose--chat textarea{min-height:44px;max-height:30vh}
+  .rm-chat{max-height:none;overflow:visible}
+}
+@media (max-width:900px){.pop{width:auto!important;min-width:0} .rm-compose--chat small{display:none}}
+.top__desk{display:flex;align-items:center;gap:8px}
+.menu .m-only{display:none}
+@media (max-width:900px){.top__desk{display:none} .menu .m-only{display:flex}}
