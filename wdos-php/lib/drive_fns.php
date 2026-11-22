@@ -38,7 +38,7 @@ function drive_people(string $who, string $cc = '', string $net = ''): array {
   foreach (rows("SELECT u.*, sp.sent_at pack_at, sp.packs, sp.nudges, sp.nudged_at FROM users u LEFT JOIN signin_packs sp ON sp.user_id=u.id WHERE $w ORDER BY u.country_code, u.state_region, u.first_name LIMIT 1500", $p) as $u) {
     $seat = $who === 'envoys' ? null : current_seat((int) $u['id']);
     $phoneLogin = str_ends_with((string) $u['email'], '@phone.wdos.invalid');
-    $out[] = ['id' => (int) $u['id'], 'name' => trim($u['first_name'] . ' ' . $u['last_name']), 'has_photo' => (int) $u['has_photo'], 'network' => $seat ? $seat['network'] : (string) $u['network'],
+    $out[] = ['id' => (int) $u['id'], 'name' => trim($u['first_name'] . ' ' . $u['last_name']), 'first_name' => $u['first_name'], 'last_name' => $u['last_name'], 'has_photo' => (int) $u['has_photo'], 'network' => $seat ? $seat['network'] : (string) $u['network'],
       'position' => $seat ? seat_title($seat) : ($u['designation'] !== '' ? $u['designation'] : 'WODDI Envoy'), 'country' => $u['country_code'], 'state' => $u['state_region'],
       'phone' => (string) $u['phone'], 'wa' => phone_intl((string) $u['phone'], $u['country_code']), 'sign_in_with' => $phoneLogin ? (string) $u['phone'] : (string) $u['email'],
       'email' => real_email($u['email']), 'pack_at' => $u['pack_at'], 'packs' => (int) ($u['packs'] ?? 0), 'nudges' => (int) ($u['nudges'] ?? 0), 'nudged_at' => $u['nudged_at'], 'created_at' => $u['created_at']];

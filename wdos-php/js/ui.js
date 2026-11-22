@@ -103,7 +103,10 @@ export function googleMark() {
   return d.firstChild;
 }
 export function avatar(p, size = 40) {
-  const initials = ((p.first_name || '?')[0] + (p.last_name || '')[0] || '').toUpperCase();
+  // v109.46: initials from first and last name, or from a full name where a page sends only that; never "?UNDEFINED"
+  const parts = p.first_name || p.last_name ? [p.first_name, p.last_name] : String(p.name || '').trim().split(/\s+/);
+  const ws = parts.map((x) => String(x || '').trim()).filter(Boolean);
+  const initials = (ws.length ? (ws[0][0] + (ws.length > 1 ? ws[ws.length - 1][0] : '')) : '?').toUpperCase();
   if (p.has_photo && p.has_photo !== '0') {
     return h('img', { class: 'avatar', src: `/api/photo/${p.id}${p._v ? '?v=' + p._v : ''}`, alt: '', width: size, height: size, style: `width:${size}px;height:${size}px`, loading: 'lazy' });
   }
