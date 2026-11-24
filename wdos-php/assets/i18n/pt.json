@@ -4388,5 +4388,17 @@
 "HQ staff only": "Só funcionários da sede",
 "Document changed": "Documento alterado",
 "Document deleted": "Documento apagado",
-"Envoy deleted": "Enviada apagada"
+"Envoy deleted": "Enviada apagada",
+"Tick one or more groups, or add people by name below. You can do both.": "Marque um ou mais grupos, ou adicione pessoas pelo nome abaixo. Pode fazer as duas coisas.",
+"Groups ticked: {1}. People added: {2}.": "Grupos marcados: {1}. Pessoas adicionadas: {2}.",
+"Add people by name": "Adicionar pessoas pelo nome",
+"Tick who is invited, or add people by name.": "Marque quem é convidado, ou adicione pessoas pelo nome.",
+"All volunteer leaders, both networks": "Todas as líderes voluntárias, as duas redes",
+"WGMN leadership": "Liderança WGMN",
+"WNNN leadership": "Liderança WNNN",
+"All members, both networks": "Todas as membros, as duas redes",
+"All WGMN members": "Todas as membros WGMN",
+"All WNNN members": "Todas as membros WNNN",
+"WODDI HQ team": "Equipa da sede WODDI",
+"My leadership team": "A minha equipa de liderança"
 }

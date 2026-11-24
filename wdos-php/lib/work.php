@@ -179,9 +179,18 @@ route('GET', '/meetings', function () {
   return ['items' => $out, 'can_schedule' => (bool) meeting_audiences($u), 'audiences' => meeting_audiences($u), 'modes' => MEETING_MODES];
 });
 route('POST', '/meetings', function () {
-  $u = require_user(); $aud = meeting_audiences($u); $pick = str_in('audience', 20);
+  $u = require_user(); $aud = meeting_audiences($u);
   if (!$aud) fail(403, 'Meetings are scheduled by volunteer leaders and WODDI HQ.', 'forbidden');
-  if (!isset($aud[$pick])) fail(422, 'Choose who is invited.', 'audience');
+  // v109.55: tick several groups, and add chosen people on top. The old single 'audience' still works.
+  $picks = is_array(body()['audiences'] ?? null) ? array_values(array_unique(array_map(fn($x) => mb_substr((string) $x, 0, 20), body()['audiences']))) : [str_in('audience', 20)];
+  $picks = array_values(array_filter($picks, fn($x) => $x !== ''));
+  foreach ($picks as $x) if (!isset($aud[$x])) fail(422, 'Choose who is invited.', 'audience');
+  $peopleKey = array_values(array_filter(array_keys($aud), fn($k) => str_starts_with($k, 'people:')))[0] ?? '';
+  $groups = array_values(array_filter($picks, fn($x) => !str_starts_with($x, 'people:')));
+  $hasPeople = is_array(body()['invitees'] ?? null) && array_filter(body()['invitees']);
+  if (!$groups && !$hasPeople) fail(422, 'Tick who is invited, or add people by name.', 'audience');
+  if ($hasPeople && !$peopleKey) fail(403, 'You can invite the leaders who serve under your seat.', 'invitees');
+  $pick = count($groups) === 1 && !$hasPeople ? $groups[0] : (!$groups ? $peopleKey : 'mix:' . (count(array_unique(array_map(fn($g) => explode(':', $g)[1], $groups))) === 1 ? explode(':', $groups[0])[1] : 'ALL'));
   $title = str_in('title', 190); if (mb_strlen($title) < 3) fail(422, 'Give the meeting a title.', 'title');
   $s = strtotime(str_in('starts_at', 40)); $e = strtotime(str_in('ends_at', 40));
   if (!$s || !$e) fail(422, 'Both start and end times are required.', 'times');
@@ -191,20 +200,25 @@ route('POST', '/meetings', function () {
   [$audience, $net] = explode(':', $pick); $seat = work_seat($u);
   // v109.24: a meeting with the leaders she chooses (each must be someone she may give work to)
   $invitees = [];
-  if ($audience === 'people') {
+  if ($audience === 'people' || ($audience === 'mix' && $hasPeople)) {
     $invitees = array_values(array_unique(array_filter(array_map('intval', is_array(body()['invitees'] ?? null) ? body()['invitees'] : []), fn($x) => $x > 0 && $x !== (int) $u['id'])));
     if (!$invitees) fail(422, 'Choose who to invite.', 'invitees');
     if (count($invitees) > 200) fail(422, 'Invite 200 people at most. For more, choose a whole group.', 'invitees');
     foreach ($invitees as $iid) if (!work_may_assign($u, $iid)) fail(403, 'You can invite the leaders who serve under your seat.', 'invitees');
   }
   // HQ may keep a meeting to one country
-  $only = is_hq($u) && $audience !== 'hq_team' && (int) (body()['country_id'] ?? 0) ? row("SELECT id, name, path FROM org_units WHERE level='country' AND id=?", [(int) body()['country_id']]) : null;
-  if ($only) $seat = ['org_unit_id' => (int) $only['id'], 'unit_path' => $only['path'], 'position_level' => '', 'area_label' => '', '_label' => $aud[$pick] . ', ' . $only['name']];
+  $only = is_hq($u) && $groups !== ['hq_team:ALL'] && (int) (body()['country_id'] ?? 0) ? row("SELECT id, name, path FROM org_units WHERE level='country' AND id=?", [(int) body()['country_id']]) : null;
+  if ($only) $seat = ['org_unit_id' => (int) $only['id'], 'unit_path' => $only['path'], 'position_level' => '', 'area_label' => '', '_label' => ($aud[$pick] ?? '') . ', ' . $only['name']];
   $mid = ins('INSERT INTO meetings (title,mode,location,starts_at,ends_at,agenda,host_id,audience,network,org_unit_id,unit_path,scope_level,scope_area,scope_label,status,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
     [$title, $mode, $loc, gmdate('Y-m-d H:i:s', $s), gmdate('Y-m-d H:i:s', $e), str_in('agenda', 6000), (int) $u['id'], $audience, $net, $seat ? (int) $seat['org_unit_id'] : null, $seat ? $seat['unit_path'] : '',
-     $seat ? $seat['position_level'] : '', $seat ? (string) $seat['area_label'] : '', $seat ? ($seat['_label'] ?? seat_title($seat)) : $aud[$pick], 'scheduled', now()]);
+     $seat ? $seat['position_level'] : '', $seat ? (string) $seat['area_label'] : '', $seat ? ($seat['_label'] ?? seat_title($seat)) : ($aud[$pick] ?? ''), 'scheduled', now()]);
   foreach ($invitees as $iid) q('INSERT INTO meeting_invitees (meeting_id,user_id) VALUES (?,?)', [$mid, $iid]);
-  if ($invitees) q('UPDATE meetings SET scope_label=? WHERE id=?', [count($invitees) === 1 ? 'Invited: ' . (string) val("SELECT CONCAT(first_name,' ',last_name) FROM users WHERE id=?", [$invitees[0]]) : count($invitees) . ' invited leaders', $mid]);
+  if ($audience === 'mix') {
+    foreach ($groups as $g) { [$ga, $gn] = explode(':', $g); q('INSERT INTO meeting_groups (meeting_id,audience,network) VALUES (?,?,?)', [$mid, $ga, $gn]); }
+    $lab = implode(' + ', array_map(fn($g) => $aud[$g], $groups)) . ($invitees ? ($groups ? ' + ' : '') . (count($invitees) === 1 ? (string) val("SELECT CONCAT(first_name,' ',last_name) FROM users WHERE id=?", [$invitees[0]]) : count($invitees) . ' people chosen') : '') . ($only ? ', ' . $only['name'] : '');
+    q('UPDATE meetings SET scope_label=? WHERE id=?', [mb_substr($lab, 0, 190), $mid]);
+  }
+  elseif ($invitees) q('UPDATE meetings SET scope_label=? WHERE id=?', [count($invitees) === 1 ? 'Invited: ' . (string) val("SELECT CONCAT(first_name,' ',last_name) FROM users WHERE id=?", [$invitees[0]]) : count($invitees) . ' invited leaders', $mid]);
   if ((body()['kind'] ?? '') === 'talk_show') { try { q("UPDATE meetings SET kind='talk_show' WHERE id=?", [$mid]); } catch (PDOException $e) { /* before migration 021 */ } }
   $m = meeting_get($mid); [$w, $p] = meeting_invited_sql($m);
   $join = meeting_join_sql($m, $w);
@@ -282,7 +296,7 @@ route('POST', '/meetings/(\d+)/cancel', function ($id) {
   if ($m['status'] !== 'scheduled') fail(409, "That change is not allowed from the meeting's current status.", 'transition');
   q("UPDATE meetings SET status='cancelled', closed_at=? WHERE id=?", [now(), (int) $id]);
   [$w, $p] = meeting_invited_sql($m);
-  $join = $m['audience'] === 'members' ? "u.id IN (SELECT u.id FROM (SELECT u.id FROM users u JOIN org_units ou ON ou.id=u.org_unit_id WHERE $w) u)" : $w;
+  $join = meeting_join_sql($m, $w);
   notify_many("u.id<>? AND $join", array_merge([(int) $u['id']], $p), 'meeting', 'Cancelled: ' . mb_substr($m['title'], 0, 120), 'This meeting will not hold. ' . work_name($u) . ' cancelled it.', '#/meetings/' . $id);
   after_response(fn() => push_drain(80));
 });
@@ -340,7 +354,7 @@ route('POST', '/meetings/(\d+)/delete', function ($id) {
   $told = 0;
   if ($m['status'] === 'scheduled' && strtotime($m['ends_at'] . ' UTC') > time())     // still to come: those invited are told it will not hold
     $told = meeting_broadcast($m, 'Cancelled: ' . mb_substr($m['title'], 0, 120), 'This meeting will not hold. ' . work_name($u) . ' removed it.', false);
-  foreach (['meeting_invitees', 'meeting_rsvps', 'meeting_joins', 'meeting_attendance'] as $t) { try { q("DELETE FROM $t WHERE meeting_id=?", [(int) $id]); } catch (PDOException $e) { /* table not there */ } }
+  foreach (['meeting_invitees', 'meeting_groups', 'meeting_rsvps', 'meeting_joins', 'meeting_attendance'] as $t) { try { q("DELETE FROM $t WHERE meeting_id=?", [(int) $id]); } catch (PDOException $e) { /* table not there */ } }
   q("UPDATE tasks SET source='' WHERE source=?", ['meeting:' . (int) $id]);   // its actions stay as tasks, with their owners and status
   q('DELETE FROM meetings WHERE id=?', [(int) $id]);
   q("DELETE FROM app_settings WHERE k IN (?,?,?)", ['meet_day_' . $id, 'meet_rem_' . $id, 'meet_now_' . $id]);

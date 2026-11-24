@@ -4257,5 +4257,17 @@
 "HQ staff only": "Ma'aikatan hedikwata kaɗai",
 "Document changed": "An gyara takardar",
 "Document deleted": "An goge takardar",
-"Envoy deleted": "An goge wakiliya"
+"Envoy deleted": "An goge wakiliya",
+"Tick one or more groups, or add people by name below. You can do both.": "Zaɓi rukuni ɗaya ko fiye, ko ƙara mutane da sunansu a ƙasa. Kuna iya yin duka biyun.",
+"Groups ticked: {1}. People added: {2}.": "Rukunonin da aka zaɓa: {1}. Mutanen da aka ƙara: {2}.",
+"Add people by name": "Ƙara mutane da suna",
+"Tick who is invited, or add people by name.": "Zaɓi waɗanda aka gayyata, ko ƙara mutane da suna.",
+"All volunteer leaders, both networks": "Dukkan shugabannin sa-kai, cibiyoyin biyu",
+"WGMN leadership": "Shugabancin WGMN",
+"WNNN leadership": "Shugabancin WNNN",
+"All members, both networks": "Dukkan mambobi, cibiyoyin biyu",
+"All WGMN members": "Dukkan mambobin WGMN",
+"All WNNN members": "Dukkan mambobin WNNN",
+"WODDI HQ team": "Ƙungiyar hedikwatar WODDI",
+"My leadership team": "Ƙungiyar shugabancina"
 }

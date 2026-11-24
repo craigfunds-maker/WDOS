@@ -98,6 +98,12 @@ function meetings_snapshot(array $node, string $a, string $b): array {
 /* ---- who a meeting is for -------------------------------------------------- */
 /** WHERE on users u (joined to org_units ou on the home unit) for everyone invited to this meeting. */
 function meeting_invited_sql(array $m): array {
+  if ($m['audience'] === 'mix') {                                                // v109.55: several groups, plus chosen people
+    $ws = ['u.id IN (SELECT mi.user_id FROM meeting_invitees mi WHERE mi.meeting_id=?)']; $ps = [(int) $m['id']];
+    try { $gs = rows('SELECT audience, network FROM meeting_groups WHERE meeting_id=?', [(int) $m['id']]); } catch (PDOException $e) { $gs = []; }
+    foreach ($gs as $g) { if (!in_array($g['audience'], ['hq_team', 'leaders', 'members'], true)) continue; [$w, $p] = meeting_invited_sql(['audience' => $g['audience'], 'network' => $g['network']] + $m); $ws[] = "($w)"; $ps = array_merge($ps, $p); }
+    return [implode(' OR ', $ws), $ps];
+  }
   if ($m['audience'] === 'hq_team') return ["u.role IN ('hq_admin','super_admin')", []];
   if ($m['audience'] === 'people') return ['u.id IN (SELECT mi.user_id FROM meeting_invitees mi WHERE mi.meeting_id=?)', [(int) $m['id']]];      // v109.24: chosen leaders
   if ($m['audience'] === 'members') {
@@ -118,7 +124,7 @@ function meeting_invited_sql(array $m): array {
 }
 /** The invited people, as a condition notify_many can use (it has no org_units join of its own). */
 function meeting_join_sql(array $m, string $w): string {
-  return $m['audience'] === 'members' && str_contains($w, 'ou.') ? "u.id IN (SELECT u.id FROM (SELECT u.id FROM users u JOIN org_units ou ON ou.id=u.org_unit_id WHERE $w) u)" : $w;
+  return in_array($m['audience'], ['members', 'mix'], true) && str_contains($w, 'ou.') ? "u.id IN (SELECT u.id FROM (SELECT u.id FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE $w) u)" : $w;
 }
 /** Tell everyone invited, and the host: in the app and by push, and by email when email is switched on. Returns how many were told in the app. */
 /** $body may be a function of the time zone (v109.53), so each person reads the time in her own time. */

@@ -38,7 +38,11 @@ export async function render(root, params) {
 export function newForm(r, done, opts = {}) {
   const title = input({ maxlength: 190 }); const mode = h('select', { class: 'input' }, Object.entries(r.modes).map(([v, l]) => h('option', { value: v, text: l })));
   const loc = input({ maxlength: 400 }); const locHint = h('small', { text: 'Paste the meeting link here.' }); mode.addEventListener('change', () => { locHint.textContent = mode.value === 'in_person' ? 'Address of the meeting.' : mode.value === 'hybrid' ? 'Address, and the video call link.' : 'Paste the meeting link here.'; });
-  const start = input({ type: 'datetime-local' }), end = input({ type: 'datetime-local' }); const aud = h('select', { class: 'input' }, Object.entries(r.audiences).map(([v, l]) => h('option', { value: v, text: l })));
+  const start = input({ type: 'datetime-local' }), end = input({ type: 'datetime-local' }); 
+  /* v109.55: tick as many groups as needed, and add people by name on top (Azeez, 24 Nov 2026) */
+  const groupOpts = Object.entries(r.audiences).filter(([v]) => !v.startsWith('people:')); const ticked = new Set();
+  const aud = h('fieldset', { class: 'audpick' }, h('legend', { class: 'sr-only', text: t('Who is invited?') }), ...groupOpts.map(([v, l]) => { const c = h('input', { type: 'checkbox', value: v, onchange: (e) => { e.target.checked ? ticked.add(v) : ticked.delete(v); paintCount(); } }); return h('label', { class: 'check' }, c, h('span', { text: t(l) })); }));
+  const audCount = h('small', { class: 'muted' }); const paintCount = () => { const n = ticked.size, p = chosen.size; audCount.textContent = !n && !p ? t('Tick one or more groups, or add people by name below. You can do both.') : tf('Groups ticked: {1}. People added: {2}.', n, p); };
   /* v109.53: the time zone the time is typed in. Nigeria (WODDI HQ) first, then this phone's own zone if it is another one. */
   const mine = myTz(); const now = new Date();
   const zoneOpt = (tz, name) => h('option', { value: tz, text: `${t(name)} (${offsetText(now, tz)})` });
@@ -57,13 +61,12 @@ export function newForm(r, done, opts = {}) {
   /* v109.24: a meeting with the leaders she chooses */
   const chosen = new Map((opts.invitees || []).map((p) => [p.id, p])); const chips = h('div', { class: 'tagrow', style: 'justify-content:flex-start' }); const found = h('div', { class: 'picklist' });
   const who = input({ type: 'search', placeholder: t('Search a leader by name'), 'aria-label': t('Search a leader by name') });
-  const paintChosen = () => chips.replaceChildren(...[...chosen.values()].map((p) => h('span', { class: 'tag' }, p.name, h('button', { class: 'tag__x', type: 'button', 'aria-label': t('Remove'), onclick: () => { chosen.delete(p.id); paintChosen(); } }, icon('x', 12)))));
+  const paintChosen = () => { paintCount(); chips.replaceChildren(...[...chosen.values()].map((p) => h('span', { class: 'tag' }, p.name, h('button', { class: 'tag__x', type: 'button', 'aria-label': t('Remove'), onclick: () => { chosen.delete(p.id); paintChosen(); } }, icon('x', 12))))); };
   let wt; who.addEventListener('input', () => { clearTimeout(wt); wt = setTimeout(async () => { const q = who.value.trim(); if (q.length < 2) { found.replaceChildren(); return; }
     try { const x = await api('/tasks/people?q=' + encodeURIComponent(q)); found.replaceChildren(...(x.people.length ? x.people.map((p) => h('button', { type: 'button', class: 'pick', onclick: () => { chosen.set(p.id, { id: p.id, name: `${p.first_name} ${p.last_name}` }); paintChosen(); who.value = ''; found.replaceChildren(); } }, avatar(p, 30), h('span', {}, h('b', { text: `${p.first_name} ${p.last_name}` }), h('small', { text: p.title || '' })))) : [h('p', { class: 'faint', text: t('No one found inside your area.') })])); } catch (e) { found.replaceChildren(h('p', { class: 'faint', text: e.message })); } }, 250); });
-  const pickBox = h('div', { style: 'display:grid;gap:8px' }, h('b', { text: t('Who is invited') }), chips, who, found);
   const peopleKey = Object.keys(r.audiences).find((k) => k.startsWith('people:'));
-  if (chosen.size && peopleKey) aud.value = peopleKey;
-  const syncAud = () => { pickBox.hidden = !aud.value.startsWith('people:'); }; aud.addEventListener('change', syncAud); paintChosen(); syncAud();
+  const pickBox = h('div', { style: 'display:grid;gap:8px', hidden: !peopleKey }, h('b', { text: t('Add people by name') }), chips, who, found);
+  paintChosen();
   const isHq = !!r.audiences['hq_team:ALL']; const country = h('select', { class: 'input' }, h('option', { value: '', text: 'Every country' }));
   if (isHq) api('/geo/countries').then((x) => country.append(...x.countries.map((c) => h('option', { value: c.id, text: c.name })))).catch(() => {});
   /* v109.53: a Meet link for the meeting's own date, not a call that starts now. meet.google.com/new opened a live meeting at once
@@ -77,9 +80,9 @@ export function newForm(r, done, opts = {}) {
     window.open(u, '_blank', 'noopener');
   } }, icon('link', 16), t('Make a Google Meet link for this time'));
   const save = h('button', { class: 'btn', type: 'button', onclick: async () => { err.textContent = ''; save.disabled = true;
-    try { const iso = (v) => v ? zonedToUtc(v, tzSel.value).toISOString() : ''; const x = await api('/meetings', { title: title.value, mode: mode.value, location: loc.value, starts_at: iso(start.value), ends_at: iso(end.value), audience: aud.value, invitees: [...chosen.keys()], agenda: agenda.value, kind: kind.value, country_id: isHq ? Number(country.value) || 0 : 0 });
+    try { const iso = (v) => v ? zonedToUtc(v, tzSel.value).toISOString() : ''; const x = await api('/meetings', { title: title.value, mode: mode.value, location: loc.value, starts_at: iso(start.value), ends_at: iso(end.value), audiences: [...ticked, ...(chosen.size && peopleKey ? [peopleKey] : [])], invitees: [...chosen.keys()], agenda: agenda.value, kind: kind.value, country_id: isHq ? Number(country.value) || 0 : 0 });
       toast('Meeting scheduled', tf('{1} people notified in the app and by push.', fmt(x.invited)) + (x.mail_on ? tf(' {1} emails are being sent.', fmt(x.emails)) : ' Emails are not set up on the server yet.'), 'ok'); done(); } catch (e) { err.textContent = e.message; save.disabled = false; } } }, 'Schedule');
-  return card('Schedule a meeting', 'Choose the time zone you are typing the time in. Each person invited sees the meeting in their own time.', h('div', { style: 'display:grid;gap:14px' }, field('Title', title), h('div', { class: 'grid2' }, field('Meeting or talk show?', kind), field('Starts', start), field('Ends', end), field('Time zone of these times', tzSel), field('Format', mode), field('Who is invited?', aud), isHq ? field('Country', country) : null), elsewhere, pickBox,
+  return card('Schedule a meeting', 'Choose the time zone you are typing the time in. Each person invited sees the meeting in their own time.', h('div', { style: 'display:grid;gap:14px' }, field('Title', title), h('div', { class: 'grid2' }, field('Meeting or talk show?', kind), field('Starts', start), field('Ends', end), field('Time zone of these times', tzSel), field('Format', mode), isHq ? field('Country', country) : null), elsewhere, h('div', { class: 'field' }, h('span', { text: t('Who is invited?') }), aud, audCount), pickBox,
     h('label', { class: 'field' }, h('span', { text: 'Location or link' }), loc, locHint),
     h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap;align-items:center' }, meetBtn, h('small', { class: 'muted', style: 'flex:1;min-width:220px', text: 'This does not start a call now. Google Calendar opens a new event at the time above: tap Add Google Meet video conferencing, save it, then copy the Meet link and paste it above. In the call, people can turn on captions and choose their own language for translated speech.' })),
     field('Agenda (optional)', agenda), h('small', { class: 'muted', text: 'Everyone invited is told now, reminded the day before, one hour before and as it starts, in the app and on their phones. Emails go out too when email is switched on.' }), err, h('div', {}, save)));

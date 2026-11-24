@@ -4186,5 +4186,17 @@
 "HQ staff only": "Òṣìṣẹ́ olú-iléeṣẹ́ nìkan",
 "Document changed": "A ti ṣàtúnṣe ìwé",
 "Document deleted": "A ti pa ìwé rẹ́",
-"Envoy deleted": "A ti pa aṣojú rẹ́"
+"Envoy deleted": "A ti pa aṣojú rẹ́",
+"Tick one or more groups, or add people by name below. You can do both.": "Sàmì ẹgbẹ́ kan tàbí jù bẹ́ẹ̀ lọ, tàbí fi àwọn ènìyàn kún un pẹ̀lú orúkọ wọn nísàlẹ̀. O lè ṣe méjèèjì.",
+"Groups ticked: {1}. People added: {2}.": "Ẹgbẹ́ tí a sàmì sí: {1}. Ènìyàn tí a fi kún un: {2}.",
+"Add people by name": "Fi àwọn ènìyàn kún un pẹ̀lú orúkọ",
+"Tick who is invited, or add people by name.": "Sàmì àwọn tí a pè, tàbí fi àwọn ènìyàn kún un pẹ̀lú orúkọ.",
+"All volunteer leaders, both networks": "Gbogbo àwọn aṣáájú olùyọ̀ǹda, nẹ́tíwọ̀ọ̀kì méjèèjì",
+"WGMN leadership": "Àwọn aṣáájú WGMN",
+"WNNN leadership": "Àwọn aṣáájú WNNN",
+"All members, both networks": "Gbogbo ọmọ ẹgbẹ́, nẹ́tíwọ̀ọ̀kì méjèèjì",
+"All WGMN members": "Gbogbo ọmọ ẹgbẹ́ WGMN",
+"All WNNN members": "Gbogbo ọmọ ẹgbẹ́ WNNN",
+"WODDI HQ team": "Ẹgbẹ́ olú-ilé-iṣẹ́ WODDI",
+"My leadership team": "Ẹgbẹ́ aṣáájú mi"
 }

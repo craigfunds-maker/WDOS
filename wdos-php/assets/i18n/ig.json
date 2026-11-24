@@ -4161,5 +4161,17 @@
 "HQ staff only": "Naanị ndị ọrụ isi ụlọ ọrụ",
 "Document changed": "Agbanweela akwụkwọ",
 "Document deleted": "Ehichapụla akwụkwọ",
-"Envoy deleted": "Ehichapụla onye ozi"
+"Envoy deleted": "Ehichapụla onye ozi",
+"Tick one or more groups, or add people by name below. You can do both.": "Kaa otu ìgwè ma ọ bụ karịa, ma ọ bụ tinye ndị mmadụ site n'aha ha n'okpuru. Ị nwere ike ime ha abụọ.",
+"Groups ticked: {1}. People added: {2}.": "Ìgwè akaara: {1}. Ndị a tinyere: {2}.",
+"Add people by name": "Tinye ndị mmadụ site n'aha",
+"Tick who is invited, or add people by name.": "Kaa ndị a kpọrọ òkù, ma ọ bụ tinye ndị mmadụ site n'aha.",
+"All volunteer leaders, both networks": "Ndị ndu ọrụ afọ ofufo niile, netwọk abụọ",
+"WGMN leadership": "Ndị ndu WGMN",
+"WNNN leadership": "Ndị ndu WNNN",
+"All members, both networks": "Ndị otu niile, netwọk abụọ",
+"All WGMN members": "Ndị otu WGMN niile",
+"All WNNN members": "Ndị otu WNNN niile",
+"WODDI HQ team": "Otu isi ụlọ ọrụ WODDI",
+"My leadership team": "Otu ndu m"
 }

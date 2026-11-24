@@ -4388,5 +4388,17 @@
 "HQ staff only": "Wafanyakazi wa Makao Makuu tu",
 "Document changed": "Hati imebadilishwa",
 "Document deleted": "Hati imefutwa",
-"Envoy deleted": "Mjumbe amefutwa"
+"Envoy deleted": "Mjumbe amefutwa",
+"Tick one or more groups, or add people by name below. You can do both.": "Weka alama kwenye kundi moja au zaidi, au ongeza watu kwa majina hapa chini. Unaweza kufanya yote mawili.",
+"Groups ticked: {1}. People added: {2}.": "Makundi yaliyowekwa alama: {1}. Watu walioongezwa: {2}.",
+"Add people by name": "Ongeza watu kwa majina",
+"Tick who is invited, or add people by name.": "Weka alama kwa wanaoalikwa, au ongeza watu kwa majina.",
+"All volunteer leaders, both networks": "Viongozi wote wa kujitolea, mitandao yote miwili",
+"WGMN leadership": "Uongozi wa WGMN",
+"WNNN leadership": "Uongozi wa WNNN",
+"All members, both networks": "Wanachama wote, mitandao yote miwili",
+"All WGMN members": "Wanachama wote wa WGMN",
+"All WNNN members": "Wanachama wote wa WNNN",
+"WODDI HQ team": "Timu ya Makao Makuu ya WODDI",
+"My leadership team": "Timu yangu ya uongozi"
 }
