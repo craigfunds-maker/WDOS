@@ -116,65 +116,87 @@ function addLeaderCard(onAdded) {
       h('div', { class: 'grid2' }, F.net, F.pos), h('div', { class: 'grid2' }, F.cc, F.unit), F.area, err, h('div', {}, go), out));
 }
 
-/* v109.51: one click for a whole network. Every seated leader of WGMN or WNNN, in every country and at every level, in one PDF arranged
- * country by country. Only people with no password yet get one; a leader who already signs in keeps her own password (the server
- * refuses to replace it). Logins sent before and never used are kept unless HQ ticks the box to replace them. */
+/* v109.51: one click for a whole network. HQ chooses the network (or both), ticks every country at once or only some, ticks every
+ * leadership level at once or only some, and presses one button. One PDF, arranged country by country, downloads.
+ * Only people with no password yet get one; a leader who already signs in keeps her own password (the server refuses to replace it).
+ * Logins sent before and never used are kept unless HQ ticks the box to replace them. */
 function networkCard() {
-  const net = h('select', { class: 'input' }, h('option', { value: 'WGMN', text: 'WGMN' }), h('option', { value: 'WNNN', text: 'WNNN' }));
-  const box = (label) => { const c = h('input', { type: 'checkbox', style: 'width:20px;height:20px;flex:none' }); return [c, h('label', { style: 'display:flex;gap:8px;align-items:center' }, c, h('span', { text: t(label) }))]; };
-  const [envoys, envoysL] = box('Add the WODDI Envoys at the end of each country');
-  const [reissue, reissueL] = box('Also replace logins sent before that have never been used');
-  const [agree, agreeL] = box('I understand those earlier temporary passwords will stop working');
+  const net = h('select', { class: 'input' }, h('option', { value: 'WGMN', text: 'WGMN' }), h('option', { value: 'WNNN', text: 'WNNN' }), h('option', { value: 'ALL', text: t('Both networks') }));
+  const tick = (label, on = false) => { const c = h('input', { type: 'checkbox', checked: on, style: 'width:20px;height:20px;flex:none' }); const l = h('label', { style: 'display:flex;gap:8px;align-items:center;cursor:pointer' }, c, h('span', { text: label })); return [c, l]; };
+  const [allC, allCL] = tick(t('All countries'), true); const cBox = h('div', { style: 'display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px 14px;max-height:240px;overflow:auto;padding:10px;border:1px solid var(--line);border-radius:12px' });
+  const cFind = h('input', { class: 'input', type: 'search', placeholder: t('Find a country'), autocomplete: 'off' });
+  const [allL, allLL] = tick(t('All leadership levels'), true); const lBox = h('div', { style: 'display:flex;gap:8px 18px;flex-wrap:wrap' });
+  const [envoys, envoysL] = tick(t('Also add the WODDI Envoys'));
+  const [reissue, reissueL] = tick(t('Also replace logins sent before that have never been used'));
+  const [agree, agreeL] = tick(t('I understand those earlier temporary passwords will stop working'));
   const stats = h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, sk.rows(1)); const go = h('button', { class: 'btn', type: 'button' });
   const prog = h('div', { hidden: true, style: 'display:grid;gap:6px' }); const done = h('div');
-  let d = null; let busy = false;
-  const targets = () => d ? d.people.filter((p) => p.cat === 'new' || (p.cat === 'pending' && reissue.checked)) : [];
+  const cs = new Map(), ls = new Map(); let d = null; let busy = false;
+  const netName = () => net.value === 'ALL' ? 'WGMN and WNNN' : net.value;
+  const chosen = () => { if (!d) return []; const lv = new Set([...ls].filter(([, c]) => c.checked).map(([k]) => k)); if (envoys.checked) lv.add('envoy');
+    const cc = new Set([...cs].filter(([, c]) => c.checked).map(([k]) => k)); return d.people.filter((p) => cc.has(p.country) && lv.has(p.level)); };
+  const targets = () => chosen().filter((p) => p.cat === 'new' || (p.cat === 'pending' && reissue.checked));
+  const sync = () => { allC.checked = cs.size > 0 && [...cs.values()].every((c) => c.checked); allL.checked = [...ls.values()].every((c) => c.checked); };
   const paint = () => {
-    agreeL.hidden = !reissue.checked; const n = targets().length;
-    go.replaceChildren(icon('key', 16), ' ', n === 1 ? tf('Create 1 login and download the PDF of every {1} leader', net.value) : n ? tf('Create {1} logins for every {2} leader and download the PDF', fmt(n), net.value) : tf('Download the PDF of every {1} leader', net.value));
-    go.disabled = busy || !d || !d.people.length || (reissue.checked && n && !agree.checked);
+    sync(); agreeL.hidden = !reissue.checked; const n = targets().length; const sel = chosen();
+    go.replaceChildren(icon('key', 16), ' ', n === 1 ? tf('Create 1 login and download the PDF of every {1} leader', netName()) : n ? tf('Create {1} logins for every {2} leader and download the PDF', fmt(n), netName()) : tf('Download the PDF of every {1} leader', netName()));
+    go.disabled = busy || !sel.length || (reissue.checked && n > 0 && !agree.checked);
     if (!d) return;
-    const c = d.counts; const chip = (txt, cls) => h('span', { class: 'tag' + (cls ? ' ' + cls : ''), text: txt });
-    stats.replaceChildren(chip(tf('{1} leaders in {2} countries', fmt(d.people.length), fmt(d.countries))), chip(tf('{1} need a login', fmt(c.new)), c.new ? 'tag--wgmn' : ''),
+    const c = { new: 0, pending: 0, active: 0, google: 0, cannot: 0 }; sel.forEach((p) => { c[p.cat]++; });
+    const nc = new Set(sel.map((p) => p.country)).size; const chip = (txt, cls) => h('span', { class: 'tag' + (cls ? ' ' + cls : ''), text: txt });
+    stats.replaceChildren(chip(tf('{1} leaders in {2} countries', fmt(sel.length), fmt(nc))), chip(tf('{1} need a login', fmt(c.new)), c.new ? 'tag--wgmn' : ''),
       chip(tf('{1} already signed in', fmt(c.active + c.google))), chip(tf('{1} have a login not used yet', fmt(c.pending))), c.cannot ? chip(tf('{1} have no email or phone', fmt(c.cannot)), 'tag--bad') : null);
   };
+  allC.addEventListener('change', () => { cs.forEach((c) => { c.checked = allC.checked; }); paint(); });
+  allL.addEventListener('change', () => { ls.forEach((c) => { c.checked = allL.checked; }); paint(); });
+  cFind.addEventListener('input', () => { const q = cFind.value.trim().toLowerCase(); [...cBox.children].forEach((l) => { l.hidden = q && !l.textContent.toLowerCase().includes(q); }); });
   async function load() {
-    d = null; stats.replaceChildren(sk.rows(1)); paint();
-    try { d = await api('/hq/leader-logins/network?' + new URLSearchParams({ network: net.value, envoys: envoys.checked ? '1' : '0' })); }
+    d = null; stats.replaceChildren(sk.rows(1)); cBox.replaceChildren(); cs.clear(); paint();
+    try { d = await api('/hq/leader-logins/network?' + new URLSearchParams({ network: net.value })); }
     catch (e) { stats.replaceChildren(h('span', { class: 'err', text: e.message })); return; }
-    paint();
+    d.countries.forEach((c) => { const [box, l] = tick(`${c.name} (${fmt(c.count)})`, true); box.addEventListener('change', paint); cs.set(c.cc, box); cBox.append(l); });
+    if (!ls.size) Object.entries(d.levels).filter(([k]) => k !== 'envoy').forEach(([k, l]) => { const [box, lb] = tick(t(l), true); box.addEventListener('change', paint); ls.set(k, box); lBox.append(lb); });
+    cFind.hidden = d.countries.length < 9; paint();
   }
   async function run() {
     if (busy || !d) return; busy = true; paint(); done.replaceChildren();
-    const list = targets(); const pw = new Map(); let err = null; let meta = { at: null, by: '', site: location.origin };
+    const sel = chosen(); const list = targets(); const pw = new Map(); let err = null; let meta = {};
+    const allCountries = [...cs.values()].every((c) => c.checked); const countries = allCountries ? [] : [...cs].filter(([, c]) => c.checked).map(([k]) => k);
     prog.hidden = !list.length; const bar = h('progress', { max: list.length || 1, value: 0, style: 'width:100%;height:12px' }); const lbl = h('small', {}); prog.replaceChildren(lbl, bar);
     for (let i = 0; i < list.length; i += d.chunk) {
       lbl.textContent = tf('Creating logins: {1} of {2}', fmt(i), fmt(list.length));
       try {
-        const r = await api('/hq/leader-logins/network', { network: net.value, envoys: envoys.checked, reissue_unused: reissue.checked, confirm: agree.checked, ids: list.slice(i, i + d.chunk).map((p) => p.id) });
+        const r = await api('/hq/leader-logins/network', { network: net.value, countries, reissue_unused: reissue.checked, confirm: agree.checked, ids: list.slice(i, i + d.chunk).map((p) => p.id) });
         r.issued.forEach((x) => pw.set(x.id, x.temporary_password)); meta = r;
       } catch (e) { err = e; break; }
       bar.value = Math.min(list.length, i + d.chunk);
     }
     lbl.textContent = tf('Creating logins: {1} of {2}', fmt(pw.size), fmt(list.length));
-    const when = new Date((meta.at ? meta.at.replace(' ', 'T') + 'Z' : Date.now())).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-    const people = d.people.map((p) => ({ country_name: p.country_name, level: p.level, name: p.name, position: p.position, sign_in_with: p.sign_in_with, password: pw.get(p.id) || '',
-      status: pw.has(p.id) ? 'new' : p.cat === 'new' ? 'notdone' : p.cat }));
-    const pdf = networkLoginsPdf({ network: net.value, title: `WDOS logins: ${net.value} volunteer leaders`, made: meta.by ? `${when} by ${meta.by}` : when,
+    if (!meta.by) { const me = await api('/me').catch(() => null); if (me && me.user) meta.by = `${me.user.first_name} ${me.user.last_name}`.trim(); }
+    const when = new Date(meta.at ? meta.at.replace(' ', 'T') + 'Z' : Date.now()).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    const lvAll = [...ls.values()].every((c) => c.checked);
+    const scope = [allCountries ? 'All countries' : `${countries.length} ${countries.length === 1 ? 'country' : 'countries'}`, lvAll ? 'every leadership level' : [...ls].filter(([, c]) => c.checked).map(([k]) => d.levels[k]).join(', '), envoys.checked ? 'WODDI Envoys' : null].filter(Boolean).join('  ·  ');
+    const people = sel.map((p) => ({ country_name: p.country_name, level: p.level, name: p.name, position: net.value === 'ALL' && p.network ? `${p.position} (${p.network})` : p.position, sign_in_with: p.sign_in_with,
+      password: pw.get(p.id) || '', status: pw.has(p.id) ? 'new' : p.cat === 'new' ? 'notdone' : p.cat }));
+    const pdf = networkLoginsPdf({ network: netName(), title: `WDOS logins: ${netName()} volunteer leaders`, scope, made: meta.by ? `${when} by ${meta.by}` : when,
       host: String(meta.site || location.origin).replace(/^https?:\/\//, '').replace(/\/$/, ''),
       note: 'Give each leader only her own line, privately (for example in a direct WhatsApp message). These temporary passwords are kept nowhere else and cannot be shown again.', people });
-    const name = `WDOS-logins-${net.value}-all-countries-${new Date().toISOString().slice(0, 10)}.pdf`;
+    const name = `WDOS-logins-${net.value === 'ALL' ? 'WGMN-WNNN' : net.value}-${allCountries ? 'all-countries' : countries.join('-').slice(0, 40)}-${new Date().toISOString().slice(0, 10)}.pdf`;
     download(pdf, name);
     done.replaceChildren(h('div', { class: 'panel', style: 'display:grid;gap:8px' },
-      h('b', { text: pw.size === 1 ? t('1 new login. The PDF has downloaded.') : tf('{1} new logins. The PDF has downloaded.', fmt(pw.size)) }),
+      h('b', { text: !list.length ? t('The PDF has downloaded') : pw.size === 1 ? t('1 new login. The PDF has downloaded.') : tf('{1} new logins. The PDF has downloaded.', fmt(pw.size)) }),
       h('small', { text: t('Keep it safe: the temporary passwords cannot be shown again. If it did not download, press the button below now, before you leave this page.') }),
       err ? h('small', { class: 'bad', text: tf('Stopped before the end: {1}. The people already done are in the PDF. Press the button above again to finish the rest.', err.message) }) : null,
       h('div', {}, h('button', { class: 'btn btn--quiet', type: 'button', onclick: () => download(pdf, name) }, icon('book', 16), ' ', t('Download the PDF again')))));
-    if (err) toast(t('Not every login was created'), err.message, 'error'); else toast(t('Logins created'), pw.size === 1 ? t('1 new login') : tf('{1} new logins', fmt(pw.size)), 'ok');
-    busy = false; reissue.checked = false; agree.checked = false; await load(); prog.hidden = true;
+    if (err) toast(t('Not every login was created'), err.message, 'error'); else if (!list.length) toast(t('The PDF has downloaded'), '', 'ok'); else toast(t('Logins created'), pw.size === 1 ? t('1 new login') : tf('{1} new logins', fmt(pw.size)), 'ok');
+    // keep her choices of countries and levels; only the list itself is reloaded
+    const keepC = new Map([...cs].map(([k, c]) => [k, c.checked]));
+    busy = false; reissue.checked = false; agree.checked = false; await load(); keepC.forEach((v, k) => { if (cs.has(k)) cs.get(k).checked = v; }); prog.hidden = true; paint();
   }
-  go.addEventListener('click', run); [reissue, agree].forEach((x) => x.addEventListener('change', paint)); [net, envoys].forEach((x) => x.addEventListener('change', load));
+  go.addEventListener('click', run); [reissue, agree, envoys].forEach((x) => x.addEventListener('change', paint)); net.addEventListener('change', load);
   load();
-  return card('Logins for a whole network in one click', 'Choose the network. WDOS lists every seated leader of that network in every country, at every level, gives a temporary password to each one who has no login yet, and downloads one PDF arranged country by country. Leaders who already sign in keep their own password.',
-    h('div', { style: 'display:grid;gap:12px' }, h('div', { class: 'grid2' }, net, h('div')), envoysL, stats, reissueL, agreeL, h('div', {}, go), prog, done));
+  const sec = (title, ...kids) => h('div', { style: 'display:grid;gap:8px' }, h('b', { text: title }), ...kids);
+  return card('Logins for a whole network in one click', 'Choose the network, tick all countries or only some, tick all leadership levels or only some, and press the button. Each leader with no login yet gets a temporary password, and one PDF arranged country by country downloads. Leaders who already sign in keep their own password.',
+    h('div', { style: 'display:grid;gap:16px' }, sec(t('Network'), net), sec(t('Countries'), allCLnode(allCL), cFind, cBox), sec(t('Leadership levels'), allCLnode(allLL), lBox, envoysL), stats, reissueL, agreeL, h('div', {}, go), prog, done));
 }
+const allCLnode = (l) => { l.style.fontWeight = '700'; return l; };

@@ -139,34 +139,35 @@ route('POST', '/hq/leaders/add', function () {
 const NET_CHUNK = 100;
 const NET_LEVELS = ['country', 'state_region', 'lga', 'community_cluster', 'chapter'];
 
-function netlogin_people(string $net, bool $envoys): array {
+function netlogin_people(string $net): array {
+  // $net is WGMN, WNNN or ALL (both networks). Envoys are always included, as level 'envoy'; the page chooses which levels to use.
   $in = implode(',', array_fill(0, count(NET_LEVELS), '?'));
   $names = []; foreach (rows("SELECT country_code cc, name FROM org_units WHERE level='country' AND country_code IS NOT NULL") as $c) $names[$c['cc']] = $c['name'];
   $out = [];
+  $wn = $net === 'ALL' ? "s.network IN ('WGMN','WNNN')" : 's.network=?';
   $rows = rows("SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.password_hash, u.must_change_password, u.signup_method, u.last_seen_at,
-                       s.area_label, p.rank_no, p.level plevel, CASE WHEN s.network='WNNN' THEN p.title_wnnn ELSE p.title_wgmn END title,
+                       s.network seat_network, s.area_label, p.rank_no, p.level plevel, CASE WHEN s.network='WNNN' THEN p.title_wnnn ELSE p.title_wgmn END title,
                        o.name unit_name, o.level unit_level, o.country_code cc
                 FROM seats s JOIN users u ON u.id=s.user_id JOIN positions p ON p.code=s.position_code JOIN org_units o ON o.id=s.org_unit_id
-                WHERE s.ends_at IS NULL AND s.network=? AND u.status='active' AND u.role NOT IN ('hq_admin','super_admin') AND p.level IN ($in)
-                ORDER BY p.rank_no, o.name, s.area_label, u.first_name, u.last_name LIMIT 5000", array_merge([$net], NET_LEVELS));
+                WHERE s.ends_at IS NULL AND $wn AND u.status='active' AND u.role NOT IN ('hq_admin','super_admin') AND p.level IN ($in)
+                ORDER BY p.rank_no, o.name, s.area_label, u.first_name, u.last_name LIMIT 8000", array_merge($net === 'ALL' ? [] : [$net], NET_LEVELS));
   foreach ($rows as $r) {
     if (isset($out[(int) $r['id']])) continue;   // someone with two seats is listed once, under her highest seat
     $area = $r['area_label'] !== '' ? $r['area_label'] : $r['unit_name'];
     $state = $r['unit_level'] === 'country' ? '' : (string) $r['unit_name'];
-    $out[(int) $r['id']] = netlogin_shape($r, $r['title'] . ', ' . $area, (string) $r['plevel'], (int) $r['rank_no'], (string) $r['cc'], $state, $names);
+    $out[(int) $r['id']] = netlogin_shape($r, $r['title'] . ', ' . $area, (string) $r['plevel'], (int) $r['rank_no'], (string) $r['cc'], $state, $names) + ['network' => $r['seat_network']];
   }
-  if ($envoys) {
-    try {
-      foreach (rows("SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.password_hash, u.must_change_password, u.signup_method, u.last_seen_at, u.designation, u.state_region,
-                            COALESCE(NULLIF(e.country_code,''), u.country_code) cc
-                     FROM users u JOIN envoys e ON e.user_id=u.id
-                     WHERE u.role='envoy' AND u.status='active' AND e.status='active' AND (u.network=? OR u.network IS NULL OR u.network='')
-                     ORDER BY u.state_region, u.first_name LIMIT 3000", [$net]) as $r) {
-        if (isset($out[(int) $r['id']])) continue;
-        $out[(int) $r['id']] = netlogin_shape($r, $r['designation'] !== '' && $r['designation'] !== null ? $r['designation'] : 'WODDI Envoy', 'envoy', 99, (string) $r['cc'], (string) $r['state_region'], $names);
-      }
-    } catch (PDOException $e) { /* envoys arrive with migration 024 */ }
-  }
+  try {
+    $wn = $net === 'ALL' ? '1=1' : "(u.network=? OR u.network IS NULL OR u.network='')";
+    foreach (rows("SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.password_hash, u.must_change_password, u.signup_method, u.last_seen_at, u.designation, u.state_region, u.network,
+                          COALESCE(NULLIF(e.country_code,''), u.country_code) cc
+                   FROM users u JOIN envoys e ON e.user_id=u.id
+                   WHERE u.role='envoy' AND u.status='active' AND e.status='active' AND $wn
+                   ORDER BY u.state_region, u.first_name LIMIT 4000", $net === 'ALL' ? [] : [$net]) as $r) {
+      if (isset($out[(int) $r['id']])) continue;
+      $out[(int) $r['id']] = netlogin_shape($r, $r['designation'] !== '' && $r['designation'] !== null ? $r['designation'] : 'WODDI Envoy', 'envoy', 99, (string) $r['cc'], (string) $r['state_region'], $names) + ['network' => (string) $r['network']];
+    }
+  } catch (PDOException $e) { /* envoys arrive with migration 024 */ }
   $list = array_values($out);
   usort($list, fn($a, $b) => [$a['country_name'], $a['rank'], $a['state'], $a['position'], $a['name']] <=> [$b['country_name'], $b['rank'], $b['state'], $b['position'], $b['name']]);
   return $list;
@@ -185,16 +186,16 @@ function netlogin_shape(array $r, string $position, string $level, int $rank, st
 }
 function netlogin_network(): string {
   $b = array_merge($_GET, body());
-  return in_array($b['network'] ?? '', ['WGMN', 'WNNN'], true) ? $b['network'] : fail(422, 'Choose the network: WGMN or WNNN.', 'network');
+  return in_array($b['network'] ?? '', ['WGMN', 'WNNN', 'ALL'], true) ? $b['network'] : fail(422, 'Choose the network: WGMN, WNNN or both.', 'network');
 }
 
 route('GET', '/hq/leader-logins/network', function () {
-  require_hq(); $net = netlogin_network(); $env = !empty($_GET['envoys']) && $_GET['envoys'] !== '0';
-  $people = netlogin_people($net, $env);
-  $counts = ['new' => 0, 'pending' => 0, 'active' => 0, 'google' => 0, 'cannot' => 0]; $cs = [];
-  foreach ($people as $p) { $counts[$p['cat']]++; $cs[$p['country']] = $p['country_name']; }
+  require_hq(); $net = netlogin_network();
+  $people = netlogin_people($net); $cs = [];
+  foreach ($people as $p) { $k = $p['country']; $cs[$k] ??= ['cc' => $k, 'name' => $p['country_name'], 'count' => 0]; $cs[$k]['count']++; }
   header('Cache-Control: no-store');
-  return ['network' => $net, 'envoys' => $env, 'people' => $people, 'counts' => $counts, 'countries' => count($cs), 'chunk' => NET_CHUNK];
+  return ['network' => $net, 'people' => $people, 'countries' => array_values($cs), 'levels' => ['country' => 'Country', 'state_region' => 'State or region', 'lga' => 'LGA, district or city',
+    'community_cluster' => 'Ward, community or cluster', 'chapter' => 'Chapter', 'envoy' => 'WODDI Envoys'], 'chunk' => NET_CHUNK];
 });
 
 route('POST', '/hq/leader-logins/network', function () {
@@ -205,10 +206,10 @@ route('POST', '/hq/leader-logins/network', function () {
   if (!$ids) fail(422, 'There is nobody to give a login to.', 'ids');
   if (count($ids) > NET_CHUNK) fail(422, 'Send at most ' . NET_CHUNK . ' people in one batch.', 'ids');
   throttle('netlogin:' . (int) $me['id'], 150, 3600); throttle_hit('netlogin:' . (int) $me['id']);
-  $all = []; foreach (netlogin_people($net, !empty($b['envoys'])) as $p) $all[$p['id']] = $p;
+  $all = []; foreach (netlogin_people($net) as $p) $all[$p['id']] = $p;
   foreach ($ids as $id) {
     $p = $all[$id] ?? null;
-    if (!$p) fail(422, 'Some of these people are not seated leaders of ' . $net . ' any more. Load the list again.', 'ids');
+    if (!$p) fail(422, 'Some of these people are not seated leaders of ' . ($net === 'ALL' ? 'WGMN or WNNN' : $net) . ' any more. Load the list again.', 'ids');
     if ($p['cat'] === 'active' || $p['cat'] === 'google') fail(422, $p['name'] . ' already signs in to WDOS. Her password is never replaced here.', 'in_use');
     if ($p['cat'] === 'cannot') fail(422, $p['name'] . ' has no email or phone number to sign in with.', 'no_contact');
     if ($p['cat'] === 'pending' && !$reissue) fail(422, $p['name'] . ' already has a temporary password that is not used yet.', 'pending');
@@ -221,11 +222,12 @@ route('POST', '/hq/leader-logins/network', function () {
             AND (password_hash IS NULL OR (must_change_password=1 AND last_seen_at IS NULL))", [password_hash($temp, PASSWORD_DEFAULT), $id])->rowCount();
     if (!$n) continue;
     q('DELETE FROM sessions WHERE user_id=?', [$id]);
-    log_activity((int) $me['id'], $id, 'password_reset', 'Login issued for the whole ' . $net . ' network');
+    log_activity((int) $me['id'], $id, 'password_reset', 'Login issued for the whole ' . ($net === 'ALL' ? 'WGMN and WNNN' : $net) . ' network');
     notify($id, 'account', 'WODDI HQ gave you a WDOS login', 'Sign in with the temporary password HQ sends you, then choose your own password.', '#/settings');
     $out[] = ['id' => $id, 'temporary_password' => $temp];
   }
-  log_activity((int) $me['id'], null, 'logins_issued', count($out) . ' logins · ' . $net . ' · all countries' . ($reissue ? ' · unused ones replaced' : ''));
+  $where = preg_replace('/[^A-Z,]/', '', strtoupper(is_array($b['countries'] ?? null) ? implode(',', $b['countries']) : (string) ($b['countries'] ?? '')));
+  log_activity((int) $me['id'], null, 'logins_issued', count($out) . ' logins · ' . ($net === 'ALL' ? 'WGMN and WNNN' : $net) . ' · ' . ($where !== '' ? $where : 'all countries') . ($reissue ? ' · unused ones replaced' : ''));
   after_response(fn() => push_drain(20));
   header('Cache-Control: no-store');
   return ['ok' => true, 'issued' => $out, 'site' => app_url(), 'at' => now(), 'by' => trim($me['first_name'] . ' ' . $me['last_name'])];

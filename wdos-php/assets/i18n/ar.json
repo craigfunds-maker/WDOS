@@ -4298,8 +4298,6 @@
 "Join WODDI on WDOS, the WODDI Digital Operating System. Register free as a member, or step forward as a volunteer leader in your area. Use my link:": "انضمي إلى WODDI على WDOS، نظام التشغيل الرقمي لـWODDI. سجّلي مجانًا عضوةً، أو تقدّمي قائدةً متطوعة في منطقتك. استخدمي رابطي:",
 "Part F (WODDI acknowledgement) is added automatically when you accept, with your official reference.": "يُضاف الجزء F (إقرار WODDI) تلقائيًا عند قبولك، مع رقمك المرجعي الرسمي.",
 "Logins for a whole network in one click": "بيانات الدخول لشبكة كاملة بنقرة واحدة",
-"Choose the network. WDOS lists every seated leader of that network in every country, at every level, gives a temporary password to each one who has no login yet, and downloads one PDF arranged country by country. Leaders who already sign in keep their own password.": "اختاري الشبكة. يعرض WDOS كل قائدة لها مقعد في هذه الشبكة، في كل بلد وعلى كل مستوى، ويعطي كلمة مرور مؤقتة لكل من ليس لديها بيانات دخول بعد، وينزّل ملف PDF واحدًا مرتبًا بلدًا بلدًا. القائدات اللواتي يسجّلن الدخول بالفعل يحتفظن بكلمات مرورهن.",
-"Add the WODDI Envoys at the end of each country": "أضيفي مبعوثات WODDI في نهاية كل بلد",
 "Also replace logins sent before that have never been used": "استبدلي أيضًا بيانات الدخول التي أُرسلت سابقًا ولم تُستخدم أبدًا",
 "I understand those earlier temporary passwords will stop working": "أفهم أن كلمات المرور المؤقتة السابقة ستتوقف عن العمل",
 "Create {1} logins for every {2} leader and download the PDF": "أنشئي {1} من بيانات الدخول لكل قائدة في {2} ونزّلي ملف PDF",
@@ -4317,5 +4315,13 @@
 "Not every login was created": "لم تُنشأ كل بيانات الدخول",
 "Logins created": "تم إنشاء بيانات الدخول",
 "{1} new logins": "{1} من بيانات الدخول الجديدة",
-"1 new login": "بيانات دخول جديدة واحدة"
+"1 new login": "بيانات دخول جديدة واحدة",
+"Find a country": "ابحثي عن بلد",
+"All leadership levels": "كل مستويات القيادة",
+"Also add the WODDI Envoys": "أضيفي أيضًا مبعوثات WODDI",
+"Countries": "البلدان",
+"Leadership levels": "مستويات القيادة",
+"Ward, community or cluster": "الحي أو المجتمع أو التجمع",
+"Choose the network, tick all countries or only some, tick all leadership levels or only some, and press the button. Each leader with no login yet gets a temporary password, and one PDF arranged country by country downloads. Leaders who already sign in keep their own password.": "اختاري الشبكة، وحدّدي كل البلدان أو بعضها فقط، وحدّدي كل مستويات القيادة أو بعضها فقط، ثم اضغطي الزر. تحصل كل قائدة ليس لديها بيانات دخول على كلمة مرور مؤقتة، ويُنزَّل ملف PDF واحد مرتب بلدًا بلدًا. القائدات اللواتي يسجّلن الدخول بالفعل يحتفظن بكلمات مرورهن.",
+"The PDF has downloaded": "تم تنزيل ملف PDF"
 }

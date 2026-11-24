@@ -4071,8 +4071,6 @@
 "Join WODDI on WDOS, the WODDI Digital Operating System. Register free as a member, or step forward as a volunteer leader in your area. Use my link:": "Sonye na WODDI na WDOS, Sistemụ Dijitalụ WODDI. Debanye aha n'efu dị ka onye otu, ma ọ bụ bịa n'ihu dị ka onye ndu afọ ofufo na mpaghara gị. Jiri njikọ m:",
 "Part F (WODDI acknowledgement) is added automatically when you accept, with your official reference.": "A na-etinye Akụkụ F (nkwenye WODDI) n'onwe ya mgbe ị nabatara, ya na nọmba ntụaka gị gọọmentị.",
 "Logins for a whole network in one click": "Nbanye maka netwọk dum n'otu mpịaka",
-"Choose the network. WDOS lists every seated leader of that network in every country, at every level, gives a temporary password to each one who has no login yet, and downloads one PDF arranged country by country. Leaders who already sign in keep their own password.": "Họrọ netwọk ahụ. WDOS na-edepụta onye ndu ọ bụla nwere oche na netwọk ahụ, na mba ọ bụla na ọkwa ọ bụla, na-enye onye ọ bụla na-enweghị nbanye okwuntughe nwa oge, ma budata otu PDF ahaziri mba na mba. Ndị ndu na-abanye ugbu a na-edobe okwuntughe nke ha.",
-"Add the WODDI Envoys at the end of each country": "Tinye ndị Ozi WODDI na njedebe nke mba ọ bụla",
 "Also replace logins sent before that have never been used": "Dochie kwa nbanye ezigara na mbụ a na-ejibeghị mgbe ọ bụla",
 "I understand those earlier temporary passwords will stop working": "Aghọtara m na okwuntughe nwa oge ndị ahụ gara aga ga-akwụsị ịrụ ọrụ",
 "Create {1} logins for every {2} leader and download the PDF": "Mepụta nbanye {1} maka onye ndu {2} ọ bụla ma budata PDF",
@@ -4090,5 +4088,13 @@
 "Not every login was created": "Emepụtaghị nbanye niile",
 "Logins created": "Emepụtala nbanye",
 "{1} new logins": "Nbanye ọhụrụ {1}",
-"1 new login": "Otu nbanye ọhụrụ"
+"1 new login": "Otu nbanye ọhụrụ",
+"Find a country": "Chọọ mba",
+"All leadership levels": "Ọkwa ndu niile",
+"Also add the WODDI Envoys": "Tinyekwa ndị Ozi WODDI",
+"Countries": "Mba dị iche iche",
+"Leadership levels": "Ọkwa ndu",
+"Ward, community or cluster": "Wọọdụ, obodo ma ọ bụ otu",
+"Choose the network, tick all countries or only some, tick all leadership levels or only some, and press the button. Each leader with no login yet gets a temporary password, and one PDF arranged country by country downloads. Leaders who already sign in keep their own password.": "Họrọ netwọk ahụ, kaa akara mba niile ma ọ bụ ụfọdụ, kaa akara ọkwa ndu niile ma ọ bụ ụfọdụ, wee pịa bọtịnụ ahụ. Onye ndu ọ bụla na-enweghị nbanye na-enweta okwuntughe nwa oge, a na-ebudatakwa otu PDF ahaziri mba na mba. Ndị ndu na-abanye ugbu a na-edobe okwuntughe nke ha.",
+"The PDF has downloaded": "Ebudatala PDF ahụ"
 }

@@ -4167,8 +4167,6 @@
 "Join WODDI on WDOS, the WODDI Digital Operating System. Register free as a member, or step forward as a volunteer leader in your area. Use my link:": "Shiga WODDI a WDOS, Tsarin Dijital na WODDI. Yi rajista kyauta a matsayin mamba, ko ki fito a matsayin shugaba mai sa kai a yankinki. Yi amfani da hanyar haɗina:",
 "Part F (WODDI acknowledgement) is added automatically when you accept, with your official reference.": "Ana ƙara Sashe F (amincewar WODDI) kai tsaye idan kin karɓa, tare da lambar shaidarki ta hukuma.",
 "Logins for a whole network in one click": "Bayanan shiga na dukkan cibiyar sadarwa da danna sau ɗaya",
-"Choose the network. WDOS lists every seated leader of that network in every country, at every level, gives a temporary password to each one who has no login yet, and downloads one PDF arranged country by country. Leaders who already sign in keep their own password.": "Zaɓi cibiyar sadarwa. WDOS na jera kowace shugaba mai kujera a cikin wannan cibiyar, a kowace ƙasa da kowane mataki, tana ba wa duk wadda ba ta da bayanan shiga kalmar sirri ta wucin gadi, kuma tana sauke PDF ɗaya da aka tsara ƙasa bayan ƙasa. Shugabannin da suke shiga tuni suna riƙe da kalmar sirrinsu.",
-"Add the WODDI Envoys at the end of each country": "Ƙara Wakilan WODDI a ƙarshen kowace ƙasa",
 "Also replace logins sent before that have never been used": "Har ila yau maye gurbin bayanan shiga da aka aika a baya waɗanda ba a taɓa amfani da su ba",
 "I understand those earlier temporary passwords will stop working": "Na fahimci cewa waɗannan kalmomin sirri na wucin gadi na baya za su daina aiki",
 "Create {1} logins for every {2} leader and download the PDF": "Ƙirƙiri bayanan shiga {1} ga kowace shugabar {2} kuma sauke PDF",
@@ -4186,5 +4184,13 @@
 "Not every login was created": "Ba duk bayanan shiga aka ƙirƙira ba",
 "Logins created": "An ƙirƙiri bayanan shiga",
 "{1} new logins": "Sabbin bayanan shiga {1}",
-"1 new login": "Sabon bayanan shiga 1"
+"1 new login": "Sabon bayanan shiga 1",
+"Find a country": "Nemo ƙasa",
+"All leadership levels": "Duk matakan shugabanci",
+"Also add the WODDI Envoys": "Ƙara Wakilan WODDI ma",
+"Countries": "Ƙasashe",
+"Leadership levels": "Matakan shugabanci",
+"Ward, community or cluster": "Unguwa, al'umma ko gungu",
+"Choose the network, tick all countries or only some, tick all leadership levels or only some, and press the button. Each leader with no login yet gets a temporary password, and one PDF arranged country by country downloads. Leaders who already sign in keep their own password.": "Zaɓi cibiyar sadarwa, yi alama ga duk ƙasashe ko wasu kawai, yi alama ga duk matakan shugabanci ko wasu kawai, sannan danna maɓallin. Kowace shugaba da ba ta da bayanan shiga tana samun kalmar sirri ta wucin gadi, kuma ana sauke PDF ɗaya da aka tsara ƙasa bayan ƙasa. Shugabannin da suke shiga tuni suna riƙe da kalmar sirrinsu.",
+"The PDF has downloaded": "An sauke PDF ɗin"
 }

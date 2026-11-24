@@ -4298,8 +4298,6 @@
 "Join WODDI on WDOS, the WODDI Digital Operating System. Register free as a member, or step forward as a volunteer leader in your area. Use my link:": "Junte-se à WODDI no WDOS, o Sistema Operativo Digital da WODDI. Registe-se gratuitamente como membro, ou avance como líder voluntária na sua área. Use a minha ligação:",
 "Part F (WODDI acknowledgement) is added automatically when you accept, with your official reference.": "A Parte F (confirmação da WODDI) é adicionada automaticamente quando aceita, com a sua referência oficial.",
 "Logins for a whole network in one click": "Acessos para uma rede inteira num só clique",
-"Choose the network. WDOS lists every seated leader of that network in every country, at every level, gives a temporary password to each one who has no login yet, and downloads one PDF arranged country by country. Leaders who already sign in keep their own password.": "Escolha a rede. O WDOS lista cada líder em funções dessa rede, em cada país e em cada nível, dá uma palavra-passe temporária a cada uma que ainda não tem acesso e descarrega um único PDF organizado país a país. As líderes que já entram mantêm a sua própria palavra-passe.",
-"Add the WODDI Envoys at the end of each country": "Adicionar as Enviadas WODDI no fim de cada país",
 "Also replace logins sent before that have never been used": "Substituir também os acessos enviados antes e nunca usados",
 "I understand those earlier temporary passwords will stop working": "Compreendo que essas palavras-passe temporárias anteriores deixarão de funcionar",
 "Create {1} logins for every {2} leader and download the PDF": "Criar {1} acessos para cada líder {2} e descarregar o PDF",
@@ -4317,5 +4315,13 @@
 "Not every login was created": "Nem todos os acessos foram criados",
 "Logins created": "Acessos criados",
 "{1} new logins": "{1} novos acessos",
-"1 new login": "1 novo acesso"
+"1 new login": "1 novo acesso",
+"Find a country": "Procurar um país",
+"All leadership levels": "Todos os níveis de liderança",
+"Also add the WODDI Envoys": "Adicionar também as Enviadas WODDI",
+"Countries": "Países",
+"Leadership levels": "Níveis de liderança",
+"Ward, community or cluster": "Bairro, comunidade ou agrupamento",
+"Choose the network, tick all countries or only some, tick all leadership levels or only some, and press the button. Each leader with no login yet gets a temporary password, and one PDF arranged country by country downloads. Leaders who already sign in keep their own password.": "Escolha a rede, marque todos os países ou só alguns, marque todos os níveis de liderança ou só alguns, e prima o botão. Cada líder sem acesso recebe uma palavra-passe temporária, e descarrega-se um único PDF organizado país a país. As líderes que já entram mantêm a sua própria palavra-passe.",
+"The PDF has downloaded": "O PDF foi descarregado"
 }

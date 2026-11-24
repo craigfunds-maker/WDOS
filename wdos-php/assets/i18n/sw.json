@@ -4298,8 +4298,6 @@
 "Join WODDI on WDOS, the WODDI Digital Operating System. Register free as a member, or step forward as a volunteer leader in your area. Use my link:": "Jiunge na WODDI kwenye WDOS, Mfumo wa Kidijitali wa WODDI. Jisajili bure kama mwanachama, au jitokeze kama kiongozi wa kujitolea katika eneo lako. Tumia kiungo changu:",
 "Part F (WODDI acknowledgement) is added automatically when you accept, with your official reference.": "Sehemu F (uthibitisho wa WODDI) huongezwa yenyewe unapokubali, pamoja na namba yako rasmi ya kumbukumbu.",
 "Logins for a whole network in one click": "Taarifa za kuingia kwa mtandao mzima kwa kubofya mara moja",
-"Choose the network. WDOS lists every seated leader of that network in every country, at every level, gives a temporary password to each one who has no login yet, and downloads one PDF arranged country by country. Leaders who already sign in keep their own password.": "Chagua mtandao. WDOS inaorodhesha kila kiongozi aliye na nafasi katika mtandao huo, katika kila nchi na kila ngazi, inampa nenosiri la muda kila mmoja ambaye bado hana taarifa za kuingia, na inapakua PDF moja iliyopangwa nchi kwa nchi. Viongozi ambao tayari wanaingia wanabaki na nenosiri lao.",
-"Add the WODDI Envoys at the end of each country": "Ongeza Wajumbe wa WODDI mwishoni mwa kila nchi",
 "Also replace logins sent before that have never been used": "Badilisha pia taarifa za kuingia zilizotumwa awali ambazo hazijawahi kutumika",
 "I understand those earlier temporary passwords will stop working": "Ninaelewa kwamba manenosiri hayo ya muda ya awali yataacha kufanya kazi",
 "Create {1} logins for every {2} leader and download the PDF": "Unda taarifa {1} za kuingia kwa kila kiongozi wa {2} na upakue PDF",
@@ -4317,5 +4315,13 @@
 "Not every login was created": "Si taarifa zote za kuingia zimeundwa",
 "Logins created": "Taarifa za kuingia zimeundwa",
 "{1} new logins": "Taarifa mpya {1} za kuingia",
-"1 new login": "Taarifa 1 mpya ya kuingia"
+"1 new login": "Taarifa 1 mpya ya kuingia",
+"Find a country": "Tafuta nchi",
+"All leadership levels": "Ngazi zote za uongozi",
+"Also add the WODDI Envoys": "Ongeza pia Wajumbe wa WODDI",
+"Countries": "Nchi",
+"Leadership levels": "Ngazi za uongozi",
+"Ward, community or cluster": "Kata, jamii au kundi",
+"Choose the network, tick all countries or only some, tick all leadership levels or only some, and press the button. Each leader with no login yet gets a temporary password, and one PDF arranged country by country downloads. Leaders who already sign in keep their own password.": "Chagua mtandao, weka alama kwa nchi zote au baadhi tu, weka alama kwa ngazi zote za uongozi au baadhi tu, kisha bonyeza kitufe. Kila kiongozi asiye na taarifa za kuingia anapata nenosiri la muda, na PDF moja iliyopangwa nchi kwa nchi inapakuliwa. Viongozi ambao tayari wanaingia wanabaki na nenosiri lao.",
+"The PDF has downloaded": "PDF imepakuliwa"
 }

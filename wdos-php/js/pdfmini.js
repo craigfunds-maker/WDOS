@@ -94,7 +94,7 @@ export function networkLoginsPdf(m) {
   newPage();
   txt(L, y, 'WODDI  ·  WDOS', 9, 'F2', MAG); y -= 30;
   txt(L, y, m.title, 24, 'F2'); y -= 20;
-  txt(L, y, `All countries  ·  every leadership level  ·  ${m.made}`, 10, 'F1', GREY); y -= 30;
+  txt(L, y, `${m.scope || 'All countries  ·  every leadership level'}  ·  ${m.made}`, 10, 'F1', GREY); y -= 30;
   const stats = [['Leaders listed', P.length], ['Countries', countries.length], ['New logins in this PDF', pw], ['Already signed in', P.filter((p) => p.status === 'active' || p.status === 'google').length]];
   const bw = (R - L - 3 * 12) / 4;
   stats.forEach(([k, v], i) => { const x = L + i * (bw + 12); rect(x, y - 52, bw, 58, i === 2 ? MAG : '0.985 0.95 0.97'); txt(x + 14, y - 18, String(v), 22, 'F2', i === 2 ? '1 1 1' : MAG); txt(x + 14, y - 40, k, 9.5, 'F2', i === 2 ? '1 1 1' : INK); });
