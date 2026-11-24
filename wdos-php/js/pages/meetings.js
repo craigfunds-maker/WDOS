@@ -1,5 +1,5 @@
 /* Meetings: schedule, attendance, minutes, and the actions that become tasks. Wording follows the current WDOS. */
-import { h, t, icon, avatar, card, sk, empty, fmt, toast, input, field, tabs, netTag, linkify } from '../ui.js';
+import { h, t, icon, avatar, card, sk, empty, fmt, toast, input, field, tabs, netTag, linkify, editForm, delButton } from '../ui.js';
 import { api } from '../api.js';
 import { taskRow, peoplePicker } from './tasks.js';
 import { whenMine, zonedToUtc, utcToZoned, timeIn, myTz, TZ_CHOICES, TZ_PREVIEW, offsetText } from '../tz.js';
@@ -122,6 +122,20 @@ async function detail(root, id) {
         h('div', {}, h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: addAct }, icon('plus', 16), 'Add an action')),
         h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' }, h('button', { class: 'btn', type: 'button', onclick: async () => { try { const x = await api(`/meetings/${id}/close`, { minutes: minutes.value, actions: acts.filter((a) => a.action.value.trim()).map((a) => ({ action: a.action.value, deadline: a.deadline.value, owner_id: a.picker.ids()[0] || 0 })) }); toast('Meeting closed', x.tasks ? tf('{1} tasks created.', x.tasks) : '', 'ok'); load(); } catch (e) { toast('Not closed', e.message, 'bad'); } } }, 'Close with minutes'),
           h('button', { class: 'btn btn--ghost', type: 'button', onclick: async () => { if (!confirm('Cancel this meeting? Everyone invited is told.')) return; try { await api(`/meetings/${id}/cancel`, {}); toast('Meeting cancelled', '', 'ok'); load(); } catch (e) { toast('Not cancelled', e.message, 'bad'); } } }, 'Cancel meeting')))));
+    }
+    /* v109.54: the host or HQ changes the meeting (everyone invited is told, each in her own time) or deletes it */
+    if (d.host) {
+      const slot = h('div'); const zone = myTz();
+      const editBtn = m.status === 'scheduled' ? h('button', { class: 'btn btn--quiet btn--s', type: 'button', onclick: () => { if (slot.firstChild) { slot.replaceChildren(); return; }
+        slot.replaceChildren(editForm('Change this meeting', [{ k: 'title', label: 'Title', value: m.title }, { k: 'mode', label: 'Format', type: 'select', options: Object.entries(MODES), value: m.mode },
+          { k: 'location', label: 'Location or link', value: m.location, max: 400 }, { k: 'starts', label: 'Starts', type: 'datetime-local', value: utcToZoned(when(m.starts_at), zone), hint: tf('In your own time ({1})', offsetText(new Date(), zone)) },
+          { k: 'ends', label: 'Ends', type: 'datetime-local', value: utcToZoned(when(m.ends_at), zone) }, { k: 'agenda', label: 'Agenda (optional)', type: 'textarea', value: m.agenda || '', max: 6000 }],
+          async (v) => { const st = v.starts ? zonedToUtc(v.starts, zone) : null; let en = v.ends ? zonedToUtc(v.ends, zone) : null;
+            if (st && (!en || en <= st)) en = new Date(st.getTime() + Math.max(15 * 60000, when(m.ends_at) - when(m.starts_at)));   // moved the start only: it keeps its length
+            const x = await api(`/meetings/${id}/edit`, { title: v.title, mode: v.mode, location: v.location, starts_at: st ? st.toISOString() : '', ends_at: en ? en.toISOString() : '', agenda: v.agenda });
+            toast(t('Meeting changed'), x.told ? tf('{1} people told, each in their own time.', fmt(x.told)) : '', 'ok'); load(); }, () => slot.replaceChildren())); } }, icon('edit', 16), ' ', t('Edit')) : null;
+      parts.push(h('section', { class: 'card' }, h('div', { class: 'card__body', style: 'display:grid;gap:12px' }, h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center' }, h('b', { class: 'grow', text: t('Change or delete') }), editBtn,
+        delButton('Delete meeting', async () => { const x = await api(`/meetings/${id}/delete`, { confirm: true }); toast(t('Meeting deleted'), x.told ? tf('{1} people told it will not hold.', fmt(x.told)) : '', 'ok'); location.hash = '#/meetings'; })), slot)));
     }
     box.replaceChildren(...parts);
   }

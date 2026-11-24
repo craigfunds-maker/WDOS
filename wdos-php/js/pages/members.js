@@ -1,5 +1,5 @@
 /* Members. HQ sees everyone and can appoint, reset and suspend; a leader sees her own area, read-only. */
-import { h, t, tf, clear, icon, avatar, flag, netTag, sk, empty, ago, fmt, fmtDate, toast, input } from '../ui.js';
+import { h, t, tf, clear, icon, avatar, flag, netTag, sk, empty, ago, fmt, fmtDate, toast, input, editForm, delButton } from '../ui.js';
 import { api, squarePhoto } from '../api.js';
 import { app, go } from '../app.js';
 
@@ -120,6 +120,14 @@ async function openMember(id, reload) {
       h('details', { class: 'panel', open: !m.country_code || (!m.network && !m.is_hq) }, h('summary', { style: 'cursor:pointer;font-weight:650', text: 'Correct network or location' }),
         h('div', { style: 'display:grid;gap:10px;margin-top:12px' }, dNet, dCountry, dState, dStateText, dLga,
           h('div', {}, h('button', { class: 'btn btn--quiet btn--s', onclick: () => act(() => api(`/hq/members/${id}/details`, { network: dNet.value, country_id: Number(dCountry.value) || 0, state_id: dState.hidden ? 0 : Number(dState.value) || 0, state_region: dStateText.value, lga: dLga.value, community: m.community || '' }), 'Details saved') }, 'Save details')))),
+      /* v109.54: change her name, email or phone; delete her */
+      (() => { const slot = h('div');
+        return h('div', { class: 'panel', style: 'display:grid;gap:10px' }, h('b', { text: t('Name, email and phone') }),
+          h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, h('button', { class: 'btn btn--quiet btn--s', type: 'button', onclick: () => { if (slot.firstChild) { slot.replaceChildren(); return; }
+            slot.replaceChildren(editForm('Change name, email or phone', [{ k: 'first_name', label: 'First name', value: m.first_name, max: 80 }, { k: 'last_name', label: 'Surname', value: m.last_name, max: 80 }, { k: 'email', label: 'Email', type: 'email', value: m.email_is_phone ? '' : m.email, hint: m.email_is_phone ? 'Leave empty: she signs in with her phone number.' : '' }, { k: 'phone', label: 'Phone', type: 'tel', value: m.phone || '', max: 32 }],
+              async (v) => { await api(`/hq/members/${id}/contact`, v); toast(t('Saved'), `${v.first_name} ${v.last_name}`, 'ok'); slot.replaceChildren(); await paint(); reload(); }, () => slot.replaceChildren())); } }, t('Edit')),
+            m.id !== me.id && !m.is_hq ? delButton('Delete this person', async () => { await api(`/hq/members/${id}/delete`, { confirm: true }); toast(t('Deleted'), `${m.first_name} ${m.last_name}`, 'ok'); closeDrawer(); reload(); }) : null),
+          h('small', { class: 'muted', text: t('Deleting closes her account for good: she is signed out, her seat and links end, and her email and phone can be used again. What she did in WDOS stays on record.') }), slot); })(),
       h('div', { class: 'panel' }, h('b', { text: 'Sign-in' }), h('p', { class: 'muted', style: 'font-size:13.5px', text: 'WDOS never stores or shows an existing password. A reset creates a temporary one, shown here once, and signs the member out everywhere.' }), once,
         h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' },
           h('button', { class: 'btn btn--quiet btn--s', onclick: async () => { msg.textContent = ''; try { const r = await api(`/hq/members/${id}/reset-password`, {}); once.replaceChildren(h('div', { class: 'onceonly', text: r.temporary_password }), h('small', { class: 'faint', text: 'Copy it now. It will not be shown again.' })); } catch (e) { msg.textContent = e.message; } } }, icon('key', 16), 'Reset password'),

@@ -1,5 +1,5 @@
 /* Document library: the documents leaders and members need, read inside WDOS or opened as files. HQ adds and archives. */
-import { h, icon, card, sk, empty, fmtDate, toast, input, field, docReader } from '../ui.js';
+import { h, icon, card, sk, empty, fmtDate, toast, input, field, docReader, editForm, delButton } from '../ui.js';
 import { api } from '../api.js';
 
 const AUD = { all: 'Everyone', leaders: 'Leaders', hq: 'HQ only' };
@@ -19,7 +19,14 @@ export async function render(root) {
     for (const c of cats) parts.push(card(c, null, h('div', { class: 'list reveal' }, d.items.filter((x) => x.category === c).map((it) => h('div', { style: it.archived ? 'opacity:.55' : '' }, h('div', { class: 'nrow__ico' }, icon(it.kind === 'link' ? 'link' : 'book', 18)),
       h('div', { class: 'grow' }, h('b', { text: it.title }), h('small', { text: [it.description, it.kind === 'file' ? `${it.file_name} · ${Math.max(1, Math.round(it.size / 1024))} KB` : it.kind === 'link' ? 'Link' : 'Read in WDOS', d.is_hq ? 'For: ' + AUD[it.audience] : '', 'Added ' + fmtDate(it.created_at)].filter(Boolean).join(' · ') })),
       h('div', { class: 'tagrow' }, it.archived ? h('span', { class: 'tag tag--bad', text: 'Archived' }) : null, h('button', { class: 'btn btn--quiet btn--s', type: 'button', onclick: () => open(it) }, it.kind === 'doc' ? 'Read' : it.kind === 'file' ? 'Open file' : 'Open link'),
-        d.is_hq ? h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: async () => { try { await api('/library/' + it.id, { archived: !it.archived }); load(); } catch (e) { toast('Not changed', e.message, 'bad'); } } }, it.archived ? 'Restore' : 'Archive') : null))))));
+        d.is_hq ? h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: async () => { try { await api('/library/' + it.id, { archived: !it.archived }); load(); } catch (e) { toast('Not changed', e.message, 'bad'); } } }, it.archived ? 'Restore' : 'Archive') : null,
+        /* v109.54: change the title, description, category, who sees it, or its link; or delete it for good */
+        d.is_hq ? h('button', { class: 'btn btn--quiet btn--s', type: 'button', onclick: (ev) => { const row = ev.currentTarget.closest('.list > div'); const old = row.nextElementSibling; if (old && old.dataset.edit) { old.remove(); return; }
+          const slot = h('div', { 'data-edit': '1', style: 'padding:8px 0' }); row.after(slot);
+          slot.append(editForm('Change this document', [{ k: 'title', label: 'Title', value: it.title }, { k: 'description', label: 'Description (optional)', type: 'textarea', value: it.description || '', max: 600, rows: 2 }, { k: 'category', label: 'Category', value: it.category, max: 60 },
+            { k: 'audience', label: 'Who sees it', type: 'select', options: [['all', 'Everyone'], ['leaders', 'Volunteer leaders'], ['hq', 'HQ staff only']], value: it.audience }, ...(it.kind === 'link' ? [{ k: 'url', label: 'Link', type: 'url', value: it.url, max: 600 }] : [])],
+            async (v) => { await api(`/library/${it.id}/edit`, v); toast('Document changed', '', 'ok'); load(); }, () => slot.remove())); } }, icon('edit', 16), ' Edit') : null,
+        d.is_hq ? delButton('Delete', async () => { await api(`/library/${it.id}/delete`, { confirm: true }); toast('Document deleted', '', 'ok'); load(); }) : null))))));
     if (!d.items.length) parts.push(h('div', { class: 'card' }, empty('book', 'No documents yet', 'Documents shared by WODDI HQ appear here.')));
     if (d.is_hq) { const title = input({ maxlength: 190 }), desc = input({ maxlength: 600 }), cat = input({ maxlength: 60, placeholder: 'e.g. Leadership, Templates, Policies' }), url = input({ type: 'url', placeholder: 'https://' }); const file = h('input', { type: 'file', class: 'input' }); const aud = h('select', { class: 'input' }, Object.entries(AUD).map(([v, l]) => h('option', { value: v, text: l }))); aud.value = 'leaders'; const err = h('p', { class: 'err', role: 'alert' });
       const add = h('button', { class: 'btn', type: 'button', onclick: async () => { err.textContent = ''; add.disabled = true; try { const f = file.files[0]; if (f && f.size > 6000000) throw new Error('That file is too large. The limit is 6 MB.');

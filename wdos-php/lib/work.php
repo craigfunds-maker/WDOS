@@ -308,3 +308,66 @@ route('GET', '/hq/meetings/summary', function () {
   }
   return ['items' => $out, 'now' => now(), 'mail_on' => mail_configured()];
 });
+
+/* ------------------------------------------------ v109.54: change or delete a meeting or a task --
+ * Azeez, 24 Nov 2026: every action on the HQ dashboard can be changed or deleted. The host or HQ changes a meeting; whoever gave a
+ * task (or HQ, or a leader over that unit) changes it. Everyone affected is told, each in her own time zone. */
+route('POST', '/meetings/(\d+)/edit', function ($id) {
+  $u = require_user(); $m = meeting_get((int) $id); meeting_host($u, $m);
+  if ($m['status'] !== 'scheduled') fail(409, 'Only a meeting that is still to be held can be changed.', 'transition');
+  $title = str_in('title', 190); if (mb_strlen($title) < 3) fail(422, 'Give the meeting a title.', 'title');
+  $s = strtotime(str_in('starts_at', 40)); $e = strtotime(str_in('ends_at', 40));
+  if (!$s || !$e) fail(422, 'Both start and end times are required.', 'times');
+  if ($e <= $s) fail(422, 'The end time must be after the start time.', 'order');
+  $mode = isset(MEETING_MODES[str_in('mode', 12)]) ? str_in('mode', 12) : $m['mode']; $loc = str_in('location', 400);
+  if ($loc === '') fail(422, $mode === 'in_person' ? 'Give the address of the meeting.' : 'Paste the meeting link here.', 'location');
+  $moved = gmdate('Y-m-d H:i:s', $s) !== $m['starts_at'] || gmdate('Y-m-d H:i:s', $e) !== $m['ends_at'];
+  $placeChanged = $loc !== $m['location'] || $mode !== $m['mode'];
+  q('UPDATE meetings SET title=?, mode=?, location=?, starts_at=?, ends_at=?, agenda=? WHERE id=?', [$title, $mode, $loc, gmdate('Y-m-d H:i:s', $s), gmdate('Y-m-d H:i:s', $e), str_in('agenda', 6000), (int) $id]);
+  if ($moved) q("DELETE FROM app_settings WHERE k IN (?,?,?)", ['meet_day_' . $id, 'meet_rem_' . $id, 'meet_now_' . $id]);   // the reminders go out again for the new time
+  $told = 0;
+  if ($moved || $placeChanged || !empty(body()['notify'])) {
+    $what = $moved ? 'New time' : ($placeChanged ? ($mode === 'in_person' ? 'New address' : 'New meeting link') : 'Updated');
+    $told = meeting_broadcast(meeting_get((int) $id), 'Meeting changed: ' . mb_substr($title, 0, 110), fn($tz) => $what . ': ' . tz_when($s, $tz) . '. Open WDOS for the details.', false);
+    after_response(fn() => push_drain(80)); after_response(fn() => mail_drain(15));
+  }
+  log_activity((int) $u['id'], null, 'meeting_changed', $title . ($moved ? ' · new time' : '') . ($placeChanged ? ' · new place or link' : ''), 'meeting', (int) $id);
+  return ['ok' => true, 'told' => $told];
+});
+route('POST', '/meetings/(\d+)/delete', function ($id) {
+  $u = require_user(); $m = meeting_get((int) $id); meeting_host($u, $m);
+  if (empty(body()['confirm'])) fail(422, 'Confirm that you want to delete this meeting.', 'confirm');
+  $told = 0;
+  if ($m['status'] === 'scheduled' && strtotime($m['ends_at'] . ' UTC') > time())     // still to come: those invited are told it will not hold
+    $told = meeting_broadcast($m, 'Cancelled: ' . mb_substr($m['title'], 0, 120), 'This meeting will not hold. ' . work_name($u) . ' removed it.', false);
+  foreach (['meeting_invitees', 'meeting_rsvps', 'meeting_joins', 'meeting_attendance'] as $t) { try { q("DELETE FROM $t WHERE meeting_id=?", [(int) $id]); } catch (PDOException $e) { /* table not there */ } }
+  q("UPDATE tasks SET source='' WHERE source=?", ['meeting:' . (int) $id]);   // its actions stay as tasks, with their owners and status
+  q('DELETE FROM meetings WHERE id=?', [(int) $id]);
+  q("DELETE FROM app_settings WHERE k IN (?,?,?)", ['meet_day_' . $id, 'meet_rem_' . $id, 'meet_now_' . $id]);
+  log_activity((int) $u['id'], null, 'meeting_deleted', $m['title'] . ' · ' . $m['starts_at'] . ' UTC');
+  after_response(fn() => push_drain(80));
+  return ['ok' => true, 'told' => $told];
+});
+route('POST', '/tasks/(\d+)/edit', function ($id) {
+  $u = require_user(); $t = task_get((int) $id); if (!task_can_manage($u, $t)) fail(403, 'Only whoever gave this task, a leader over that unit, or HQ can change it.', 'forbidden');
+  if (in_array($t['status'], ['completed', 'cancelled'], true)) fail(409, 'A finished or cancelled task cannot be changed. Reopen it first.', 'transition');
+  $title = str_in('title', 190); if (mb_strlen($title) < 3) fail(422, 'Give the task a title.', 'title');
+  $pri = in_array(str_in('priority', 8), ['low', 'normal', 'high', 'urgent'], true) ? str_in('priority', 8) : $t['priority'];
+  $due = str_in('due_on', 10); if ($due !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $due)) fail(422, 'Choose a due date.', 'due');
+  q('UPDATE tasks SET title=?, details=?, priority=?, due_on=?, updated_at=? WHERE id=?', [$title, str_in('details', 4000), $pri, $due === '' ? null : $due, now(), (int) $id]);
+  if ((int) $t['assignee_id'] !== (int) $u['id']) notify((int) $t['assignee_id'], 'task', 'Task changed: ' . mb_substr($title, 0, 120), work_name($u) . ' changed this task' . ($due !== (string) $t['due_on'] ? ($due === '' ? '. It has no due date now.' : '. New due date: ' . $due . '.') : '.'), '#/tasks/' . $id);
+  log_activity((int) $u['id'], (int) $t['assignee_id'], 'task_changed', $title, 'task', (int) $id);
+  after_response(fn() => push_drain(10));
+  return ['ok' => true];
+});
+route('POST', '/tasks/(\d+)/delete', function ($id) {
+  $u = require_user(); $t = task_get((int) $id); if (!task_can_manage($u, $t)) fail(403, 'Only whoever gave this task, a leader over that unit, or HQ can delete it.', 'forbidden');
+  if (empty(body()['confirm'])) fail(422, 'Confirm that you want to delete this task.', 'confirm');
+  foreach (['task_items', 'task_comments'] as $x) q("DELETE FROM $x WHERE task_id=?", [(int) $id]);
+  q('UPDATE tasks SET parent_id=NULL WHERE parent_id=?', [(int) $id]);
+  q('DELETE FROM tasks WHERE id=?', [(int) $id]);
+  if ((int) $t['assignee_id'] !== (int) $u['id'] && !in_array($t['status'], ['completed', 'cancelled'], true)) notify((int) $t['assignee_id'], 'task', 'Task removed: ' . mb_substr($t['title'], 0, 120), work_name($u) . ' removed this task. You do not need to do it.', '#/tasks');
+  log_activity((int) $u['id'], (int) $t['assignee_id'], 'task_deleted', $t['title']);
+  after_response(fn() => push_drain(10));
+  return ['ok' => true];
+});

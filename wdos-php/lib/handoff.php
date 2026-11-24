@@ -188,6 +188,19 @@ route('POST', '/calendar', function () {
   return ['ok' => true, 'id' => $id];
 });
 route('POST', '/calendar/(\d+)/delete', function ($id) { $me = require_hq(); $t = val('SELECT title FROM calendar_events WHERE id=?', [(int) $id]); if ($t === null) fail(404, 'That date was not found.', 'not_found'); q('DELETE FROM calendar_events WHERE id=?', [(int) $id]); log_activity((int) $me['id'], null, 'calendar_removed', (string) $t); return ['ok' => true]; });
+/* v109.54: change a date on the WODDI calendar */
+route('POST', '/calendar/(\d+)/edit', function ($id) {
+  $me = require_hq(); $ev = row('SELECT * FROM calendar_events WHERE id=?', [(int) $id]); if (!$ev) fail(404, 'That date was not found.', 'not_found');
+  $b = body(); $title = str_in('title', 190); if (mb_strlen($title) < 3) fail(422, 'Give the event a name.', 'title');
+  $from = (string) ($b['starts_on'] ?? ''); $to = (string) ($b['ends_on'] ?? '') ?: $from;
+  if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $to) || $to < $from) fail(422, 'Give the date, and an end date that is not before it.', 'date');
+  $prog = isset(PROGRAMMES[$b['programme'] ?? '']) ? $b['programme'] : $ev['programme']; $net = in_array($b['network'] ?? '', ['WGMN', 'WNNN', 'ALL'], true) ? $b['network'] : $ev['network'];
+  $cc = strtoupper(str_in('country_code', 2)); if ($cc !== '' && country_name($cc) === '') fail(422, 'That country is not in WDOS.', 'country');
+  q('UPDATE calendar_events SET title=?, programme=?, starts_on=?, ends_on=?, network=?, country_code=?, note=?, reminded=? WHERE id=?',
+    [$title, $prog, $from, $to, $net, $cc, str_in('note', 600), $from !== $ev['starts_on'] ? '' : $ev['reminded'], (int) $id]);
+  log_activity((int) $me['id'], null, 'calendar_changed', $title . ' · ' . $from);
+  return ['ok' => true];
+});
 
 /* ------------------------------------------------ the 80 percent instrument -- */
 route('GET', '/hq/workflows', function () {

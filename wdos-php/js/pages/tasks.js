@@ -1,5 +1,5 @@
 /* Tasks: what I must do, what I assigned, and what is open in my area. Wording follows the current WDOS. */
-import { h, icon, avatar, card, sk, empty, ago, fmt, fmtDate, toast, input, field, tabs } from '../ui.js';
+import { h, icon, avatar, card, sk, empty, ago, fmt, fmtDate, toast, input, field, tabs, editForm, delButton } from '../ui.js';
 import { checkCard } from '../workcheck.js';
 import { api } from '../api.js';
 import { app, go } from '../app.js';
@@ -111,6 +111,12 @@ async function detail(root, id) {
     if (r.manage && t.status === 'submitted') act.append(btn('Approve completion', 'completed'), btn('Send back', 'in_progress', 'btn btn--quiet', 'What needs to be corrected?'));
     if (r.manage && ['open', 'in_progress', 'submitted'].includes(t.status)) act.append(btn('Cancel task', 'cancelled', 'btn btn--ghost'));
     if (r.manage && ['completed', 'cancelled'].includes(t.status)) act.append(btn('Reopen', 'open', 'btn btn--quiet'));
+    /* v109.54: whoever gave the task, a leader over that unit, or HQ changes it or deletes it */
+    if (r.manage && active) act.append(h('button', { class: 'btn btn--quiet', type: 'button', onclick: () => { if (dSlot.firstChild) { dSlot.replaceChildren(); return; }
+      dSlot.replaceChildren(editForm('Change this task', [{ k: 'title', label: 'Task title', value: t.title }, { k: 'details', label: 'Details', type: 'textarea', value: t.details || '' },
+        { k: 'priority', label: 'Priority', type: 'select', options: Object.entries(PRI), value: t.priority }, { k: 'due_on', label: 'Due date (optional)', type: 'date', value: t.due_on || '' }],
+        async (v) => { await api(`/tasks/${id}/edit`, v); toast('Task changed', t.assignee && t.assignee.id !== app.user.id ? 'The person doing it has been told.' : '', 'ok'); load(); }, () => dSlot.replaceChildren())); } }, icon('edit', 16), ' Edit'));
+    if (r.manage) act.append(delButton('Delete task', async () => { await api(`/tasks/${id}/delete`, { confirm: true }); toast('Task deleted', '', 'ok'); location.hash = '#/tasks'; }, 'btn btn--ghost'));
     const canEditItems = r.manage || t.by.id === t.assignee.id; const itemIn = input({ placeholder: 'Add a checklist item…', maxlength: 190 });
     const items = h('div', { style: 'display:grid;gap:8px' }, d.items.map((i) => { const cb = h('input', { type: 'checkbox', disabled: !active }); cb.checked = Number(i.done) === 1;
       cb.addEventListener('change', async () => { try { await api(`/tasks/${id}/item/${i.id}`, { done: cb.checked }); load(); } catch (e) { toast('Not saved', e.message, 'bad'); cb.checked = !cb.checked; } }); return h('label', { class: 'check' }, cb, h('span', { text: i.label })); }),

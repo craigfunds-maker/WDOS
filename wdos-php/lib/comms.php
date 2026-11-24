@@ -104,3 +104,20 @@ route('POST', '/library', function () {
   return ['ok' => true, 'id' => $newId];
 });
 route('POST', '/library/(\d+)', function ($id) { require_hq(); q('UPDATE library_items SET archived=? WHERE id=?', [empty(body()['archived']) ? 0 : 1, (int) $id]); return ['ok' => true]; });
+/* v109.54: change a document's title, description, category, who sees it, or its link; or delete it for good */
+route('POST', '/library/(\d+)/edit', function ($id) {
+  $me = require_hq(); $it = row('SELECT id, kind FROM library_items WHERE id=?', [(int) $id]); if (!$it) fail(404, 'That document was not found.', 'not_found');
+  $b = body(); $title = str_in('title', 190); if (mb_strlen($title) < 3) fail(422, 'Give the document a title.', 'title');
+  $aud = in_array($b['audience'] ?? '', ['all', 'leaders', 'hq'], true) ? $b['audience'] : 'leaders'; $url = str_in('url', 600);
+  if ($it['kind'] === 'link' && !preg_match('#^https?://#i', $url)) fail(422, 'Paste the full link, starting with https://', 'url');
+  q('UPDATE library_items SET title=?, description=?, category=?, audience=?' . ($it['kind'] === 'link' ? ', url=' . db()->quote($url) : '') . ' WHERE id=?', [$title, str_in('description', 600), str_in('category', 60) ?: 'General', $aud, (int) $id]);
+  log_activity((int) $me['id'], null, 'library_changed', $title);
+  return ['ok' => true];
+});
+route('POST', '/library/(\d+)/delete', function ($id) {
+  $me = require_hq(); $t = val('SELECT title FROM library_items WHERE id=?', [(int) $id]); if ($t === null) fail(404, 'That document was not found.', 'not_found');
+  if (empty(body()['confirm'])) fail(422, 'Confirm that you want to delete this document.', 'confirm');
+  q('DELETE FROM library_items WHERE id=?', [(int) $id]);
+  log_activity((int) $me['id'], null, 'library_deleted', (string) $t);
+  return ['ok' => true];
+});

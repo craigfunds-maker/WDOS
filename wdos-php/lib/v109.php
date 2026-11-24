@@ -223,7 +223,7 @@ route('GET', '/envoy/home', function () {
 });
 route('GET', '/hq/envoys', function () {
   require_hq(); $list = [];
-  foreach (rows('SELECT e.*, u.first_name, u.last_name, u.email, u.phone, u.has_photo, u.last_seen_at, u.status ustatus, l.code FROM envoys e JOIN users u ON u.id=e.user_id JOIN referral_links l ON l.id=e.link_id ORDER BY u.first_name, u.last_name') as $e)
+  foreach (rows('SELECT e.*, u.first_name, u.last_name, u.email, u.phone, u.has_photo, u.last_seen_at, u.status ustatus, l.code FROM envoys e JOIN users u ON u.id=e.user_id JOIN referral_links l ON l.id=e.link_id WHERE u.status<>\'deleted\' ORDER BY u.first_name, u.last_name') as $e)
     $list[] = ['id' => (int) $e['user_id'], 'first_name' => $e['first_name'], 'last_name' => $e['last_name'], 'email' => str_ends_with((string) $e['email'], '.invalid') ? '' : $e['email'], 'phone' => $e['phone'], 'has_photo' => (int) $e['has_photo'], 'country' => country_name($e['country_code']), 'status' => $e['status'],
       'last_seen_at' => $e['last_seen_at'], 'source' => $e['source'] ?? 'hq', 'link' => app_origin() . '/#/r/' . $e['code'], 'kpis' => envoy_kpis((int) $e['user_id'], (int) $e['link_id'])];
   $tot = []; foreach ($list as $e) foreach ($e['kpis'] as $k => $v) $tot[$k] = ($tot[$k] ?? 0) + $v;

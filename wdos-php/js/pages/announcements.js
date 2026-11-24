@@ -1,5 +1,5 @@
 /* Announcements. HQ composes and sends (in-app + push in one step); everyone else reads what was addressed to them. */
-import { h, icon, card, sk, empty, ago, fmt, toast, netTag, TONES, tonePhoto, LANGS, LANG_NAMES } from '../ui.js';
+import { h, icon, card, sk, empty, ago, fmt, toast, netTag, TONES, tonePhoto, LANGS, LANG_NAMES, editForm, delButton } from '../ui.js';
 import { api } from '../api.js';
 import { app } from '../app.js';
 
@@ -15,7 +15,15 @@ export async function render(root, params) {
       h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, h('b', { style: 'font-size:16px;flex:1;min-width:200px', text: a.title }), a.kind === 'newsletter' ? h('span', { class: 'tag tag--wgmn', text: 'Newsletter' }) : null, a.audience_network !== 'ALL' ? netTag(a.audience_network) : h('span', { class: 'tag', text: 'Both networks' }), a.audience_role === 'leaders' ? h('span', { class: 'tag', text: 'Leaders only' }) : null, a.audience_chapter ? h('span', { class: 'tag', text: 'Your chapter' }) : null, hq && [a.audience_state, a.audience_lga, a.audience_community].some(Boolean) ? h('span', { class: 'tag', text: [a.audience_community, a.audience_lga, a.audience_state].filter(Boolean).join(', ') }) : null, hq && a.audience_lang ? h('span', { class: 'tag', text: LANG_NAMES[a.audience_lang] || a.audience_lang }) : null),
       h('p', { style: 'white-space:pre-wrap;max-width:75ch', text: a.body }),
       h('div', { style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap' }, h('small', { class: 'faint', text: [hq && !a.sent_at && a.scheduled_at ? 'Scheduled for ' + new Date(a.scheduled_at.replace(' ', 'T') + 'Z').toLocaleString() : ago(a.created_at), hq && a.author ? 'by ' + a.author : '', hq && a.sent_at ? tf('sent to {1} · acknowledged by {2}', fmt(a.recipients), fmt(a.acks)) : '', hq && a.langs ? 'also in ' + a.langs.split(',').map((l) => LANG_NAMES[l] || l).join(', ') : ''].filter(Boolean).join(' · ') }),
-        !hq ? (Number(a.acked) ? h('span', { class: 'tag tag--wnnn', text: 'You confirmed you read this' }) : h('button', { class: 'btn btn--quiet btn--s', type: 'button', onclick: async (e) => { try { await api(`/announcements/${a.id}/ack`, {}); e.target.replaceWith(h('span', { class: 'tag tag--wnnn', text: 'You confirmed you read this' })); } catch (ex) { toast('Not saved', ex.message, 'bad'); } } }, 'I have read this')) : null)))));
+        !hq ? (Number(a.acked) ? h('span', { class: 'tag tag--wnnn', text: 'You confirmed you read this' }) : h('button', { class: 'btn btn--quiet btn--s', type: 'button', onclick: async (e) => { try { await api(`/announcements/${a.id}/ack`, {}); e.target.replaceWith(h('span', { class: 'tag tag--wnnn', text: 'You confirmed you read this' })); } catch (ex) { toast('Not saved', ex.message, 'bad'); } } }, 'I have read this')) : null),
+      /* v109.54: HQ changes or deletes an announcement */
+      hq ? (() => { const slot = h('div'); const toLocal = (x) => x ? new Date(new Date(x.replace(' ', 'T') + 'Z').getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '';
+        return h('div', { style: 'display:grid;gap:10px' }, h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' },
+          h('button', { class: 'btn btn--quiet btn--s', type: 'button', onclick: () => { if (slot.firstChild) { slot.replaceChildren(); return; }
+            slot.replaceChildren(editForm('Change this announcement', [{ k: 'title', label: 'Title', value: a.title, max: 160 }, { k: 'body', label: 'Message', type: 'textarea', value: a.body, rows: 6 },
+              ...(!a.sent_at && a.scheduled_at ? [{ k: 'scheduled_at', label: 'Send at (your time)', type: 'datetime-local', value: toLocal(a.scheduled_at) }] : [])],
+              async (v) => { await api(`/hq/announcements/${a.id}/edit`, { title: v.title, body: v.body, scheduled_at: v.scheduled_at ? new Date(v.scheduled_at).toISOString() : '' }); toast('Announcement changed', a.langs ? 'The other-language versions were removed because the wording changed.' : '', 'ok'); load(); }, () => slot.replaceChildren())); } }, icon('edit', 16), ' Edit'),
+          delButton('Delete', async () => { await api(`/hq/announcements/${a.id}/delete`, { confirm: true }); toast('Announcement deleted', '', 'ok'); load(); })), slot); })() : null))));
     if (params.id) document.getElementById('a' + params.id)?.scrollIntoView({ block: 'center' });
   };
   if (hq || leader) {

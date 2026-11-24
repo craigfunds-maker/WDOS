@@ -84,6 +84,8 @@ const I = {
   link: ['M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71', 'M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'],
   book: ['M4 19.5A2.500 2.500 0 0 1 6.500 17H20', 'M6.500 2H20v20H6.500A2.500 2.500 0 0 1 4 19.500v-15A2.500 2.500 0 0 1 6.500 2z'],
   route: ['c:6,19,3', 'c:18,5,3', 'M9 19h8.500a3.500 3.500 0 0 0 0-7h-11a3.500 3.500 0 0 1 0-7H15'],
+  edit: ['M12 20h9', 'M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z'],   // v109.54
+  trash: ['M3 6h18', 'M8 6V4h8v2', 'M19 6l-1 14H6L5 6', 'M10 11v6', 'M14 11v6'],
 };
 const NS = 'http://www.w3.org/2000/svg';
 export function icon(name, size = 20) {
@@ -231,6 +233,28 @@ export function docReader(url, onEnd, title, sections) {
 }
 export const input = (attrs) => h('input', { class: 'input', ...attrs });
 export const field = (label, node, hint) => h('label', { class: 'field' }, h('span', { text: label }), node, hint ? h('small', { text: hint }) : null);
+/* v109.54: one way to change and to delete things everywhere on the HQ dashboard.
+ * editForm: a small form filled with the current values; save(values) returns a promise, and its error is shown in the form.
+ * delButton: pressed once it asks "Press again to delete"; the second press within five seconds deletes. */
+export function editForm(title, fields, save, cancel) {
+  const els = {}; const err = h('p', { class: 'err', role: 'alert' });
+  const rows = fields.map((f) => {
+    const n = f.type === 'textarea' ? h('textarea', { class: 'input', rows: f.rows || 4, maxlength: f.max || 4000 }) : f.type === 'select' ? h('select', { class: 'input' }, (f.options || []).map(([v, l]) => h('option', { value: v, text: t(l) })))
+      : input({ type: f.type || 'text', maxlength: f.max || 190 });
+    n.value = f.value ?? ''; els[f.k] = n; return field(t(f.label), n, f.hint ? t(f.hint) : null);
+  });
+  const ok = h('button', { class: 'btn btn--s', type: 'button', onclick: async () => { err.textContent = ''; ok.disabled = true;
+    try { await save(Object.fromEntries(Object.entries(els).map(([k, n]) => [k, n.value]))); } catch (e) { err.textContent = e.message; ok.disabled = false; } } }, t('Save changes'));
+  return h('div', { class: 'panel', style: 'display:grid;gap:12px' }, h('b', { text: t(title) }), ...rows, err,
+    h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, ok, cancel ? h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: cancel }, t('Cancel')) : null));
+}
+export function delButton(label, fn, cls = 'btn btn--ghost btn--s') {
+  let armed = false, tm = 0;
+  const b = h('button', { class: cls, type: 'button', style: 'color:var(--bad, #c0262d)', onclick: async () => {
+    if (!armed) { armed = true; b.textContent = t('Press again to delete'); tm = setTimeout(() => { armed = false; b.textContent = t(label); }, 5000); return; }
+    clearTimeout(tm); b.disabled = true; try { await fn(); } catch (e) { toast(t('Not deleted'), e.message, 'bad'); b.disabled = false; armed = false; b.textContent = t(label); } } }, t(label));
+  return b;
+}
 export const tabs = (list, current, base) => h('div', { class: 'seg rtabs', role: 'tablist' }, list.map(([k, l]) => h('a', { role: 'tab', class: 'seg__a', 'aria-pressed': String(k === current), href: base + (k ? '/' + k : ''), text: l })));
 export function langPicker(onPick) {
   const s = h('select', { class: 'input langpick', 'aria-label': 'Language' }, Object.entries(LANGS).map(([v, l]) => { const o = document.createElement('option'); o.value = v; o.textContent = l; return o; }));

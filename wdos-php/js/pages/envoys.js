@@ -1,5 +1,5 @@
 /* HQ: WODDI Envoys. Who they are, what their links bring in, how far the people they referred are in the 3 days, and opening a new envoy. */
-import { h, t, tf, icon, avatar, card, sk, empty, ago, fmt, toast, input, field } from '../ui.js';
+import { h, t, tf, icon, avatar, card, sk, empty, ago, fmt, toast, input, field, delButton } from '../ui.js';
 import { api } from '../api.js';
 import { flagText } from './envoy.js';
 import { kpi } from './hq.js';
@@ -34,7 +34,9 @@ export async function render(root, params) {
         h('td', { class: 'hide-s', text: fmt(e.kpis.visits_30) }), h('td', { text: fmt(e.kpis.referred) }), h('td', { text: fmt(e.kpis.activation_started) }), h('td', { text: fmt(e.kpis.three_days_done) }), h('td', { class: 'hide-s', text: fmt(e.kpis.messages_sent_30) }),
         h('td', { class: 'hide-s' }, h('small', { text: e.last_seen_at ? ago(e.last_seen_at) : t('Never') })),
         h('td', {}, h('div', { style: 'display:flex;gap:6px;flex-wrap:wrap;min-width:230px' }, h('a', { class: 'btn btn--quiet btn--s', href: '#/envoys/' + e.id }, t('Open')), h('a', { class: 'btn btn--ghost btn--s', href: '#/inbox/to/' + e.id }, t('Message')),
-          h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: async () => { if (!confirm(e.status === 'active' ? t('Pause this envoy? Her link stops working and she is signed out.') : e.status === 'pending' ? t('Approve this envoy? Her referral link switches on and she is told.') : t('Switch this envoy back on?'))) return; try { await api('/hq/envoys/' + e.id, { active: e.status !== 'active' }); load(); } catch (x) { toast('Not changed', x.message, 'bad'); } } }, e.status === 'active' ? t('Pause') : e.status === 'pending' ? t('Approve') : t('Switch on'))))))))) : empty('users', 'No envoys yet', 'Add the first envoy with the button below.'));
+          h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: async () => { if (!confirm(e.status === 'active' ? t('Pause this envoy? Her link stops working and she is signed out.') : e.status === 'pending' ? t('Approve this envoy? Her referral link switches on and she is told.') : t('Switch this envoy back on?'))) return; try { await api('/hq/envoys/' + e.id, { active: e.status !== 'active' }); load(); } catch (x) { toast('Not changed', x.message, 'bad'); } } }, e.status === 'active' ? t('Pause') : e.status === 'pending' ? t('Approve') : t('Switch on')),
+          h('a', { class: 'btn btn--quiet btn--s', href: '#/members/' + e.id }, icon('edit', 16), ' ', t('Edit')),   // v109.54: name, email, phone in the member drawer
+          delButton('Delete', async () => { await api(`/hq/members/${e.id}/delete`, { confirm: true }); toast(t('Envoy deleted'), `${e.first_name} ${e.last_name}`, 'ok'); load(); }))))))) : empty('users', 'No envoys yet', 'Add the first envoy with the button below.'));
   }
   load();
 }

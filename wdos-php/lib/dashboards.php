@@ -58,7 +58,7 @@ route('GET', '/hq/dashboard', function () {
 
 route('GET', '/hq/members', function () {
   require_hq();
-  $w = ["1=1"]; $p = [];
+  $w = ["u.status<>'deleted'"]; $p = [];   // v109.54: deleted people drop out of the list
   if (($s = trim((string) ($_GET['q'] ?? ''))) !== '') { $w[] = "(CONCAT(u.first_name,' ',u.last_name) LIKE ? OR u.email LIKE ? OR u.member_no LIKE ? OR u.phone LIKE ?)"; $like = '%' . $s . '%'; array_push($p, $like, $like, $like, $like); }
   if (in_array($_GET['network'] ?? '', ['WGMN', 'WNNN'], true)) { $w[] = 'u.network=?'; $p[] = $_GET['network']; }
   if (preg_match('/^[A-Z]{2}$/', (string) ($_GET['country'] ?? ''))) { $w[] = 'u.country_code=?'; $p[] = $_GET['country']; }
@@ -196,6 +196,28 @@ route('GET', '/hq/announcements', function () {
                                   (SELECT GROUP_CONCAT(t.lang ORDER BY t.lang) FROM announcement_texts t WHERE t.announcement_id=a.id) langs FROM announcements a JOIN users u ON u.id=a.author_id ORDER BY a.id DESC LIMIT 30")];
 });
 route('POST', '/hq/announcements', function () { return announcement_send(require_hq()); });
+/* v109.54: change or delete an announcement. A change rewrites what everyone reads in WDOS; the other-language versions written for
+ * the old text are removed, so nobody reads an out-of-date version (write them again in the new wording if needed). One not sent yet
+ * can also be given a new time. Deleting removes it from every list; notifications already on phones stay there. */
+route('POST', '/hq/announcements/(\d+)/edit', function ($id) {
+  $me = require_hq(); $a = row('SELECT * FROM announcements WHERE id=?', [(int) $id]); if (!$a) fail(404, 'That announcement was not found.', 'not_found');
+  $title = str_in('title', 160); $text = str_in('body', 4000);
+  if (mb_strlen($title) < 3 || mb_strlen($text) < 3) fail(422, 'Write a title and a message.', 'empty');
+  $when = $a['scheduled_at']; $raw = trim((string) (body()['scheduled_at'] ?? ''));
+  if ($a['sent_at'] === null && $raw !== '') { $ts = strtotime($raw); if (!$ts || $ts < time() - 60) fail(422, 'Choose a time that is still to come.', 'scheduled_at'); $when = gmdate('Y-m-d H:i:s', $ts); }
+  q('UPDATE announcements SET title=?, body=?, scheduled_at=? WHERE id=?', [$title, $text, $when, (int) $id]);
+  if ($title !== $a['title'] || $text !== $a['body']) q('DELETE FROM announcement_texts WHERE announcement_id=?', [(int) $id]);
+  log_activity((int) $me['id'], null, 'announcement_changed', $title);
+  return ['ok' => true];
+});
+route('POST', '/hq/announcements/(\d+)/delete', function ($id) {
+  $me = require_hq(); $a = row('SELECT id, title FROM announcements WHERE id=?', [(int) $id]); if (!$a) fail(404, 'That announcement was not found.', 'not_found');
+  if (empty(body()['confirm'])) fail(422, 'Confirm that you want to delete this announcement.', 'confirm');
+  foreach (['announcement_texts', 'announcement_acks'] as $t) q("DELETE FROM $t WHERE announcement_id=?", [(int) $id]);
+  q('DELETE FROM announcements WHERE id=?', [(int) $id]);
+  log_activity((int) $me['id'], null, 'announcement_deleted', $a['title']);
+  return ['ok' => true];
+});
 /* Everyone reads the announcements addressed to her. */
 route('GET', '/announcements', function () {
   $u = require_user(); $leader = current_seat((int) $u['id']) ? 1 : 0;
