@@ -125,3 +125,108 @@ route('POST', '/hq/leaders/add', function () {
   return ['ok' => true, 'id' => $id, 'name' => "$first $last", 'title' => $title, 'country' => $cc, 'network' => $net, 'level' => $pos['level'],
     'also_held_by' => array_map(fn($r) => trim($r['first_name'] . ' ' . $r['last_name']), $held)];
 });
+
+/* v109.51: logins for a whole network in one click (Azeez, 24 Nov 2026: "create logins for all the leadership structures, network and all
+ * countries for that network in a single click, it should be well arranged in pdf").
+ * HQ chooses WGMN or WNNN. WDOS lists every seated leader of that network in every country, at every level, and sorts each into one of:
+ *   new      no password yet: gets a temporary password
+ *   pending  a temporary password was given before and has never been used: kept, unless HQ asks for new ones
+ *   active   she already signs in with a password she knows: never changed here
+ *   google   she signs in with Google: never changed here
+ *   cannot   no email or phone number to sign in with
+ * The rule that a working password is never replaced is enforced here on the server, not by the page. Passwords are made in batches
+ * of at most NET_CHUNK people per request, returned once and kept only as a hash; the page builds the PDF on HQ's own computer. */
+const NET_CHUNK = 100;
+const NET_LEVELS = ['country', 'state_region', 'lga', 'community_cluster', 'chapter'];
+
+function netlogin_people(string $net, bool $envoys): array {
+  $in = implode(',', array_fill(0, count(NET_LEVELS), '?'));
+  $names = []; foreach (rows("SELECT country_code cc, name FROM org_units WHERE level='country' AND country_code IS NOT NULL") as $c) $names[$c['cc']] = $c['name'];
+  $out = [];
+  $rows = rows("SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.password_hash, u.must_change_password, u.signup_method, u.last_seen_at,
+                       s.area_label, p.rank_no, p.level plevel, CASE WHEN s.network='WNNN' THEN p.title_wnnn ELSE p.title_wgmn END title,
+                       o.name unit_name, o.level unit_level, o.country_code cc
+                FROM seats s JOIN users u ON u.id=s.user_id JOIN positions p ON p.code=s.position_code JOIN org_units o ON o.id=s.org_unit_id
+                WHERE s.ends_at IS NULL AND s.network=? AND u.status='active' AND u.role NOT IN ('hq_admin','super_admin') AND p.level IN ($in)
+                ORDER BY p.rank_no, o.name, s.area_label, u.first_name, u.last_name LIMIT 5000", array_merge([$net], NET_LEVELS));
+  foreach ($rows as $r) {
+    if (isset($out[(int) $r['id']])) continue;   // someone with two seats is listed once, under her highest seat
+    $area = $r['area_label'] !== '' ? $r['area_label'] : $r['unit_name'];
+    $state = $r['unit_level'] === 'country' ? '' : (string) $r['unit_name'];
+    $out[(int) $r['id']] = netlogin_shape($r, $r['title'] . ', ' . $area, (string) $r['plevel'], (int) $r['rank_no'], (string) $r['cc'], $state, $names);
+  }
+  if ($envoys) {
+    try {
+      foreach (rows("SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.password_hash, u.must_change_password, u.signup_method, u.last_seen_at, u.designation, u.state_region,
+                            COALESCE(NULLIF(e.country_code,''), u.country_code) cc
+                     FROM users u JOIN envoys e ON e.user_id=u.id
+                     WHERE u.role='envoy' AND u.status='active' AND e.status='active' AND (u.network=? OR u.network IS NULL OR u.network='')
+                     ORDER BY u.state_region, u.first_name LIMIT 3000", [$net]) as $r) {
+        if (isset($out[(int) $r['id']])) continue;
+        $out[(int) $r['id']] = netlogin_shape($r, $r['designation'] !== '' && $r['designation'] !== null ? $r['designation'] : 'WODDI Envoy', 'envoy', 99, (string) $r['cc'], (string) $r['state_region'], $names);
+      }
+    } catch (PDOException $e) { /* envoys arrive with migration 024 */ }
+  }
+  $list = array_values($out);
+  usort($list, fn($a, $b) => [$a['country_name'], $a['rank'], $a['state'], $a['position'], $a['name']] <=> [$b['country_name'], $b['rank'], $b['state'], $b['position'], $b['name']]);
+  return $list;
+}
+function netlogin_shape(array $r, string $position, string $level, int $rank, string $cc, string $state, array $names): array {
+  $phoneLogin = str_ends_with((string) $r['email'], '@phone.wdos.invalid');
+  $with = $phoneLogin ? (string) $r['phone'] : (string) $r['email'];
+  $can = $with !== '' && !preg_match('/\.(test|local|example)$/', $with) && !str_contains($with, '@deleted.');
+  if (!$can) $cat = 'cannot';
+  elseif (!$r['password_hash']) $cat = ($r['signup_method'] ?? '') === 'google' ? 'google' : 'new';
+  elseif ((int) $r['must_change_password'] === 1 && $r['last_seen_at'] === null) $cat = 'pending';
+  else $cat = 'active';
+  return ['id' => (int) $r['id'], 'name' => trim($r['first_name'] . ' ' . $r['last_name']), 'position' => $position, 'level' => $level, 'rank' => $rank,
+    'country' => $cc, 'country_name' => $names[$cc] ?? ($cc !== '' ? $cc : 'Country not set'), 'state' => $state,
+    'sign_in_with' => $with, 'kind' => $phoneLogin ? 'Phone number' : 'Email', 'cat' => $cat, 'last_seen_at' => $r['last_seen_at']];
+}
+function netlogin_network(): string {
+  $b = array_merge($_GET, body());
+  return in_array($b['network'] ?? '', ['WGMN', 'WNNN'], true) ? $b['network'] : fail(422, 'Choose the network: WGMN or WNNN.', 'network');
+}
+
+route('GET', '/hq/leader-logins/network', function () {
+  require_hq(); $net = netlogin_network(); $env = !empty($_GET['envoys']) && $_GET['envoys'] !== '0';
+  $people = netlogin_people($net, $env);
+  $counts = ['new' => 0, 'pending' => 0, 'active' => 0, 'google' => 0, 'cannot' => 0]; $cs = [];
+  foreach ($people as $p) { $counts[$p['cat']]++; $cs[$p['country']] = $p['country_name']; }
+  header('Cache-Control: no-store');
+  return ['network' => $net, 'envoys' => $env, 'people' => $people, 'counts' => $counts, 'countries' => count($cs), 'chunk' => NET_CHUNK];
+});
+
+route('POST', '/hq/leader-logins/network', function () {
+  $me = require_hq(); $net = netlogin_network(); $b = body();
+  $reissue = !empty($b['reissue_unused']);
+  if ($reissue && empty($b['confirm'])) fail(422, 'Confirm that the earlier temporary passwords will stop working.', 'confirm');
+  $ids = array_values(array_unique(array_filter(array_map('intval', is_array($b['ids'] ?? null) ? $b['ids'] : []), fn($x) => $x > 0)));
+  if (!$ids) fail(422, 'There is nobody to give a login to.', 'ids');
+  if (count($ids) > NET_CHUNK) fail(422, 'Send at most ' . NET_CHUNK . ' people in one batch.', 'ids');
+  throttle('netlogin:' . (int) $me['id'], 150, 3600); throttle_hit('netlogin:' . (int) $me['id']);
+  $all = []; foreach (netlogin_people($net, !empty($b['envoys'])) as $p) $all[$p['id']] = $p;
+  foreach ($ids as $id) {
+    $p = $all[$id] ?? null;
+    if (!$p) fail(422, 'Some of these people are not seated leaders of ' . $net . ' any more. Load the list again.', 'ids');
+    if ($p['cat'] === 'active' || $p['cat'] === 'google') fail(422, $p['name'] . ' already signs in to WDOS. Her password is never replaced here.', 'in_use');
+    if ($p['cat'] === 'cannot') fail(422, $p['name'] . ' has no email or phone number to sign in with.', 'no_contact');
+    if ($p['cat'] === 'pending' && !$reissue) fail(422, $p['name'] . ' already has a temporary password that is not used yet.', 'pending');
+  }
+  $out = [];
+  foreach ($ids as $id) {
+    $p = $all[$id]; $temp = temp_password();
+    // the WHERE repeats the server's rule, so a password she set herself is never overwritten even if she signed in a moment ago
+    $n = q("UPDATE users SET password_hash=?, must_change_password=1 WHERE id=? AND role NOT IN ('hq_admin','super_admin')
+            AND (password_hash IS NULL OR (must_change_password=1 AND last_seen_at IS NULL))", [password_hash($temp, PASSWORD_DEFAULT), $id])->rowCount();
+    if (!$n) continue;
+    q('DELETE FROM sessions WHERE user_id=?', [$id]);
+    log_activity((int) $me['id'], $id, 'password_reset', 'Login issued for the whole ' . $net . ' network');
+    notify($id, 'account', 'WODDI HQ gave you a WDOS login', 'Sign in with the temporary password HQ sends you, then choose your own password.', '#/settings');
+    $out[] = ['id' => $id, 'temporary_password' => $temp];
+  }
+  log_activity((int) $me['id'], null, 'logins_issued', count($out) . ' logins · ' . $net . ' · all countries' . ($reissue ? ' · unused ones replaced' : ''));
+  after_response(fn() => push_drain(20));
+  header('Cache-Control: no-store');
+  return ['ok' => true, 'issued' => $out, 'site' => app_url(), 'at' => now(), 'by' => trim($me['first_name'] . ' ' . $me['last_name'])];
+});

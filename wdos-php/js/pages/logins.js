@@ -3,7 +3,7 @@
  * Nothing here can read an existing password: there is none to read. */
 import { h, t, tf, icon, card, empty, sk, toast, ago, netTag, fmt } from '../ui.js';
 import { api } from '../api.js';
-import { tablePdf, download } from '../pdfmini.js';
+import { tablePdf, networkLoginsPdf, download } from '../pdfmini.js';
 
 export async function render(root, params = {}) {
   const onlyEnvoys = params.only === 'envoy';
@@ -15,7 +15,8 @@ export async function render(root, params = {}) {
   root.append(card(onlyEnvoys ? 'Sign-in details for many envoys at once' : 'Logins for many leaders at once', onlyEnvoys ? 'Tick the envoys, and WDOS gives each a temporary password. Each envoy signs in with the phone number shown (or her email if she has one). You get the details once, as a PDF made on this computer. Each envoy chooses her own password when she first signs in.' : 'Choose the country, the network and the levels, tick the people, and WDOS gives each a new temporary password. You get them once, as a PDF made on this computer. Each person chooses her own password when she first signs in.',
     h('div', { style: 'display:grid;gap:14px' }, h('div', { class: 'grid2' }, country, network), levelBox,
       h('p', { class: 'muted', style: 'margin:0', text: t('Their current password stops working, and they are signed out of WDOS on every device. People who sign in with Google can keep doing so.') }), bar, list)), done);
-  if (!onlyEnvoys) root.prepend(addLeaderCard((r) => { added.add(r.id); if (r.country) country.value = r.country; network.value = r.network; const k = lv.get(r.level); if (k) k.checked = true; load(); }));
+  if (!onlyEnvoys) root.prepend(networkCard());
+  if (!onlyEnvoys) root.children[0].after(addLeaderCard((r) => { added.add(r.id); if (r.country) country.value = r.country; network.value = r.network; const k = lv.get(r.level); if (k) k.checked = true; load(); }));
   const paintBar = () => {
     const ok = d ? d.people.filter((p) => picked.has(p.id)).length : 0;
     const agree = h('input', { type: 'checkbox', style: 'width:20px;height:20px' });
@@ -113,4 +114,67 @@ function addLeaderCard(onAdded) {
   return card('Add a leader who is not in WDOS yet', 'Her account and her leadership seat are made here. Then tick her in the list below and create her login and the PDF.',
     h('div', { style: 'display:grid;gap:10px' }, h('div', { class: 'grid2' }, F.first, F.last), h('div', { class: 'grid2' }, F.email, F.phone),
       h('div', { class: 'grid2' }, F.net, F.pos), h('div', { class: 'grid2' }, F.cc, F.unit), F.area, err, h('div', {}, go), out));
+}
+
+/* v109.51: one click for a whole network. Every seated leader of WGMN or WNNN, in every country and at every level, in one PDF arranged
+ * country by country. Only people with no password yet get one; a leader who already signs in keeps her own password (the server
+ * refuses to replace it). Logins sent before and never used are kept unless HQ ticks the box to replace them. */
+function networkCard() {
+  const net = h('select', { class: 'input' }, h('option', { value: 'WGMN', text: 'WGMN' }), h('option', { value: 'WNNN', text: 'WNNN' }));
+  const box = (label) => { const c = h('input', { type: 'checkbox', style: 'width:20px;height:20px;flex:none' }); return [c, h('label', { style: 'display:flex;gap:8px;align-items:center' }, c, h('span', { text: t(label) }))]; };
+  const [envoys, envoysL] = box('Add the WODDI Envoys at the end of each country');
+  const [reissue, reissueL] = box('Also replace logins sent before that have never been used');
+  const [agree, agreeL] = box('I understand those earlier temporary passwords will stop working');
+  const stats = h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, sk.rows(1)); const go = h('button', { class: 'btn', type: 'button' });
+  const prog = h('div', { hidden: true, style: 'display:grid;gap:6px' }); const done = h('div');
+  let d = null; let busy = false;
+  const targets = () => d ? d.people.filter((p) => p.cat === 'new' || (p.cat === 'pending' && reissue.checked)) : [];
+  const paint = () => {
+    agreeL.hidden = !reissue.checked; const n = targets().length;
+    go.replaceChildren(icon('key', 16), ' ', n === 1 ? tf('Create 1 login and download the PDF of every {1} leader', net.value) : n ? tf('Create {1} logins for every {2} leader and download the PDF', fmt(n), net.value) : tf('Download the PDF of every {1} leader', net.value));
+    go.disabled = busy || !d || !d.people.length || (reissue.checked && n && !agree.checked);
+    if (!d) return;
+    const c = d.counts; const chip = (txt, cls) => h('span', { class: 'tag' + (cls ? ' ' + cls : ''), text: txt });
+    stats.replaceChildren(chip(tf('{1} leaders in {2} countries', fmt(d.people.length), fmt(d.countries))), chip(tf('{1} need a login', fmt(c.new)), c.new ? 'tag--wgmn' : ''),
+      chip(tf('{1} already signed in', fmt(c.active + c.google))), chip(tf('{1} have a login not used yet', fmt(c.pending))), c.cannot ? chip(tf('{1} have no email or phone', fmt(c.cannot)), 'tag--bad') : null);
+  };
+  async function load() {
+    d = null; stats.replaceChildren(sk.rows(1)); paint();
+    try { d = await api('/hq/leader-logins/network?' + new URLSearchParams({ network: net.value, envoys: envoys.checked ? '1' : '0' })); }
+    catch (e) { stats.replaceChildren(h('span', { class: 'err', text: e.message })); return; }
+    paint();
+  }
+  async function run() {
+    if (busy || !d) return; busy = true; paint(); done.replaceChildren();
+    const list = targets(); const pw = new Map(); let err = null; let meta = { at: null, by: '', site: location.origin };
+    prog.hidden = !list.length; const bar = h('progress', { max: list.length || 1, value: 0, style: 'width:100%;height:12px' }); const lbl = h('small', {}); prog.replaceChildren(lbl, bar);
+    for (let i = 0; i < list.length; i += d.chunk) {
+      lbl.textContent = tf('Creating logins: {1} of {2}', fmt(i), fmt(list.length));
+      try {
+        const r = await api('/hq/leader-logins/network', { network: net.value, envoys: envoys.checked, reissue_unused: reissue.checked, confirm: agree.checked, ids: list.slice(i, i + d.chunk).map((p) => p.id) });
+        r.issued.forEach((x) => pw.set(x.id, x.temporary_password)); meta = r;
+      } catch (e) { err = e; break; }
+      bar.value = Math.min(list.length, i + d.chunk);
+    }
+    lbl.textContent = tf('Creating logins: {1} of {2}', fmt(pw.size), fmt(list.length));
+    const when = new Date((meta.at ? meta.at.replace(' ', 'T') + 'Z' : Date.now())).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    const people = d.people.map((p) => ({ country_name: p.country_name, level: p.level, name: p.name, position: p.position, sign_in_with: p.sign_in_with, password: pw.get(p.id) || '',
+      status: pw.has(p.id) ? 'new' : p.cat === 'new' ? 'notdone' : p.cat }));
+    const pdf = networkLoginsPdf({ network: net.value, title: `WDOS logins: ${net.value} volunteer leaders`, made: meta.by ? `${when} by ${meta.by}` : when,
+      host: String(meta.site || location.origin).replace(/^https?:\/\//, '').replace(/\/$/, ''),
+      note: 'Give each leader only her own line, privately (for example in a direct WhatsApp message). These temporary passwords are kept nowhere else and cannot be shown again.', people });
+    const name = `WDOS-logins-${net.value}-all-countries-${new Date().toISOString().slice(0, 10)}.pdf`;
+    download(pdf, name);
+    done.replaceChildren(h('div', { class: 'panel', style: 'display:grid;gap:8px' },
+      h('b', { text: pw.size === 1 ? t('1 new login. The PDF has downloaded.') : tf('{1} new logins. The PDF has downloaded.', fmt(pw.size)) }),
+      h('small', { text: t('Keep it safe: the temporary passwords cannot be shown again. If it did not download, press the button below now, before you leave this page.') }),
+      err ? h('small', { class: 'bad', text: tf('Stopped before the end: {1}. The people already done are in the PDF. Press the button above again to finish the rest.', err.message) }) : null,
+      h('div', {}, h('button', { class: 'btn btn--quiet', type: 'button', onclick: () => download(pdf, name) }, icon('book', 16), ' ', t('Download the PDF again')))));
+    if (err) toast(t('Not every login was created'), err.message, 'error'); else toast(t('Logins created'), pw.size === 1 ? t('1 new login') : tf('{1} new logins', fmt(pw.size)), 'ok');
+    busy = false; reissue.checked = false; agree.checked = false; await load(); prog.hidden = true;
+  }
+  go.addEventListener('click', run); [reissue, agree].forEach((x) => x.addEventListener('change', paint)); [net, envoys].forEach((x) => x.addEventListener('change', load));
+  load();
+  return card('Logins for a whole network in one click', 'Choose the network. WDOS lists every seated leader of that network in every country, at every level, gives a temporary password to each one who has no login yet, and downloads one PDF arranged country by country. Leaders who already sign in keep their own password.',
+    h('div', { style: 'display:grid;gap:12px' }, h('div', { class: 'grid2' }, net, h('div')), envoysL, stats, reissueL, agreeL, h('div', {}, go), prog, done));
 }
