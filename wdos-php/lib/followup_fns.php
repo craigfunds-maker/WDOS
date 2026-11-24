@@ -22,15 +22,15 @@ function followup_automations(array &$done): void {
   /* 1. leader video meetings asked for through WDOS and approved by HQ */
   try {
     foreach (rows("SELECT * FROM meeting_requests WHERE status='approved' AND starts_at BETWEEN ? AND ?", [gmdate('Y-m-d H:i:s', $now - 900), gmdate('Y-m-d H:i:s', $now + 25 * 3600)]) as $m) {
-      $in = strtotime($m['starts_at'] . ' UTC') - $now; $when = gmdate('j M Y, H:i', strtotime($m['starts_at'] . ' UTC')) . ' GMT';
+      $ts = strtotime($m['starts_at'] . ' UTC'); $in = $ts - $now;
       // the meeting's own name leads the reminder (v109.13): "Kaduna chapter leaders: in 1 hour"
       if ($in <= 600) { $key = 'mr_now_'; $sfx = ': starting now'; $b = 'Open WDOS and tap Join the video meeting.'; }
-      elseif ($in <= 3900 && $in > 600) { $key = 'mr_hour_'; $sfx = ': in 1 hour'; $b = $when; }
-      elseif ($in > 20 * 3600) { $key = 'mr_day_'; $sfx = ': tomorrow'; $b = $when; }
+      elseif ($in <= 3900 && $in > 600) { $key = 'mr_hour_'; $sfx = ': in 1 hour'; $b = null; }
+      elseif ($in > 20 * 3600) { $key = 'mr_day_'; $sfx = ': tomorrow'; $b = null; }
       else continue;
       if (!claim_send($key . $m['id'])) continue;
       $to = array_values(array_unique(array_merge(mr_ids($m), [(int) $m['requester_id']])));
-      foreach ($to as $uid) fu_tell($uid, 'meeting', mb_substr($m['title'], 0, 120) . $sfx, $b, '#/meetings/requests/' . (int) $m['id']);
+      foreach ($to as $uid) fu_tell($uid, 'meeting', mb_substr($m['title'], 0, 120) . $sfx, $b ?? tz_when($ts, tz_for_id($uid)), '#/meetings/requests/' . (int) $m['id']);   // v109.53: her own time
       $done['mr_' . $m['id']] = count($to) . ' reminded';
     }
   } catch (PDOException $e) { error_log('[wdos followup meetings] ' . $e->getMessage()); }

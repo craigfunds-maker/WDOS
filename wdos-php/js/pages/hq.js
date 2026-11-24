@@ -6,6 +6,7 @@ import { pushNudge } from '../pushnudge.js';
 import { api } from '../api.js';
 import { app } from '../app.js';
 import { lineChart, donut, bars, sparkline, countUp, seriesColor, legend } from '../charts.js';
+import { whenMine } from '../tz.js';
 
 export function rangeSeg(days, onPick) {
   return h('div', { class: 'seg', role: 'group', 'aria-label': 'Period' }, [7, 30, 90].map((d) => h('button', { type: 'button', 'aria-pressed': String(d === days), onclick: () => onPick(d), text: tf('{1} days', d) })));
@@ -29,7 +30,7 @@ const ACTION = { registered: 'joined', appointed: 'was appointed', seat_closed: 
 export async function render(root) {
   const meet = h('div', {}, sk.rows(2));
   import('./meetings.js').then(({ countdown }) => api('/hq/meetings/summary').then((r) => { const row = (m) => h('a', { class: 'list__link', href: '#/meetings/' + m.id, style: 'flex-wrap:wrap' }, h('div', { class: 'nrow__ico' }, icon('calendar', 18)),
-      h('div', { class: 'grow', style: 'min-width:220px' }, h('b', { text: m.title }), h('small', { text: new Date(m.starts_at.replace(' ', 'T') + 'Z').toLocaleString(loc(), { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + ' · ' + m.scope_label }), m.upcoming ? countdown(m) : null),
+      h('div', { class: 'grow', style: 'min-width:220px' }, h('b', { text: m.title }), h('small', { text: whenMine(m.starts_at) + ' · ' + m.scope_label }), m.upcoming ? countdown(m) : null),
       h('div', { class: 'tagrow' }, h('span', { class: 'tag', text: tf('{1} invited', fmt(m.invited)) }), m.upcoming ? h('span', { class: 'tag tag--wnnn', text: tf('{1} yes · {2} maybe · {3} no', m.rsvp.yes, m.rsvp.maybe, m.rsvp.no) }) : h('span', { class: 'tag ' + (m.present ? 'tag--wnnn' : 'tag--wgmn'), text: m.present + m.absent ? tf('{1} present · {2} absent', m.present, m.absent) : 'Attendance not marked' }), h('span', { class: 'tag', text: tf('{1} opened the link', fmt(m.opened_link)) })));
     const up = r.items.filter((m) => m.upcoming), past = r.items.filter((m) => !m.upcoming);
     meet.replaceChildren(r.items.length ? h('div', { style: 'display:grid;gap:14px' }, up.length ? h('div', { class: 'list list--stack' }, up.map(row)) : h('p', { class: 'muted', style: 'margin:0', text: 'No meeting is scheduled.' }), past.length ? h('div', {}, h('small', { class: 'eyebrow', text: 'Just held' }), h('div', { class: 'list list--stack' }, past.map(row))) : null, r.mail_on ? null : h('small', { class: 'faint', text: 'Email is switched off on the server, so invitations, reminders and minutes go in the app and by phone notification only.' }))

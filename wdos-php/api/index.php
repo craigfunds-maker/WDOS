@@ -5,6 +5,7 @@ require __DIR__ . '/../lib/core.php';
 require __DIR__ . '/../lib/push.php';
 require __DIR__ . '/../lib/notify_i18n.php';
 require __DIR__ . '/../lib/notify.php';
+require __DIR__ . '/../lib/timezones.php';      // v109.53: meeting times in each person's own time
 require __DIR__ . '/../lib/webauthn.php';
 require __DIR__ . '/../lib/inspire_fns.php';
 require __DIR__ . '/../lib/reporting_fns.php';
@@ -418,6 +419,7 @@ route('GET', '/push/latest', function () {
   return ['item' => row('SELECT id, title, body, url FROM notifications WHERE user_id=? ORDER BY id DESC LIMIT 1', [(int) $u['id']])];
 });
 
+tz_routes();                                    // v109.53: POST /me/tz
 require_once __DIR__ . '/../lib/celebrate.php';      // v109.22: birthdays and inspiration by every channel (before the scheduled work below)
 /* Scheduled work. Point a cron (cPanel) or cron-job.org (Render) at this URL every 5 minutes. */
 if ($METHOD === 'GET' && $PATH === '/cron') {

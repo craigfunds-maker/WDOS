@@ -6,11 +6,12 @@ import { api } from '../api.js';
 import { uploadButton, packFile } from '../files.js';
 import { app, go } from '../app.js';
 import { countdown } from './meetings.js';
+import { timeIn } from '../tz.js';
 
 const ST = { pending: ['Waiting for HQ approval', ''], approved: ['Approved', 'wnnn'], declined: ['Not approved', 'bad'], cancelled: ['Cancelled', 'bad'], held: ['Held, minutes recorded', 'wgmn'] };
 const stTag = (s) => h('span', { class: 'tag' + (ST[s]?.[1] ? ' tag--' + ST[s][1] : ''), text: ST[s]?.[0] || s });
 const utc = (s) => new Date(String(s).replace(' ', 'T') + 'Z');
-const whenText = (m) => { const d = utc(m.starts_at); return d.toLocaleDateString(loc(), { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) + ', ' + d.toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' }) + ' · ' + tf('{1} minutes', m.duration_min); };
+const whenText = (m) => { const d = utc(m.starts_at); return d.toLocaleDateString(loc(), { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) + ', ' + timeIn(d) + ', ' + t('your time') + ' · ' + tf('{1} minutes', m.duration_min); };
 
 export async function render(root, params) {
   if (params.id && /^\d+$/.test(params.id)) return detail(root, params.id);

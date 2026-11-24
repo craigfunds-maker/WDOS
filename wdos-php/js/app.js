@@ -3,6 +3,7 @@ import { h, clear, icon, avatar, toast, ago, theme, ambience, empty, i18n, t, tf
 import { pushSync } from './api.js';
 import { canInstall, installApp, installNudge, standalone } from './install.js';
 import { api } from './api.js';
+import { reportTz } from './tz.js';
 
 export const app = { user: null, config: { google: false, push: false, vapid: '', mail: false, build: '' }, unread: 0, latest: 0 };
 const root = document.getElementById('app');
@@ -178,7 +179,7 @@ async function followAccountLanguage() {
   if (!chosen && l && l !== i18n.lang && LANGS[l]) await i18n.set(l);                       // a new phone: open in her account's language
   else if (chosen && LANGS[chosen] && chosen !== l && app.user) api('/me/lang', { lang: chosen }).catch(() => {});   // she chose here: her account follows
 }
-export async function signedIn(user) { app.user = user; try { sessionStorage.removeItem('wdos.photoask'); } catch { /* */ } await followAccountLanguage(); shellEls = null; startPulse(); pushSync(app.config.vapid); go('#/'); afterSignIn(); }
+export async function signedIn(user) { app.user = user; try { sessionStorage.removeItem('wdos.photoask'); } catch { /* */ } await followAccountLanguage(); shellEls = null; startPulse(); pushSync(app.config.vapid); reportTz(); go('#/'); afterSignIn(); }
 export function reshell() { shellEls = null; render(); }
 /* v109.33: no profile photo yet: ask for one first (camera or upload), then the walkthrough if she has not seen it */
 /* v109.37: then, if this device does not get notifications yet, ask to switch them on */
@@ -332,7 +333,7 @@ window.addEventListener('hashchange', render);
   try {
     const [cfg, me] = await Promise.all([api('/config'), api('/me')]);
     app.config = cfg; app.user = me.user;
-    if (app.user) pushSync(cfg.vapid);
+    if (app.user) { pushSync(cfg.vapid); reportTz(); }    // v109.53: her phone's time zone, for meeting times in her own time
     await followAccountLanguage();
   } catch (e) {
     clear(root).append(h('div', { class: 'public' }, h('div', { class: 'signin' }, h('div', { class: 'card' }, empty('x', 'WDOS cannot start', e.message, h('button', { class: 'btn', onclick: () => location.reload() }, 'Reload'))))));

@@ -208,16 +208,18 @@ route('POST', '/meetings', function () {
   if ((body()['kind'] ?? '') === 'talk_show') { try { q("UPDATE meetings SET kind='talk_show' WHERE id=?", [$mid]); } catch (PDOException $e) { /* before migration 021 */ } }
   $m = meeting_get($mid); [$w, $p] = meeting_invited_sql($m);
   $join = meeting_join_sql($m, $w);
-  $n = notify_many("u.id<>? AND $join", array_merge([(int) $u['id']], $p), 'meeting', 'Meeting: ' . mb_substr($title, 0, 120), 'Called by ' . work_name($u) . ' for ' . gmdate('j M Y, H:i', $s) . ' GMT. Tap to open the agenda and the ' . ($mode === 'in_person' ? 'address' : 'meeting link') . '.', '#/meetings/' . $mid);
+  // v109.53: each person reads the time in her own time zone
+  $n = notify_many_timed("u.id<>? AND $join", array_merge([(int) $u['id']], $p), 'meeting', 'Meeting: ' . mb_substr($title, 0, 120), fn($tz) => 'Called by ' . work_name($u) . ' for ' . tz_when($s, $tz) . '. Tap to open the agenda and the ' . ($mode === 'in_person' ? 'address' : 'meeting link') . '.', '#/meetings/' . $mid);
   // e-mail to everyone invited, with the link or address in it (queued, then sent a few at a time)
   $mailed = 0;
   if (mail_configured()) {
-    $when = gmdate('l j F Y, H:i', $s) . ' to ' . gmdate('H:i', $e) . ' GMT'; $link = preg_match('#https://\S+#i', $loc, $lm) ? rtrim($lm[0], '.,)') : '';
-    $html = '<p><b>' . htmlspecialchars(work_name($u)) . '</b> has called a meeting.</p><table cellpadding="6" style="border-collapse:collapse;font-size:15px"><tr><td style="color:#7a6a72">Meeting</td><td><b>' . htmlspecialchars($title) . '</b></td></tr><tr><td style="color:#7a6a72">When</td><td>' . $when . '</td></tr><tr><td style="color:#7a6a72">Format</td><td>' . MEETING_MODES[$mode] . '</td></tr><tr><td style="color:#7a6a72">' . ($link ? 'Link' : 'Where') . '</td><td>'
+    $link = preg_match('#https://\S+#i', $loc, $lm) ? rtrim($lm[0], '.,)') : '';
+    $html = '<p><b>' . htmlspecialchars(work_name($u)) . '</b> has called a meeting.</p><table cellpadding="6" style="border-collapse:collapse;font-size:15px"><tr><td style="color:#7a6a72">Meeting</td><td><b>' . htmlspecialchars($title) . '</b></td></tr><tr><td style="color:#7a6a72">When</td><td>{{WHEN}}</td></tr><tr><td style="color:#7a6a72">Format</td><td>' . MEETING_MODES[$mode] . '</td></tr><tr><td style="color:#7a6a72">' . ($link ? 'Link' : 'Where') . '</td><td>'
       . ($link ? '<a href="' . htmlspecialchars($link) . '">' . htmlspecialchars($link) . '</a>' . (trim(str_replace($lm[0], '', $loc)) !== '' ? '<br>' . htmlspecialchars(trim(str_replace($lm[0], '', $loc))) : '') : htmlspecialchars($loc)) . '</td></tr></table>'
       . (trim(str_in('agenda', 6000)) !== '' ? '<p style="margin-top:14px"><b>Agenda</b></p><p style="white-space:pre-wrap">' . nl2br(htmlspecialchars(mb_substr(str_in('agenda', 6000), 0, 2000))) . '</p>' : '');
-    foreach (rows("SELECT u.email, u.first_name FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND u.email<>'' AND (u.id=? OR ($w)) LIMIT 800", array_merge([(int) $u['id']], $p)) as $r) {
-      if (mail_queue($r['email'], $r['first_name'], 'Meeting: ' . mb_substr($title, 0, 150), mail_wrap('Dear ' . $r['first_name'] . ',', $html, $link ? 'Join the meeting' : 'Open in WDOS', $link ?: app_url() . '/#/meetings/' . $mid))) $mailed++;
+    foreach (rows("SELECT u.email, u.first_name, u.tz, u.country_code FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND u.email<>'' AND (u.id=? OR ($w)) LIMIT 800", array_merge([(int) $u['id']], $p)) as $r) {
+      $tz = tz_of($r); $when = tz_when($s, $tz, true, true) . ' to ' . tz_when($e, $tz, false);
+      if (mail_queue($r['email'], $r['first_name'], 'Meeting: ' . mb_substr($title, 0, 150), mail_wrap('Dear ' . $r['first_name'] . ',', str_replace('{{WHEN}}', htmlspecialchars($when), $html), $link ? 'Join the meeting' : 'Open in WDOS', $link ?: app_url() . '/#/meetings/' . $mid))) $mailed++;
     }
   }
   log_activity((int) $u['id'], count($invitees) === 1 ? $invitees[0] : null, 'meeting_scheduled', $title . ($invitees ? ' · ' . (count($invitees) === 1 ? 'with ' . (string) val("SELECT CONCAT(first_name,' ',last_name) FROM users WHERE id=?", [$invitees[0]]) : count($invitees) . ' leaders invited') : ''), 'meeting', (int) $mid);

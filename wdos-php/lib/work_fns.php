@@ -121,14 +121,18 @@ function meeting_join_sql(array $m, string $w): string {
   return $m['audience'] === 'members' && str_contains($w, 'ou.') ? "u.id IN (SELECT u.id FROM (SELECT u.id FROM users u JOIN org_units ou ON ou.id=u.org_unit_id WHERE $w) u)" : $w;
 }
 /** Tell everyone invited, and the host: in the app and by push, and by email when email is switched on. Returns how many were told in the app. */
-function meeting_broadcast(array $m, string $title, string $body, bool $withHost, string $extraHtml = ''): int {
+/** $body may be a function of the time zone (v109.53), so each person reads the time in her own time. */
+function meeting_broadcast(array $m, string $title, string|callable $body, bool $withHost, string $extraHtml = ''): int {
   [$w, $p] = meeting_invited_sql($m); $join = meeting_join_sql($m, $w);
-  $n = notify_many($withHost ? "(u.id=? OR $join)" : "u.id<>? AND $join", array_merge([(int) $m['host_id']], $p), 'meeting', $title, $body, '#/meetings/' . (int) $m['id']);
+  $bf = is_callable($body) ? $body : fn($tz) => $body;
+  $n = notify_many_timed($withHost ? "(u.id=? OR $join)" : "u.id<>? AND $join", array_merge([(int) $m['host_id']], $p), 'meeting', $title, $bf, '#/meetings/' . (int) $m['id']);
   if (mail_configured()) {
     $link = preg_match('#https://\S+#i', (string) $m['location'], $lm) ? rtrim($lm[0], '.,)') : '';
-    $html = '<p>' . htmlspecialchars($body) . '</p><p><b>' . htmlspecialchars($m['title']) . '</b><br>' . gmdate('l j F Y, H:i', strtotime($m['starts_at'])) . ' GMT</p>' . $extraHtml;
-    foreach (rows("SELECT u.email, u.first_name FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND u.email<>'' AND u.email NOT LIKE '%@phone.wdos.invalid' AND (u.id=? OR ($w)) LIMIT 2000", array_merge([(int) $m['host_id']], $p)) as $r)
+    $at = strtotime($m['starts_at'] . ' UTC');
+    foreach (rows("SELECT u.email, u.first_name, u.tz, u.country_code FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND u.email<>'' AND u.email NOT LIKE '%@phone.wdos.invalid' AND (u.id=? OR ($w)) LIMIT 2000", array_merge([(int) $m['host_id']], $p)) as $r) {
+      $tz = tz_of($r); $html = '<p>' . htmlspecialchars($bf($tz)) . '</p><p><b>' . htmlspecialchars($m['title']) . '</b><br>' . htmlspecialchars(tz_when($at, $tz, true, true)) . '</p>' . $extraHtml;
       mail_queue($r['email'], $r['first_name'], mb_substr($title, 0, 150), mail_wrap('Dear ' . $r['first_name'] . ',', $html, $link && $m['status'] === 'scheduled' ? 'Join the meeting' : 'Open in WDOS', $link && $m['status'] === 'scheduled' ? $link : app_url() . '/#/meetings/' . (int) $m['id']));
+    }
   }
   return $n;
 }
@@ -162,10 +166,11 @@ function work_automations(array &$done): void {
     }
     // meeting reminders: the day before, one hour before, and as it starts. Each goes out once, in the app, by push and by email.
     foreach (rows("SELECT m.*, h.first_name h_first, h.last_name h_last FROM meetings m JOIN users h ON h.id=m.host_id WHERE m.status='scheduled' AND m.starts_at>? AND m.starts_at<=?", [gmdate('Y-m-d H:i:s', time() - 600), gmdate('Y-m-d H:i:s', time() + 86400)]) as $m) {
-      $in = strtotime($m['starts_at'] . ' UTC') - time(); $at = gmdate('H:i', strtotime($m['starts_at'])) . ' GMT'; $what = $m['mode'] === 'in_person' ? 'address' : 'link';
-      if ($in <= 600) { $key = 'meet_now_'; $t = 'Starting now: '; $b = "It begins at $at. Open WDOS and press Join meeting."; }
-      elseif ($in <= 3600) { $key = 'meet_rem_'; $t = 'Starting soon: '; $b = "Begins at $at. Open WDOS for the $what."; }
-      elseif ($in > 82800) { $key = 'meet_day_'; $t = 'Tomorrow: '; $b = 'On ' . gmdate('l j F', strtotime($m['starts_at'])) . " at $at. Open WDOS to read the agenda and say if you will attend."; }
+      $ts = strtotime($m['starts_at'] . ' UTC'); $in = $ts - time(); $what = $m['mode'] === 'in_person' ? 'address' : 'link';
+      // v109.53: the time in each person's own time zone
+      if ($in <= 600) { $key = 'meet_now_'; $t = 'Starting now: '; $b = fn($tz) => 'It begins at ' . tz_when($ts, $tz, false) . '. Open WDOS and press Join meeting.'; }
+      elseif ($in <= 3600) { $key = 'meet_rem_'; $t = 'Starting soon: '; $b = fn($tz) => 'Begins at ' . tz_when($ts, $tz, false) . ". Open WDOS for the $what."; }
+      elseif ($in > 82800) { $key = 'meet_day_'; $t = 'Tomorrow: '; $b = fn($tz) => 'On ' . tz_when($ts, $tz, true, true) . '. Open WDOS to read the agenda and say if you will attend.'; }
       else continue;
       if (!claim_send($key . $m['id'])) continue;
       $n = meeting_broadcast($m, $t . mb_substr($m['title'], 0, 120), $b, true);

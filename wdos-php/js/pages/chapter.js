@@ -4,6 +4,7 @@ import { h, icon, avatar, card, sk, empty, ago, fmtDate, toast, netTag, flag, me
 import { api } from '../api.js';
 import { app } from '../app.js';
 import { kpi } from './hq.js';
+import { whenMine } from '../tz.js';
 
 export async function render(root, params) {
   const box = h('div', { style: 'display:grid;gap:18px' }, h('div', { class: 'card' }, sk.rows(5))); root.append(box);
@@ -37,7 +38,7 @@ export async function render(root, params) {
       h('div', { style: 'display:grid;gap:18px;align-content:start' },
         card('Chapter leaders', null, d.leaders.length ? h('div', { class: 'list' }, d.leaders.map((l) => h('div', {}, avatar(l, 40), h('div', { class: 'grow' }, h('b', { text: `${l.first_name} ${l.last_name}` }), h('small', { text: l.title + (Number(l.he_for_she) ? ' · He-for-She Champion' : '') }))))) : empty('users', 'No leader appointed yet', 'WODDI HQ appoints chapter leaders. The chapter works meanwhile.')),
         card('Chapter announcements', null, d.announcements.length ? h('div', { class: 'list' }, d.announcements.map((x) => h('a', { class: 'list__link', href: '#/announcements/' + x.id }, h('div', { class: 'nrow__ico' }, icon('megaphone', 18)), h('div', { class: 'grow' }, h('b', { text: x.title }), h('small', { text: ago(x.created_at) }))))) : h('p', { class: 'muted', style: 'margin:0', text: 'No announcement has been sent to this chapter yet.' })),
-        card('Coming up', 'Chapter meetings', d.meetings.length ? h('div', { class: 'list' }, d.meetings.map((m) => h('a', { class: 'list__link', href: '#/meetings/' + m.id }, h('div', { class: 'nrow__ico' }, icon('calendar', 18)), h('div', { class: 'grow' }, h('b', { text: m.title }), h('small', { text: fmtDate(m.starts_at, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) }))))) : h('p', { class: 'muted', style: 'margin:0', text: 'No chapter meeting is scheduled.' })))));
+        card('Coming up', 'Chapter meetings', d.meetings.length ? h('div', { class: 'list' }, d.meetings.map((m) => h('a', { class: 'list__link', href: '#/meetings/' + m.id }, h('div', { class: 'nrow__ico' }, icon('calendar', 18)), h('div', { class: 'grow' }, h('b', { text: m.title }), h('small', { text: whenMine(m.starts_at) }))))) : h('p', { class: 'muted', style: 'margin:0', text: 'No chapter meeting is scheduled.' })))));
     /* roster */
     const sibs = h('select', { class: 'input', style: 'max-width:280px' }, h('option', { value: 'new', text: 'A new chapter in this area (split)' }));
     if (hq) api(`/chapters?network=${c.network}&country=${c.country_code}&lga=${encodeURIComponent(c.lga || '(none)')}&community=${encodeURIComponent(c.community || '(none)')}`).then((r) => sibs.append(...r.items.filter((x) => x.id !== c.id).map((x) => h('option', { value: x.id, text: `${x.name} (${x.members} of ${x.capacity})` })))).catch(() => {});

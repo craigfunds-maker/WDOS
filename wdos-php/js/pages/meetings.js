@@ -2,9 +2,11 @@
 import { h, t, icon, avatar, card, sk, empty, fmt, toast, input, field, tabs, netTag, linkify } from '../ui.js';
 import { api } from '../api.js';
 import { taskRow, peoplePicker } from './tasks.js';
+import { whenMine, zonedToUtc, utcToZoned, timeIn, myTz, TZ_CHOICES, TZ_PREVIEW, offsetText } from '../tz.js';
 
 const when = (s) => new Date(s.replace(' ', 'T') + 'Z');
-const fmtWhen = (a, b) => { const x = when(a), y = when(b); return x.toLocaleDateString(loc(), { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) + ', ' + x.toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' }) + ' to ' + y.toLocaleTimeString(loc(), { hour: '2-digit', minute: '2-digit' }); };
+// v109.53: in the phone's own time zone, with the zone named, so a leader in Kenya reads Kenya time
+const fmtWhen = (a, b) => whenMine(when(a), when(b));
 const MST = { scheduled: ['Scheduled', 'wgmn'], completed: ['Completed', 'wnnn'], cancelled: ['Cancelled', 'bad'] };
 const mTag = (s) => h('span', { class: 'tag tag--' + MST[s][1], text: MST[s][0] });
 const MODES = { virtual: 'Online', in_person: 'In person', hybrid: 'In person and online' };
@@ -37,7 +39,19 @@ export function newForm(r, done, opts = {}) {
   const title = input({ maxlength: 190 }); const mode = h('select', { class: 'input' }, Object.entries(r.modes).map(([v, l]) => h('option', { value: v, text: l })));
   const loc = input({ maxlength: 400 }); const locHint = h('small', { text: 'Paste the meeting link here.' }); mode.addEventListener('change', () => { locHint.textContent = mode.value === 'in_person' ? 'Address of the meeting.' : mode.value === 'hybrid' ? 'Address, and the video call link.' : 'Paste the meeting link here.'; });
   const start = input({ type: 'datetime-local' }), end = input({ type: 'datetime-local' }); const aud = h('select', { class: 'input' }, Object.entries(r.audiences).map(([v, l]) => h('option', { value: v, text: l })));
-  start.addEventListener('change', () => { if (start.value && !end.value) { const d = new Date(new Date(start.value).getTime() + 3600000); end.value = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); } });
+  /* v109.53: the time zone the time is typed in. Nigeria (WODDI HQ) first, then this phone's own zone if it is another one. */
+  const mine = myTz(); const now = new Date();
+  const zoneOpt = (tz, name) => h('option', { value: tz, text: `${t(name)} (${offsetText(now, tz)})` });
+  const tzSel = h('select', { class: 'input' }, ...(TZ_CHOICES.some(([z]) => z === mine) ? [] : [zoneOpt(mine, t('This phone') + ': ' + mine.replace(/_/g, ' '))]), ...TZ_CHOICES.map(([z, n]) => zoneOpt(z, n)));
+  tzSel.value = TZ_CHOICES.some(([z]) => z === mine) ? mine : 'Africa/Lagos';
+  const elsewhere = h('small', { class: 'muted' });
+  const paintElsewhere = () => {
+    if (!start.value) { elsewhere.textContent = t('Everyone invited sees the meeting in their own time.'); return; }
+    const d = zonedToUtc(start.value, tzSel.value);
+    elsewhere.textContent = t('Everyone invited sees it in their own time, for example:') + ' ' + TZ_PREVIEW.map(([z, n]) => `${t(n)} ${timeIn(d, z)}`).join(' · ');
+  };
+  start.addEventListener('change', () => { if (start.value && !end.value) end.value = utcToZoned(new Date(zonedToUtc(start.value, tzSel.value).getTime() + 3600000), tzSel.value); paintElsewhere(); });
+  tzSel.addEventListener('change', paintElsewhere); paintElsewhere();
   const agenda = h('textarea', { class: 'input', rows: 4 }); const err = h('p', { class: 'err', role: 'alert' });
   const kind = h('select', { class: 'input' }, [['meeting', 'Meeting'], ['talk_show', 'Talk show']].map(([v, l]) => h('option', { value: v, text: l })));
   /* v109.24: a meeting with the leaders she chooses */
@@ -52,13 +66,22 @@ export function newForm(r, done, opts = {}) {
   const syncAud = () => { pickBox.hidden = !aud.value.startsWith('people:'); }; aud.addEventListener('change', syncAud); paintChosen(); syncAud();
   const isHq = !!r.audiences['hq_team:ALL']; const country = h('select', { class: 'input' }, h('option', { value: '', text: 'Every country' }));
   if (isHq) api('/geo/countries').then((x) => country.append(...x.countries.map((c) => h('option', { value: c.id, text: c.name })))).catch(() => {});
-  const meetBtn = h('a', { class: 'btn btn--ghost btn--s', href: 'https://meet.google.com/new', target: '_blank', rel: 'noopener' }, icon('link', 16), 'Create a Google Meet link');
+  /* v109.53: a Meet link for the meeting's own date, not a call that starts now. meet.google.com/new opened a live meeting at once
+   * (Azeez, 24 Nov 2026). Google Calendar opens a new event at the time chosen above; adding Google Meet to it gives a link for that time. */
+  const gcal = (d) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const meetBtn = h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: () => {
+    err.textContent = '';
+    if (!start.value) { err.textContent = t('Choose when the meeting starts first, so the Google Meet link is made for that time.'); start.focus(); return; }
+    const s0 = zonedToUtc(start.value, tzSel.value), e0 = end.value ? zonedToUtc(end.value, tzSel.value) : new Date(s0.getTime() + 3600000);
+    const u = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: title.value || 'WODDI meeting', dates: gcal(s0) + '/' + gcal(e0), details: agenda.value || '', ctz: tzSel.value });
+    window.open(u, '_blank', 'noopener');
+  } }, icon('link', 16), t('Make a Google Meet link for this time'));
   const save = h('button', { class: 'btn', type: 'button', onclick: async () => { err.textContent = ''; save.disabled = true;
-    try { const iso = (v) => v ? new Date(v).toISOString() : ''; const x = await api('/meetings', { title: title.value, mode: mode.value, location: loc.value, starts_at: iso(start.value), ends_at: iso(end.value), audience: aud.value, invitees: [...chosen.keys()], agenda: agenda.value, kind: kind.value, country_id: isHq ? Number(country.value) || 0 : 0 });
+    try { const iso = (v) => v ? zonedToUtc(v, tzSel.value).toISOString() : ''; const x = await api('/meetings', { title: title.value, mode: mode.value, location: loc.value, starts_at: iso(start.value), ends_at: iso(end.value), audience: aud.value, invitees: [...chosen.keys()], agenda: agenda.value, kind: kind.value, country_id: isHq ? Number(country.value) || 0 : 0 });
       toast('Meeting scheduled', tf('{1} people notified in the app and by push.', fmt(x.invited)) + (x.mail_on ? tf(' {1} emails are being sent.', fmt(x.emails)) : ' Emails are not set up on the server yet.'), 'ok'); done(); } catch (e) { err.textContent = e.message; save.disabled = false; } } }, 'Schedule');
-  return card('Schedule a meeting', 'Times are in your own time zone. Each person invited sees the meeting in their own.', h('div', { style: 'display:grid;gap:14px' }, field('Title', title), h('div', { class: 'grid2' }, field('Meeting or talk show?', kind), field('Starts', start), field('Ends', end), field('Format', mode), field('Who is invited?', aud), isHq ? field('Country', country) : null), pickBox,
+  return card('Schedule a meeting', 'Choose the time zone you are typing the time in. Each person invited sees the meeting in their own time.', h('div', { style: 'display:grid;gap:14px' }, field('Title', title), h('div', { class: 'grid2' }, field('Meeting or talk show?', kind), field('Starts', start), field('Ends', end), field('Time zone of these times', tzSel), field('Format', mode), field('Who is invited?', aud), isHq ? field('Country', country) : null), elsewhere, pickBox,
     h('label', { class: 'field' }, h('span', { text: 'Location or link' }), loc, locHint),
-    h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap;align-items:center' }, meetBtn, h('small', { class: 'muted', style: 'flex:1;min-width:220px', text: 'Google Meet opens in a new tab with a new meeting. Copy its link and paste it above. In the meeting, people can turn on captions and choose their own language for translated speech.' })),
+    h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap;align-items:center' }, meetBtn, h('small', { class: 'muted', style: 'flex:1;min-width:220px', text: 'This does not start a call now. Google Calendar opens a new event at the time above: tap Add Google Meet video conferencing, save it, then copy the Meet link and paste it above. In the call, people can turn on captions and choose their own language for translated speech.' })),
     field('Agenda (optional)', agenda), h('small', { class: 'muted', text: 'Everyone invited is told now, reminded the day before, one hour before and as it starts, in the app and on their phones. Emails go out too when email is switched on.' }), err, h('div', {}, save)));
 }
 async function detail(root, id) {
