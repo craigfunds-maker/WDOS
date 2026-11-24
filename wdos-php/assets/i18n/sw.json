@@ -4323,5 +4323,8 @@
 "Leadership levels": "Ngazi za uongozi",
 "Ward, community or cluster": "Kata, jamii au kundi",
 "Choose the network, tick all countries or only some, tick all leadership levels or only some, and press the button. Each leader with no login yet gets a temporary password, and one PDF arranged country by country downloads. Leaders who already sign in keep their own password.": "Chagua mtandao, weka alama kwa nchi zote au baadhi tu, weka alama kwa ngazi zote za uongozi au baadhi tu, kisha bonyeza kitufe. Kila kiongozi asiye na taarifa za kuingia anapata nenosiri la muda, na PDF moja iliyopangwa nchi kwa nchi inapakuliwa. Viongozi ambao tayari wanaingia wanabaki na nenosiri lao.",
-"The PDF has downloaded": "PDF imepakuliwa"
+"The PDF has downloaded": "PDF imepakuliwa",
+"Give every chosen leader a new login, including those who already sign in": "Mpe kila kiongozi aliyechaguliwa taarifa mpya za kuingia, wakiwemo wale ambao tayari wanaingia",
+"I understand that the password each of them uses now will stop working, and each is signed out of WDOS on every device": "Ninaelewa kwamba nenosiri ambalo kila mmoja anatumia sasa litaacha kufanya kazi, na kila mmoja atatolewa kwenye WDOS katika kila kifaa",
+"Replace the login of all {1} {2} leaders and download the PDF": "Badilisha taarifa za kuingia za viongozi wote {1} wa {2} na upakue PDF"
 }

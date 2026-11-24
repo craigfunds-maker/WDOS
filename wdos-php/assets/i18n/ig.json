@@ -4096,5 +4096,8 @@
 "Leadership levels": "Ọkwa ndu",
 "Ward, community or cluster": "Wọọdụ, obodo ma ọ bụ otu",
 "Choose the network, tick all countries or only some, tick all leadership levels or only some, and press the button. Each leader with no login yet gets a temporary password, and one PDF arranged country by country downloads. Leaders who already sign in keep their own password.": "Họrọ netwọk ahụ, kaa akara mba niile ma ọ bụ ụfọdụ, kaa akara ọkwa ndu niile ma ọ bụ ụfọdụ, wee pịa bọtịnụ ahụ. Onye ndu ọ bụla na-enweghị nbanye na-enweta okwuntughe nwa oge, a na-ebudatakwa otu PDF ahaziri mba na mba. Ndị ndu na-abanye ugbu a na-edobe okwuntughe nke ha.",
-"The PDF has downloaded": "Ebudatala PDF ahụ"
+"The PDF has downloaded": "Ebudatala PDF ahụ",
+"Give every chosen leader a new login, including those who already sign in": "Nye onye ndu ọ bụla a họọrọ nbanye ọhụrụ, gụnyere ndị na-abanyelarị",
+"I understand that the password each of them uses now will stop working, and each is signed out of WDOS on every device": "Aghọtara m na okwuntughe onye ọ bụla n'ime ha na-eji ugbu a ga-akwụsị ịrụ ọrụ, a ga-ewepụkwa onye ọ bụla na WDOS na ngwaọrụ niile",
+"Replace the login of all {1} {2} leaders and download the PDF": "Dochie nbanye nke ndị ndu {2} niile {1} ma budata PDF"
 }

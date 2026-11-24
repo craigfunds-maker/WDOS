@@ -4323,5 +4323,8 @@
 "Leadership levels": "Níveis de liderança",
 "Ward, community or cluster": "Bairro, comunidade ou agrupamento",
 "Choose the network, tick all countries or only some, tick all leadership levels or only some, and press the button. Each leader with no login yet gets a temporary password, and one PDF arranged country by country downloads. Leaders who already sign in keep their own password.": "Escolha a rede, marque todos os países ou só alguns, marque todos os níveis de liderança ou só alguns, e prima o botão. Cada líder sem acesso recebe uma palavra-passe temporária, e descarrega-se um único PDF organizado país a país. As líderes que já entram mantêm a sua própria palavra-passe.",
-"The PDF has downloaded": "O PDF foi descarregado"
+"The PDF has downloaded": "O PDF foi descarregado",
+"Give every chosen leader a new login, including those who already sign in": "Dar um novo acesso a cada líder escolhida, incluindo as que já entram",
+"I understand that the password each of them uses now will stop working, and each is signed out of WDOS on every device": "Compreendo que a palavra-passe que cada uma usa agora deixará de funcionar, e que cada uma será desligada do WDOS em todos os dispositivos",
+"Replace the login of all {1} {2} leaders and download the PDF": "Substituir o acesso das {1} líderes {2} e descarregar o PDF"
 }

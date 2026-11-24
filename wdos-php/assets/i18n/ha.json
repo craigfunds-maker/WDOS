@@ -4192,5 +4192,8 @@
 "Leadership levels": "Matakan shugabanci",
 "Ward, community or cluster": "Unguwa, al'umma ko gungu",
 "Choose the network, tick all countries or only some, tick all leadership levels or only some, and press the button. Each leader with no login yet gets a temporary password, and one PDF arranged country by country downloads. Leaders who already sign in keep their own password.": "Zaɓi cibiyar sadarwa, yi alama ga duk ƙasashe ko wasu kawai, yi alama ga duk matakan shugabanci ko wasu kawai, sannan danna maɓallin. Kowace shugaba da ba ta da bayanan shiga tana samun kalmar sirri ta wucin gadi, kuma ana sauke PDF ɗaya da aka tsara ƙasa bayan ƙasa. Shugabannin da suke shiga tuni suna riƙe da kalmar sirrinsu.",
-"The PDF has downloaded": "An sauke PDF ɗin"
+"The PDF has downloaded": "An sauke PDF ɗin",
+"Give every chosen leader a new login, including those who already sign in": "Ba kowace shugaba da aka zaɓa sabon bayanin shiga, har da waɗanda suka riga suna shiga",
+"I understand that the password each of them uses now will stop working, and each is signed out of WDOS on every device": "Na fahimci cewa kalmar sirri da kowaccensu take amfani da ita yanzu za ta daina aiki, kuma za a fitar da kowacce daga WDOS a kowace na'ura",
+"Replace the login of all {1} {2} leaders and download the PDF": "Maye gurbin bayanin shiga na dukkan shugabannin {2} guda {1} kuma sauke PDF"
 }

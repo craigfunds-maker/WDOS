@@ -134,7 +134,10 @@ route('POST', '/hq/leaders/add', function () {
  *   active   she already signs in with a password she knows: never changed here
  *   google   she signs in with Google: never changed here
  *   cannot   no email or phone number to sign in with
- * The rule that a working password is never replaced is enforced here on the server, not by the page. Passwords are made in batches
+ * The rule that a working password is never replaced is enforced here on the server, not by the page.
+ * v109.52 (Azeez, 24 Nov 2026: "whether they have signed in or not ... replace the already signed in with a total new login, for both
+ * WGMN and WNNN"): HQ may now ask for a new login for EVERY chosen leader. That is a separate choice (replace_in_use) with its own
+ * confirmation (confirm_in_use); without both, the rule above stands exactly as before. Passwords are made in batches
  * of at most NET_CHUNK people per request, returned once and kept only as a hash; the page builds the PDF on HQ's own computer. */
 const NET_CHUNK = 100;
 const NET_LEVELS = ['country', 'state_region', 'lga', 'community_cluster', 'chapter'];
@@ -200,8 +203,10 @@ route('GET', '/hq/leader-logins/network', function () {
 
 route('POST', '/hq/leader-logins/network', function () {
   $me = require_hq(); $net = netlogin_network(); $b = body();
-  $reissue = !empty($b['reissue_unused']);
-  if ($reissue && empty($b['confirm'])) fail(422, 'Confirm that the earlier temporary passwords will stop working.', 'confirm');
+  $everyone = !empty($b['replace_in_use']);   // v109.52: also leaders who already sign in (own password or Google)
+  if ($everyone && empty($b['confirm_in_use'])) fail(422, 'Confirm that the password each leader uses now will stop working.', 'confirm_in_use');
+  $reissue = $everyone || !empty($b['reissue_unused']);
+  if ($reissue && !$everyone && empty($b['confirm'])) fail(422, 'Confirm that the earlier temporary passwords will stop working.', 'confirm');
   $ids = array_values(array_unique(array_filter(array_map('intval', is_array($b['ids'] ?? null) ? $b['ids'] : []), fn($x) => $x > 0)));
   if (!$ids) fail(422, 'There is nobody to give a login to.', 'ids');
   if (count($ids) > NET_CHUNK) fail(422, 'Send at most ' . NET_CHUNK . ' people in one batch.', 'ids');
@@ -210,7 +215,7 @@ route('POST', '/hq/leader-logins/network', function () {
   foreach ($ids as $id) {
     $p = $all[$id] ?? null;
     if (!$p) fail(422, 'Some of these people are not seated leaders of ' . ($net === 'ALL' ? 'WGMN or WNNN' : $net) . ' any more. Load the list again.', 'ids');
-    if ($p['cat'] === 'active' || $p['cat'] === 'google') fail(422, $p['name'] . ' already signs in to WDOS. Her password is never replaced here.', 'in_use');
+    if (!$everyone && ($p['cat'] === 'active' || $p['cat'] === 'google')) fail(422, $p['name'] . ' already signs in to WDOS. Her password is never replaced here.', 'in_use');
     if ($p['cat'] === 'cannot') fail(422, $p['name'] . ' has no email or phone number to sign in with.', 'no_contact');
     if ($p['cat'] === 'pending' && !$reissue) fail(422, $p['name'] . ' already has a temporary password that is not used yet.', 'pending');
   }
@@ -219,7 +224,7 @@ route('POST', '/hq/leader-logins/network', function () {
     $p = $all[$id]; $temp = temp_password();
     // the WHERE repeats the server's rule, so a password she set herself is never overwritten even if she signed in a moment ago
     $n = q("UPDATE users SET password_hash=?, must_change_password=1 WHERE id=? AND role NOT IN ('hq_admin','super_admin')
-            AND (password_hash IS NULL OR (must_change_password=1 AND last_seen_at IS NULL))", [password_hash($temp, PASSWORD_DEFAULT), $id])->rowCount();
+            " . ($everyone ? '' : 'AND (password_hash IS NULL OR (must_change_password=1 AND last_seen_at IS NULL))'), [password_hash($temp, PASSWORD_DEFAULT), $id])->rowCount();
     if (!$n) continue;
     q('DELETE FROM sessions WHERE user_id=?', [$id]);
     log_activity((int) $me['id'], $id, 'password_reset', 'Login issued for the whole ' . ($net === 'ALL' ? 'WGMN and WNNN' : $net) . ' network');
@@ -227,7 +232,7 @@ route('POST', '/hq/leader-logins/network', function () {
     $out[] = ['id' => $id, 'temporary_password' => $temp];
   }
   $where = preg_replace('/[^A-Z,]/', '', strtoupper(is_array($b['countries'] ?? null) ? implode(',', $b['countries']) : (string) ($b['countries'] ?? '')));
-  log_activity((int) $me['id'], null, 'logins_issued', count($out) . ' logins · ' . ($net === 'ALL' ? 'WGMN and WNNN' : $net) . ' · ' . ($where !== '' ? $where : 'all countries') . ($reissue ? ' · unused ones replaced' : ''));
+  log_activity((int) $me['id'], null, 'logins_issued', count($out) . ' logins · ' . ($net === 'ALL' ? 'WGMN and WNNN' : $net) . ' · ' . ($where !== '' ? $where : 'all countries') . ($everyone ? ' · every login replaced, signed in or not' : ($reissue ? ' · unused ones replaced' : '')));
   after_response(fn() => push_drain(20));
   header('Cache-Control: no-store');
   return ['ok' => true, 'issued' => $out, 'site' => app_url(), 'at' => now(), 'by' => trim($me['first_name'] . ' ' . $me['last_name'])];

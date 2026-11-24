@@ -4121,5 +4121,8 @@
 "Leadership levels": "Àwọn ìpele aṣáájú",
 "Ward, community or cluster": "Wọ́ọ̀dù, àwùjọ tàbí ìkójọpọ̀",
 "Choose the network, tick all countries or only some, tick all leadership levels or only some, and press the button. Each leader with no login yet gets a temporary password, and one PDF arranged country by country downloads. Leaders who already sign in keep their own password.": "Yan nẹ́tíwọ̀ọ̀kì náà, sàmì sí gbogbo orílẹ̀-èdè tàbí díẹ̀ nínú wọn, sàmì sí gbogbo ìpele aṣáájú tàbí díẹ̀ nínú wọn, kí o sì tẹ bọ́tìnì náà. Gbogbo aṣáájú tí kò ní ìwọlé yóò gba ọ̀rọ̀ aṣínà ìgbà díẹ̀, PDF kan tí a tò ní orílẹ̀-èdè kọ̀ọ̀kan yóò sì wọlé. Àwọn aṣáájú tí wọ́n ti ń wọlé máa ń pa ọ̀rọ̀ aṣínà tiwọn mọ́.",
-"The PDF has downloaded": "A ti gba PDF náà sílẹ̀"
+"The PDF has downloaded": "A ti gba PDF náà sílẹ̀",
+"Give every chosen leader a new login, including those who already sign in": "Fún gbogbo aṣáájú tí a yàn ní ìwọlé tuntun, títí kan àwọn tí wọ́n ti ń wọlé tẹ́lẹ̀",
+"I understand that the password each of them uses now will stop working, and each is signed out of WDOS on every device": "Mo mọ̀ pé ọ̀rọ̀ aṣínà tí ẹnì kọ̀ọ̀kan wọn ń lò báyìí kò ní ṣiṣẹ́ mọ́, a ó sì yọ ẹnì kọ̀ọ̀kan kúrò nínú WDOS lórí gbogbo ẹ̀rọ",
+"Replace the login of all {1} {2} leaders and download the PDF": "Pààrọ̀ ìwọlé gbogbo àwọn aṣáájú {2} {1} kí o sì gba PDF sílẹ̀"
 }

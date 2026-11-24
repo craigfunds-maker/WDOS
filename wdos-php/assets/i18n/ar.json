@@ -4323,5 +4323,8 @@
 "Leadership levels": "مستويات القيادة",
 "Ward, community or cluster": "الحي أو المجتمع أو التجمع",
 "Choose the network, tick all countries or only some, tick all leadership levels or only some, and press the button. Each leader with no login yet gets a temporary password, and one PDF arranged country by country downloads. Leaders who already sign in keep their own password.": "اختاري الشبكة، وحدّدي كل البلدان أو بعضها فقط، وحدّدي كل مستويات القيادة أو بعضها فقط، ثم اضغطي الزر. تحصل كل قائدة ليس لديها بيانات دخول على كلمة مرور مؤقتة، ويُنزَّل ملف PDF واحد مرتب بلدًا بلدًا. القائدات اللواتي يسجّلن الدخول بالفعل يحتفظن بكلمات مرورهن.",
-"The PDF has downloaded": "تم تنزيل ملف PDF"
+"The PDF has downloaded": "تم تنزيل ملف PDF",
+"Give every chosen leader a new login, including those who already sign in": "امنحي كل قائدة مختارة بيانات دخول جديدة، بمن فيهن من يسجّلن الدخول بالفعل",
+"I understand that the password each of them uses now will stop working, and each is signed out of WDOS on every device": "أفهم أن كلمة المرور التي تستخدمها كل واحدة منهن الآن ستتوقف عن العمل، وأن كل واحدة ستُسجَّل خروجها من WDOS على كل الأجهزة",
+"Replace the login of all {1} {2} leaders and download the PDF": "استبدلي بيانات دخول جميع قائدات {2} وعددهن {1} ونزّلي ملف PDF"
 }
