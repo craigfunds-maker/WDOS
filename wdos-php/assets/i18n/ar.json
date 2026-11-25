@@ -4482,5 +4482,19 @@
 "No slides yet.": "لا توجد شرائح بعد.",
 "Add slides or a document": "أضيفي شرائح أو مستندًا",
 "{1} people told.": "تم إبلاغ {1} أشخاص.",
-"Original picture": "الصورة الأصلية"
+"Original picture": "الصورة الأصلية",
+"Reading the words on the flier…": "جارٍ قراءة كلمات المنشور…",
+"Reading the words on the flier… {1}%": "جارٍ قراءة كلمات المنشور… {1}%",
+"Translating the words on the flier…": "جارٍ ترجمة كلمات المنشور…",
+"The word reader could not load. Check the connection and try again.": "تعذّر تحميل قارئ الكلمات. تحققي من الاتصال وحاولي مرة أخرى.",
+"Your flier picture in each language": "صورة منشورك بكل لغة",
+"WDOS reads the words on your picture, translates them and writes them over the picture in each language. Check each one; correct the words where needed.": "يقرأ WDOS الكلمات على صورتك ويترجمها ويكتبها فوق الصورة بكل لغة. راجعي كل واحدة وصحّحي الكلمات عند الحاجة.",
+"Read the words again and translate": "أعيدي قراءة الكلمات وترجميها",
+"Translate the words on the picture": "ترجمي الكلمات على الصورة",
+"{1} parts of the flier were translated.": "تُرجمت {1} أجزاء من المنشور.",
+"WDOS found no words it could read on this picture.": "لم يجد WDOS كلمات يمكنه قراءتها في هذه الصورة.",
+"Flier made in each language": "تم إعداد المنشور بكل لغة",
+"Not made yet": "لم يُعدّ بعد",
+"Correct the words": "صحّحي الكلمات",
+"The words on the flier in {1}": "كلمات المنشور بلغة {1}"
 }

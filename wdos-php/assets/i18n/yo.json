@@ -4280,5 +4280,19 @@
 "No slides yet.": "Kò tíì sí àwòrán ìfihàn.",
 "Add slides or a document": "Fi àwòrán ìfihàn tàbí ìwé kún un",
 "{1} people told.": "A ti sọ fún ènìyàn {1}.",
-"Original picture": "Àwòrán àkọ́kọ́"
+"Original picture": "Àwòrán àkọ́kọ́",
+"Reading the words on the flier…": "À ń ka àwọn ọ̀rọ̀ inú ìwé ìkéde…",
+"Reading the words on the flier… {1}%": "À ń ka àwọn ọ̀rọ̀ inú ìwé ìkéde… {1}%",
+"Translating the words on the flier…": "À ń túmọ̀ àwọn ọ̀rọ̀ inú ìwé ìkéde…",
+"The word reader could not load. Check the connection and try again.": "Olùka ọ̀rọ̀ kò ṣí. Ṣàyẹ̀wò ìsopọ̀ kí o tún gbìyànjú.",
+"Your flier picture in each language": "Àwòrán ìwé ìkéde rẹ ní èdè kọ̀ọ̀kan",
+"WDOS reads the words on your picture, translates them and writes them over the picture in each language. Check each one; correct the words where needed.": "WDOS máa ka àwọn ọ̀rọ̀ orí àwòrán rẹ, á túmọ̀ wọn, á sì kọ wọ́n sórí àwòrán náà ní èdè kọ̀ọ̀kan. Ṣàyẹ̀wò ọ̀kọ̀ọ̀kan; ṣàtúnṣe ọ̀rọ̀ níbi tí ó bá yẹ.",
+"Read the words again and translate": "Tún àwọn ọ̀rọ̀ kà kí o sì túmọ̀",
+"Translate the words on the picture": "Túmọ̀ àwọn ọ̀rọ̀ orí àwòrán",
+"{1} parts of the flier were translated.": "A ti túmọ̀ apá {1} nínú ìwé ìkéde.",
+"WDOS found no words it could read on this picture.": "WDOS kò rí ọ̀rọ̀ tí ó lè kà lórí àwòrán yìí.",
+"Flier made in each language": "A ti ṣe ìwé ìkéde ní èdè kọ̀ọ̀kan",
+"Not made yet": "A kò tíì ṣe é",
+"Correct the words": "Ṣàtúnṣe àwọn ọ̀rọ̀",
+"The words on the flier in {1}": "Àwọn ọ̀rọ̀ inú ìwé ìkéde ní {1}"
 }

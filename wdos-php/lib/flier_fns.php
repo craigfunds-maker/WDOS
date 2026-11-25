@@ -53,7 +53,10 @@ function flier_has(array $m): bool { return (string) ($m['flier_image'] ?? '') !
 /** What a screen needs to draw the flier, in this person's language. */
 function flier_shape(array $m, string $lang): ?array {
   if (!flier_has($m)) return null;
-  return ['image' => flier_image_url($m)] + flier_text_for($m, flier_lang($lang));
+  $img = flier_image_url($m);
+  // v109.59: an uploaded picture with its words painted in her language, when it has been made
+  if ($img !== '' && function_exists('flier_render_url')) { $l = flier_lang($lang); $tr = flier_render_url((int) $m['id'], $l, false); if ($tr !== '') $img = $tr; }
+  return ['image' => $img, 'original' => flier_image_url($m)] + flier_text_for($m, flier_lang($lang));
 }
 
 /** Store an uploaded flier picture (a data: address from the phone, already made smaller there). */
@@ -90,8 +93,8 @@ function flier_translate(int $mid, bool $redo = false): array {
   if (!class_exists('Ai') || !Ai::enabled() || !Ai::lanes()) return ['done' => 0, 'reason' => 'ai_off'];
   $done = 0; $failed = []; $why = '';
   foreach (FLIER_LANGS as $l) {
-    $have = row('SELECT source FROM meeting_flier_texts WHERE meeting_id=? AND lang=?', [$mid, $l]);
-    if ($have && ($have['source'] === 'hq' || !$redo)) continue;
+    $have = row('SELECT source, headline, body FROM meeting_flier_texts WHERE meeting_id=? AND lang=?', [$mid, $l]);
+    if ($have && ($have['headline'] !== '' || (string) $have['body'] !== '') && ($have['source'] === 'hq' || !$redo)) continue;   // v109.59: a row holding only the picture's words still needs the headline
     $r = Ai::chat('meeting_flier', 'You translate a WODDI meeting flier into ' . FLIER_LANG_NAMES[$l] . '. WODDI is a women\'s organisation; write warmly and simply for women with little schooling. '
       . 'Keep names of people and places, links, email addresses, phone numbers, dates, times and the words WODDI, WGMN, WNNN and WDOS exactly as they are. '
       . 'Translate only the words given, faithfully: add nothing, explain nothing, invent no details. A field that is empty stays empty. '
@@ -99,7 +102,7 @@ function flier_translate(int $mid, bool $redo = false): array {
       ['class' => 'aggregate', 'max_tokens' => 900]);
     $j = ($r['ok'] ?? false) && preg_match('/\{.*\}/s', (string) $r['text'], $x) ? json_decode($x[0], true) : null;
     if (!is_array($j) || (trim((string) ($j['headline'] ?? '')) === '' && trim((string) ($j['body'] ?? '')) === '')) { $failed[] = $l; $why = (string) ($r['reason'] ?? 'unreadable answer'); continue; }
-    q('REPLACE INTO meeting_flier_texts (meeting_id,lang,headline,body,source,updated_at) VALUES (?,?,?,?,?,?)',
+    q('INSERT INTO meeting_flier_texts (meeting_id,lang,headline,body,source,updated_at) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE headline=VALUES(headline), body=VALUES(body), source=VALUES(source), updated_at=VALUES(updated_at)',
       // v109.58: what was empty stays empty, so a translation can never carry words HQ did not write (it once invented a whole message)
       [$mid, $l, $head === '' ? '' : mb_substr(trim((string) ($j['headline'] ?? '')), 0, 250), $body === '' ? '' : mb_substr(trim((string) ($j['body'] ?? '')), 0, 6000), 'ai', now()]);
     $done++;
@@ -109,7 +112,7 @@ function flier_translate(int $mid, bool $redo = false): array {
 /** Which languages have the flier's words, and how they were made. */
 function flier_langs(int $mid): array {
   $have = []; foreach (rows('SELECT lang, headline, body, source, updated_at FROM meeting_flier_texts WHERE meeting_id=?', [$mid]) as $r) $have[$r['lang']] = $r;
-  return array_map(fn($l) => ['lang' => $l, 'name' => FLIER_LANG_NAMES[$l], 'ready' => isset($have[$l]), 'source' => $have[$l]['source'] ?? '', 'headline' => $have[$l]['headline'] ?? '', 'body' => (string) ($have[$l]['body'] ?? '')], FLIER_LANGS);
+  return array_map(fn($l) => ['lang' => $l, 'name' => FLIER_LANG_NAMES[$l], 'ready' => isset($have[$l]) && ($have[$l]['headline'] !== '' || (string) $have[$l]['body'] !== ''), 'source' => $have[$l]['source'] ?? '', 'headline' => $have[$l]['headline'] ?? '', 'body' => (string) ($have[$l]['body'] ?? '')], FLIER_LANGS);
 }
 
 /* ---- one-tap replies from the email -------------------------------------------- */
@@ -196,4 +199,30 @@ function meeting_attendance_html(array $m): string {
 function meeting_files_html(int $mid): string {
   $fs = function_exists('doc_list') ? doc_list('smeeting', $mid) : []; if (!$fs) return '';
   return '<p style="margin-top:14px"><b>Slides and documents</b></p><ul>' . implode('', array_map(fn($f) => '<li>' . htmlspecialchars($f['name']) . '</li>', $fs)) . '</ul><p style="font-size:13px;color:#7a6a72">Open WDOS to download them.</p>';
+}
+
+/* ---- v109.59: the words inside an uploaded flier picture ---------------------------------------------------------------
+ * The host's browser reads the words on the picture (where each line sits, and the text) and sends them here as "groups"
+ * (a paragraph of one or more lines). Each group is translated as a whole; the browser then covers the original words and
+ * paints the translation in the same places. HQ can correct any language by hand; a hand-written language is kept. */
+function flier_words(array $m): ?array { $w = json_decode((string) ($m['flier_words'] ?? ''), true); return is_array($w) && !empty($w['groups']) ? $w : null; }
+function flier_words_translate(int $mid, bool $redo = false): array {
+  $m = row('SELECT id, flier_words FROM meetings WHERE id=?', [$mid]); $w = $m ? flier_words($m) : null;
+  if (!$w) return ['done' => 0, 'reason' => 'no_words'];
+  if (!class_exists('Ai') || !Ai::enabled() || !Ai::lanes()) return ['done' => 0, 'reason' => 'ai_off'];
+  $src = array_map(fn($g) => (string) $g['text'], $w['groups']); $done = 0; $failed = []; $why = '';
+  foreach (FLIER_LANGS as $l) {
+    $have = row('SELECT source, words_json FROM meeting_flier_texts WHERE meeting_id=? AND lang=?', [$mid, $l]);
+    if ($have && (string) $have['words_json'] !== '' && ($have['source'] === 'hq' || !$redo)) continue;
+    $r = Ai::chat('meeting_flier_words', 'You translate the words printed on a WODDI meeting flier into ' . FLIER_LANG_NAMES[$l] . '. WODDI is a women\'s organisation; write simply and warmly. '
+      . 'You get a JSON array of short texts. Translate each one faithfully and keep it about as short as the original, because it must fit in the same place on the picture. '
+      . 'Keep names of people and places, links, email addresses, phone numbers, dates, times, numbers, hashtags and the words WODDI, WGMN, WNNN and WDOS exactly as they are. Add nothing. '
+      . 'Answer with a JSON array only, with exactly ' . count($src) . ' strings in the same order.', json_encode($src, JSON_UNESCAPED_UNICODE), ['class' => 'aggregate', 'max_tokens' => 1600]);
+    $j = ($r['ok'] ?? false) && preg_match('/\[.*\]/s', (string) $r['text'], $x) ? json_decode($x[0], true) : null;
+    if (!is_array($j) || count($j) !== count($src)) { $failed[] = $l; $why = (string) ($r['reason'] ?? 'unreadable answer'); continue; }
+    $j = array_map(fn($s) => mb_substr(trim((string) $s), 0, 600), array_values($j));
+    q("INSERT INTO meeting_flier_texts (meeting_id,lang,headline,body,source,updated_at,words_json) VALUES (?,?,'','','ai',?,?) ON DUPLICATE KEY UPDATE words_json=VALUES(words_json), updated_at=VALUES(updated_at)", [$mid, $l, now(), json_encode($j, JSON_UNESCAPED_UNICODE)]);
+    $done++;
+  }
+  return ['done' => $done, 'failed' => $failed, 'reason' => $failed ? $why : ''];
 }

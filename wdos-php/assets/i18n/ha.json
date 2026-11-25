@@ -4351,5 +4351,19 @@
 "No slides yet.": "Babu faifai tukuna.",
 "Add slides or a document": "Ƙara faifai ko takarda",
 "{1} people told.": "An sanar da mutane {1}.",
-"Original picture": "Hoton asali"
+"Original picture": "Hoton asali",
+"Reading the words on the flier…": "Ana karanta kalmomin takardar sanarwa…",
+"Reading the words on the flier… {1}%": "Ana karanta kalmomin takardar sanarwa… {1}%",
+"Translating the words on the flier…": "Ana fassara kalmomin takardar sanarwa…",
+"The word reader could not load. Check the connection and try again.": "Mai karanta kalmomi bai buɗe ba. Duba haɗin intanet ki sake gwadawa.",
+"Your flier picture in each language": "Hoton takardar sanarwarki a kowane harshe",
+"WDOS reads the words on your picture, translates them and writes them over the picture in each language. Check each one; correct the words where needed.": "WDOS yana karanta kalmomin da ke kan hotonki, ya fassara su, ya rubuta su a kan hoton a kowane harshe. Duba kowanne; gyara kalmomi inda ake buƙata.",
+"Read the words again and translate": "Sake karanta kalmomin ki fassara",
+"Translate the words on the picture": "Fassara kalmomin da ke kan hoton",
+"{1} parts of the flier were translated.": "An fassara sassa {1} na takardar sanarwa.",
+"WDOS found no words it could read on this picture.": "WDOS bai sami kalmomin da zai iya karantawa a wannan hoton ba.",
+"Flier made in each language": "An yi takardar sanarwa a kowane harshe",
+"Not made yet": "Ba a yi ba tukuna",
+"Correct the words": "Gyara kalmomin",
+"The words on the flier in {1}": "Kalmomin takardar sanarwa a {1}"
 }

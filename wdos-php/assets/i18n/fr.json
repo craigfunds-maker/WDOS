@@ -4482,5 +4482,19 @@
 "No slides yet.": "Pas encore de diapositives.",
 "Add slides or a document": "Ajouter des diapositives ou un document",
 "{1} people told.": "{1} personnes prévenues.",
-"Original picture": "Image d'origine"
+"Original picture": "Image d'origine",
+"Reading the words on the flier…": "Lecture des mots du flyer…",
+"Reading the words on the flier… {1}%": "Lecture des mots du flyer… {1} %",
+"Translating the words on the flier…": "Traduction des mots du flyer…",
+"The word reader could not load. Check the connection and try again.": "Le lecteur de mots n'a pas pu se charger. Vérifiez la connexion et réessayez.",
+"Your flier picture in each language": "Votre image de flyer dans chaque langue",
+"WDOS reads the words on your picture, translates them and writes them over the picture in each language. Check each one; correct the words where needed.": "WDOS lit les mots de votre image, les traduit et les écrit sur l'image dans chaque langue. Vérifiez chacune et corrigez les mots si besoin.",
+"Read the words again and translate": "Relire les mots et traduire",
+"Translate the words on the picture": "Traduire les mots de l'image",
+"{1} parts of the flier were translated.": "{1} parties du flyer ont été traduites.",
+"WDOS found no words it could read on this picture.": "WDOS n'a trouvé aucun mot lisible sur cette image.",
+"Flier made in each language": "Flyer créé dans chaque langue",
+"Not made yet": "Pas encore créé",
+"Correct the words": "Corriger les mots",
+"The words on the flier in {1}": "Les mots du flyer en {1}"
 }

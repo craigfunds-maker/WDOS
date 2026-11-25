@@ -35,4 +35,5 @@ start "AI_MOCK_URL=http://127.0.0.1:8099"; echo "== t107 with the stand-in AI"; 
 echo "== t113 work check (stand-in AI)"; run t113.py
 echo "== t144 meeting fliers (stand-in AI)"; run t144.py
 echo "== t145 meetings through WDOS (stand-in AI)"; run t145.py
+echo "== t146 flier picture words (stand-in AI)"; run t146.py
 echo "suites failed: $fails"; exit $fails

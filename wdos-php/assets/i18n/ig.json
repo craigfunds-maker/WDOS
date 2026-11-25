@@ -4255,5 +4255,19 @@
 "No slides yet.": "Enwebeghị slaịdị.",
 "Add slides or a document": "Tinye slaịdị ma ọ bụ akwụkwọ",
 "{1} people told.": "A gwala mmadụ {1}.",
-"Original picture": "Foto mbụ"
+"Original picture": "Foto mbụ",
+"Reading the words on the flier…": "A na-agụ okwu dị n'akwụkwọ mkpọsa…",
+"Reading the words on the flier… {1}%": "A na-agụ okwu dị n'akwụkwọ mkpọsa… {1}%",
+"Translating the words on the flier…": "A na-atụgharị okwu dị n'akwụkwọ mkpọsa…",
+"The word reader could not load. Check the connection and try again.": "Ihe na-agụ okwu ebughị. Lelee njikọ ma nwaa ọzọ.",
+"Your flier picture in each language": "Foto akwụkwọ mkpọsa gị n'asụsụ ọ bụla",
+"WDOS reads the words on your picture, translates them and writes them over the picture in each language. Check each one; correct the words where needed.": "WDOS na-agụ okwu dị na foto gị, tụgharịa ha ma dee ha n'elu foto ahụ n'asụsụ ọ bụla. Lelee nke ọ bụla; mezie okwu ebe ọ dị mkpa.",
+"Read the words again and translate": "Gụọ okwu ọzọ ma tụgharịa",
+"Translate the words on the picture": "Tụgharịa okwu dị na foto",
+"{1} parts of the flier were translated.": "A tụgharịala akụkụ {1} nke akwụkwọ mkpọsa.",
+"WDOS found no words it could read on this picture.": "WDOS ahụghị okwu ọ ga-agụ na foto a.",
+"Flier made in each language": "Emeela akwụkwọ mkpọsa n'asụsụ ọ bụla",
+"Not made yet": "Emebeghị ya",
+"Correct the words": "Mezie okwu",
+"The words on the flier in {1}": "Okwu dị n'akwụkwọ mkpọsa n'asụsụ {1}"
 }

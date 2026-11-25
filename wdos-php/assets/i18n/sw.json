@@ -4482,5 +4482,19 @@
 "No slides yet.": "Bado hakuna slaidi.",
 "Add slides or a document": "Ongeza slaidi au hati",
 "{1} people told.": "Watu {1} wameambiwa.",
-"Original picture": "Picha asili"
+"Original picture": "Picha asili",
+"Reading the words on the flier…": "Inasoma maneno ya kipeperushi…",
+"Reading the words on the flier… {1}%": "Inasoma maneno ya kipeperushi… {1}%",
+"Translating the words on the flier…": "Inatafsiri maneno ya kipeperushi…",
+"The word reader could not load. Check the connection and try again.": "Kisoma maneno hakikupakia. Angalia mtandao kisha ujaribu tena.",
+"Your flier picture in each language": "Picha ya kipeperushi chako kwa kila lugha",
+"WDOS reads the words on your picture, translates them and writes them over the picture in each language. Check each one; correct the words where needed.": "WDOS husoma maneno kwenye picha yako, huyatafsiri na kuyaandika juu ya picha kwa kila lugha. Kagua kila moja; rekebisha maneno inapohitajika.",
+"Read the words again and translate": "Soma maneno tena na utafsiri",
+"Translate the words on the picture": "Tafsiri maneno ya picha",
+"{1} parts of the flier were translated.": "Sehemu {1} za kipeperushi zimetafsiriwa.",
+"WDOS found no words it could read on this picture.": "WDOS haikupata maneno inayoweza kusoma kwenye picha hii.",
+"Flier made in each language": "Kipeperushi kimetengenezwa kwa kila lugha",
+"Not made yet": "Bado haijatengenezwa",
+"Correct the words": "Rekebisha maneno",
+"The words on the flier in {1}": "Maneno ya kipeperushi kwa {1}"
 }

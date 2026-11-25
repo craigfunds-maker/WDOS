@@ -26,6 +26,10 @@ class H(BaseHTTPRequestHandler):
             d=b'{"messageId":"mock"}'; self.send_response(201); self.send_header('Content-Type','application/json'); self.end_headers(); self.wfile.write(d); return
         if self.path.endswith('/chat/completions'):
             sysm=b['messages'][0]['content']; usr=b['messages'][1]['content']
+            if 'words printed on a WODDI meeting flier into' in sysm:
+                lang=sysm.split('flier into ')[1].split('.')[0]; src=json.loads(usr)
+                out=json.dumps([('['+lang[:2].upper()+'] '+x) for x in src],ensure_ascii=False)
+                r={'choices':[{'message':{'role':'assistant','content':out}}]}; d=json.dumps(r).encode(); self.send_response(200); self.send_header('Content-Type','application/json'); self.end_headers(); self.wfile.write(d); return
             if 'You translate a WODDI meeting flier into' in sysm:
                 lang=sysm.split('flier into ')[1].split('.')[0]; src=json.loads(usr)
                 out=json.dumps({'headline':'['+lang+'] '+src.get('headline',''),'body':'['+lang+'] '+src.get('body','')},ensure_ascii=False)

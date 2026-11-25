@@ -966,3 +966,9 @@ a,button,label,select,input,textarea,summary,[role=button]{touch-action:manipula
 .reply{display:grid;gap:8px}.reply__btns{display:flex;gap:8px;flex-wrap:wrap}
 .reply__btns .btn{min-height:44px}
 .flier img.flier__img{max-width:min(520px,100%)}
+/* v109.59: the uploaded flier in each language */
+.flier-langs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+.flier-lang{display:grid;gap:6px;align-content:start}
+.flier-lang img{width:100%;border-radius:10px;display:block;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+.flier-lang__none{aspect-ratio:4/5;border:2px dashed rgba(212,0,106,.4);border-radius:10px;display:grid;place-items:center;font-size:13px;text-align:center;padding:8px}
+.flier-lang{min-width:0}.flier-lang a{display:block}

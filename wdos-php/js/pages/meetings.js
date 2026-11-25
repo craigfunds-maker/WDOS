@@ -3,7 +3,7 @@ import { h, t, icon, avatar, card, sk, empty, fmt, toast, input, field, tabs, ne
 import { api } from '../api.js';
 import { taskRow, peoplePicker } from './tasks.js';
 import { whenMine, zonedToUtc, utcToZoned, timeIn, myTz, TZ_CHOICES, TZ_PREVIEW, offsetText } from '../tz.js';
-import { flierView, shrinkImage, bigCountdown, flierTemplate, renderEmailFliers } from '../flier.js';
+import { flierView, shrinkImage, bigCountdown, flierTemplate, renderEmailFliers, paintFlierWords } from '../flier.js';
 import { uploadButton, docList } from '../files.js';
 import { i18n } from '../ui.js';
 
@@ -205,7 +205,8 @@ function flierAdmin(id, m, reload) {
       field(d.image ? 'Change the flier picture' : 'Upload a flier picture (optional)', fFile), fErr, field('Flier headline', head), field('Flier message', text), h('div', {}, saveBtn),
       h('hr', { class: 'sep' }), h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, h('b', { class: 'grow', text: t('Languages') }), d.ai_on ? trBtn : null),
       d.ai_on ? null : h('p', { class: 'muted', text: t('Automatic translation is not set up on this server. Type each language yourself, or ask the IT Lead to switch on an AI lane.') }),
-      d.headline || d.text ? langRows : h('p', { class: 'muted', text: t('Write a headline or message above first. The languages follow.') }));
+      d.headline || d.text ? langRows : h('p', { class: 'muted', text: t('Write a headline or message above first. The languages follow.') }),
+      d.image ? pictureLangs(id, m, d) : null);
   })();
   return sec;
 }
@@ -247,4 +248,30 @@ function flierDesign() {
   const box = card('Flier design', 'The background for every flier WDOS makes. Design it in Canva at 1080 by 1350 pixels (portrait), keep the left side calm for the words and the bottom right corner clear for the QR code, and upload it here.',
     h('div', { style: 'display:grid;gap:12px' }, field('Upload a flier design', file), err, h('div', {}, rm), prev));
   show(false); return box;
+}
+
+/* v109.59: the uploaded flier in each language: WDOS read its words, translated them and painted them over the picture.
+ * The host checks each one, corrects the words of a language, or has the words read again. */
+const LANG_NAMES = { en: 'English', fr: 'French', pt: 'Portuguese', sw: 'Swahili', ar: 'Arabic', ha: 'Hausa', yo: 'Yoruba', ig: 'Igbo' };
+function pictureLangs(id, m, d) {
+  const box = h('div', { style: 'display:grid;gap:12px' }); const status = h('small', { class: 'muted', 'aria-live': 'polite' });
+  const redo = h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: async () => { redo.disabled = true;
+    try { const x = await renderEmailFliers(id, m, (msg) => { status.textContent = msg; }, { reread: true }); status.textContent = x.words ? tf('{1} parts of the flier were translated.', x.words) : t('WDOS found no words it could read on this picture.'); toast(t('Flier made in each language'), '', 'ok'); paint(await api(`/meetings/${id}/flier/langs`)); }
+    catch (e) { status.textContent = e.message; } redo.disabled = false; } }, icon('globe', 16), d.words ? t('Read the words again and translate') : t('Translate the words on the picture'));
+  const grid = h('div', { class: 'flier-langs' });
+  const paint = (dd) => { d = dd; grid.replaceChildren(...['en', 'fr', 'pt', 'sw', 'ar', 'ha', 'yo', 'ig'].map((l) => { const slot = h('div');
+    const url = (d.pictures || {})[l];
+    return h('div', { class: 'flier-lang' }, url ? h('a', { href: url, target: '_blank', rel: 'noopener' }, h('img', { src: url, alt: t(LANG_NAMES[l]), loading: 'lazy' })) : h('div', { class: 'flier-lang__none', text: t('Not made yet') }),
+      h('b', { text: t(LANG_NAMES[l]) }),
+      l !== 'en' && d.words ? h('button', { class: 'btn btn--quiet btn--s', type: 'button', onclick: () => { if (slot.firstChild) { slot.replaceChildren(); return; }
+        const cur = (d.words_by_lang || {})[l] || d.words.groups.map((g) => g.text);
+        slot.replaceChildren(editForm(tf('The words on the flier in {1}', t(LANG_NAMES[l])), d.words.groups.map((g, i) => ({ k: 'g' + i, label: g.text.slice(0, 80), value: cur[i] || '', max: 600 })),
+          async (v) => { const texts = d.words.groups.map((g, i) => v['g' + i]); await api(`/meetings/${id}/flier/words/${l}`, { texts });
+            const c = await paintFlierWords(d.image, d.words, texts, l); await api(`/meetings/${id}/flier/render/${l}`, { image: c.toDataURL('image/jpeg', 0.88) });
+            toast(t('Saved'), '', 'ok'); slot.replaceChildren(); paint(await api(`/meetings/${id}/flier/langs`)); }, () => slot.replaceChildren())); } }, icon('edit', 16), ' ', t('Correct the words')) : null, slot); })); };
+  paint(d);
+  box.append(h('hr', { class: 'sep' }), h('b', { text: t('Your flier picture in each language') }),
+    h('small', { class: 'muted', text: t('WDOS reads the words on your picture, translates them and writes them over the picture in each language. Check each one; correct the words where needed.') }),
+    h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, redo, status), grid);
+  return box;
 }

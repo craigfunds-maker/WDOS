@@ -117,16 +117,92 @@ export async function drawFlier(m, f = {}, opts = {}) {
   return c;
 }
 
-/** The flier as it shows on a page, drawn in the reader's language (an uploaded picture sits inside it), with a button to save
- *  it and, when there is one, the original picture. */
+/** The flier as it shows on a page, in the reader's language: an uploaded picture with its words painted in her language
+ *  (v109.59), or the flier WDOS draws. With a button to save it, and the original picture when there is one. */
 export function flierView(m, f, opts = {}) {
   const box = h('div', { class: 'flier' });
   const save = (href, name, label) => h('a', { class: 'btn btn--ghost btn--s', href, download: name }, icon('download', 16), t(label || 'Save the flier'));
-  const img = h('img', { class: 'flier__img', alt: (f && f.headline) || m.title }); box.append(img); const foot = h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }); if (!opts.compact) box.append(foot);
-  drawFlier(m, f || {}).then((c) => { const url = c.toDataURL('image/jpeg', 0.9); img.src = url;
-    foot.replaceChildren(save(url, 'flier-' + m.id + '-' + (i18n.lang || 'en') + '.jpg'), f && f.image ? save(f.image, 'flier-' + m.id + '-original.jpg', 'Original picture') : ''); })
-    .catch(() => { box.replaceChildren(f && f.image ? h('img', { class: 'flier__img', src: f.image, alt: '' }) : h('b', { text: (f && f.headline) || m.title })); });
+  const foot = h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' });
+  if (f && f.image) {
+    box.append(h('img', { class: 'flier__img', src: f.image, alt: f.headline || m.title, loading: 'lazy' }));
+    if (!opts.compact) { foot.append(save(f.image, 'flier-' + m.id + '-' + (i18n.lang || 'en') + '.jpg'), f.original && f.original !== f.image ? save(f.original, 'flier-' + m.id + '-original.jpg', 'Original picture') : ''); box.append(foot); }
+    return box;
+  }
+  const img = h('img', { class: 'flier__img', alt: (f && f.headline) || m.title }); box.append(img); if (!opts.compact) box.append(foot);
+  drawFlier(m, f || {}).then((c) => { const url = c.toDataURL('image/jpeg', 0.9); img.src = url; foot.replaceChildren(save(url, 'flier-' + m.id + '-' + (i18n.lang || 'en') + '.jpg')); })
+    .catch(() => { box.replaceChildren(h('b', { text: (f && f.headline) || m.title })); });
   return box;
+}
+
+/* ---- v109.59: translating the words inside an uploaded flier picture (Azeez, 25 Nov 2026) ----------------------------
+ * The browser reads the words on the picture (tesseract.js, English, all on the phone or computer; nothing goes to anyone
+ * else), sends them to WDOS to be translated, then for each language covers each line of the original words with the colour
+ * around it and paints the translation in the same place, in a matching colour. */
+let ocrP = null;
+const loadOcr = () => ocrP || (ocrP = new Promise((ok, no) => { if (window.Tesseract) { ok(window.Tesseract); return; } const sc = document.createElement('script'); sc.src = '/assets/vendor/ocr/tesseract.min.js'; sc.onload = () => ok(window.Tesseract); sc.onerror = () => { ocrP = null; no(new Error(t('The word reader could not load. Check the connection and try again.'))); }; document.head.append(sc); }));
+/** Read the words on a picture: groups (paragraphs) of lines, each line [x0, y0, x1, y1, letters]. */
+export async function readFlierWords(src, onStep = () => {}) {
+  const T = await loadOcr(); const pic = await loadImg(src); if (!pic) throw new Error(t('That picture could not be read. Choose it again.'));
+  const worker = await T.createWorker('eng', 1, { workerPath: '/assets/vendor/ocr/worker.min.js', corePath: '/assets/vendor/ocr', langPath: '/assets/vendor/ocr', gzip: true, workerBlobURL: false,
+    logger: (e) => { if (e.status === 'recognizing text') onStep(tf('Reading the words on the flier… {1}%', Math.round((e.progress || 0) * 100))); } });
+  try {
+    // two passes: as it is, and in black and white with the colours turned round (light words on a coloured band read
+    // badly otherwise). A resolution hint is needed, or big title letters are missed.
+    await worker.setParameters({ user_defined_dpi: '300', tessedit_pageseg_mode: '3' });
+    const bw = document.createElement('canvas'); bw.width = pic.naturalWidth; bw.height = pic.naturalHeight; const bx = bw.getContext('2d'); bx.drawImage(pic, 0, 0);
+    const id = bx.getImageData(0, 0, bw.width, bw.height), pd = id.data; for (let i = 0; i < pd.length; i += 4) { const L = 255 - (0.299 * pd[i] + 0.587 * pd[i + 1] + 0.114 * pd[i + 2]); pd[i] = pd[i + 1] = pd[i + 2] = L > 120 ? 255 : 0; } bx.putImageData(id, 0, 0);
+    const found = [];
+    const take = (data) => { for (const b of data.blocks || []) for (const p of b.paragraphs || []) for (const l of p.lines || []) {
+      const txt = (l.text || '').trim().replace(/\s+/g, ' '); const bb = l.bbox;
+      if ((l.confidence || 0) < 38 || !/\p{L}{2}/u.test(txt) || (bb.y1 - bb.y0) < 8) continue;
+      const same = found.find((f) => { const ox = Math.min(f.b[2], bb.x1) - Math.max(f.b[0], bb.x0), oy = Math.min(f.b[3], bb.y1) - Math.max(f.b[1], bb.y0); return ox > 0 && oy > 0 && ox * oy > 0.4 * (bb.x1 - bb.x0) * (bb.y1 - bb.y0); });
+      if (same) { if ((l.confidence || 0) > same.c) { same.t = txt; same.c = l.confidence; same.b = [bb.x0, bb.y0, bb.x1, bb.y1]; } continue; }
+      found.push({ t: txt, c: l.confidence || 0, b: [bb.x0, bb.y0, bb.x1, bb.y1] }); } };
+    onStep(t('Reading the words on the flier…')); take((await worker.recognize(bw, {}, { blocks: true })).data);
+    take((await worker.recognize(src, {}, { blocks: true })).data);
+    found.sort((a, b) => a.b[1] - b.b[1] || a.b[0] - b.b[0]);
+    // each line is translated as it stands, so the translation fits back in the same place
+    const groups = found.map((f) => ({ text: f.t, lines: [[...f.b, f.t.length]] }));
+    return { w: pic.naturalWidth, h: pic.naturalHeight, groups };
+  } finally { worker.terminate(); }
+}
+const lum = (c) => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2];
+function sample(px, W, H, x0, y0, x1, y1) { const out = []; x0 = Math.max(0, Math.floor(x0)); y0 = Math.max(0, Math.floor(y0)); x1 = Math.min(W - 1, Math.ceil(x1)); y1 = Math.min(H - 1, Math.ceil(y1));
+  const step = Math.max(1, Math.floor(((x1 - x0) * (y1 - y0)) / 4000)); for (let i = 0, y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++, i++) { if (i % step) continue; const k = (y * W + x) * 4; out.push([px[k], px[k + 1], px[k + 2]]); } return out; }
+const median = (a) => { if (!a.length) return [255, 255, 255]; const m = (i) => a.map((c) => c[i]).sort((p, q) => p - q)[Math.floor(a.length / 2)]; return [m(0), m(1), m(2)]; };
+const css = (c) => `rgb(${c[0]},${c[1]},${c[2]})`;
+/** Split a translation over the lines it replaces, in proportion to how long each original line was. */
+function spread(text, lines) {
+  const words = String(text).split(/\s+/).filter(Boolean); if (lines.length === 1) return [words.join(' ')];
+  const total = lines.reduce((a, l) => a + (l[4] || 1), 0); const out = []; let i = 0;
+  lines.forEach((l, k) => { const n = k === lines.length - 1 ? words.length - i : Math.max(1, Math.round(words.length * (l[4] || 1) / total)); out.push(words.slice(i, i + n).join(' ')); i += n; });
+  return out;
+}
+/** Paint one language's words over the picture. Returns a canvas the size of the picture. */
+export async function paintFlierWords(src, words, texts, lang) {
+  const pic = await loadImg(src); const W = pic.naturalWidth, H = pic.naturalHeight; const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
+  x.drawImage(pic, 0, 0); const px = x.getImageData(0, 0, W, H).data; x.direction = lang === 'ar' ? 'rtl' : 'ltr'; x.textBaseline = 'middle';
+  words.groups.forEach((g, gi) => {
+    const tr = String((texts && texts[gi]) || '').trim(); if (!tr || tr === g.text) return;
+    const parts = spread(tr, g.lines); const lefts = g.lines.map((l) => l[0]), mids = g.lines.map((l) => (l[0] + l[2]) / 2);
+    const spreadOf = (a) => Math.max(...a) - Math.min(...a); const leftAligned = g.lines.length > 1 && spreadOf(lefts) + 4 < spreadOf(mids);
+    g.lines.forEach((l, li) => {
+      const [x0, y0, x1, y1] = l; const w = x1 - x0, hh = y1 - y0, pad = Math.max(2, hh * 0.12);
+      const ring = sample(px, W, H, x0 - pad * 2, y0 - pad * 2, x1 + pad * 2, y0 - pad).concat(sample(px, W, H, x0 - pad * 2, y1 + pad, x1 + pad * 2, y1 + pad * 2));
+      const bg = median(ring); const inside = sample(px, W, H, x0, y0, x1, y1).sort((p, q) => Math.abs(lum(q) - lum(bg)) - Math.abs(lum(p) - lum(bg)));
+      const fg = inside.length ? median(inside.slice(0, Math.max(3, Math.floor(inside.length * 0.12)))) : (lum(bg) > 140 ? [20, 10, 20] : [255, 255, 255]);
+      const ink = inside.filter((p) => Math.abs(lum(p) - lum(bg)) > 60).length / Math.max(1, inside.length);
+      x.fillStyle = css(bg); x.fillRect(x0 - pad, y0 - pad, w + pad * 2, hh + pad * 2);
+      const txt = parts[li] || ''; if (!txt) return;
+      let fs = hh * 1.02; const wt = ink > 0.22 ? 800 : 600; const fam = 'Inter, Arial, sans-serif';
+      x.font = `${wt} ${fs}px ${fam}`; while (fs > hh * 0.5 && x.measureText(txt).width > w * 1.12) { fs -= 1; x.font = `${wt} ${fs}px ${fam}`; }
+      const tw = x.measureText(txt).width; let cx;
+      if (leftAligned) { x.textAlign = lang === 'ar' ? 'right' : 'left'; cx = lang === 'ar' ? x1 : x0; } else { x.textAlign = 'center'; cx = (x0 + x1) / 2; }
+      const room = Math.max(w, tw); if (tw > w) { x.fillStyle = css(bg); x.fillRect((x0 + x1) / 2 - room / 2 - pad, y0 - pad, room + pad * 2, hh + pad * 2); }
+      x.fillStyle = css(fg); x.fillText(txt, cx, (y0 + y1) / 2, Math.min(W - 4, w * 1.35));
+    });
+  });
+  return c;
 }
 
 /** v109.58: the host's browser draws the flier once per language (with the translated words, Nigeria time) and sends the
@@ -135,11 +211,27 @@ export async function renderEmailFliers(id, m, onStep = () => {}, opts = {}) {
   const LANGS = ['en', 'fr', 'pt', 'sw', 'ar', 'ha', 'yo', 'ig'];
   let d = await api(`/meetings/${id}/flier/langs`);
   if (d.headline || d.text) for (let i = 0; i < 24 && d.ai_on && d.langs.some((l) => !l.ready); i++) { onStep(t('Translating the flier…')); await new Promise((r) => setTimeout(r, 5000)); d = await api(`/meetings/${id}/flier/langs`); }
+  if (d.image) {                // v109.59: the uploaded picture itself, translated
+    if (!d.words || opts.reread) {
+      const w = await readFlierWords(d.image, onStep);
+      await api(`/meetings/${id}/flier/words`, { words: w }); d = await api(`/meetings/${id}/flier/langs`);
+    }
+    if (d.words && d.ai_on) for (let i = 0; i < 30 && LANGS.slice(1).some((l) => !d.words_by_lang[l]); i++) { onStep(t('Translating the words on the flier…')); await new Promise((r) => setTimeout(r, 5000)); d = await api(`/meetings/${id}/flier/langs`); }
+    const op = await loadImg(d.image); const oc = document.createElement('canvas'); oc.width = op.naturalWidth; oc.height = op.naturalHeight; oc.getContext('2d').drawImage(op, 0, 0); const orig = oc.toDataURL('image/jpeg', 0.9);
+    for (const l of LANGS) {
+      onStep(tf('Making the flier in {1}…', l.toUpperCase()));
+      const texts = l === 'en' ? null : d.words_by_lang[l];
+      const img = d.words && texts ? (await paintFlierWords(d.image, d.words, texts, l)).toDataURL('image/jpeg', 0.88) : orig;
+      await api(`/meetings/${id}/flier/render/${l}`, { image: img });
+    }
+    if (opts.send) { onStep(t('Sending the invitations…')); return api(`/meetings/${id}/send-invites`, {}); }
+    return { ok: true, words: d.words ? d.words.groups.length : 0 };
+  }
   const keep = { lang: i18n.lang, dict: i18n.dict, html: document.documentElement.lang };
   try {
     for (const l of LANGS) {
       onStep(tf('Making the flier in {1}…', l.toUpperCase()));
-      const tr = d.langs.find((x) => x.lang === l); const f = { image: d.image || '', headline: (tr && tr.headline) || d.headline || m.title, body: (tr && tr.ready ? tr.body : d.text) || '' };
+      const tr = d.langs.find((x) => x.lang === l); const f = { headline: (tr && tr.headline) || d.headline || m.title, body: (tr && tr.ready ? tr.body : d.text) || '' };
       i18n.lang = l; i18n.dict = l === 'en' ? null : await fetch(`/assets/i18n/${l}.json`).then((r) => r.json()).catch(() => null); document.documentElement.lang = l;
       const c = await drawFlier({ ...m, id }, f, { tz: 'Africa/Lagos' });
       await api(`/meetings/${id}/flier/render/${l}`, { image: c.toDataURL('image/jpeg', 0.86) });

@@ -19,12 +19,15 @@ route('POST', '/meetings/(\d+)/flier', function ($id) {
   $u = require_user(); $m = meeting_get((int) $id); meeting_host($u, $m);
   if ($m['status'] !== 'scheduled') fail(409, 'The flier can be changed only before the meeting is held.', 'transition');
   $b = body(); $img = (string) ($b['image'] ?? '');
+  // v109.59: a new picture (or none) means its words must be read again and its language pictures made again
+  $newPic = $img !== '' || !empty($b['remove_image']);
   if ($img !== '') flier_store_image((int) $id, $img);
   elseif (!empty($b['remove_image'])) { flier_drop_image((string) $m['flier_image'], (string) $m['flier_mime']); q("UPDATE meetings SET flier_image='', flier_mime='' WHERE id=?", [(int) $id]); }
+  if ($newPic) { try { q('UPDATE meetings SET flier_words=NULL WHERE id=?', [(int) $id]); q('UPDATE meeting_flier_texts SET words_json=NULL WHERE meeting_id=?', [(int) $id]); } catch (PDOException $e) { /* before migration 055 */ } if (function_exists('flier_drop_renders')) flier_drop_renders((int) $id); }
   $head = str_in('headline', 190); $text = str_in('text', 6000); $changed = false;
   if (array_key_exists('headline', $b) || array_key_exists('text', $b)) {
     $changed = $head !== (string) $m['flier_headline'] || $text !== (string) $m['flier_text'];
-    if ($changed) { q('UPDATE meetings SET flier_headline=?, flier_text=? WHERE id=?', [$head, $text, (int) $id]); q('DELETE FROM meeting_flier_texts WHERE meeting_id=?', [(int) $id]); }
+    if ($changed) { q('UPDATE meetings SET flier_headline=?, flier_text=? WHERE id=?', [$head, $text, (int) $id]); q("UPDATE meeting_flier_texts SET headline='', body='', source='ai' WHERE meeting_id=?", [(int) $id]); }
   }
   if ($img !== '' || !empty($b['remove_image']) || $changed) flier_drop_renders((int) $id);      // the email pictures are made again
   log_activity((int) $u['id'], null, 'meeting_flier', $m['title'], 'meeting', (int) $id);
@@ -37,7 +40,10 @@ route('GET', '/meetings/(\d+)/flier/langs', function ($id) {
   $u = require_user(); $m = meeting_get((int) $id); meeting_host($u, $m);
   $ai = class_exists('Ai') && Ai::enabled() && (bool) Ai::lanes();
   $renders = []; foreach (array_merge(['en'], FLIER_LANGS) as $l) if ($ru = flier_render_url((int) $id, $l, false)) $renders[$l] = $ru;
-  return ['headline' => (string) $m['flier_headline'], 'text' => (string) $m['flier_text'], 'image' => flier_image_url($m), 'langs' => flier_langs((int) $id), 'ai_on' => $ai, 'renders' => $renders,
+  $wl = []; foreach (rows('SELECT lang, words_json, source FROM meeting_flier_texts WHERE meeting_id=?', [(int) $id]) as $r) if ((string) $r['words_json'] !== '') $wl[$r['lang']] = json_decode((string) $r['words_json'], true);
+  return ['headline' => (string) $m['flier_headline'], 'text' => (string) $m['flier_text'], 'image' => flier_image_url($m), 'langs' => flier_langs((int) $id), 'ai_on' => $ai,
+    'words' => flier_words($m), 'words_by_lang' => (object) $wl,
+    'pictures' => (object) array_filter(array_combine(array_merge(['en'], FLIER_LANGS), array_map(fn($l) => flier_render_url((int) $id, $l, false), array_merge(['en'], FLIER_LANGS)))), 'renders' => $renders,
     'invites_waiting' => (bool) val('SELECT 1 FROM app_settings WHERE k=?', ['meet_inv_wait_' . (int) $id]),
     'leaders_by_lang' => array_column(rows("SELECT u.lang, COUNT(*) n FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND (" . meeting_invited_sql($m)[0] . ') GROUP BY u.lang', meeting_invited_sql($m)[1]), 'n', 'lang')];
 });
@@ -45,8 +51,8 @@ route('POST', '/meetings/(\d+)/flier/langs/([a-z]{2})', function ($id, $lang) {
   $u = require_user(); $m = meeting_get((int) $id); meeting_host($u, $m);
   if (!in_array($lang, FLIER_LANGS, true)) fail(422, 'Choose one of the WDOS languages.', 'lang');
   $head = str_in('headline', 250); $text = str_in('text', 6000);
-  if ($head === '' && $text === '') { q('DELETE FROM meeting_flier_texts WHERE meeting_id=? AND lang=?', [(int) $id, $lang]); return ['ok' => true, 'langs' => flier_langs((int) $id)]; }
-  q('REPLACE INTO meeting_flier_texts (meeting_id,lang,headline,body,source,updated_at) VALUES (?,?,?,?,?,?)', [(int) $id, $lang, $head, $text, 'hq', now()]);
+  if ($head === '' && $text === '') { q("UPDATE meeting_flier_texts SET headline='', body='', source='ai' WHERE meeting_id=? AND lang=?", [(int) $id, $lang]); return ['ok' => true, 'langs' => flier_langs((int) $id)]; }
+  q('INSERT INTO meeting_flier_texts (meeting_id,lang,headline,body,source,updated_at) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE headline=VALUES(headline), body=VALUES(body), source=VALUES(source), updated_at=VALUES(updated_at)', [(int) $id, $lang, $head, $text, 'hq', now()]);
   flier_drop_renders((int) $id, $lang);
   return ['ok' => true, 'langs' => flier_langs((int) $id)];
 });
@@ -196,4 +202,37 @@ route('POST', '/meetings/(\d+)/files/(\d+)/remove', function ($id, $fid) {
   $u = require_user(); $m = meeting_get((int) $id); meeting_host($u, $m);
   q("UPDATE doc_links SET removed_at=? WHERE file_id=? AND owner_type='smeeting' AND owner_id=?", [now(), (int) $fid, (int) $id]);
   return ['ok' => true, 'files' => doc_list('smeeting', (int) $id)];
+});
+
+/** v109.59: the words the host's browser read on the uploaded flier picture, with their places. They are translated next. */
+route('POST', '/meetings/(\d+)/flier/words', function ($id) {
+  $u = require_user(); $m = meeting_get((int) $id); meeting_host($u, $m);
+  $w = body()['words'] ?? null; $groups = [];
+  foreach ((array) ($w['groups'] ?? []) as $g) {
+    $t = mb_substr(trim((string) ($g['text'] ?? '')), 0, 400); if ($t === '' || !preg_match('/\p{L}{2}/u', $t)) continue;
+    $lines = []; foreach ((array) ($g['lines'] ?? []) as $b) if (is_array($b) && count($b) >= 4) $lines[] = array_map(fn($v) => round((float) $v, 1), array_slice(array_values($b), 0, 9));
+    if ($lines) $groups[] = ['text' => $t, 'lines' => array_slice($lines, 0, 12)] + (isset($g['style']) && is_array($g['style']) ? ['style' => array_slice($g['style'], 0, 6)] : []);
+    if (count($groups) >= 60) break;
+  }
+  $data = ['w' => (int) ($w['w'] ?? 0), 'h' => (int) ($w['h'] ?? 0), 'groups' => $groups];
+  q('UPDATE meetings SET flier_words=? WHERE id=?', [$groups ? json_encode($data, JSON_UNESCAPED_UNICODE) : null, (int) $id]);
+  q("UPDATE meeting_flier_texts SET words_json=NULL WHERE meeting_id=? AND source<>'hq'", [(int) $id]);
+  if ($groups) after_response(function () use ($id) { @set_time_limit(300); flier_words_translate((int) $id); });
+  return ['ok' => true, 'groups' => count($groups), 'translating' => (bool) $groups];
+});
+/** HQ corrects the words of one language on the picture. */
+route('POST', '/meetings/(\d+)/flier/words/([a-z]{2})', function ($id, $lang) {
+  $u = require_user(); $m = meeting_get((int) $id); meeting_host($u, $m);
+  if (!in_array($lang, FLIER_LANGS, true)) fail(422, 'Choose one of the WDOS languages.', 'lang');
+  $w = flier_words($m); if (!$w) fail(409, 'WDOS has not read the words on this flier yet.', 'no_words');
+  $t = array_values((array) (body()['texts'] ?? [])); if (count($t) !== count($w['groups'])) fail(422, 'Give one text for each part of the flier.', 'texts');
+  q("INSERT INTO meeting_flier_texts (meeting_id,lang,headline,body,source,updated_at,words_json) VALUES (?,?,'','','hq',?,?) ON DUPLICATE KEY UPDATE words_json=VALUES(words_json), source='hq', updated_at=VALUES(updated_at)",
+    [(int) $id, $lang, now(), json_encode(array_map(fn($s) => mb_substr(trim((string) $s), 0, 600), $t), JSON_UNESCAPED_UNICODE)]);
+  return ['ok' => true];
+});
+route('POST', '/meetings/(\d+)/flier/words-translate', function ($id) {
+  $u = require_user(); $m = meeting_get((int) $id); meeting_host($u, $m); @set_time_limit(180);
+  $r = flier_words_translate((int) $id, !empty(body()['redo']));
+  if (($r['reason'] ?? '') === 'ai_off') fail(409, 'Automatic translation is not set up on this server. Type each language yourself, or ask the IT Lead to switch on an AI lane.', 'ai_off');
+  return ['ok' => true] + $r;
 });
