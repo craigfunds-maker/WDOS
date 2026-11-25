@@ -4456,5 +4456,15 @@
 "{1} people asked in the app.": "Watu {1} wameulizwa kwenye programu.",
 "{1} will attend": "{1} watahudhuria",
 "Replies from the app and from the email buttons. Counts change as people reply.": "Majibu kutoka kwenye programu na vitufe vya barua pepe. Idadi hubadilika watu wanapojibu.",
-"Each leader sees the flier's words in her own language, on her dashboard and in her emails.": "Kila kiongozi huona maneno ya kipeperushi kwa lugha yake, kwenye dashibodi yake na kwenye barua pepe zake."
+"Each leader sees the flier's words in her own language, on her dashboard and in her emails.": "Kila kiongozi huona maneno ya kipeperushi kwa lugha yake, kwenye dashibodi yake na kwenye barua pepe zake.",
+"Scan to open": "Changanua kufungua",
+"Leaders forum": "Jukwaa la viongozi",
+"Design removed": "Muundo umeondolewa",
+"Fliers use the WDOS background again.": "Vipeperushi vinatumia tena mandharinyuma ya WDOS.",
+"Use the WDOS background": "Tumia mandharinyuma ya WDOS",
+"Flier design saved": "Muundo wa kipeperushi umehifadhiwa",
+"Every flier WDOS makes now uses this design.": "Kila kipeperushi WDOS kinachotengeneza sasa kinatumia muundo huu.",
+"Flier design": "Muundo wa kipeperushi",
+"Upload a flier design": "Pakia muundo wa kipeperushi",
+"The background for every flier WDOS makes. Design it in Canva at 1080 by 1350 pixels (portrait), keep the left side calm for the words and the bottom right corner clear for the QR code, and upload it here.": "Mandharinyuma ya kila kipeperushi WDOS kinachotengeneza. Kibuni kwenye Canva kwa pikseli 1080 kwa 1350 (wima), acha upande wa kushoto utulivu kwa maneno na kona ya chini kulia wazi kwa msimbo wa QR, kisha ukipakie hapa."
 }

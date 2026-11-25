@@ -4325,5 +4325,15 @@
 "{1} people asked in the app.": "An tambayi mutane {1} a cikin manhaja.",
 "{1} will attend": "{1} za su halarta",
 "Replies from the app and from the email buttons. Counts change as people reply.": "Amsoshi daga manhaja da maɓallan imel. Adadin yana canzawa yayin da mutane ke amsawa.",
-"Each leader sees the flier's words in her own language, on her dashboard and in her emails.": "Kowace shugaba tana ganin kalmomin takardar sanarwa a harshenta, a dashboard ɗinta da imel ɗinta."
+"Each leader sees the flier's words in her own language, on her dashboard and in her emails.": "Kowace shugaba tana ganin kalmomin takardar sanarwa a harshenta, a dashboard ɗinta da imel ɗinta.",
+"Scan to open": "Duba don buɗewa",
+"Leaders forum": "Taron shugabanni",
+"Design removed": "An cire zane",
+"Fliers use the WDOS background again.": "Takardun sanarwa suna amfani da bangon WDOS kuma.",
+"Use the WDOS background": "Yi amfani da bangon WDOS",
+"Flier design saved": "An ajiye zanen takardar sanarwa",
+"Every flier WDOS makes now uses this design.": "Kowace takardar sanarwa da WDOS ke yi yanzu tana amfani da wannan zane.",
+"Flier design": "Zanen takardar sanarwa",
+"Upload a flier design": "Ɗora zanen takardar sanarwa",
+"The background for every flier WDOS makes. Design it in Canva at 1080 by 1350 pixels (portrait), keep the left side calm for the words and the bottom right corner clear for the QR code, and upload it here.": "Bangon kowace takardar sanarwa da WDOS ke yi. Ki zana shi a Canva a pixel 1080 da 1350 (a tsaye), ki bar gefen hagu shiru don kalmomi da kusurwar ƙasa ta dama a buɗe don lambar QR, sannan ki ɗora shi a nan."
 }

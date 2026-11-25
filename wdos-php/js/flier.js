@@ -31,40 +31,63 @@ function wrap(ctx, text, width, max) {
 }
 function rrect(ctx, x, y, w, hh, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + hh, r); ctx.arcTo(x + w, y + hh, x, y + hh, r); ctx.arcTo(x, y + hh, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 
-/** Draw the flier for a meeting on a 1080 x 1350 canvas (the shape social apps show best). Returns the canvas. */
+let tplP = null;
+/** The flier design HQ uploaded (a background made in Canva, for example), or null for WDOS's own background. */
+export const flierTemplate = (fresh) => (!fresh && tplP) || (tplP = api('/meetings/flier-template').then((d) => d.url ? new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = d.url; }) : null).catch(() => null));
+let qrMod = null;
+/** A QR code drawn on the canvas: white card, dark modules, a caption under it. */
+async function drawQr(x, url, left, top, size, caption) {
+  try {
+    const { default: qrcode } = await (qrMod || (qrMod = import('/js/vendor/qrcode.js')));
+    const q = qrcode(0, 'M'); q.addData(url); q.make(); const n = q.getModuleCount(); const pad = 18, inner = size - 2 * pad, cell = inner / n;
+    x.save(); x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = 24; x.fillStyle = '#fff'; rrect(x, left, top, size, size + 44, 22); x.fill(); x.restore();
+    x.fillStyle = PLUM; for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) x.fillRect(Math.floor(left + pad + c * cell), Math.floor(top + pad + r * cell), Math.ceil(cell), Math.ceil(cell));
+    x.save(); x.direction = 'ltr'; x.textAlign = 'center'; x.fillStyle = MAGENTA; x.font = '800 22px Inter, Arial, sans-serif'; x.fillText(caption, left + size / 2, top + size + 26); x.restore();
+  } catch { /* no QR code; the flier still works */ }
+}
+
+/** Draw the flier for a meeting on a 1080 x 1350 canvas (the shape social apps show best). Returns the canvas.
+ *  On HQ's design the words sit in the calm left part and a QR code to the meeting sits bottom right. */
 export async function drawFlier(m, f = {}) {
   const W = 1080, H = 1350, P = 72; const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
   try { await Promise.all([document.fonts.load('700 70px Fraunces'), document.fonts.load('600 34px Inter')]); } catch { /* system fonts */ }
-  const rtl = (i18n.lang || 'en') === 'ar'; x.direction = rtl ? 'rtl' : 'ltr'; x.textAlign = rtl ? 'right' : 'left'; const X = rtl ? W - P : P; const TW = W - 2 * P;
-  const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, MAGENTA); g.addColorStop(0.55, '#8E0A4A'); g.addColorStop(1, PLUM); x.fillStyle = g; x.fillRect(0, 0, W, H);
-  x.globalAlpha = 0.10; x.fillStyle = '#fff'; x.beginPath(); x.arc(W - 120, 160, 260, 0, Math.PI * 2); x.fill(); x.beginPath(); x.arc(90, H - 260, 200, 0, Math.PI * 2); x.fill(); x.globalAlpha = 1;
-  const lg = await logo(); let y = P;
-  if (lg) { const s = 132; x.save(); x.beginPath(); x.arc((rtl ? W - P - s / 2 : P + s / 2), y + s / 2, s / 2, 0, Math.PI * 2); x.fillStyle = '#fff'; x.fill(); x.clip(); x.drawImage(lg, rtl ? W - P - s : P, y, s, s); x.restore(); }
-  const tx = rtl ? W - P - 160 : P + 160;
-  x.fillStyle = LEMON; x.font = '800 26px Inter, Arial, sans-serif'; x.fillText(t('No Woman Is Left Out').toUpperCase(), tx, y + 54);
-  x.fillStyle = '#fff'; x.font = '600 30px Inter, Arial, sans-serif'; x.fillText('WODDI', tx, y + 98);
-  y += 190;
-  // the kind of event
-  x.font = '800 26px Inter, Arial, sans-serif'; const kind = t(KIND[m.kind] || 'Meeting').toUpperCase(); const kw = x.measureText(kind).width + 44;
-  x.fillStyle = 'rgba(255,255,255,.16)'; rrect(x, rtl ? W - P - kw : P, y, kw, 50, 25); x.fill(); x.fillStyle = '#fff'; x.fillText(kind, rtl ? W - P - 22 : P + 22, y + 35); y += 92;
-  // the headline
-  let fs = 76; x.font = `700 ${fs}px Fraunces, Georgia, serif`; let lines = wrap(x, f.headline || m.title, TW, 4);
-  if (lines.length > 3) { fs = 62; x.font = `700 ${fs}px Fraunces, Georgia, serif`; lines = wrap(x, f.headline || m.title, TW, 4); }
-  const lh = fs * 1.14; x.fillStyle = '#fff'; for (const l of lines) { y += lh; x.fillText(l, X, y); } y += 40;
-  // when, in the phone's own time
+  const tpl = await flierTemplate();
+  const rtl = (i18n.lang || 'en') === 'ar'; x.direction = rtl ? 'rtl' : 'ltr'; x.textAlign = rtl ? 'right' : 'left';
+  const TW = tpl ? 640 : W - 2 * P; const X = rtl ? P + TW : P;
+  if (tpl) { const s = Math.max(W / tpl.naturalWidth, H / tpl.naturalHeight); x.drawImage(tpl, (W - tpl.naturalWidth * s) / 2, (H - tpl.naturalHeight * s) / 2, tpl.naturalWidth * s, tpl.naturalHeight * s);
+    const sh = x.createLinearGradient(0, 0, W * 0.75, 0); sh.addColorStop(0, 'rgba(20,4,12,.55)'); sh.addColorStop(1, 'rgba(20,4,12,0)'); x.fillStyle = sh; x.fillRect(0, 0, W, H * 0.86); }
+  else { const g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, MAGENTA); g.addColorStop(0.55, '#8E0A4A'); g.addColorStop(1, PLUM); x.fillStyle = g; x.fillRect(0, 0, W, H);
+    x.globalAlpha = 0.10; x.fillStyle = '#fff'; x.beginPath(); x.arc(W - 120, 160, 260, 0, Math.PI * 2); x.fill(); x.beginPath(); x.arc(90, H - 260, 200, 0, Math.PI * 2); x.fill(); x.globalAlpha = 1; }
+  const lg = await logo(); let y = P - 10; const s0 = 120;
+  const lx = rtl ? P + TW - s0 : P;
+  if (lg) { x.save(); x.beginPath(); x.arc(lx + s0 / 2, y + s0 / 2, s0 / 2, 0, Math.PI * 2); x.fillStyle = '#fff'; x.fill(); x.clip(); x.drawImage(lg, lx, y, s0, s0); x.restore(); }
+  const tx = rtl ? lx - 24 : lx + s0 + 24;
+  x.fillStyle = '#C9F27A'; x.font = '800 24px Inter, Arial, sans-serif'; x.fillText(t('No Woman Is Left Out').toUpperCase(), tx, y + 50);
+  x.fillStyle = '#fff'; x.font = '600 28px Inter, Arial, sans-serif'; x.fillText('WODDI', tx, y + 90);
+  y += 170;
+  x.font = '800 24px Inter, Arial, sans-serif'; const kind = t(KIND[m.kind] || 'Meeting').toUpperCase(); const kw = x.measureText(kind).width + 44;
+  x.fillStyle = LEMON; rrect(x, rtl ? X - kw : X, y, kw, 48, 24); x.fill(); x.fillStyle = '#12210A'; x.fillText(kind, rtl ? X - 22 : X + 22, y + 33); y += 80;
+  let fs = 74; x.font = `700 ${fs}px Fraunces, Georgia, serif`; let lines = wrap(x, f.headline || m.title, TW, 4);
+  if (lines.length > 3) { fs = 60; x.font = `700 ${fs}px Fraunces, Georgia, serif`; lines = wrap(x, f.headline || m.title, TW, 4); }
+  x.fillStyle = '#fff'; x.save(); x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = 12; for (const l of lines) { y += fs * 1.14; x.fillText(l, X, y); } x.restore(); y += 34;
   const st = when(m.starts_at), en = when(m.ends_at);
   const dateTxt = st.toLocaleDateString(i18n.lang || 'en', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const timeTxt = timeIn(st, null, { zone: false }) + ' ' + t('to') + ' ' + timeIn(en, null);
-  x.fillStyle = LEMON; rrect(x, P, y, TW, 150, 26); x.fill(); x.fillStyle = '#12210A';
-  x.font = '800 40px Inter, Arial, sans-serif'; x.fillText(dateTxt, X + (rtl ? -34 : 34), y + 62); x.font = '600 32px Inter, Arial, sans-serif'; x.fillText(timeTxt + ' · ' + t('your time'), X + (rtl ? -34 : 34), y + 114); y += 190;
-  // where
-  const where = m.mode === 'in_person' ? m.location : (m.link ? t(MODE[m.mode] || 'Online') + ' · ' + m.link.replace(/^https?:\/\//, '').slice(0, 44) : t(MODE[m.mode] || 'Online'));
-  x.fillStyle = '#fff'; x.font = '600 32px Inter, Arial, sans-serif'; for (const l of wrap(x, where, TW, 2)) { x.fillText(l, X, y); y += 44; } y += 18;
-  // the message
-  if (f.body) { x.font = '400 32px Inter, Arial, sans-serif'; x.fillStyle = 'rgba(255,255,255,.92)'; const room = Math.max(1, Math.floor((H - 170 - y) / 46)); for (const l of wrap(x, f.body, TW, room)) { x.fillText(l, X, y + 10); y += 46; } }
-  // the foot
-  x.fillStyle = LEMON; x.fillRect(0, H - 120, W, 120); x.fillStyle = '#12210A'; x.font = '800 32px Inter, Arial, sans-serif';
-  x.fillText(t('Open WDOS to reply and join'), X, H - 68); x.font = '600 26px Inter, Arial, sans-serif'; x.fillText(location.host, X, H - 30);
+  const tline = timeTxt + ' · ' + t('your time'); let ds = 36, ts = 28;
+  const fit = (txt, size, wt) => { let z = size; x.font = `${wt} ${z}px Inter, Arial, sans-serif`; while (z > 18 && x.measureText(txt).width > TW - 60) { z -= 2; x.font = `${wt} ${z}px Inter, Arial, sans-serif`; } return z; };
+  ds = fit(dateTxt, 36, 800); const dW = x.measureText(dateTxt).width; ts = fit(tline, 28, 600); const tW = x.measureText(tline).width;
+  const dw = Math.min(TW, Math.max(dW, tW) + 60);
+  x.fillStyle = LEMON; rrect(x, rtl ? X - dw : X, y, dw, 130, 22); x.fill(); x.fillStyle = '#12210A'; const ix = rtl ? X - 30 : X + 30;
+  x.font = `800 ${ds}px Inter, Arial, sans-serif`; x.fillText(dateTxt, ix, y + 54); x.font = `600 ${ts}px Inter, Arial, sans-serif`; x.fillText(tline, ix, y + 100); y += 168;
+  const where = m.mode === 'in_person' ? m.location : (m.link ? t(MODE[m.mode] || 'Online') + ' · ' + m.link.replace(/^https?:\/\//, '').slice(0, 40) : t(MODE[m.mode] || 'Online'));
+  x.fillStyle = '#fff'; x.font = '600 30px Inter, Arial, sans-serif'; for (const l of wrap(x, where, TW, 2)) { x.fillText(l, X, y); y += 42; } y += 14;
+  const foot = tpl ? 1150 : H - 130;
+  if (f.body) { x.font = '400 30px Inter, Arial, sans-serif'; x.fillStyle = 'rgba(255,255,255,.94)'; const room = Math.max(1, Math.floor((foot - 30 - y) / 42)); for (const l of wrap(x, f.body, TW, room)) { x.fillText(l, X, y + 8); y += 42; } }
+  // the foot: an invitation to reply, and the QR code that opens the meeting in WDOS
+  if (!tpl) { x.fillStyle = LEMON; x.fillRect(0, H - 120, W, 120); }
+  x.fillStyle = tpl ? '#fff' : '#12210A'; x.font = '800 32px Inter, Arial, sans-serif'; const FX = rtl ? W - P : P; x.fillText(t('Open WDOS to reply and join'), FX, H - 92);
+  x.font = '600 26px Inter, Arial, sans-serif'; x.fillStyle = tpl ? '#C9F27A' : '#12210A'; x.fillText(location.host + (m.id ? '/#/meetings/' + m.id : ''), FX, H - 52);
+  const qs = 210; await drawQr(x, location.origin + '/' + (m.id ? '#/meetings/' + m.id : ''), rtl ? P - 20 : W - P - qs + 20, H - qs - 44 - 40, qs, t('Scan to open'));
   return c;
 }
 

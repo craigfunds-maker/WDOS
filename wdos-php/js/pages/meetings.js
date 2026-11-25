@@ -3,7 +3,7 @@ import { h, t, icon, avatar, card, sk, empty, fmt, toast, input, field, tabs, ne
 import { api } from '../api.js';
 import { taskRow, peoplePicker } from './tasks.js';
 import { whenMine, zonedToUtc, utcToZoned, timeIn, myTz, TZ_CHOICES, TZ_PREVIEW, offsetText } from '../tz.js';
-import { flierView, shrinkImage, bigCountdown } from '../flier.js';
+import { flierView, shrinkImage, bigCountdown, flierTemplate } from '../flier.js';
 import { i18n } from '../ui.js';
 
 const when = (s) => new Date(s.replace(' ', 'T') + 'Z');
@@ -26,10 +26,11 @@ const shareText = (m) => [m.title, fmtWhen(m.starts_at, m.ends_at), m.link ? 'Jo
 export async function render(root, params) {
   if (params.tab && /^\d+$/.test(params.tab)) return detail(root, params.tab);
   const scope = params.tab === 'past' ? 'past' : '';
-  const list = h('div', {}, sk.rows(4)); const formSlot = h('div'); const tools = h('div', { class: 'toolbar' });
-  root.append(tabs([['', 'Upcoming'], ['past', 'Past'], ['requests', 'Video meetings']], scope, '#/meetings'), formSlot, card(scope ? 'Past meetings' : 'Upcoming meetings', null, list, tools));
+  const list = h('div', {}, sk.rows(4)); const formSlot = h('div'); const tools = h('div', { class: 'toolbar' }); const designSlot = h('div');
+  root.append(tabs([['', 'Upcoming'], ['past', 'Past'], ['requests', 'Video meetings']], scope, '#/meetings'), formSlot, card(scope ? 'Past meetings' : 'Upcoming meetings', null, list, tools), designSlot);
   async function load() {
     let r; try { r = await api('/meetings?scope=' + (scope || 'upcoming')); } catch (e) { list.replaceChildren(empty('x', 'Meetings did not load', e.message)); return; }
+    if (r.audiences && r.audiences['hq_team:ALL'] && !designSlot.firstChild) designSlot.append(flierDesign());
     tools.replaceChildren(r.can_schedule ? h('button', { class: 'btn', type: 'button', onclick: () => { if (formSlot.firstChild) formSlot.replaceChildren(); else formSlot.replaceChildren(newForm(r, () => { formSlot.replaceChildren(); load(); })); } }, icon('plus', 18), 'Schedule a meeting') : '');
     list.replaceChildren(r.items.length ? h('div', { class: 'list list--stack reveal' }, r.items.map((m) => h('a', { class: 'list__link', href: '#/meetings/' + m.id }, h('div', { class: 'nrow__ico' }, icon('calendar', 18)),
       h('div', { class: 'grow' }, h('b', {}, m.kind === 'talk_show' ? h('span', { class: 'tag tag--wgmn', style: 'margin-inline-end:8px', text: 'Talk show' }) : null, h('span', { text: m.title })), h('small', { text: tf('{1} · hosted by {2}', fmtWhen(m.starts_at, m.ends_at), m.host) }), m.status === 'scheduled' ? countdown(m) : null), h('div', { class: 'tagrow' }, m.status === 'scheduled' && m.yes ? h('span', { class: 'tag tag--wnnn', text: tf('{1} will attend', fmt(m.yes)) }) : null, m.has_flier ? h('span', { class: 'tag', text: t('Flier') }) : null,
@@ -221,4 +222,18 @@ function whoWillAttend(id, m, rc) {
     paint();
   })();
   return sec;
+}
+
+/* v109.57: HQ's flier design. A background made in Canva (or anywhere); WDOS writes each meeting's words, the date in each
+ * reader's own time and a QR code on top. Removing it brings back WDOS's own background. */
+function flierDesign() {
+  const prev = h('div', { class: 'flier-prev' }); const err = h('p', { class: 'err', role: 'alert' }); const file = h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp', class: 'input' });
+  const sample = () => ({ id: 0, title: t('Leaders forum'), kind: 'meeting', mode: 'virtual', location: 'https://meet.google.com/abc-defg-hij', link: 'https://meet.google.com/abc-defg-hij', starts_at: new Date(Date.now() + 7 * 86400000), ends_at: new Date(Date.now() + 7 * 86400000 + 3600000) });
+  const show = async (fresh) => { await flierTemplate(fresh); prev.replaceChildren(flierView(sample(), { headline: t('Leaders forum'), body: t('A short message for the flier: why to come, who is speaking, what to bring') })); };
+  const rm = h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: async () => { try { await api('/hq/flier-template', { remove: true }); toast(t('Design removed'), t('Fliers use the WDOS background again.'), 'ok'); show(true); } catch (e) { err.textContent = e.message; } } }, t('Use the WDOS background'));
+  file.addEventListener('change', async () => { err.textContent = ''; const f = file.files[0]; if (!f) return;
+    try { const img = await shrinkImage(f, 1350); await api('/hq/flier-template', { image: img }); toast(t('Flier design saved'), t('Every flier WDOS makes now uses this design.'), 'ok'); file.value = ''; show(true); } catch (e) { err.textContent = e.message; file.value = ''; } });
+  const box = card('Flier design', 'The background for every flier WDOS makes. Design it in Canva at 1080 by 1350 pixels (portrait), keep the left side calm for the words and the bottom right corner clear for the QR code, and upload it here.',
+    h('div', { style: 'display:grid;gap:12px' }, field('Upload a flier design', file), err, h('div', {}, rm), prev));
+  show(false); return box;
 }

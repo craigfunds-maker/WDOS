@@ -124,3 +124,25 @@ route('POST', '/meetings/(\d+)/reply', function ($id) {
   q('INSERT INTO meeting_rsvps (meeting_id,user_id,answer,answered_at) VALUES (?,?,?,?)', [(int) $id, (int) $who['id'], $a, now()]);
   return ['ok' => true, 'answer' => $a];
 });
+
+/* ---- the flier design (v109.57) --------------------------------------------------------------------------------
+ * HQ can give every generated flier a designed background (made in Canva, for example). WDOS writes the meeting's words,
+ * the date in each reader's own time and a QR code on top. With no design uploaded, WDOS draws its own magenta background. */
+function flier_template(): array {
+  $r = row("SELECT mime, updated_at FROM message_photos WHERE image_key='flier/template'");
+  return $r ? ['url' => media_url('flier/template', $r['mime'], strtotime($r['updated_at'] . ' UTC')), 'updated_at' => $r['updated_at']] : ['url' => '', 'updated_at' => null];
+}
+route('GET', '/meetings/flier-template', function () { require_user(); return flier_template(); });
+route('POST', '/hq/flier-template', function () {
+  $me = require_hq();
+  if (!empty(body()['remove'])) { $o = row("SELECT mime FROM message_photos WHERE image_key='flier/template'"); if ($o) flier_drop_image('flier/template', (string) $o['mime']); log_activity((int) $me['id'], null, 'flier_template', 'removed'); return ['ok' => true] + flier_template(); }
+  [$mime, $bin] = flier_check_image((string) (body()['image'] ?? ''));
+  $info = getimagesizefromstring($bin);
+  if (($info[0] ?? 0) < 600 || ($info[1] ?? 0) < 700) fail(422, 'Choose a design at least 600 by 700 pixels. The best size is 1080 by 1350 (portrait).', 'flier_image');
+  $o = row("SELECT mime FROM message_photos WHERE image_key='flier/template'"); if ($o) @unlink(media_file('flier/template', (string) $o['mime']));
+  $st = db()->prepare('REPLACE INTO message_photos (image_key,mime,bytes,updated_at) VALUES (?,?,?,?)');
+  $st->bindValue(1, 'flier/template'); $st->bindValue(2, $mime); $st->bindValue(3, $bin, PDO::PARAM_LOB); $st->bindValue(4, now()); $st->execute();
+  media_write('flier/template', $mime, $bin);
+  log_activity((int) $me['id'], null, 'flier_template', 'new design ' . $info[0] . 'x' . $info[1]);
+  return ['ok' => true] + flier_template();
+});

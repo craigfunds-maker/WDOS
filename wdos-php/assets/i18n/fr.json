@@ -4456,5 +4456,15 @@
 "{1} people asked in the app.": "{1} personnes relancées dans l'application.",
 "{1} will attend": "{1} présentes",
 "Replies from the app and from the email buttons. Counts change as people reply.": "Réponses venues de l'application et des boutons de l'e-mail. Les chiffres changent au fil des réponses.",
-"Each leader sees the flier's words in her own language, on her dashboard and in her emails.": "Chaque leader voit les mots du flyer dans sa propre langue, sur son tableau de bord et dans ses e-mails."
+"Each leader sees the flier's words in her own language, on her dashboard and in her emails.": "Chaque leader voit les mots du flyer dans sa propre langue, sur son tableau de bord et dans ses e-mails.",
+"Scan to open": "Scannez pour ouvrir",
+"Leaders forum": "Forum des leaders",
+"Design removed": "Design retiré",
+"Fliers use the WDOS background again.": "Les flyers utilisent de nouveau le fond WDOS.",
+"Use the WDOS background": "Utiliser le fond WDOS",
+"Flier design saved": "Design du flyer enregistré",
+"Every flier WDOS makes now uses this design.": "Chaque flyer créé par WDOS utilise désormais ce design.",
+"Flier design": "Design du flyer",
+"Upload a flier design": "Téléverser un design de flyer",
+"The background for every flier WDOS makes. Design it in Canva at 1080 by 1350 pixels (portrait), keep the left side calm for the words and the bottom right corner clear for the QR code, and upload it here.": "Le fond de chaque flyer créé par WDOS. Concevez-le dans Canva en 1080 x 1350 pixels (portrait), gardez le côté gauche calme pour le texte et le coin inférieur droit libre pour le code QR, puis téléversez-le ici."
 }
