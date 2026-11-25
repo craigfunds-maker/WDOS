@@ -57,7 +57,7 @@ function ea_clean(string $s, int $max): string { return mb_substr(trim(preg_repl
 
 /** Server rule: until her form is accepted, an envoy can only read and send the form, sign out, set her language and see her notices. */
 function ea_guard(string $method, string $path): void {
-  if (preg_match('#^/(health|config|me|me/lang|auth/.+|envoy/acceptance(/.*)?|envoy/join(-info)?|ref/.+|photo/\d+|birthday/.+|voice/.+|privacy)$#', $path)) return;
+  if (preg_match('#^/(health|config|me|me/lang|auth/.+|envoy/acceptance(/.*)?|envoy/join(-info)?|ref/.+|photo/\d+|birthday/.+|voice/.+|privacy|meetings/\d+/(reply|go))$#', $path)) return;      // v109.58: signed links from meeting emails
   if ($method === 'GET' && preg_match('#^/notifications(/count)?$#', $path)) return;
   $u = current_user(); if (!$u || !ea_needed($u)) return;
   fail(403, 'Please complete and accept your WODDI Envoy Appointment Acceptance & Commitment Form first.', 'envoy_acceptance');

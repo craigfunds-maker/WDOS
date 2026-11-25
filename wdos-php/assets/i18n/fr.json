@@ -4466,5 +4466,21 @@
 "Every flier WDOS makes now uses this design.": "Chaque flyer créé par WDOS utilise désormais ce design.",
 "Flier design": "Design du flyer",
 "Upload a flier design": "Téléverser un design de flyer",
-"The background for every flier WDOS makes. Design it in Canva at 1080 by 1350 pixels (portrait), keep the left side calm for the words and the bottom right corner clear for the QR code, and upload it here.": "Le fond de chaque flyer créé par WDOS. Concevez-le dans Canva en 1080 x 1350 pixels (portrait), gardez le côté gauche calme pour le texte et le coin inférieur droit libre pour le code QR, puis téléversez-le ici."
+"The background for every flier WDOS makes. Design it in Canva at 1080 by 1350 pixels (portrait), keep the left side calm for the words and the bottom right corner clear for the QR code, and upload it here.": "Le fond de chaque flyer créé par WDOS. Concevez-le dans Canva en 1080 x 1350 pixels (portrait), gardez le côté gauche calme pour le texte et le coin inférieur droit libre pour le code QR, puis téléversez-le ici.",
+"Join through WDOS": "Rejoindre via WDOS",
+"Joined through WDOS": "Ont rejoint via WDOS",
+"Translating the flier…": "Traduction du flyer…",
+"Making the flier in {1}…": "Création du flyer en {1}…",
+"Sending the invitations…": "Envoi des invitations…",
+"The emails go out as soon as the flier is ready in each language.": "Les e-mails partent dès que le flyer est prêt dans chaque langue.",
+"Invitations sent": "Invitations envoyées",
+"Each person gets the flier in her own language.": "Chaque personne reçoit le flyer dans sa propre langue.",
+"The emails will go out shortly": "Les e-mails partiront sous peu",
+"Making the flier for the emails…": "Création du flyer pour les e-mails…",
+"Slides and documents": "Diapositives et documents",
+"Add the slides before or after the meeting. They go to everyone invited with the minutes.": "Ajoutez les diapositives avant ou après la réunion. Elles partent à toutes les invitées avec le compte rendu.",
+"No slides yet.": "Pas encore de diapositives.",
+"Add slides or a document": "Ajouter des diapositives ou un document",
+"{1} people told.": "{1} personnes prévenues.",
+"Original picture": "Image d'origine"
 }

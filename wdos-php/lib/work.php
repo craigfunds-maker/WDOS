@@ -229,26 +229,21 @@ route('POST', '/meetings', function () {
   $m = meeting_get($mid); [$w, $p] = meeting_invited_sql($m);
   $join = meeting_join_sql($m, $w);
   // v109.53: each person reads the time in her own time zone
-  $n = notify_many_timed("u.id<>? AND $join", array_merge([(int) $u['id']], $p), 'meeting', 'Meeting: ' . mb_substr($title, 0, 120), fn($tz) => 'Called by ' . work_name($u) . ' for ' . tz_when($s, $tz) . '. Tap to open the agenda and the ' . ($mode === 'in_person' ? 'address' : 'meeting link') . '.', '#/meetings/' . $mid);
-  // e-mail to everyone invited, with the link or address in it (queued, then sent a few at a time)
-  $mailed = 0; $sendMail = function () use ($u, $mid, $title, $loc, $mode, $s, $e, $w, $p): int { $mailed = 0; $m = meeting_get($mid);
-    $link = preg_match('#https://\S+#i', $loc, $lm) ? rtrim($lm[0], '.,)') : '';
-    $html = '<p><b>' . htmlspecialchars(work_name($u)) . '</b> has called a meeting.</p><table cellpadding="6" style="border-collapse:collapse;font-size:15px"><tr><td style="color:#7a6a72">Meeting</td><td><b>' . htmlspecialchars($title) . '</b></td></tr><tr><td style="color:#7a6a72">When</td><td>{{WHEN}}</td></tr><tr><td style="color:#7a6a72">Format</td><td>' . MEETING_MODES[$mode] . '</td></tr><tr><td style="color:#7a6a72">' . ($link ? 'Link' : 'Where') . '</td><td>'
-      . ($link ? '<a href="' . htmlspecialchars($link) . '">' . htmlspecialchars($link) . '</a>' . (trim(str_replace($lm[0], '', $loc)) !== '' ? '<br>' . htmlspecialchars(trim(str_replace($lm[0], '', $loc))) : '') : htmlspecialchars($loc)) . '</td></tr></table>'
-      . (trim(str_in('agenda', 6000)) !== '' ? '<p style="margin-top:14px"><b>Agenda</b></p><p style="white-space:pre-wrap">' . nl2br(htmlspecialchars(mb_substr(str_in('agenda', 6000), 0, 2000))) . '</p>' : '');
-    foreach (rows("SELECT u.id, u.lang, u.email, u.first_name, u.tz, u.country_code FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND u.email<>'' AND (u.id=? OR ($w)) LIMIT 2000", array_merge([(int) $u['id']], $p)) as $r) {
-      $tz = tz_of($r); $when = tz_when($s, $tz, true, true) . ' to ' . tz_when($e, $tz, false);
-      if (mail_queue($r['email'], $r['first_name'], 'Meeting: ' . mb_substr($title, 0, 150), mail_wrap('Dear ' . $r['first_name'] . ',', str_replace('{{WHEN}}', htmlspecialchars($when), $html) . flier_mail_block($m, $r), $link ? 'Join the meeting' : 'Open in WDOS', $link ?: app_url() . '/#/meetings/' . $mid))) $mailed++;
-    }
-    return $mailed; };
+  $GLOBALS['wdos_push_image'] = flier_has($m) ? flier_image_url($m, true) : '';
+  $n = notify_many_timed("u.id<>? AND $join", array_merge([(int) $u['id']], $p), 'meeting', 'Meeting: ' . mb_substr($title, 0, 120), fn($tz) => 'Called by ' . meeting_caller($u) . ' for ' . tz_when($s, $tz) . '. Tap to open the agenda and the ' . ($mode === 'in_person' ? 'address' : 'meeting link') . '.', '#/meetings/' . $mid);
+  // e-mail to everyone invited (v109.58: from WODDI, with a Join button that goes through WDOS). With a flier, the email
+  // waits until the host's browser has made the flier picture in each language; the timer sends it after 4 minutes at most.
+  $mailed = 0; $held = false;
   if (mail_configured()) {
-    // v109.56: with flier words, the emails wait until the words are translated, so each leader reads them in her language
-    if ($fHead !== '' || $fText !== '') { $mailed = (int) val("SELECT COUNT(*) FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND u.email<>'' AND (u.id=? OR ($w))", array_merge([(int) $u['id']], $p)); after_response(function () use ($mid, $sendMail) { @set_time_limit(300); flier_translate($mid); $sendMail(); mail_drain(15); }); }
-    else $mailed = $sendMail();
+    if (flier_has(meeting_get($mid))) {
+      $held = true; try { q('REPLACE INTO app_settings (k,v) VALUES (?,?)', ['meet_inv_wait_' . $mid, now()]); } catch (PDOException $e) { /* */ }
+      $mailed = (int) val("SELECT COUNT(*) FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND u.email<>'' AND (u.id=? OR ($w))", array_merge([(int) $u['id']], $p));
+      if ($fHead !== '' || $fText !== '') after_response(function () use ($mid) { @set_time_limit(300); flier_translate($mid); });
+    } else $mailed = meeting_invite_mail($mid);
   }
   log_activity((int) $u['id'], count($invitees) === 1 ? $invitees[0] : null, 'meeting_scheduled', $title . ($invitees ? ' · ' . (count($invitees) === 1 ? 'with ' . (string) val("SELECT CONCAT(first_name,' ',last_name) FROM users WHERE id=?", [$invitees[0]]) : count($invitees) . ' leaders invited') : ''), 'meeting', (int) $mid);
   after_response(fn() => push_drain(80)); after_response(fn() => mail_drain(15));
-  return ['ok' => true, 'id' => $mid, 'invited' => $n, 'emails' => $mailed, 'mail_on' => mail_configured()];
+  return ['ok' => true, 'id' => $mid, 'invited' => $n, 'emails' => $mailed, 'mail_on' => mail_configured(), 'emails_held' => $held];
 });
 route('GET', '/meetings/(\d+)', function ($id) {
   $u = require_user(); $m = meeting_get((int) $id);
@@ -263,7 +258,7 @@ route('GET', '/meetings/(\d+)', function ($id) {
   }
   $c = row("SELECT COALESCE(SUM(status='present'),0) present, COALESCE(SUM(status='absent'),0) absent FROM meeting_attendance WHERE meeting_id=?", [(int) $id]);
   $rc = ['yes' => 0, 'maybe' => 0, 'no' => 0]; foreach (rows('SELECT answer, COUNT(*) n FROM meeting_rsvps WHERE meeting_id=? GROUP BY answer', [(int) $id]) as $r) $rc[$r['answer']] = (int) $r['n'];
-  return ['meeting' => meeting_shape($m), 'flier' => flier_shape($m, flier_view_lang($u)), 'replies' => $rc, 'host' => $host, 'people' => $people, 'invited' => $total, 'opened_link' => (int) val('SELECT COUNT(*) FROM meeting_joins WHERE meeting_id=?', [(int) $id]), 'now' => now(), 'present' => (int) $c['present'], 'absent' => (int) $c['absent'],
+  return ['meeting' => meeting_shape($m), 'flier' => flier_shape($m, flier_view_lang($u)), 'replies' => $rc, 'files' => doc_list('smeeting', (int) $id), 'host' => $host, 'people' => $people, 'invited' => $total, 'opened_link' => (int) val('SELECT COUNT(*) FROM meeting_joins WHERE meeting_id=?', [(int) $id]), 'now' => now(), 'present' => (int) $c['present'], 'absent' => (int) $c['absent'],
     'my_mark' => val('SELECT status FROM meeting_attendance WHERE meeting_id=? AND user_id=?', [(int) $id, (int) $u['id']]),
     'tasks' => array_map('task_shape', rows(TASK_SELECT . ' WHERE t.source=? ORDER BY t.id', ['meeting:' . (int) $id]))];
 });
@@ -298,7 +293,7 @@ route('POST', '/meetings/(\d+)/close', function ($id) {
   // the minutes go to everyone who was invited: in the app, by push, and by email when email is on
   $m['status'] = 'completed';
   meeting_broadcast($m, 'Minutes are ready: ' . mb_substr($m['title'], 0, 110), 'The minutes of this meeting have been recorded. Open WDOS to read them' . ($made ? " and the $made action" . ($made === 1 ? '' : 's') . ' that followed.' : '.'), false,
-    '<p style="margin-top:14px"><b>Minutes</b></p><p style="white-space:pre-wrap">' . nl2br(htmlspecialchars(mb_substr($minutes, 0, 6000))) . '</p>');
+    '<p style="margin-top:14px"><b>Minutes</b></p><p style="white-space:pre-wrap">' . nl2br(htmlspecialchars(mb_substr($minutes, 0, 6000))) . '</p>' . meeting_attendance_html($m) . meeting_files_html((int) $id));
   after_response(fn() => push_drain(80)); after_response(fn() => mail_drain(15));
   return ['ok' => true, 'tasks' => $made];
 });
@@ -308,7 +303,7 @@ route('POST', '/meetings/(\d+)/cancel', function ($id) {
   q("UPDATE meetings SET status='cancelled', closed_at=? WHERE id=?", [now(), (int) $id]);
   [$w, $p] = meeting_invited_sql($m);
   $join = meeting_join_sql($m, $w);
-  notify_many("u.id<>? AND $join", array_merge([(int) $u['id']], $p), 'meeting', 'Cancelled: ' . mb_substr($m['title'], 0, 120), 'This meeting will not hold. ' . work_name($u) . ' cancelled it.', '#/meetings/' . $id);
+  notify_many("u.id<>? AND $join", array_merge([(int) $u['id']], $p), 'meeting', 'Cancelled: ' . mb_substr($m['title'], 0, 120), 'This meeting will not hold. ' . meeting_caller($u) . ' cancelled it.', '#/meetings/' . $id);
   after_response(fn() => push_drain(80));
 });
 
@@ -349,7 +344,7 @@ route('POST', '/meetings/(\d+)/edit', function ($id) {
   $moved = gmdate('Y-m-d H:i:s', $s) !== $m['starts_at'] || gmdate('Y-m-d H:i:s', $e) !== $m['ends_at'];
   $placeChanged = $loc !== $m['location'] || $mode !== $m['mode'];
   q('UPDATE meetings SET title=?, mode=?, location=?, starts_at=?, ends_at=?, agenda=? WHERE id=?', [$title, $mode, $loc, gmdate('Y-m-d H:i:s', $s), gmdate('Y-m-d H:i:s', $e), str_in('agenda', 6000), (int) $id]);
-  if ($moved) q("DELETE FROM app_settings WHERE k IN (?,?,?,?,?)", ['meet_wk_' . $id, 'meet_3d_' . $id, 'meet_day_' . $id, 'meet_rem_' . $id, 'meet_now_' . $id]);   // the reminders go out again for the new time
+  if ($moved) q("DELETE FROM app_settings WHERE k IN (?,?,?,?,?,?,?,?)", ['meet_wk_' . $id, 'meet_3d_' . $id, 'meet_day_' . $id, 'meet_rem_' . $id, 'meet_now_' . $id, 'meet_15_' . $id, 'meet_late_' . $id, 'meet_close_' . $id]);   // the reminders go out again for the new time
   $told = 0;
   if ($moved || $placeChanged || !empty(body()['notify'])) {
     $what = $moved ? 'New time' : ($placeChanged ? ($mode === 'in_person' ? 'New address' : 'New meeting link') : 'Updated');
@@ -364,12 +359,13 @@ route('POST', '/meetings/(\d+)/delete', function ($id) {
   if (empty(body()['confirm'])) fail(422, 'Confirm that you want to delete this meeting.', 'confirm');
   $told = 0;
   if ($m['status'] === 'scheduled' && strtotime($m['ends_at'] . ' UTC') > time())     // still to come: those invited are told it will not hold
-    $told = meeting_broadcast($m, 'Cancelled: ' . mb_substr($m['title'], 0, 120), 'This meeting will not hold. ' . work_name($u) . ' removed it.', false);
-  if (function_exists('flier_drop_image')) flier_drop_image((string) ($m['flier_image'] ?? ''), (string) ($m['flier_mime'] ?? ''));
+    $told = meeting_broadcast($m, 'Cancelled: ' . mb_substr($m['title'], 0, 120), 'This meeting will not hold. ' . meeting_caller($u) . ' cancelled it.', false);
+  if (function_exists('flier_drop_image')) { flier_drop_image((string) ($m['flier_image'] ?? ''), (string) ($m['flier_mime'] ?? '')); flier_drop_renders((int) $id); }
+  try { q("UPDATE doc_links SET removed_at=? WHERE owner_type='smeeting' AND owner_id=? AND removed_at IS NULL", [now(), (int) $id]); } catch (PDOException $e) { /* */ }
   foreach (['meeting_invitees', 'meeting_groups', 'meeting_flier_texts', 'meeting_rsvps', 'meeting_joins', 'meeting_attendance'] as $t) { try { q("DELETE FROM $t WHERE meeting_id=?", [(int) $id]); } catch (PDOException $e) { /* table not there */ } }
   q("UPDATE tasks SET source='' WHERE source=?", ['meeting:' . (int) $id]);   // its actions stay as tasks, with their owners and status
   q('DELETE FROM meetings WHERE id=?', [(int) $id]);
-  q("DELETE FROM app_settings WHERE k IN (?,?,?,?,?)", ['meet_wk_' . $id, 'meet_3d_' . $id, 'meet_day_' . $id, 'meet_rem_' . $id, 'meet_now_' . $id]);
+  q("DELETE FROM app_settings WHERE k IN (?,?,?,?,?,?,?,?)", ['meet_wk_' . $id, 'meet_3d_' . $id, 'meet_day_' . $id, 'meet_rem_' . $id, 'meet_now_' . $id, 'meet_15_' . $id, 'meet_late_' . $id, 'meet_close_' . $id]);
   log_activity((int) $u['id'], null, 'meeting_deleted', $m['title'] . ' · ' . $m['starts_at'] . ' UTC');
   after_response(fn() => push_drain(80));
   return ['ok' => true, 'told' => $told];

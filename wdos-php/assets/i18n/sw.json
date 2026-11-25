@@ -4466,5 +4466,21 @@
 "Every flier WDOS makes now uses this design.": "Kila kipeperushi WDOS kinachotengeneza sasa kinatumia muundo huu.",
 "Flier design": "Muundo wa kipeperushi",
 "Upload a flier design": "Pakia muundo wa kipeperushi",
-"The background for every flier WDOS makes. Design it in Canva at 1080 by 1350 pixels (portrait), keep the left side calm for the words and the bottom right corner clear for the QR code, and upload it here.": "Mandharinyuma ya kila kipeperushi WDOS kinachotengeneza. Kibuni kwenye Canva kwa pikseli 1080 kwa 1350 (wima), acha upande wa kushoto utulivu kwa maneno na kona ya chini kulia wazi kwa msimbo wa QR, kisha ukipakie hapa."
+"The background for every flier WDOS makes. Design it in Canva at 1080 by 1350 pixels (portrait), keep the left side calm for the words and the bottom right corner clear for the QR code, and upload it here.": "Mandharinyuma ya kila kipeperushi WDOS kinachotengeneza. Kibuni kwenye Canva kwa pikseli 1080 kwa 1350 (wima), acha upande wa kushoto utulivu kwa maneno na kona ya chini kulia wazi kwa msimbo wa QR, kisha ukipakie hapa.",
+"Join through WDOS": "Jiunge kupitia WDOS",
+"Joined through WDOS": "Walijiunga kupitia WDOS",
+"Translating the flier…": "Inatafsiri kipeperushi…",
+"Making the flier in {1}…": "Inatengeneza kipeperushi kwa {1}…",
+"Sending the invitations…": "Inatuma mialiko…",
+"The emails go out as soon as the flier is ready in each language.": "Barua pepe zitatumwa mara kipeperushi kikiwa tayari kwa kila lugha.",
+"Invitations sent": "Mialiko imetumwa",
+"Each person gets the flier in her own language.": "Kila mtu anapokea kipeperushi kwa lugha yake.",
+"The emails will go out shortly": "Barua pepe zitatumwa hivi karibuni",
+"Making the flier for the emails…": "Inatengeneza kipeperushi kwa barua pepe…",
+"Slides and documents": "Slaidi na nyaraka",
+"Add the slides before or after the meeting. They go to everyone invited with the minutes.": "Ongeza slaidi kabla au baada ya mkutano. Zitatumwa kwa wote walioalikwa pamoja na kumbukumbu.",
+"No slides yet.": "Bado hakuna slaidi.",
+"Add slides or a document": "Ongeza slaidi au hati",
+"{1} people told.": "Watu {1} wameambiwa.",
+"Original picture": "Picha asili"
 }

@@ -13,6 +13,8 @@ function work_seat(array $u): ?array {
   return $c[$id];
 }
 function work_name(array $u): string { return trim($u['first_name'] . ' ' . $u['last_name']); }
+/** Who a meeting comes from, as invitees read it: WODDI for HQ (Azeez, 25 Nov 2026), the leader's own name otherwise. */
+function meeting_caller(array $u): string { return is_hq($u) ? 'WODDI' : work_name($u); }
 function work_today(): string { return (new DateTimeImmutable(cfg('WDOS_TEST_NOW', 'now'), new DateTimeZone('Africa/Lagos')))->format('Y-m-d'); }
 function work_date(string $s): ?string {
   $s = trim($s); if ($s === '') return null;
@@ -131,13 +133,15 @@ function meeting_join_sql(array $m, string $w): string {
 function meeting_broadcast(array $m, string $title, string|callable $body, bool $withHost, string $extraHtml = ''): int {
   [$w, $p] = meeting_invited_sql($m); $join = meeting_join_sql($m, $w);
   $bf = is_callable($body) ? $body : fn($tz) => $body;
+  $GLOBALS['wdos_push_image'] = function_exists('flier_push_image') && flier_has($m) ? flier_push_image($m) : '';
   $n = notify_many_timed($withHost ? "(u.id=? OR $join)" : "u.id<>? AND $join", array_merge([(int) $m['host_id']], $p), 'meeting', $title, $bf, '#/meetings/' . (int) $m['id']);
   if (mail_configured()) {
     $link = preg_match('#https://\S+#i', (string) $m['location'], $lm) ? rtrim($lm[0], '.,)') : '';
     $at = strtotime($m['starts_at'] . ' UTC');
     foreach (rows("SELECT u.id, u.lang, u.email, u.first_name, u.tz, u.country_code FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND u.email<>'' AND u.email NOT LIKE '%@phone.wdos.invalid' AND (u.id=? OR ($w)) LIMIT 2000", array_merge([(int) $m['host_id']], $p)) as $r) {
       $tz = tz_of($r); $html = '<p>' . htmlspecialchars($bf($tz)) . '</p><p><b>' . htmlspecialchars($m['title']) . '</b><br>' . htmlspecialchars(tz_when($at, $tz, true, true)) . '</p>' . $extraHtml . (function_exists('flier_mail_block') ? flier_mail_block($m, $r) : '');
-      mail_queue($r['email'], $r['first_name'], mb_substr($title, 0, 150), mail_wrap('Dear ' . $r['first_name'] . ',', $html, $link && $m['status'] === 'scheduled' ? 'Join the meeting' : 'Open in WDOS', $link && $m['status'] === 'scheduled' ? $link : app_url() . '/#/meetings/' . (int) $m['id']));
+      // v109.58: the Join button goes through WDOS, so joining is recorded
+      mail_queue($r['email'], $r['first_name'], mb_substr($title, 0, 150), mail_wrap('Dear ' . $r['first_name'] . ',', $html, $link && $m['status'] === 'scheduled' ? 'Join the meeting' : 'Open in WDOS', $link && $m['status'] === 'scheduled' ? flier_join_url((int) $m['id'], (int) $r['id']) : app_url() . '/#/meetings/' . (int) $m['id']));
     }
   }
   return $n;
@@ -172,10 +176,18 @@ function work_automations(array &$done): void {
     }
     // meeting reminders: a week before and three days before (v109.56, the countdown), the day before, one hour before, and as
     // it starts. Each goes out once, in the app, by push and by email; the email carries the flier and the reply buttons.
-    foreach (rows("SELECT m.*, h.first_name h_first, h.last_name h_last FROM meetings m JOIN users h ON h.id=m.host_id WHERE m.status='scheduled' AND m.starts_at>? AND m.starts_at<=?", [gmdate('Y-m-d H:i:s', time() - 600), gmdate('Y-m-d H:i:s', time() + 7 * 86400)]) as $m) {
+    foreach (rows("SELECT m.*, h.first_name h_first, h.last_name h_last FROM meetings m JOIN users h ON h.id=m.host_id WHERE m.status='scheduled' AND m.starts_at>? AND m.starts_at<=?", [gmdate('Y-m-d H:i:s', time() - 1800), gmdate('Y-m-d H:i:s', time() + 7 * 86400)]) as $m) {
       $ts = strtotime($m['starts_at'] . ' UTC'); $in = $ts - time(); $what = $m['mode'] === 'in_person' ? 'address' : 'link';
+      // v109.58: once it has started, those who have not joined through WDOS are called again, in the app and on the phone
+      if ($in <= -300) {
+        if (strtotime($m['ends_at'] . ' UTC') <= time() || !claim_send('meet_late_' . $m['id'])) continue;
+        [$w, $p] = meeting_invited_sql($m); $GLOBALS['wdos_push_image'] = function_exists('flier_push_image') && flier_has($m) ? flier_push_image($m) : '';
+        $n = notify_many("u.id<>? AND NOT EXISTS (SELECT 1 FROM meeting_joins mj WHERE mj.meeting_id=" . (int) $m['id'] . " AND mj.user_id=u.id) AND " . meeting_join_sql($m, $w), array_merge([(int) $m['host_id']], $p), 'meeting', 'Happening now: ' . mb_substr($m['title'], 0, 110), 'The meeting has started and you have not joined yet. Tap to join now through WDOS.', '#/meetings/' . $m['id']);
+        $done['meeting_late_' . $m['id']] = "$n called"; continue;
+      }
       // v109.53: the time in each person's own time zone
       if ($in <= 600) { $key = 'meet_now_'; $t = 'Starting now: '; $b = fn($tz) => 'It begins at ' . tz_when($ts, $tz, false) . '. Open WDOS and press Join meeting.'; }
+      elseif ($in <= 1200) { $key = 'meet_15_'; $t = 'In 15 minutes: '; $b = fn($tz) => 'Begins at ' . tz_when($ts, $tz, false) . ". Get ready and join through WDOS."; }
       elseif ($in <= 3600) { $key = 'meet_rem_'; $t = 'Starting soon: '; $b = fn($tz) => 'Begins at ' . tz_when($ts, $tz, false) . ". Open WDOS for the $what."; }
       elseif ($in > 6 * 86400) { $key = 'meet_wk_'; $t = '7 days to go: '; $b = fn($tz) => 'On ' . tz_when($ts, $tz, true, true) . '. Open WDOS to see the flier and say if you will attend.'; }
       elseif ($in > 2 * 86400 && $in <= 3 * 86400) { $key = 'meet_3d_'; $t = '3 days to go: '; $b = fn($tz) => 'On ' . tz_when($ts, $tz, true, true) . '. Open WDOS to see the flier and say if you will attend.'; }
@@ -184,6 +196,17 @@ function work_automations(array &$done): void {
       if (!claim_send($key . $m['id'])) continue;
       $n = meeting_broadcast($m, $t . mb_substr($m['title'], 0, 120), $b, true);
       $done['meeting_' . $m['id']] = "$n reminded";
+    }
+    // v109.58: an hour after a meeting ends, the host is asked to close it with minutes; they then go to everyone invited
+    foreach (rows("SELECT id, host_id, title FROM meetings WHERE status='scheduled' AND ends_at<=? AND ends_at>?", [gmdate('Y-m-d H:i:s', time() - 3600), gmdate('Y-m-d H:i:s', time() - 3 * 86400)]) as $m) {
+      if (!claim_send('meet_close_' . $m['id'])) continue;
+      notify((int) $m['host_id'], 'meeting', 'Write the minutes: ' . mb_substr($m['title'], 0, 110), 'The meeting has ended. Close it with the minutes and add the slides; WDOS sends them, with the attendance, to everyone invited.', '#/meetings/' . $m['id']);
+      $done['meeting_close_' . $m['id']] = 'host asked';
+    }
+    // v109.58: invitations held for the flier pictures go out after 4 minutes at most
+    foreach (rows("SELECT k FROM app_settings WHERE k LIKE 'meet_inv_wait_%' AND v<=?", [gmdate('Y-m-d H:i:s', time() - 240)]) as $k) {
+      $mid = (int) substr($k['k'], 14); if (function_exists('flier_translate')) flier_translate($mid);
+      $done['meeting_invites_' . $mid] = (function_exists('meeting_invite_mail') ? meeting_invite_mail($mid) : 0) . ' emailed';
     }
   } catch (PDOException $e) { error_log('[wdos work] ' . $e->getMessage()); }
   if (function_exists('followup_automations')) followup_automations($done);

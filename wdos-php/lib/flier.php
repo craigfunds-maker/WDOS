@@ -26,6 +26,7 @@ route('POST', '/meetings/(\d+)/flier', function ($id) {
     $changed = $head !== (string) $m['flier_headline'] || $text !== (string) $m['flier_text'];
     if ($changed) { q('UPDATE meetings SET flier_headline=?, flier_text=? WHERE id=?', [$head, $text, (int) $id]); q('DELETE FROM meeting_flier_texts WHERE meeting_id=?', [(int) $id]); }
   }
+  if ($img !== '' || !empty($b['remove_image']) || $changed) flier_drop_renders((int) $id);      // the email pictures are made again
   log_activity((int) $u['id'], null, 'meeting_flier', $m['title'], 'meeting', (int) $id);
   if ($changed && ($head !== '' || $text !== '')) after_response(function () use ($id) { @set_time_limit(300); flier_translate((int) $id); });
   $m = meeting_get((int) $id);
@@ -35,7 +36,9 @@ route('POST', '/meetings/(\d+)/flier', function ($id) {
 route('GET', '/meetings/(\d+)/flier/langs', function ($id) {
   $u = require_user(); $m = meeting_get((int) $id); meeting_host($u, $m);
   $ai = class_exists('Ai') && Ai::enabled() && (bool) Ai::lanes();
-  return ['headline' => (string) $m['flier_headline'], 'text' => (string) $m['flier_text'], 'image' => flier_image_url($m), 'langs' => flier_langs((int) $id), 'ai_on' => $ai,
+  $renders = []; foreach (array_merge(['en'], FLIER_LANGS) as $l) if ($ru = flier_render_url((int) $id, $l, false)) $renders[$l] = $ru;
+  return ['headline' => (string) $m['flier_headline'], 'text' => (string) $m['flier_text'], 'image' => flier_image_url($m), 'langs' => flier_langs((int) $id), 'ai_on' => $ai, 'renders' => $renders,
+    'invites_waiting' => (bool) val('SELECT 1 FROM app_settings WHERE k=?', ['meet_inv_wait_' . (int) $id]),
     'leaders_by_lang' => array_column(rows("SELECT u.lang, COUNT(*) n FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND (" . meeting_invited_sql($m)[0] . ') GROUP BY u.lang', meeting_invited_sql($m)[1]), 'n', 'lang')];
 });
 route('POST', '/meetings/(\d+)/flier/langs/([a-z]{2})', function ($id, $lang) {
@@ -44,6 +47,7 @@ route('POST', '/meetings/(\d+)/flier/langs/([a-z]{2})', function ($id, $lang) {
   $head = str_in('headline', 250); $text = str_in('text', 6000);
   if ($head === '' && $text === '') { q('DELETE FROM meeting_flier_texts WHERE meeting_id=? AND lang=?', [(int) $id, $lang]); return ['ok' => true, 'langs' => flier_langs((int) $id)]; }
   q('REPLACE INTO meeting_flier_texts (meeting_id,lang,headline,body,source,updated_at) VALUES (?,?,?,?,?,?)', [(int) $id, $lang, $head, $text, 'hq', now()]);
+  flier_drop_renders((int) $id, $lang);
   return ['ok' => true, 'langs' => flier_langs((int) $id)];
 });
 route('POST', '/meetings/(\d+)/flier/translate', function ($id) {
@@ -58,12 +62,12 @@ route('POST', '/meetings/(\d+)/flier/translate', function ($id) {
 route('GET', '/meetings/(\d+)/replies', function ($id) {
   $u = require_user(); $m = meeting_get((int) $id); meeting_host($u, $m);
   [$w, $p] = meeting_invited_sql($m);
-  $people = rows("SELECT u.id, u.first_name, u.last_name, u.has_photo, u.state_region, u.country_code, u.designation, mr.answer, mr.answered_at FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id
-                  LEFT JOIN meeting_rsvps mr ON mr.meeting_id=? AND mr.user_id=u.id WHERE u.status='active' AND u.id<>? AND ($w) ORDER BY (mr.answer IS NULL), mr.answer='no', mr.answer='maybe', u.first_name, u.last_name LIMIT 2000",
-    array_merge([(int) $id, (int) $m['host_id']], $p));
+  $people = rows("SELECT u.id, u.first_name, u.last_name, u.has_photo, u.state_region, u.country_code, u.designation, mr.answer, mr.answered_at, mj.joined_at FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id
+                  LEFT JOIN meeting_rsvps mr ON mr.meeting_id=? AND mr.user_id=u.id LEFT JOIN meeting_joins mj ON mj.meeting_id=? AND mj.user_id=u.id WHERE u.status='active' AND u.id<>? AND ($w) ORDER BY (mj.joined_at IS NULL), (mr.answer IS NULL), mr.answer='no', mr.answer='maybe', u.first_name, u.last_name LIMIT 2000",
+    array_merge([(int) $id, (int) $id, (int) $m['host_id']], $p));
   $invited = (int) val("SELECT COUNT(*) FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND u.id<>? AND ($w)", array_merge([(int) $m['host_id']], $p));
   $c = ['yes' => 0, 'maybe' => 0, 'no' => 0]; foreach (rows('SELECT answer, COUNT(*) n FROM meeting_rsvps WHERE meeting_id=? GROUP BY answer', [(int) $id]) as $r) $c[$r['answer']] = (int) $r['n'];
-  return ['invited' => $invited, 'counts' => $c, 'no_reply' => max(0, $invited - array_sum($c)), 'people' => $people, 'shown' => count($people)];
+  return ['invited' => $invited, 'counts' => $c, 'no_reply' => max(0, $invited - array_sum($c)), 'joined' => (int) val('SELECT COUNT(*) FROM meeting_joins WHERE meeting_id=?', [(int) $id]), 'people' => $people, 'shown' => count($people)];
 });
 /** Ask the people who have not replied, in the app and by email, with the reply buttons. */
 route('POST', '/meetings/(\d+)/nudge', function ($id) {
@@ -145,4 +149,51 @@ route('POST', '/hq/flier-template', function () {
   media_write('flier/template', $mime, $bin);
   log_activity((int) $me['id'], null, 'flier_template', 'new design ' . $info[0] . 'x' . $info[1]);
   return ['ok' => true] + flier_template();
+});
+
+/* ---- v109.58 ------------------------------------------------------------------------------------------------------ */
+/** The host's browser sends the flier picture it drew for one language (words translated, date, QR code), for the emails. */
+route('POST', '/meetings/(\d+)/flier/render/([a-z]{2})', function ($id, $lang) {
+  $u = require_user(); $m = meeting_get((int) $id); meeting_host($u, $m);
+  if ($lang !== 'en' && !in_array($lang, FLIER_LANGS, true)) fail(422, 'Choose one of the WDOS languages.', 'lang');
+  [$mime, $bin] = flier_check_image((string) (body()['image'] ?? '')); $key = "flier/r{$id}-{$lang}";
+  $o = row('SELECT mime FROM message_photos WHERE image_key=?', [$key]); if ($o) @unlink(media_file($key, (string) $o['mime']));
+  $st = db()->prepare('REPLACE INTO message_photos (image_key,mime,bytes,updated_at) VALUES (?,?,?,?)');
+  $st->bindValue(1, $key); $st->bindValue(2, $mime); $st->bindValue(3, $bin, PDO::PARAM_LOB); $st->bindValue(4, now()); $st->execute();
+  media_write($key, $mime, $bin);
+  return ['ok' => true, 'url' => flier_render_url((int) $id, $lang, false)];
+});
+/** The pictures are ready: send the invitation emails now (once). */
+route('POST', '/meetings/(\d+)/send-invites', function ($id) {
+  $u = require_user(); $m = meeting_get((int) $id); meeting_host($u, $m);
+  $n = meeting_invite_mail((int) $id); after_response(fn() => mail_drain(15));
+  return ['ok' => true, 'emails' => $n];
+});
+/** Join through WDOS from an email: record that she joined, then open the call. */
+route('GET', '/meetings/(\d+)/go', function ($id) {
+  [$ok, $m, $who] = flier_reply_who((int) $id);
+  $to = app_origin() . '/#/meetings/' . (int) $id;
+  if ($ok && $m['status'] === 'scheduled') {
+    try { q('INSERT INTO meeting_joins (meeting_id,user_id,joined_at) VALUES (?,?,?)', [(int) $id, (int) $who['id'], now()]); } catch (PDOException $e) { /* already recorded */ }
+    if (preg_match('#https://\S+#i', (string) $m['location'], $lm)) $to = rtrim($lm[0], '.,)');
+  }
+  header('Cache-Control: no-store'); header('Location: ' . $to, true, 302); exit;
+});
+/** Slides and documents for the meeting. Everyone invited can open them; they go out with the minutes. */
+route('POST', '/meetings/(\d+)/files', function ($id) {
+  $u = require_user(); $m = meeting_get((int) $id); meeting_host($u, $m);
+  $fid = (int) (body()['file_id'] ?? 0); if (!val('SELECT 1 FROM doc_files WHERE id=? AND uploaded_by=?', [$fid, (int) $u['id']])) fail(404, 'That file was not found.', 'not_found');
+  doc_link($fid, 'smeeting', (int) $id, 'document', (int) $u['id']);
+  $told = 0;
+  if ($m['status'] === 'completed') {      // added after the meeting: everyone invited is told
+    $name = (string) val('SELECT name FROM doc_files WHERE id=?', [$fid]);
+    $told = meeting_broadcast($m, 'New document from the meeting: ' . mb_substr($m['title'], 0, 90), 'A document from the meeting was added: ' . $name . '. Open WDOS to download it.', false);
+    after_response(fn() => push_drain(80)); after_response(fn() => mail_drain(15));
+  }
+  return ['ok' => true, 'files' => doc_list('smeeting', (int) $id), 'told' => $told];
+});
+route('POST', '/meetings/(\d+)/files/(\d+)/remove', function ($id, $fid) {
+  $u = require_user(); $m = meeting_get((int) $id); meeting_host($u, $m);
+  q("UPDATE doc_links SET removed_at=? WHERE file_id=? AND owner_type='smeeting' AND owner_id=?", [now(), (int) $fid, (int) $id]);
+  return ['ok' => true, 'files' => doc_list('smeeting', (int) $id)];
 });

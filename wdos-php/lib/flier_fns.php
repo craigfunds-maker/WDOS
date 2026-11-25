@@ -94,12 +94,14 @@ function flier_translate(int $mid, bool $redo = false): array {
     if ($have && ($have['source'] === 'hq' || !$redo)) continue;
     $r = Ai::chat('meeting_flier', 'You translate a WODDI meeting flier into ' . FLIER_LANG_NAMES[$l] . '. WODDI is a women\'s organisation; write warmly and simply for women with little schooling. '
       . 'Keep names of people and places, links, email addresses, phone numbers, dates, times and the words WODDI, WGMN, WNNN and WDOS exactly as they are. '
+      . 'Translate only the words given, faithfully: add nothing, explain nothing, invent no details. A field that is empty stays empty. '
       . 'Answer with JSON only, in this shape: {"headline": "...", "body": "..."}', json_encode(['headline' => $head, 'body' => $body], JSON_UNESCAPED_UNICODE),
       ['class' => 'aggregate', 'max_tokens' => 900]);
     $j = ($r['ok'] ?? false) && preg_match('/\{.*\}/s', (string) $r['text'], $x) ? json_decode($x[0], true) : null;
     if (!is_array($j) || (trim((string) ($j['headline'] ?? '')) === '' && trim((string) ($j['body'] ?? '')) === '')) { $failed[] = $l; $why = (string) ($r['reason'] ?? 'unreadable answer'); continue; }
     q('REPLACE INTO meeting_flier_texts (meeting_id,lang,headline,body,source,updated_at) VALUES (?,?,?,?,?,?)',
-      [$mid, $l, mb_substr(trim((string) ($j['headline'] ?? '')), 0, 250), mb_substr(trim((string) ($j['body'] ?? '')), 0, 6000), 'ai', now()]);
+      // v109.58: what was empty stays empty, so a translation can never carry words HQ did not write (it once invented a whole message)
+      [$mid, $l, $head === '' ? '' : mb_substr(trim((string) ($j['headline'] ?? '')), 0, 250), $body === '' ? '' : mb_substr(trim((string) ($j['body'] ?? '')), 0, 6000), 'ai', now()]);
     $done++;
   }
   return ['done' => $done, 'failed' => $failed, 'reason' => $failed ? $why : ''];
@@ -124,7 +126,11 @@ function flier_mail_block(array $m, array $r): string {
   $lang = flier_lang((string) ($r['lang'] ?? 'en')); $rtl = $lang === 'ar' ? ' dir="rtl"' : '';
   $ts = strtotime($m['starts_at'] . ' UTC'); $out = '<div' . $rtl . '>';
   if ($m['status'] === 'scheduled' && $ts > time()) $out .= '<p style="margin:16px 0 8px"><span style="display:inline-block;background:#7CB518;color:#12210A;font-weight:bold;padding:6px 14px;border-radius:999px">' . htmlspecialchars(flier_countdown($ts, $lang)) . '</span></p>';
-  if (flier_has($m)) {
+  $rendered = flier_has($m) ? (flier_render_url((int) $m['id'], $lang) ?: flier_render_url((int) $m['id'], 'en')) : '';
+  if ($rendered !== '') {      // v109.58: the flier picture made for her language, with the words, the date and the QR code on it
+    $f = flier_text_for($m, $lang);
+    $out .= '<div style="margin:12px 0"><img src="' . htmlspecialchars($rendered) . '" alt="' . htmlspecialchars($f['headline'] ?: $m['title']) . '" style="display:block;width:100%;max-width:560px;height:auto;border:0;border-radius:14px"></div>';
+  } elseif (flier_has($m)) {
     $f = flier_text_for($m, $lang); $img = flier_image_url($m, true);
     $out .= '<div style="border:2px solid #D4006A;border-radius:14px;overflow:hidden;margin:12px 0">'
       . ($img !== '' ? '<img src="' . htmlspecialchars($img) . '" alt="' . htmlspecialchars($f['headline'] ?: $m['title']) . '" style="display:block;width:100%;max-width:560px;height:auto;border:0">' : '')
@@ -138,4 +144,56 @@ function flier_mail_block(array $m, array $r): string {
     $out .= '<p style="margin:16px 0 6px;font-weight:bold">' . htmlspecialchars(flier_word($lang, 'ask')) . '</p><p style="margin:0">' . $b('yes', '#D4006A', '#ffffff') . $b('maybe', '#f1e6ec', '#231019') . $b('no', '#f1e6ec', '#231019') . '</p>';
   }
   return $out . '</div>';
+}
+
+/* ---- v109.58: joining through WDOS, the invitation email, the per-language flier pictures for emails ---------------- */
+/** A link that opens the meeting through WDOS: it records that she joined, then takes her to the call. */
+function flier_join_url(int $mid, int $uid): string { return app_origin() . '/api/meetings/' . $mid . '/go?u=' . $uid . '&s=' . flier_sig($mid, $uid); }
+/** The flier picture made for emails in one language (drawn by the host's browser with the translated words), or ''. */
+function flier_render_url(int $mid, string $lang, bool $absolute = true): string {
+  try { $r = row('SELECT mime, updated_at FROM message_photos WHERE image_key=?', ["flier/r$mid-$lang"]); } catch (PDOException $e) { $r = null; }
+  if (!$r) return '';
+  $u = media_url("flier/r$mid-$lang", $r['mime'], strtotime($r['updated_at'] . ' UTC'));
+  return $absolute ? app_origin() . $u : $u;
+}
+function flier_drop_renders(int $mid, ?string $lang = null): void {
+  foreach (rows('SELECT image_key, mime FROM message_photos WHERE image_key LIKE ?', ["flier/r$mid-" . ($lang ?? '%')]) as $r) flier_drop_image($r['image_key'], $r['mime']);
+}
+/** The picture a phone notification shows for this meeting: the English flier picture, or the uploaded one. */
+function flier_push_image(array $m): string { return flier_render_url((int) $m['id'], 'en') ?: (flier_image_url($m, true)); }
+
+/** The invitation email, once per meeting. With a flier it waits for the flier pictures (or 4 minutes at most). */
+function meeting_invite_mail(int $mid): int {
+  if (!mail_configured() || !claim_send('meet_inv_' . $mid)) return 0;
+  q("DELETE FROM app_settings WHERE k=?", ['meet_inv_wait_' . $mid]);
+  $m = row('SELECT * FROM meetings WHERE id=?', [$mid]); if (!$m || $m['status'] !== 'scheduled') return 0;
+  $host = row('SELECT * FROM users WHERE id=?', [(int) $m['host_id']]); $caller = $host ? meeting_caller($host) : 'WODDI';
+  $s = strtotime($m['starts_at'] . ' UTC'); $e = strtotime($m['ends_at'] . ' UTC'); $loc = (string) $m['location'];
+  $link = preg_match('#https://\S+#i', $loc, $lm) ? rtrim($lm[0], '.,)') : '';
+  $rest = $link ? trim(str_replace($lm[0], '', $loc)) : '';
+  [$w, $p] = meeting_invited_sql($m); $mailed = 0;
+  foreach (rows("SELECT u.id, u.lang, u.email, u.first_name, u.tz, u.country_code FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND u.email<>'' AND u.email NOT LIKE '%@phone.wdos.invalid' AND (u.id=? OR ($w)) LIMIT 3000", array_merge([(int) $m['host_id']], $p)) as $r) {
+    $tz = tz_of($r); $when = tz_when($s, $tz, true, true) . ' to ' . tz_when($e, $tz, false); $go = $link ? flier_join_url($mid, (int) $r['id']) : '';
+    $html = '<p><b>' . htmlspecialchars($caller) . '</b> has called a meeting.</p><table cellpadding="6" style="border-collapse:collapse;font-size:15px">'
+      . '<tr><td style="color:#7a6a72">Meeting</td><td><b>' . htmlspecialchars($m['title']) . '</b></td></tr><tr><td style="color:#7a6a72">When</td><td>' . htmlspecialchars($when) . '</td></tr>'
+      . '<tr><td style="color:#7a6a72">Format</td><td>' . (['virtual' => 'Online', 'in_person' => 'In person', 'hybrid' => 'In person and online'][$m['mode']] ?? 'Online') . '</td></tr><tr><td style="color:#7a6a72">' . ($link ? 'Link' : 'Where') . '</td><td>'
+      . ($link ? '<a href="' . htmlspecialchars($go) . '">' . htmlspecialchars($link) . '</a>' . ($rest !== '' ? '<br>' . htmlspecialchars($rest) : '') : htmlspecialchars($loc)) . '</td></tr></table>'
+      . (trim((string) $m['agenda']) !== '' ? '<p style="margin-top:14px"><b>Agenda</b></p><p style="white-space:pre-wrap">' . nl2br(htmlspecialchars(mb_substr((string) $m['agenda'], 0, 2000))) . '</p>' : '');
+    if (mail_queue($r['email'], $r['first_name'], 'Meeting: ' . mb_substr($m['title'], 0, 150), mail_wrap('Dear ' . $r['first_name'] . ',', $html . flier_mail_block($m, $r), $link ? 'Join the meeting' : 'Open in WDOS', $link ? $go : app_url() . '/#/meetings/' . $mid))) $mailed++;
+  }
+  return $mailed;
+}
+/** What the minutes email says about attendance. */
+function meeting_attendance_html(array $m): string {
+  $id = (int) $m['id']; [$w, $p] = meeting_invited_sql($m);
+  $inv = (int) val("SELECT COUNT(*) FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND u.id<>? AND ($w)", array_merge([(int) $m['host_id']], $p));
+  $yes = (int) val("SELECT COUNT(*) FROM meeting_rsvps WHERE meeting_id=? AND answer='yes'", [$id]);
+  $joined = (int) val('SELECT COUNT(*) FROM meeting_joins WHERE meeting_id=?', [$id]);
+  $present = (int) val("SELECT COUNT(*) FROM meeting_attendance WHERE meeting_id=? AND status='present'", [$id]);
+  $cell = fn($n, $l) => '<td style="padding:10px 14px;background:#fbeef4;border-radius:10px;text-align:center"><div style="font-size:22px;font-weight:bold;color:#D4006A">' . $n . '</div><div style="font-size:12px;color:#7a6a72">' . $l . '</div></td>';
+  return '<p style="margin-top:14px"><b>Attendance</b></p><table cellspacing="6"><tr>' . $cell($inv, 'invited') . $cell($yes, 'said they would attend') . $cell($joined, 'joined through WDOS') . ($present ? $cell($present, 'marked present') : '') . '</tr></table>';
+}
+function meeting_files_html(int $mid): string {
+  $fs = function_exists('doc_list') ? doc_list('smeeting', $mid) : []; if (!$fs) return '';
+  return '<p style="margin-top:14px"><b>Slides and documents</b></p><ul>' . implode('', array_map(fn($f) => '<li>' . htmlspecialchars($f['name']) . '</li>', $fs)) . '</ul><p style="font-size:13px;color:#7a6a72">Open WDOS to download them.</p>';
 }

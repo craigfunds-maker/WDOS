@@ -65,7 +65,7 @@ function push_send(array $sub, string $payload): array {
   $ch = curl_init($sub['endpoint']);
   curl_setopt_array($ch, [
     CURLOPT_POST => true, CURLOPT_POSTFIELDS => $bodyBin, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 12,
-    CURLOPT_HTTPHEADER => ['Content-Type: application/octet-stream', 'Content-Encoding: aes128gcm', 'TTL: 86400', 'Urgency: normal', 'Authorization: ' . vapid_header($sub['endpoint'])],
+    CURLOPT_HTTPHEADER => ['Content-Type: application/octet-stream', 'Content-Encoding: aes128gcm', 'TTL: 86400', 'Urgency: ' . (str_contains($payload, '"urgent":true') ? 'high' : 'normal'), 'Authorization: ' . vapid_header($sub['endpoint'])],
   ]);
   $res = curl_exec($ch); $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE); $err = curl_error($ch); curl_close($ch);
   return [$code, $code >= 200 && $code < 300 ? '' : mb_substr($err ?: (string) $res, 0, 180)];

@@ -31,6 +31,7 @@ chk('the picture is a plain file for emails', any(f.startswith('flier-m'+str(mid
 time.sleep(4)
 chk('the words are translated into seven languages', sql(f"select count(*) from meeting_flier_texts where meeting_id={mid}")=='7', sql(f"select lang from meeting_flier_texts where meeting_id={mid}"))
 chk('in French for the French reader', sql(f"select headline from meeting_flier_texts where meeting_id={mid} and lang='fr'")=='[French] Leaders Forum 2026')
+hq.post(B+f'/meetings/{mid}/send-invites',json={}); time.sleep(2)   # v109.58: with a flier, the invitations wait for the host's browser (or 4 minutes)
 mail=mailhtml('amara.leader@example.org','Meeting: Leaders forum')
 chk('her email carries the flier in French', '[French] Leaders Forum 2026' in mail and 'flier-m' in mail, mail[:300])
 chk('her email counts down in French', 'J-5' in mail or 'J-4' in mail, re.findall(r'J-\d|days to go',mail))

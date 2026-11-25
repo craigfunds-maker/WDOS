@@ -4466,5 +4466,21 @@
 "Every flier WDOS makes now uses this design.": "Cada folheto que o WDOS cria usa agora este design.",
 "Flier design": "Design do folheto",
 "Upload a flier design": "Carregar um design de folheto",
-"The background for every flier WDOS makes. Design it in Canva at 1080 by 1350 pixels (portrait), keep the left side calm for the words and the bottom right corner clear for the QR code, and upload it here.": "O fundo de cada folheto que o WDOS cria. Desenhe-o no Canva com 1080 x 1350 píxeis (vertical), mantenha o lado esquerdo calmo para o texto e o canto inferior direito livre para o código QR, e carregue-o aqui."
+"The background for every flier WDOS makes. Design it in Canva at 1080 by 1350 pixels (portrait), keep the left side calm for the words and the bottom right corner clear for the QR code, and upload it here.": "O fundo de cada folheto que o WDOS cria. Desenhe-o no Canva com 1080 x 1350 píxeis (vertical), mantenha o lado esquerdo calmo para o texto e o canto inferior direito livre para o código QR, e carregue-o aqui.",
+"Join through WDOS": "Entrar pelo WDOS",
+"Joined through WDOS": "Entraram pelo WDOS",
+"Translating the flier…": "A traduzir o folheto…",
+"Making the flier in {1}…": "A criar o folheto em {1}…",
+"Sending the invitations…": "A enviar os convites…",
+"The emails go out as soon as the flier is ready in each language.": "Os e-mails seguem assim que o folheto estiver pronto em cada língua.",
+"Invitations sent": "Convites enviados",
+"Each person gets the flier in her own language.": "Cada pessoa recebe o folheto na sua própria língua.",
+"The emails will go out shortly": "Os e-mails seguirão em breve",
+"Making the flier for the emails…": "A criar o folheto para os e-mails…",
+"Slides and documents": "Diapositivos e documentos",
+"Add the slides before or after the meeting. They go to everyone invited with the minutes.": "Adicione os diapositivos antes ou depois da reunião. Seguem para todas as convidadas com a ata.",
+"No slides yet.": "Ainda sem diapositivos.",
+"Add slides or a document": "Adicionar diapositivos ou um documento",
+"{1} people told.": "{1} pessoas avisadas.",
+"Original picture": "Imagem original"
 }

@@ -140,6 +140,7 @@ function doc_can(array $u, int $fileId): bool {
     if ($l['owner_type'] === 'report' && ($r = row('SELECT * FROM report_instances WHERE id=?', [(int) $l['owner_id']]))) { $rt = rp_rights($u, $r); if ($rt['view'] || $rt['review']) return true; }
     if ($l['owner_type'] === 'meeting' && ($mm = row('SELECT * FROM meeting_requests WHERE id=?', [(int) $l['owner_id']])) && (mr_role($u, $mm) !== '' || in_array((int) $u['id'], mr_attended($mm), true))) return true;
     if ($l['owner_type'] === 'task' && ($t = row(TASK_SELECT . ' WHERE t.id=?', [(int) $l['owner_id']]))) { if ((int) $t['assignee_id'] === (int) $u['id'] || task_can_manage($u, $t)) return true; }
+    if ($l['owner_type'] === 'smeeting' && ($sm = row('SELECT * FROM meetings WHERE id=?', [(int) $l['owner_id']])) && meeting_is_invited($u, $sm)) return true;      // v109.58: slides of a scheduled meeting
     if ($l['owner_type'] === 'room' && function_exists('rm_file_ok') && rm_file_ok($u, (int) $l['owner_id'])) return true;      // v109.47: shared in a region chat or forum
   }
   return false;

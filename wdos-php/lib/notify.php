@@ -65,7 +65,8 @@ function notify_many(string $whereSql, array $params, string $kind, string $titl
   $count = q("INSERT INTO notifications (user_id,kind,title,body,url,created_at)
               SELECT u.id, ?, ?, ?, ?, ? FROM users u WHERE u.status='active' AND ($whereSql) AND $optOutApp",
     array_merge([$kind, $t, $b, $url, $n], $params, [$kind]))->rowCount();
-  $payload = json_encode(['title' => mb_substr($title, 0, 110), 'body' => mb_substr($body, 0, 240), 'url' => $url, 'kind' => $kind], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+  // v109.58: a meeting push is urgent: it stays on the screen until she acts, with the flier picture when there is one
+  $payload = json_encode(['title' => mb_substr($title, 0, 110), 'body' => mb_substr($body, 0, 240), 'url' => $url, 'kind' => $kind] + ($kind === 'meeting' ? ['urgent' => true, 'image' => (string) ($GLOBALS['wdos_push_image'] ?? '') ?: null, 'id' => 'm' . substr(md5($url), 0, 10)] : []), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
   q("INSERT INTO push_outbox (subscription_id,payload,created_at)
      SELECT ps.id, ?, ? FROM push_subscriptions ps JOIN users u ON u.id=ps.user_id WHERE u.status='active' AND ($whereSql) AND $optOutPush",
     array_merge([$payload, $n], $params, [$kind]));

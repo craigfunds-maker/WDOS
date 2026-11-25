@@ -3,7 +3,8 @@ import { h, t, icon, avatar, card, sk, empty, fmt, toast, input, field, tabs, ne
 import { api } from '../api.js';
 import { taskRow, peoplePicker } from './tasks.js';
 import { whenMine, zonedToUtc, utcToZoned, timeIn, myTz, TZ_CHOICES, TZ_PREVIEW, offsetText } from '../tz.js';
-import { flierView, shrinkImage, bigCountdown, flierTemplate } from '../flier.js';
+import { flierView, shrinkImage, bigCountdown, flierTemplate, renderEmailFliers } from '../flier.js';
+import { uploadButton, docList } from '../files.js';
 import { i18n } from '../ui.js';
 
 const when = (s) => new Date(s.replace(' ', 'T') + 'Z');
@@ -100,7 +101,11 @@ export function newForm(r, done, opts = {}) {
   const save = h('button', { class: 'btn', type: 'button', onclick: async () => { err.textContent = ''; save.disabled = true;
     try { const iso = (v) => v ? zonedToUtc(v, tzSel.value).toISOString() : ''; const x = await api('/meetings', { title: title.value, mode: mode.value, location: loc.value, starts_at: iso(start.value), ends_at: iso(end.value), audiences: [...ticked, ...(chosen.size && peopleKey ? [peopleKey] : [])], invitees: [...chosen.keys()], agenda: agenda.value, kind: kind.value, country_id: isHq ? Number(country.value) || 0 : 0,
         flier_image: flierImg, flier_headline: fHead.value.trim() || (flierImg || fText.value.trim() ? title.value.trim() : ''), flier_text: fText.value.trim() });
-      toast('Meeting scheduled', tf('{1} people notified in the app and by push.', fmt(x.invited)) + (x.mail_on ? tf(' {1} emails are being sent.', fmt(x.emails)) : ' Emails are not set up on the server yet.'), 'ok'); done(); } catch (e) { err.textContent = e.message; save.disabled = false; } } }, 'Schedule');
+      toast('Meeting scheduled', tf('{1} people notified in the app and by push.', fmt(x.invited)) + (x.mail_on ? (x.emails_held ? ' ' + t('The emails go out as soon as the flier is ready in each language.') : tf(' {1} emails are being sent.', fmt(x.emails))) : ' Emails are not set up on the server yet.'), 'ok');
+      /* v109.58: with a flier, this browser draws it in each language for the emails, then sends the invitations (the server sends them after 4 minutes anyway) */
+      if (x.emails_held) { const nets = new Set([...ticked].map((k) => k.split(':')[1])); const fm = { ...formMeeting(), id: x.id, network: nets.size === 1 ? [...nets][0] : 'ALL', link: /^https?:\/\//.test(loc.value.trim()) ? loc.value.trim() : '' };
+        try { await renderEmailFliers(x.id, fm, (msg) => { save.textContent = msg; }, { send: true }); toast(t('Invitations sent'), t('Each person gets the flier in her own language.'), 'ok'); } catch (e2) { toast(t('The emails will go out shortly'), e2.message, 'info'); } }
+      done(); } catch (e) { err.textContent = e.message; save.disabled = false; save.textContent = t('Schedule'); } } }, 'Schedule');
   return card('Schedule a meeting', 'Choose the time zone you are typing the time in. Each person invited sees the meeting in their own time.', h('div', { style: 'display:grid;gap:14px' }, field('Title', title), h('div', { class: 'grid2' }, field('Meeting or talk show?', kind), field('Starts', start), field('Ends', end), field('Time zone of these times', tzSel), field('Format', mode), isHq ? field('Country', country) : null), elsewhere, h('div', { class: 'field' }, h('span', { text: t('Who is invited?') }), aud, audCount), pickBox,
     h('label', { class: 'field' }, h('span', { text: 'Location or link' }), loc, locHint),
     h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap;align-items:center' }, meetBtn, h('small', { class: 'muted', style: 'flex:1;min-width:220px', text: 'This does not start a call now. Google Calendar opens a new event at the time above: tap Add Google Meet video conferencing, save it, then copy the Meet link and paste it above. In the call, people can turn on captions and choose their own language for translated speech.' })),
@@ -129,7 +134,12 @@ async function detail(root, id) {
       m.minutes ? h('div', {}, h('b', { text: 'Minutes' }), h('p', { style: 'white-space:pre-wrap;margin:6px 0 0' }, linkify(m.minutes))) : null,
       d.my_mark ? h('p', { class: 'muted', text: 'Your attendance: ' + (d.my_mark === 'present' ? 'Present' : 'Absent') }) : null)));
     if (d.flier) parts.push(card('Flier', d.flier.lang !== i18n.lang && i18n.lang !== 'en' ? t('The translation into your language is being prepared. Here are the words as written.') : null, flierView(m, d.flier)));
-    if (d.host && m.status === 'scheduled') parts.push(flierAdmin(id, m, load), whoWillAttend(id, m, d.replies));
+    if (d.host && m.status !== 'cancelled') parts.push(whoWillAttend(id, m, d.replies));
+    if (d.host && m.status === 'scheduled') parts.push(flierAdmin(id, m, load));
+    /* v109.58: slides and documents. Everyone invited can open them; they go out with the minutes when the meeting is closed. */
+    if ((d.files && d.files.length) || d.host) parts.push(card('Slides and documents', d.host ? t('Add the slides before or after the meeting. They go to everyone invited with the minutes.') : null,
+      h('div', { style: 'display:grid;gap:12px' }, docList(d.files || [], { emptyText: t('No slides yet.'), canRemove: () => d.host, onRemove: async (f) => { await api(`/meetings/${id}/files/${f.id}/remove`, {}); load(); } }),
+        d.host ? uploadButton(t('Add slides or a document'), '', async (file) => { const x = await api(`/meetings/${id}/files`, { file_id: file.id }); toast(t('Added'), x.told ? tf('{1} people told.', fmt(x.told)) : '', 'ok'); load(); }) : null)));
     if (d.tasks.length) parts.push(card('Actions from this meeting', 'Each action is a task with its own owner and status.', h('div', { class: 'list' }, d.tasks.map((t) => taskRow(t)))));
     if (d.host && m.status !== 'cancelled') {
       const marks = {}; d.people.forEach((p) => { marks[p.id] = p.mark || ''; }); let dirty = false;
@@ -178,7 +188,8 @@ function flierAdmin(id, m, reload) {
     const head = input({ maxlength: 190 }); head.value = d.headline; const text = h('textarea', { class: 'input', rows: 4, maxlength: 6000 }); text.value = d.text;
     const saveBtn = h('button', { class: 'btn btn--s', type: 'button', onclick: async () => { fErr.textContent = ''; saveBtn.disabled = true;
       try { const x = await api(`/meetings/${id}/flier`, { image: img, remove_image: removeImg, headline: head.value.trim(), text: text.value.trim() });
-        toast(t('Flier saved'), x.translating ? t('The words are being translated into each language. This takes a minute or two.') : '', 'ok'); reload(); } catch (e) { fErr.textContent = e.message; saveBtn.disabled = false; } } }, t('Save the flier'));
+        toast(t('Flier saved'), x.translating ? t('The words are being translated into each language. This takes a minute or two.') : '', 'ok');
+        saveBtn.textContent = t('Making the flier for the emails…'); try { await renderEmailFliers(id, m, (msg) => { saveBtn.textContent = msg; }); } catch { /* the emails then carry the words without the picture */ } reload(); } catch (e) { fErr.textContent = e.message; saveBtn.disabled = false; } } }, t('Save the flier'));
     const langRows = h('div', { class: 'list' });
     const paintLangs = (langs) => langRows.replaceChildren(...langs.map((l) => { const slot = h('div');
       return h('div', { style: 'display:grid;gap:6px' }, h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, h('b', { class: 'grow', text: t(l.name) }),
@@ -186,7 +197,7 @@ function flierAdmin(id, m, reload) {
         d.leaders_by_lang[l.lang] ? h('small', { class: 'muted', text: tf('{1} invited read this language', d.leaders_by_lang[l.lang]) }) : null,
         h('button', { class: 'btn btn--quiet btn--s', type: 'button', onclick: () => { if (slot.firstChild) { slot.replaceChildren(); return; }
           slot.replaceChildren(editForm(tf('The flier in {1}', t(l.name)), [{ k: 'headline', label: 'Flier headline', value: l.headline || '', max: 250 }, { k: 'text', label: 'Flier message', type: 'textarea', value: l.body || '', max: 6000 }],
-            async (v) => { const x = await api(`/meetings/${id}/flier/langs/${l.lang}`, { headline: v.headline, text: v.text }); toast(t('Saved'), '', 'ok'); paintLangs(x.langs); }, () => slot.replaceChildren())); } }, icon('edit', 16), ' ', t('Check or correct'))), slot); }));
+            async (v) => { const x = await api(`/meetings/${id}/flier/langs/${l.lang}`, { headline: v.headline, text: v.text }); toast(t('Saved'), '', 'ok'); paintLangs(x.langs); renderEmailFliers(id, m).catch(() => {}); }, () => slot.replaceChildren())); } }, icon('edit', 16), ' ', t('Check or correct'))), slot); }));
     paintLangs(d.langs);
     const trBtn = h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: async () => { trBtn.disabled = true; try { const x = await api(`/meetings/${id}/flier/translate`, { redo: true }); paintLangs(x.langs); toast(t('Translated'), x.failed.length ? tf('{1} languages did not translate. Try again later or type them yourself.', x.failed.length) : '', x.failed.length ? 'bad' : 'ok'); } catch (e) { toast(t('Not translated'), e.message, 'bad'); } trBtn.disabled = false; } }, icon('globe', 16), t('Translate now'));
     body.replaceChildren(
@@ -204,20 +215,20 @@ function whoWillAttend(id, m, rc) {
   const sec = card('Who will attend', 'Replies from the app and from the email buttons. Counts change as people reply.', body);
   (async () => {
     let d; try { d = await api(`/meetings/${id}/replies`); } catch (e) { body.replaceChildren(h('p', { class: 'err', text: e.message })); return; }
-    let tab = 'yes'; const list = h('div', { class: 'list' }); const tabsRow = h('div', { class: 'seg' });
-    const groups = { yes: (p) => p.answer === 'yes', maybe: (p) => p.answer === 'maybe', no: (p) => p.answer === 'no', none: (p) => !p.answer };
-    const NAMES = { yes: 'Will attend', maybe: 'Maybe', no: 'Cannot attend', none: 'No reply yet' };
-    const num = { yes: d.counts.yes, maybe: d.counts.maybe, no: d.counts.no, none: d.no_reply };
+    let tab = m.status === 'scheduled' && Date.now() < new Date(String(m.starts_at).replace(' ', 'T') + 'Z').getTime() ? 'yes' : 'joined'; const list = h('div', { class: 'list' }); const tabsRow = h('div', { class: 'seg' });
+    const groups = { joined: (p) => !!p.joined_at, yes: (p) => p.answer === 'yes', maybe: (p) => p.answer === 'maybe', no: (p) => p.answer === 'no', none: (p) => !p.answer };
+    const NAMES = { joined: 'Joined through WDOS', yes: 'Will attend', maybe: 'Maybe', no: 'Cannot attend', none: 'No reply yet' };
+    const num = { joined: d.joined || 0, yes: d.counts.yes, maybe: d.counts.maybe, no: d.counts.no, none: d.no_reply };
     const paint = () => { tabsRow.replaceChildren(...Object.keys(groups).map((k) => h('button', { type: 'button', 'aria-pressed': String(k === tab), onclick: () => { tab = k; paint(); } }, `${t(NAMES[k])} (${fmt(num[k])})`)));
       const ps = d.people.filter(groups[tab]);
       list.replaceChildren(...(ps.length ? ps.slice(0, 500).map((p) => h('div', {}, avatar(p, 34), h('div', { class: 'grow' }, h('b', { text: `${p.first_name} ${p.last_name}` }), h('small', { text: [p.designation, p.state_region].filter(Boolean).join(' · ') })))) : [h('p', { class: 'muted', text: t('Nobody here yet.') })])); };
-    const csv = () => { const rows = [['Name', 'Designation', 'State or region', 'Country', 'Reply']].concat(d.people.map((p) => [`${p.first_name} ${p.last_name}`, p.designation || '', p.state_region || '', p.country_code || '', p.answer || 'no reply']));
+    const csv = () => { const rows = [['Name', 'Designation', 'State or region', 'Country', 'Reply', 'Joined through WDOS']].concat(d.people.map((p) => [`${p.first_name} ${p.last_name}`, p.designation || '', p.state_region || '', p.country_code || '', p.answer || 'no reply', p.joined_at || '']));
       const blob = new Blob([rows.map((r) => r.map((v) => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n')], { type: 'text/csv' }); const a = h('a', { href: URL.createObjectURL(blob), download: 'meeting-' + id + '-replies.csv' }); document.body.append(a); a.click(); a.remove(); };
     const nudge = h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: async () => { nudge.disabled = true; try { const x = await api(`/meetings/${id}/nudge`, {}); toast(t('Asked'), tf('{1} people asked in the app.', fmt(x.asked)) + (x.emails ? ' ' + tf('{1} emails are being sent.', fmt(x.emails)) : ''), 'ok'); } catch (e) { toast(t('Not sent'), e.message, 'bad'); nudge.disabled = false; } } }, icon('bell', 16), t('Ask those who have not replied'));
     body.replaceChildren(
-      h('div', { class: 'row row--4' }, [['yes', 'Will attend'], ['maybe', 'Maybe'], ['no', 'Cannot attend'], ['none', 'No reply yet']].map(([k, l]) => h('div', { class: 'card kpi' }, h('div', { class: 'kpi__label' }, h('span', { text: t(l) })), h('div', { class: 'kpi__value num', text: fmt(num[k]) })))),
+      h('div', { class: 'row row--4' }, [['joined', 'Joined through WDOS'], ['yes', 'Will attend'], ['maybe', 'Maybe'], ['no', 'Cannot attend'], ['none', 'No reply yet']].map(([k, l]) => h('div', { class: 'card kpi' }, h('div', { class: 'kpi__label' }, h('span', { text: t(l) })), h('div', { class: 'kpi__value num', text: fmt(num[k]) })))),
       h('small', { class: 'muted', text: tf('{1} invited', fmt(d.invited)) + (d.invited > d.shown ? ' · ' + tf('showing the first {1}', fmt(d.shown)) : '') }),
-      h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' }, d.no_reply ? nudge : null, h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: csv }, icon('download', 16), t('Download the list'))),
+      h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' }, d.no_reply && m.status === 'scheduled' ? nudge : null, h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: csv }, icon('download', 16), t('Download the list'))),
       tabsRow, list);
     paint();
   })();
