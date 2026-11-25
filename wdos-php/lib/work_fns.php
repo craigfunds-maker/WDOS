@@ -135,8 +135,8 @@ function meeting_broadcast(array $m, string $title, string|callable $body, bool 
   if (mail_configured()) {
     $link = preg_match('#https://\S+#i', (string) $m['location'], $lm) ? rtrim($lm[0], '.,)') : '';
     $at = strtotime($m['starts_at'] . ' UTC');
-    foreach (rows("SELECT u.email, u.first_name, u.tz, u.country_code FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND u.email<>'' AND u.email NOT LIKE '%@phone.wdos.invalid' AND (u.id=? OR ($w)) LIMIT 2000", array_merge([(int) $m['host_id']], $p)) as $r) {
-      $tz = tz_of($r); $html = '<p>' . htmlspecialchars($bf($tz)) . '</p><p><b>' . htmlspecialchars($m['title']) . '</b><br>' . htmlspecialchars(tz_when($at, $tz, true, true)) . '</p>' . $extraHtml;
+    foreach (rows("SELECT u.id, u.lang, u.email, u.first_name, u.tz, u.country_code FROM users u LEFT JOIN org_units ou ON ou.id=u.org_unit_id WHERE u.status='active' AND u.email<>'' AND u.email NOT LIKE '%@phone.wdos.invalid' AND (u.id=? OR ($w)) LIMIT 2000", array_merge([(int) $m['host_id']], $p)) as $r) {
+      $tz = tz_of($r); $html = '<p>' . htmlspecialchars($bf($tz)) . '</p><p><b>' . htmlspecialchars($m['title']) . '</b><br>' . htmlspecialchars(tz_when($at, $tz, true, true)) . '</p>' . $extraHtml . (function_exists('flier_mail_block') ? flier_mail_block($m, $r) : '');
       mail_queue($r['email'], $r['first_name'], mb_substr($title, 0, 150), mail_wrap('Dear ' . $r['first_name'] . ',', $html, $link && $m['status'] === 'scheduled' ? 'Join the meeting' : 'Open in WDOS', $link && $m['status'] === 'scheduled' ? $link : app_url() . '/#/meetings/' . (int) $m['id']));
     }
   }
@@ -170,13 +170,16 @@ function work_automations(array &$done): void {
       });
       if ($r !== null) $done['task_due'] = $r;
     }
-    // meeting reminders: the day before, one hour before, and as it starts. Each goes out once, in the app, by push and by email.
-    foreach (rows("SELECT m.*, h.first_name h_first, h.last_name h_last FROM meetings m JOIN users h ON h.id=m.host_id WHERE m.status='scheduled' AND m.starts_at>? AND m.starts_at<=?", [gmdate('Y-m-d H:i:s', time() - 600), gmdate('Y-m-d H:i:s', time() + 86400)]) as $m) {
+    // meeting reminders: a week before and three days before (v109.56, the countdown), the day before, one hour before, and as
+    // it starts. Each goes out once, in the app, by push and by email; the email carries the flier and the reply buttons.
+    foreach (rows("SELECT m.*, h.first_name h_first, h.last_name h_last FROM meetings m JOIN users h ON h.id=m.host_id WHERE m.status='scheduled' AND m.starts_at>? AND m.starts_at<=?", [gmdate('Y-m-d H:i:s', time() - 600), gmdate('Y-m-d H:i:s', time() + 7 * 86400)]) as $m) {
       $ts = strtotime($m['starts_at'] . ' UTC'); $in = $ts - time(); $what = $m['mode'] === 'in_person' ? 'address' : 'link';
       // v109.53: the time in each person's own time zone
       if ($in <= 600) { $key = 'meet_now_'; $t = 'Starting now: '; $b = fn($tz) => 'It begins at ' . tz_when($ts, $tz, false) . '. Open WDOS and press Join meeting.'; }
       elseif ($in <= 3600) { $key = 'meet_rem_'; $t = 'Starting soon: '; $b = fn($tz) => 'Begins at ' . tz_when($ts, $tz, false) . ". Open WDOS for the $what."; }
-      elseif ($in > 82800) { $key = 'meet_day_'; $t = 'Tomorrow: '; $b = fn($tz) => 'On ' . tz_when($ts, $tz, true, true) . '. Open WDOS to read the agenda and say if you will attend.'; }
+      elseif ($in > 6 * 86400) { $key = 'meet_wk_'; $t = '7 days to go: '; $b = fn($tz) => 'On ' . tz_when($ts, $tz, true, true) . '. Open WDOS to see the flier and say if you will attend.'; }
+      elseif ($in > 2 * 86400 && $in <= 3 * 86400) { $key = 'meet_3d_'; $t = '3 days to go: '; $b = fn($tz) => 'On ' . tz_when($ts, $tz, true, true) . '. Open WDOS to see the flier and say if you will attend.'; }
+      elseif ($in > 82800 && $in <= 86400) { $key = 'meet_day_'; $t = 'Tomorrow: '; $b = fn($tz) => 'On ' . tz_when($ts, $tz, true, true) . '. Open WDOS to read the agenda and say if you will attend.'; }
       else continue;
       if (!claim_send($key . $m['id'])) continue;
       $n = meeting_broadcast($m, $t . mb_substr($m['title'], 0, 120), $b, true);

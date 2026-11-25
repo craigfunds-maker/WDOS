@@ -944,3 +944,25 @@ a,button,label,select,input,textarea,summary,[role=button]{touch-action:manipula
 .audpick .check input{width:20px;height:20px;accent-color:#D4006A;flex:none}
 .audpick .check:has(input:checked){border-color:#D4006A;background:rgba(212,0,106,.10)}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+/* v109.56: meeting fliers and the dashboard countdown */
+.flier{display:grid;gap:10px;justify-items:start}
+.flier__img{display:block;width:100%;max-width:520px;height:auto;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.flier__words{max-width:520px;padding:12px 14px;border-inline-start:4px solid #D4006A;background:rgba(212,0,106,.08);border-radius:10px}
+.flier__words p{margin:6px 0 0;white-space:pre-wrap}
+.flier-prev{max-width:360px}
+.flierform summary{cursor:pointer;list-style:none;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.cdcards{display:grid;gap:18px}
+.cdcard{border:2px solid #D4006A;background:linear-gradient(135deg,rgba(212,0,106,.16),rgba(124,181,24,.08))}
+.cdcard__body{display:grid;grid-template-columns:minmax(150px,240px) 1fr;gap:20px;align-items:start}
+.cdcard__main{display:grid;gap:10px;min-width:0}
+.cdcard__main h2{margin:0;font-size:24px;line-height:1.2}
+.cdcard__kicker{color:#7CB518;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+@media (max-width:640px){.cdcard__body{grid-template-columns:1fr}.cdcard__flier{max-width:260px}}
+.cdown{display:flex;gap:8px;flex-wrap:wrap}
+.cdown__cell{min-width:68px;padding:8px 10px;border-radius:12px;background:#D4006A;color:#fff;text-align:center;display:grid}
+.cdown__cell b{font-size:26px;font-variant-numeric:tabular-nums;line-height:1.1}
+.cdown__cell small{font-size:12px;opacity:.9}
+.cdown__live{display:inline-block;padding:8px 14px;border-radius:999px;background:#7CB518;color:#12210A}
+.reply{display:grid;gap:8px}.reply__btns{display:flex;gap:8px;flex-wrap:wrap}
+.reply__btns .btn{min-height:44px}
+.flier img.flier__img{max-width:min(520px,100%)}

@@ -10,6 +10,7 @@ require __DIR__ . '/../lib/webauthn.php';
 require __DIR__ . '/../lib/inspire_fns.php';
 require __DIR__ . '/../lib/reporting_fns.php';
 require __DIR__ . '/../lib/work_fns.php';
+require __DIR__ . '/../lib/flier_fns.php';      // v109.56: meeting fliers, their translations, replies from the email
 require __DIR__ . '/../lib/photos.php';
 require __DIR__ . '/../lib/journey_fns.php';
 require __DIR__ . '/../lib/amend_fns.php';
@@ -435,6 +436,7 @@ require __DIR__ . '/../lib/inspire.php';
 require __DIR__ . '/../lib/dashboards.php';
 require __DIR__ . '/../lib/reporting.php';
 require __DIR__ . '/../lib/work.php';
+require __DIR__ . '/../lib/flier.php';
 require __DIR__ . '/../lib/structure.php';
 require __DIR__ . '/../lib/leadmap.php';
 require __DIR__ . '/../lib/rooms.php';        // v109.47: region group chats and forums      // v109.46: the leadership map, seat links, leader files and the leaderboard

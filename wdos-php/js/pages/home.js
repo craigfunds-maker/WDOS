@@ -1,4 +1,5 @@
 /* A member's home: her membership, what is left to set up, and the latest from HQ. */
+import { countdownCard } from '../flier.js';
 import { birthdayAsk } from '../birthday.js';
 import { birthdayCard } from '../bdaycard.js';
 import { photoNudge } from '../photoask.js';
@@ -42,7 +43,7 @@ export async function render(root) {
       h('small', { class: 'muted', text: 'This records your interest. WODDI Headquarters appoints leaders after you are an active member.' }),
       h('div', {}, h('button', { class: 'btn', type: 'button', onclick: async () => { if (vol.value === 'lead' && !role.value) { toast('Choose a role', 'Choose the leadership role you are interested in.', 'bad'); role.focus(); return; } try { await api('/me/volunteer-role', { choice: vol.value === 'lead' ? role.value : vol.value }); await refreshUser(); toast('Your choice has been saved', vol.value ? 'Thank you. WODDI has recorded your choice.' : 'You are recorded as a member.', 'ok'); reload(location.hash); } catch (e) { toast('That did not save', e.message, 'bad'); } } }, 'Save my choice')))));
   }
-  root.append(pushNudge());
+  root.append(countdownCard(), pushNudge());
   if (u.network === 'WGMN' && u.country_code) root.append(goodMotherCard(u.country_code, u.country));
   const today = h('div', { hidden: true }); root.insertBefore(today, root.children[1] || null);   // v109.22: under the greeting, where she sees it first
   api('/inspiration/today?lang=' + document.documentElement.lang).then((r) => { const cs = r.cards && r.cards.length ? r.cards : (r.card ? [r.card] : []); if (cs.length) { today.hidden = false; today.style.cssText = 'display:grid;gap:16px'; cs.forEach((c) => today.append(inspCard(c))); } }).catch(() => {});

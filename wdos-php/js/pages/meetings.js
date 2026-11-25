@@ -3,6 +3,8 @@ import { h, t, icon, avatar, card, sk, empty, fmt, toast, input, field, tabs, ne
 import { api } from '../api.js';
 import { taskRow, peoplePicker } from './tasks.js';
 import { whenMine, zonedToUtc, utcToZoned, timeIn, myTz, TZ_CHOICES, TZ_PREVIEW, offsetText } from '../tz.js';
+import { flierView, shrinkImage, bigCountdown } from '../flier.js';
+import { i18n } from '../ui.js';
 
 const when = (s) => new Date(s.replace(' ', 'T') + 'Z');
 // v109.53: in the phone's own time zone, with the zone named, so a leader in Kenya reads Kenya time
@@ -30,7 +32,8 @@ export async function render(root, params) {
     let r; try { r = await api('/meetings?scope=' + (scope || 'upcoming')); } catch (e) { list.replaceChildren(empty('x', 'Meetings did not load', e.message)); return; }
     tools.replaceChildren(r.can_schedule ? h('button', { class: 'btn', type: 'button', onclick: () => { if (formSlot.firstChild) formSlot.replaceChildren(); else formSlot.replaceChildren(newForm(r, () => { formSlot.replaceChildren(); load(); })); } }, icon('plus', 18), 'Schedule a meeting') : '');
     list.replaceChildren(r.items.length ? h('div', { class: 'list list--stack reveal' }, r.items.map((m) => h('a', { class: 'list__link', href: '#/meetings/' + m.id }, h('div', { class: 'nrow__ico' }, icon('calendar', 18)),
-      h('div', { class: 'grow' }, h('b', {}, m.kind === 'talk_show' ? h('span', { class: 'tag tag--wgmn', style: 'margin-inline-end:8px', text: 'Talk show' }) : null, h('span', { text: m.title })), h('small', { text: tf('{1} · hosted by {2}', fmtWhen(m.starts_at, m.ends_at), m.host) }), m.status === 'scheduled' ? countdown(m) : null), h('div', { class: 'tagrow' }, m.link && m.status === 'scheduled' ? h('span', { class: 'btn btn--quiet btn--s', role: 'link', onclick: (e) => { e.preventDefault(); e.stopPropagation(); window.open(m.link, '_blank', 'noopener'); } }, 'Join') : null, h('span', { class: 'tag', text: MODES[m.mode] }), mTag(m.status)))))
+      h('div', { class: 'grow' }, h('b', {}, m.kind === 'talk_show' ? h('span', { class: 'tag tag--wgmn', style: 'margin-inline-end:8px', text: 'Talk show' }) : null, h('span', { text: m.title })), h('small', { text: tf('{1} · hosted by {2}', fmtWhen(m.starts_at, m.ends_at), m.host) }), m.status === 'scheduled' ? countdown(m) : null), h('div', { class: 'tagrow' }, m.status === 'scheduled' && m.yes ? h('span', { class: 'tag tag--wnnn', text: tf('{1} will attend', fmt(m.yes)) }) : null, m.has_flier ? h('span', { class: 'tag', text: t('Flier') }) : null,
+        m.can_change ? h('span', { onclick: (e) => { e.preventDefault(); e.stopPropagation(); } }, delButton('Delete', async () => { await api(`/meetings/${m.id}/delete`, { confirm: true }); toast(t('Meeting deleted'), '', 'ok'); load(); })) : null, m.link && m.status === 'scheduled' ? h('span', { class: 'btn btn--quiet btn--s', role: 'link', onclick: (e) => { e.preventDefault(); e.stopPropagation(); window.open(m.link, '_blank', 'noopener'); } }, 'Join') : null, h('span', { class: 'tag', text: MODES[m.mode] }), mTag(m.status)))))
       : empty('calendar', 'No meetings here', r.can_schedule ? 'Schedule a meeting and everyone invited is notified in the app and on their phones.' : 'Meetings for your unit will appear here once scheduled.'));
   }
   load();
@@ -79,13 +82,29 @@ export function newForm(r, done, opts = {}) {
     const u = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: title.value || 'WODDI meeting', dates: gcal(s0) + '/' + gcal(e0), details: agenda.value || '', ctz: tzSel.value });
     window.open(u, '_blank', 'noopener');
   } }, icon('link', 16), t('Make a Google Meet link for this time'));
+  /* v109.56: the flier. A picture she uploads, or WDOS makes one from the details and her words (translated for each leader). */
+  let flierImg = ''; const fHead = input({ maxlength: 190, placeholder: t('Headline. Leave empty to use the title') }); const fText = h('textarea', { class: 'input', rows: 4, maxlength: 6000, placeholder: t('A short message for the flier: why to come, who is speaking, what to bring') });
+  const fFile = h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp', class: 'input' }); const fPrev = h('div', { class: 'flier-prev' }); const fErr = h('p', { class: 'err', role: 'alert' });
+  const formMeeting = () => ({ id: 0, title: title.value || t('Meeting'), kind: kind.value, mode: mode.value, location: loc.value, link: /^https?:\/\//.test(loc.value.trim()) ? loc.value.trim() : '',
+    starts_at: start.value ? zonedToUtc(start.value, tzSel.value) : new Date(Date.now() + 86400000), ends_at: end.value ? zonedToUtc(end.value, tzSel.value) : new Date(Date.now() + 90000000) });
+  const preview = () => fPrev.replaceChildren(flierView(formMeeting(), { image: flierImg, headline: fHead.value.trim() || title.value, body: fText.value.trim() }));
+  const rmImg = h('button', { class: 'btn btn--ghost btn--s', type: 'button', hidden: true, onclick: () => { flierImg = ''; fFile.value = ''; rmImg.hidden = true; preview(); } }, t('Remove the picture'));
+  fFile.addEventListener('change', async () => { fErr.textContent = ''; const f = fFile.files[0]; if (!f) return; try { flierImg = await shrinkImage(f); rmImg.hidden = false; preview(); } catch (e) { fErr.textContent = e.message; fFile.value = ''; } });
+  const flierBox = h('details', { class: 'panel flierform' }, h('summary', {}, h('b', { text: t('Flier (optional)') }), ' ', h('small', { class: 'muted', text: t('Upload a flier, or let WDOS make one from the details') })),
+    h('div', { style: 'display:grid;gap:12px;margin-top:12px' },
+      field('Upload a flier picture (optional)', fFile, h('small', { class: 'muted', text: t('JPG, PNG or WebP. WDOS makes it smaller for phones with little data.') })), rmImg, fErr,
+      field('Flier headline', fHead), field('Flier message', fText),
+      h('small', { class: 'muted', text: t('The headline and message are translated into each leader\'s own language. Words inside an uploaded picture cannot be translated, so the translated words show under the picture.') }),
+      h('div', {}, h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: preview }, icon('eye', 16), t('Preview the flier'))), fPrev));
   const save = h('button', { class: 'btn', type: 'button', onclick: async () => { err.textContent = ''; save.disabled = true;
-    try { const iso = (v) => v ? zonedToUtc(v, tzSel.value).toISOString() : ''; const x = await api('/meetings', { title: title.value, mode: mode.value, location: loc.value, starts_at: iso(start.value), ends_at: iso(end.value), audiences: [...ticked, ...(chosen.size && peopleKey ? [peopleKey] : [])], invitees: [...chosen.keys()], agenda: agenda.value, kind: kind.value, country_id: isHq ? Number(country.value) || 0 : 0 });
+    try { const iso = (v) => v ? zonedToUtc(v, tzSel.value).toISOString() : ''; const x = await api('/meetings', { title: title.value, mode: mode.value, location: loc.value, starts_at: iso(start.value), ends_at: iso(end.value), audiences: [...ticked, ...(chosen.size && peopleKey ? [peopleKey] : [])], invitees: [...chosen.keys()], agenda: agenda.value, kind: kind.value, country_id: isHq ? Number(country.value) || 0 : 0,
+        flier_image: flierImg, flier_headline: fHead.value.trim() || (flierImg || fText.value.trim() ? title.value.trim() : ''), flier_text: fText.value.trim() });
       toast('Meeting scheduled', tf('{1} people notified in the app and by push.', fmt(x.invited)) + (x.mail_on ? tf(' {1} emails are being sent.', fmt(x.emails)) : ' Emails are not set up on the server yet.'), 'ok'); done(); } catch (e) { err.textContent = e.message; save.disabled = false; } } }, 'Schedule');
   return card('Schedule a meeting', 'Choose the time zone you are typing the time in. Each person invited sees the meeting in their own time.', h('div', { style: 'display:grid;gap:14px' }, field('Title', title), h('div', { class: 'grid2' }, field('Meeting or talk show?', kind), field('Starts', start), field('Ends', end), field('Time zone of these times', tzSel), field('Format', mode), isHq ? field('Country', country) : null), elsewhere, h('div', { class: 'field' }, h('span', { text: t('Who is invited?') }), aud, audCount), pickBox,
     h('label', { class: 'field' }, h('span', { text: 'Location or link' }), loc, locHint),
     h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap;align-items:center' }, meetBtn, h('small', { class: 'muted', style: 'flex:1;min-width:220px', text: 'This does not start a call now. Google Calendar opens a new event at the time above: tap Add Google Meet video conferencing, save it, then copy the Meet link and paste it above. In the call, people can turn on captions and choose their own language for translated speech.' })),
-    field('Agenda (optional)', agenda), h('small', { class: 'muted', text: 'Everyone invited is told now, reminded the day before, one hour before and as it starts, in the app and on their phones. Emails go out too when email is switched on.' }), err, h('div', {}, save)));
+    field('Agenda (optional)', agenda), flierBox,
+    h('small', { class: 'muted', text: 'Everyone invited is told now, reminded a week before, three days before, the day before, one hour before and as it starts, in the app and on their phones. Emails go out too when email is switched on, with the flier and buttons to say if they will attend.' }), err, h('div', {}, save)));
 }
 async function detail(root, id) {
   const box = h('div', { style: 'display:grid;gap:20px' }, h('div', { class: 'card' }, sk.rows(4))); root.append(h('a', { class: 'btn btn--ghost btn--s', href: '#/meetings', style: 'justify-self:start;margin-bottom:12px' }, 'Back to meetings'), box);
@@ -108,6 +127,8 @@ async function detail(root, id) {
       m.agenda ? h('div', {}, h('b', { text: 'Agenda' }), h('p', { style: 'white-space:pre-wrap;margin:6px 0 0' }, linkify(m.agenda))) : null,
       m.minutes ? h('div', {}, h('b', { text: 'Minutes' }), h('p', { style: 'white-space:pre-wrap;margin:6px 0 0' }, linkify(m.minutes))) : null,
       d.my_mark ? h('p', { class: 'muted', text: 'Your attendance: ' + (d.my_mark === 'present' ? 'Present' : 'Absent') }) : null)));
+    if (d.flier) parts.push(card('Flier', d.flier.lang !== i18n.lang && i18n.lang !== 'en' ? t('The translation into your language is being prepared. Here are the words as written.') : null, flierView(m, d.flier)));
+    if (d.host && m.status === 'scheduled') parts.push(flierAdmin(id, m, load), whoWillAttend(id, m, d.replies));
     if (d.tasks.length) parts.push(card('Actions from this meeting', 'Each action is a task with its own owner and status.', h('div', { class: 'list' }, d.tasks.map((t) => taskRow(t)))));
     if (d.host && m.status !== 'cancelled') {
       const marks = {}; d.people.forEach((p) => { marks[p.id] = p.mark || ''; }); let dirty = false;
@@ -143,4 +164,61 @@ async function detail(root, id) {
     box.replaceChildren(...parts);
   }
   load();
+}
+
+/* v109.56: the host's flier tools: the picture, the words, and each language. */
+function flierAdmin(id, m, reload) {
+  const body = h('div', { style: 'display:grid;gap:14px' }, sk.rows(2));
+  const sec = card('Flier and translations', 'Each leader sees the flier\'s words in her own language, on her dashboard and in her emails.', body);
+  (async () => {
+    let d; try { d = await api(`/meetings/${id}/flier/langs`); } catch (e) { body.replaceChildren(h('p', { class: 'err', text: e.message })); return; }
+    let img = ''; let removeImg = false; const fFile = h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp', class: 'input' }); const fErr = h('p', { class: 'err', role: 'alert' });
+    fFile.addEventListener('change', async () => { fErr.textContent = ''; const f = fFile.files[0]; if (!f) return; try { img = await shrinkImage(f); removeImg = false; } catch (e) { fErr.textContent = e.message; fFile.value = ''; } });
+    const head = input({ maxlength: 190 }); head.value = d.headline; const text = h('textarea', { class: 'input', rows: 4, maxlength: 6000 }); text.value = d.text;
+    const saveBtn = h('button', { class: 'btn btn--s', type: 'button', onclick: async () => { fErr.textContent = ''; saveBtn.disabled = true;
+      try { const x = await api(`/meetings/${id}/flier`, { image: img, remove_image: removeImg, headline: head.value.trim(), text: text.value.trim() });
+        toast(t('Flier saved'), x.translating ? t('The words are being translated into each language. This takes a minute or two.') : '', 'ok'); reload(); } catch (e) { fErr.textContent = e.message; saveBtn.disabled = false; } } }, t('Save the flier'));
+    const langRows = h('div', { class: 'list' });
+    const paintLangs = (langs) => langRows.replaceChildren(...langs.map((l) => { const slot = h('div');
+      return h('div', { style: 'display:grid;gap:6px' }, h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, h('b', { class: 'grow', text: t(l.name) }),
+        h('span', { class: 'tag ' + (l.ready ? 'tag--wnnn' : ''), text: l.ready ? (l.source === 'hq' ? t('Written by HQ') : t('Translated')) : t('Not translated yet') }),
+        d.leaders_by_lang[l.lang] ? h('small', { class: 'muted', text: tf('{1} invited read this language', d.leaders_by_lang[l.lang]) }) : null,
+        h('button', { class: 'btn btn--quiet btn--s', type: 'button', onclick: () => { if (slot.firstChild) { slot.replaceChildren(); return; }
+          slot.replaceChildren(editForm(tf('The flier in {1}', t(l.name)), [{ k: 'headline', label: 'Flier headline', value: l.headline || '', max: 250 }, { k: 'text', label: 'Flier message', type: 'textarea', value: l.body || '', max: 6000 }],
+            async (v) => { const x = await api(`/meetings/${id}/flier/langs/${l.lang}`, { headline: v.headline, text: v.text }); toast(t('Saved'), '', 'ok'); paintLangs(x.langs); }, () => slot.replaceChildren())); } }, icon('edit', 16), ' ', t('Check or correct'))), slot); }));
+    paintLangs(d.langs);
+    const trBtn = h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: async () => { trBtn.disabled = true; try { const x = await api(`/meetings/${id}/flier/translate`, { redo: true }); paintLangs(x.langs); toast(t('Translated'), x.failed.length ? tf('{1} languages did not translate. Try again later or type them yourself.', x.failed.length) : '', x.failed.length ? 'bad' : 'ok'); } catch (e) { toast(t('Not translated'), e.message, 'bad'); } trBtn.disabled = false; } }, icon('globe', 16), t('Translate now'));
+    body.replaceChildren(
+      d.image ? h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, h('img', { src: d.image, alt: '', style: 'width:84px;border-radius:10px' }), h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: (e) => { removeImg = true; img = ''; e.currentTarget.textContent = t('The picture will be removed when you save'); } }, t('Remove the picture'))) : null,
+      field(d.image ? 'Change the flier picture' : 'Upload a flier picture (optional)', fFile), fErr, field('Flier headline', head), field('Flier message', text), h('div', {}, saveBtn),
+      h('hr', { class: 'sep' }), h('div', { style: 'display:flex;gap:10px;align-items:center;flex-wrap:wrap' }, h('b', { class: 'grow', text: t('Languages') }), d.ai_on ? trBtn : null),
+      d.ai_on ? null : h('p', { class: 'muted', text: t('Automatic translation is not set up on this server. Type each language yourself, or ask the IT Lead to switch on an AI lane.') }),
+      d.headline || d.text ? langRows : h('p', { class: 'muted', text: t('Write a headline or message above first. The languages follow.') }));
+  })();
+  return sec;
+}
+/* v109.56: who will attend. The host sees each answer, asks those who have not replied, and downloads the list. */
+function whoWillAttend(id, m, rc) {
+  const body = h('div', { style: 'display:grid;gap:14px' }, sk.rows(2));
+  const sec = card('Who will attend', 'Replies from the app and from the email buttons. Counts change as people reply.', body);
+  (async () => {
+    let d; try { d = await api(`/meetings/${id}/replies`); } catch (e) { body.replaceChildren(h('p', { class: 'err', text: e.message })); return; }
+    let tab = 'yes'; const list = h('div', { class: 'list' }); const tabsRow = h('div', { class: 'seg' });
+    const groups = { yes: (p) => p.answer === 'yes', maybe: (p) => p.answer === 'maybe', no: (p) => p.answer === 'no', none: (p) => !p.answer };
+    const NAMES = { yes: 'Will attend', maybe: 'Maybe', no: 'Cannot attend', none: 'No reply yet' };
+    const num = { yes: d.counts.yes, maybe: d.counts.maybe, no: d.counts.no, none: d.no_reply };
+    const paint = () => { tabsRow.replaceChildren(...Object.keys(groups).map((k) => h('button', { type: 'button', 'aria-pressed': String(k === tab), onclick: () => { tab = k; paint(); } }, `${t(NAMES[k])} (${fmt(num[k])})`)));
+      const ps = d.people.filter(groups[tab]);
+      list.replaceChildren(...(ps.length ? ps.slice(0, 500).map((p) => h('div', {}, avatar(p, 34), h('div', { class: 'grow' }, h('b', { text: `${p.first_name} ${p.last_name}` }), h('small', { text: [p.designation, p.state_region].filter(Boolean).join(' · ') })))) : [h('p', { class: 'muted', text: t('Nobody here yet.') })])); };
+    const csv = () => { const rows = [['Name', 'Designation', 'State or region', 'Country', 'Reply']].concat(d.people.map((p) => [`${p.first_name} ${p.last_name}`, p.designation || '', p.state_region || '', p.country_code || '', p.answer || 'no reply']));
+      const blob = new Blob([rows.map((r) => r.map((v) => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n')], { type: 'text/csv' }); const a = h('a', { href: URL.createObjectURL(blob), download: 'meeting-' + id + '-replies.csv' }); document.body.append(a); a.click(); a.remove(); };
+    const nudge = h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: async () => { nudge.disabled = true; try { const x = await api(`/meetings/${id}/nudge`, {}); toast(t('Asked'), tf('{1} people asked in the app.', fmt(x.asked)) + (x.emails ? ' ' + tf('{1} emails are being sent.', fmt(x.emails)) : ''), 'ok'); } catch (e) { toast(t('Not sent'), e.message, 'bad'); nudge.disabled = false; } } }, icon('bell', 16), t('Ask those who have not replied'));
+    body.replaceChildren(
+      h('div', { class: 'row row--4' }, [['yes', 'Will attend'], ['maybe', 'Maybe'], ['no', 'Cannot attend'], ['none', 'No reply yet']].map(([k, l]) => h('div', { class: 'card kpi' }, h('div', { class: 'kpi__label' }, h('span', { text: t(l) })), h('div', { class: 'kpi__value num', text: fmt(num[k]) })))),
+      h('small', { class: 'muted', text: tf('{1} invited', fmt(d.invited)) + (d.invited > d.shown ? ' · ' + tf('showing the first {1}', fmt(d.shown)) : '') }),
+      h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' }, d.no_reply ? nudge : null, h('button', { class: 'btn btn--ghost btn--s', type: 'button', onclick: csv }, icon('download', 16), t('Download the list'))),
+      tabsRow, list);
+    paint();
+  })();
+  return sec;
 }

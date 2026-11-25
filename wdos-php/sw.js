@@ -1,11 +1,11 @@
 /* WDOS service worker: installable offline shell + push notifications.
  * Bump BUILD with every release. The page reloads itself once per build. */
-const BUILD = 'v109.55';
+const BUILD = 'v109.56';
 const CACHE = 'wdos-' + BUILD;
 const SHELL = ['/', '/index.html', '/manifest.json', '/assets/css/app.css', '/assets/favicon.svg',
   '/assets/fonts/inter-latin-wght-normal.woff2', '/assets/fonts/fraunces-latin-wght-normal.woff2',
   '/assets/logos/woddi.png', '/assets/logos/woddi-disc.png', '/assets/logos/wgmn-disc.png', '/assets/logos/wnnn-disc.png', '/assets/icons/icon-192.png', '/assets/icons/woddi-notify-192.png', '/assets/logos/woddi-email.png',
-  '/js/app.js', '/js/api.js', '/js/ui.js', '/js/charts.js', '/js/install.js', '/js/tz.js', '/assets/icons/apple-touch-icon-180.png',
+  '/js/app.js', '/js/api.js', '/js/ui.js', '/js/charts.js', '/js/install.js', '/js/tz.js', '/js/flier.js', '/assets/icons/apple-touch-icon-180.png',
   '/js/pages/welcome.js', '/js/pages/login.js', '/js/pages/hq.js', '/js/pages/members.js', '/js/pages/announcements.js',
   '/js/pages/leader.js', '/js/pages/home.js', '/js/pages/notifications.js', '/js/pages/settings.js', '/js/pages/reporting.js', '/js/pages/tasks.js', '/js/pages/messages.js', '/js/pages/library.js', '/js/pages/help.js', '/js/pages/voices.js', '/js/pages/staff.js', '/js/pages/cases.js', '/js/pages/calendar.js', '/js/pages/coverage.js', '/js/pages/handoff.js', '/js/pages/journey.js', '/js/pages/community.js', '/js/pages/leadership.js', '/js/pages/reports.js', '/js/pages/communications.js', '/js/pages/institute.js', '/js/pages/integrations.js', '/js/pages/invite.js', '/js/pages/chapter.js', '/js/pages/chapters.js', '/js/pages/rules.js', '/js/pages/meetings.js', '/js/pages/structure.js', '/js/pages/onboarding.js', '/js/pages/referrals.js', '/js/pages/activation.js', '/js/goodmother.js', '/js/goodmother_world.js', '/js/pages/calls.js', '/js/pages/meetreq.js', '/js/pushnudge.js', '/js/pages/inspiration.js'];
 

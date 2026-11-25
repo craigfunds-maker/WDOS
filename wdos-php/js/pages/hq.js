@@ -1,4 +1,5 @@
 /* HQ dashboard. Every figure is a count of real rows; an empty system shows empty states, never sample numbers. */
+import { countdownCard } from '../flier.js';
 import { celebrationsPanel } from '../celebrations.js';
 import { leaderActivityPanel } from '../leaderactivity.js';
 import { h, t, clear, icon, tf, avatar, flag, netTag, card, sk, empty, ago, fmt, greeting, fmtDate } from '../ui.js';
@@ -95,7 +96,7 @@ export async function render(root) {
           h('a', { class: 'list__link', href: '#/hq/activity' }, h('div', { class: 'grow' }, h('b', { text: t("Leaders' activity") }), h('small', { text: t('Tasks, messages, calls, meetings and reports') })), icon('chevright', 16)))))));
   }).catch((e) => glance.replaceChildren(empty('x', 'This did not load', e.message)));
   const actBox = h('div');       // v109.46: the 3-Day and 7-Day activations, by status, with their scores
-  root.append(hero, pushNudge(), kpis, card('Volunteer leaders at a glance', 'Every figure opens the leaders behind it.', glance, legend([{ name: 'WGMN', color: seriesColor.WGMN }, { name: 'WNNN', color: seriesColor.WNNN }])), actBox,
+  root.append(hero, countdownCard(), pushNudge(), kpis, card('Volunteer leaders at a glance', 'Every figure opens the leaders behind it.', glance, legend([{ name: 'WGMN', color: seriesColor.WGMN }, { name: 'WNNN', color: seriesColor.WNNN }])), actBox,
     h('div', { class: 'row row--2-1' }, card('New members', 'Registrations per day, by network', trend, legend([{ name: 'WGMN', color: seriesColor.WGMN }, { name: 'WNNN', color: seriesColor.WNNN }])), card('Network split', 'All members to date', split)),
     card('Meetings', 'Coming up and just held: who was invited, who replied, who opened the link and who attended', meet, h('a', { class: 'btn btn--ghost btn--s', href: '#/meetings', text: 'Schedule or open meetings' })),
     card('Video meeting minutes', 'Minutes, the leaders who attended, documents and recordings sent by volunteer leaders', minutesBox, h('a', { class: 'btn btn--ghost btn--s', href: '#/meetings/requests', text: 'All video meetings' })),
